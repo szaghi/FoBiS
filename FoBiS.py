@@ -34,7 +34,7 @@ buildparser.add_argument('-dobj',help='Directory containing compiled objects [de
 buildparser.add_argument('-dmod',help='Directory containing .mod files of compiled objects [default: ./mod/]',required=False,action='store',default='./mod/')
 buildparser.add_argument('-dexe',help='Directory containing executable objects [default: ./]',required=False,action='store',default='./')
 buildparser.add_argument('-src',help='Root-directory of source files',required=True,action='store')
-cleanparser = clisubparsers.add_parser('clean',help='Clean project')
+cleanparser = clisubparsers.add_parser('clean',help='Clean project: completely remove DOBJ and DMOD directories... use carefully')
 cleanparser.set_defaults(which='clean')
 cleanparser.add_argument('-dobj',help='Directory containing compiled objects [default: ./obj/]',required=False,action='store',default='./obj/')
 cleanparser.add_argument('-dmod',help='Directory containing .mod files of compiled objects [default: ./mod/]',required=False,action='store',default='./mod/')

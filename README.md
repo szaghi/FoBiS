@@ -24,6 +24,7 @@ There are a lot of alternatives for deal with inter-module-dependency hierarchy,
 ## Todos
 + Add support for Fortran projects using non-module-contained libraries (a little modification to the present FoBiS.py, but I do not use such a bad-programming-style, thus this feature will be implemented only is someone ask to do);
 + add pre-processing switches support to the CLI;
++ add support for libraries;
 + add MPI and OpenMP support;
 + add IBM, PGI, g95 Fortran Compilers support;
 + ...
@@ -49,8 +50,8 @@ This will echo:
 
         {build,clean}
           build        Build all programs found or a specific target
-          clean        Clean project
-
+          clean        Clean project: completely remove DOBJ and DMOD directories...
+                       use carefully
 
 Printing the _build_ help message:
 
@@ -78,3 +79,34 @@ This will echo:
                               [default: ./mod/]
         -dexe DEXE            Directory containing executable objects [default: ./]
         -src SRC              Root-directory of source files
+
+Printing the _clean_ help message:
+
+      FoBiS.py clean -h
+
+This will echo:
+
+      usage: FoBiS.py clean [-h] [-dobj DOBJ] [-dmod DMOD]
+
+      optional arguments:
+        -h, --help  show this help message and exit
+        -dobj DOBJ  Directory containing compiled objects [default: ./obj/]
+        -dmod DMOD  Directory containing .mod files of compiled objects [default:
+                    ./mod/]
+
+### Compile all programs found
+
+      FoBiS.py bluid -src my_path
+
+FoBiS.py will recursively search for _program_ files into the directories nested into "my\_path". Program files are captured parsing each file found: a file is a _program-file_ if it contains the Fortran statement _program_.
+It is worth noting that the above FoBiS.py call will use the default compilations options.
+
+### Compile a specific target
+
+      FoBiS.py bluid -src my_path -target my_path/my_sub_path/foo.f90
+
+FoBiS.py will recursively search for "my_path/my_sub_path/foo.f90" and for all its dependency files into the directories nested into "my\_path". FoBiS.py will (re-)compile only _foo.f90_ file (independently if it is a program-file or not) and all its dependencies if necessary.
+
+### Compile a specific target with user-defined flags
+
+      FoBiS.py bluid -cflags '-c -cpp -O2' -src my_path -target my_path/my_sub_path/foo.f90
