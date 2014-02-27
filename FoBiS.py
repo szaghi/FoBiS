@@ -40,49 +40,52 @@ cleanparser.add_argument('-dobj',help='Directory containing compiled objects [de
 cleanparser.add_argument('-dmod',help='Directory containing .mod files of compiled objects [default: ./mod/]',required=False,action='store',default='./mod/')
 
 # definition of regular expressions
-str_f95_apex       = r"('|"+r'")'
-str_f95_kw_include = r"[Ii][Nn][Cc][Ll][Uu][Dd][Ee]"
-str_f95_kw_module  = r"[Mm][Oo][Dd][Uu][Ll][Ee]"
-str_f95_kw_program = r"[Pp][Rr][Oo][Gg][Rr][Aa][Mm]"
-str_f95_kw_use     = r"[Uu][Ss][Ee]"
-str_f95_name       = r"(?P<name>[a-zA-Z][a-zA-Z0-9_]*)"
-str_f95_eol        = r"(?P<eol>\s*!.*|\s*)?$"
-str_f95_mod_rename = r"(\s*,\s*[a-zA-Z][a-zA-Z0-9_]*\s*=>\s*[a-zA-Z][a-zA-Z0-9_]*)*"
-str_f95_mod_only   = r"(\s*,\s*[Oo][Nn][Ll][Yy]\s*:\s*([a-zA-Z][a-zA-Z0-9_]*\s*=>\s*[a-zA-Z][a-zA-Z0-9_]*|[a-zA-Z][a-zA-Z0-9_]*))*"
-str_f95_use_mod = (r"^(\s*)"          + # eventual initial white spaces
-                   str_f95_kw_use     + # f95 keyword "use"
-                   r"(\s+)"           + # 1 or more white spaces
-                   str_f95_name       + # f95 construct name
-                   r"(?P<mod_eol>"    +
-                   r"(.*&.*|"         + # eventual splitted scope
-                   str_f95_mod_only   + # f95 only access to module
-                   str_f95_mod_rename + # eventual module entities renaming
-                   str_f95_eol+"))")    # eventual eol white space and or comment
-str_f95_include = (r"^(\s*|\#)"       + # eventual initial white spaces or "#" character
-                   str_f95_kw_include + # f95 keyword "include"
-                   r"(\s+)"           + # 1 or more white spaces
-                   str_f95_apex       + # character "'" or '"'
-                   r"(\s*)"           + # eventaul white spaces
-                   r"(?P<name>.*)"    + # name of included file
-                   r"(\s*)"           + # eventaul white spaces
-                   str_f95_apex       + # character "'" or '"'
-                   str_f95_eol)         # eventual eol white space and or comment
-str_f95_module  = (r"^(\s*)"                               + # eventual initial white spaces
-                   r"(?P<scplevel>"+str_f95_kw_module+r")" + # f95 keyword "module"
-                   r"(\s+)"                                + # 1 or more white spaces
-                   str_f95_name                            + # f95 construct name
-                   str_f95_eol)                              # eventual eol white space and or comment
-str_f95_program = (r"^(\s*)"                                + # eventual initial white spaces
-                   r"(?P<scplevel>"+str_f95_kw_program+r")" + # f95 keyword "program"
-                   r"(\s+)"                                 + # 1 or more white spaces
-                   str_f95_name                             + # f95 construct name
-                   str_f95_eol)                               # eventual eol white space and or comment
-regex_f95_use_mod = re.compile(str_f95_use_mod)
-regex_f95_include = re.compile(str_f95_include)
-regex_f95_program = re.compile(str_f95_program)
-regex_f95_module  = re.compile(str_f95_module)
+str_f95_apex         = r"('|"+r'")'
+str_f95_kw_include   = r"[Ii][Nn][Cc][Ll][Uu][Dd][Ee]"
+str_f95_kw_intrinsic = r"[Ii][Nn][Tt][Rr][Ii][Nn][Ss][Ii][Cc]"
+str_f95_kw_module    = r"[Mm][Oo][Dd][Uu][Ll][Ee]"
+str_f95_kw_program   = r"[Pp][Rr][Oo][Gg][Rr][Aa][Mm]"
+str_f95_kw_use       = r"[Uu][Ss][Ee]"
+str_f95_name         = r"(?P<name>[a-zA-Z][a-zA-Z0-9_]*)"
+str_f95_eol          = r"(?P<eol>\s*!.*|\s*)?$"
+str_f95_mod_rename   = r"(\s*,\s*[a-zA-Z][a-zA-Z0-9_]*\s*=>\s*[a-zA-Z][a-zA-Z0-9_]*)*"
+str_f95_mod_only     = r"(\s*,\s*[Oo][Nn][Ll][Yy]\s*:\s*([a-zA-Z][a-zA-Z0-9_]*\s*=>\s*[a-zA-Z][a-zA-Z0-9_]*|[a-zA-Z][a-zA-Z0-9_]*))*"
+str_f95_use_mod      = (r"^(\s*)"          + # eventual initial white spaces
+                        str_f95_kw_use     + # f95 keyword "use"
+                        r"(\s+)"           + # 1 or more white spaces
+                        str_f95_name       + # f95 construct name
+                        r"(?P<mod_eol>"    +
+                        r"(.*&.*|"         + # eventual splitted scope
+                        str_f95_mod_only   + # f95 only access to module
+                        str_f95_mod_rename + # eventual module entities renaming
+                        str_f95_eol+"))")    # eventual eol white space and or comment
+str_f95_include      = (r"^(\s*|\#)"       + # eventual initial white spaces or "#" character
+                        str_f95_kw_include + # f95 keyword "include"
+                        r"(\s+)"           + # 1 or more white spaces
+                        str_f95_apex       + # character "'" or '"'
+                        r"(\s*)"           + # eventaul white spaces
+                        r"(?P<name>.*)"    + # name of included file
+                        r"(\s*)"           + # eventaul white spaces
+                        str_f95_apex       + # character "'" or '"'
+                        str_f95_eol)         # eventual eol white space and or comment
+str_f95_module       = (r"^(\s*)"                               + # eventual initial white spaces
+                        r"(?P<scplevel>"+str_f95_kw_module+r")" + # f95 keyword "module"
+                        r"(\s+)"                                + # 1 or more white spaces
+                        str_f95_name                            + # f95 construct name
+                        str_f95_eol)                              # eventual eol white space and or comment
+str_f95_program      = (r"^(\s*)"                                + # eventual initial white spaces
+                        r"(?P<scplevel>"+str_f95_kw_program+r")" + # f95 keyword "program"
+                        r"(\s+)"                                 + # 1 or more white spaces
+                        str_f95_name                             + # f95 construct name
+                        str_f95_eol)                               # eventual eol white space and or comment
+str_f95_intrinsic    = (r"(,\s*)"+str_f95_kw_intrinsic+r"(\s+)")
+regex_f95_use_mod    = re.compile(str_f95_use_mod)
+regex_f95_include    = re.compile(str_f95_include)
+regex_f95_program    = re.compile(str_f95_program)
+regex_f95_module     = re.compile(str_f95_module)
+regex_f95_intrinsic  = re.compile(str_f95_intrinsic)
 
-__extensions_parsed__ = [".f",".f90",".f95",".f03",".f08",".f2k",".inc"]
+__extensions_parsed__ = [".f",".F",".for",".FOR",".fpp",".FPP",".fortran",".f77",".F77",".f90",".F90",".f95",".F95",".f03",".F03",".f08",".F08",".f2k",".F2K",".inc",".INC"]
 
 # classes definitions
 class builder:
@@ -184,8 +187,10 @@ class parsed_file:
         self.module_names.append(matching.group('name'))
       matching = re.match(regex_f95_use_mod,line)
       if matching:
-        dep = dependency(dep_type="module",dep_name=matching.group('name'))
-        self.dependencies.append(dep)
+        if not re.match(regex_f95_intrinsic,line):
+          if matching.group('name').lower()!='mpi' and matching.group('name').lower()!='omp_lib':
+            dep = dependency(dep_type="module",dep_name=matching.group('name'))
+            self.dependencies.append(dep)
       matching = re.match(regex_f95_include,line)
       if matching:
         dep = dependency(dep_type="include",dep_name=matching.group('name'))
@@ -281,7 +286,7 @@ def module_is_in(pfiles,module):
   for n,pfile in enumerate(pfiles):
     if pfile.module:
       for module_name in pfile.module_names:
-        if module_name==module:
+        if module_name.lower()==module.lower():
           return pfile.name,n
 def include_is_in(pfiles,include):
   """
