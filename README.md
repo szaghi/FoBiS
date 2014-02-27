@@ -31,4 +31,50 @@ There are a lot of alternatives for deal with inter-module-dependency hierarchy,
 ## Usage
 
 Printing the main help message:
-    FoBiS.py -h
+
+      FoBiS.py -h
+
+This will echo:
+
+      usage: FoBiS.py [-h] [-v] {build,clean} ...
+
+      FoBiS.py, Fortran Building System for poor men
+
+      optional arguments:
+        -h, --help     show this help message and exit
+        -v, --version  Show version
+
+      Commands:
+        Valid commands
+
+        {build,clean}
+          build        Build all programs found or a specific target
+          clean        Clean project
+
+
+Printing the _build_ help message:
+
+      FoBiS.py build -h
+
+This will echo:
+
+      usage: FoBiS.py build [-h] [-target TARGET] [-compiler COMPILER]
+                      [-cflags CFLAGS] [-lflags LFLAGS]
+                      [-libs LIBS [LIBS ...]] [-dobj DOBJ] [-dmod DMOD]
+                      [-dexe DEXE] -src SRC
+
+      optional arguments:
+        -h, --help            show this help message and exit
+        -target TARGET        Build a specific file [default: all programs found]
+        -compiler COMPILER    Compiler used: Intel, GNU, IBM, PGI or g95 [default:
+                              Intel]
+        -cflags CFLAGS        Compilation flags [default: -c -cpp]
+        -lflags LFLAGS        Linking flags
+        -libs LIBS [LIBS ...]
+                              List of external libraries used
+        -dobj DOBJ            Directory containing compiled objects [default:
+                              ./obj/]
+        -dmod DMOD            Directory containing .mod files of compiled objects
+                              [default: ./mod/]
+        -dexe DEXE            Directory containing executable objects [default: ./]
+        -src SRC              Root-directory of source files
