@@ -25,6 +25,7 @@ There are a lot of alternatives for deal with inter-module-dependency hierarchy,
 + Add support for Fortran projects using non-module-contained libraries (a little modification to the present FoBiS.py, but I do not use such a bad-programming-style, thus this feature will be implemented only is someone ask to do);
 + add pre-processing switches support to the CLI;
 + add support for libraries;
++ add support for configuration file (for complex building-configurations);
 + add MPI and OpenMP support;
 + add IBM, PGI, g95 Fortran Compilers support;
 + ...
@@ -110,3 +111,7 @@ FoBiS.py will recursively search for "my_path/my_sub_path/foo.f90" and for all i
 ### Compile a specific target with user-defined flags
 
       FoBiS.py bluid -cflags '-c -cpp -O2' -src my_path -target my_path/my_sub_path/foo.f90
+
+### Clean project tree
+
+      FoBiS.py clean
