@@ -7,28 +7,45 @@ A very simple and stupid tool for automatic building modern Fortran project.
 
 GNU Make, CMake, SCons & Co. are fantastic tools, even too much for a _poor-fortran-man_.
 However, the support for modern Fortran project is still poor: in particular, it is quite difficult (and boring) to track the inter-module-dependency hierarchy of project using many module files.
-Modern Fortran programs can take great advantages of module using, however their compilations can become quickly a nightmare as the number of module grows. As consequence, an automatic building system able to track (on the fly) any changes on the inter-module-dependency hierarchy can save the life of a _poor-fortran-man_.
+Modern Fortran programs can take great advantages of module using, however their compilations can become quickly a nightmare as the number of modules grows. As consequence, an automatic building system able to track (on the fly) any changes on the inter-module-dependency hierarchy can save the life of a _poor-fortran-man_.
 
 ## Why not use an auto-make-like tool?
 
 There are a lot of alternatives for deal with inter-module-dependency hierarchy, but they can be viewed as a pre-processor for the actual building system (such as auto-make tools or even the Fortran compiler itself that, in most cases, can generate a dependency list of a processed file), thus they introduce another level of complexity... but a _poor-fortran-man_ always loves the KISS (Keep It Simple, Stupid) things! FoBiS.py is designed to do just one thing: build a modern Fortran program without boring you to specify a particular compilation hierarchy.
 
+## OK, what can FoBiS.py do? I am a _poor-fortran-man_, I do not understand you...
+
+Suppose you have a Fortran project composed of many Fortran modules placed into a complicated nested directories tree. Your goal is to build some (all) of the main programs contained into the project tree, but you have no time (or patience) to write the complicated makefile(s) able to correctly build your programs. In this case FoBiS.py can save your life: just type _python FoBiS.py build_ into the root of your project and FoBis.py will (try to) build all the main programs nested into the current directory. Obviously, FoBiS.py will not (re-)compile unnecessary objects if they are up-to-date (like the "magic" of a makefile). FoBiS.py have many (ok... some) others interesting features: if I have convinced you, please read the following.
+
 ## Features
 + Automatic parsing of files for dependency-hierarchy creation in case of _use_ and _include_ statements;
-+ automatic building of all _programs_ found into the root directory parsed;
++ automatic building of all _programs_ found into the root directory parsed or only a specific selected target;
 + avoid unnecessary re-compilation (algorithm based on file-timestamp value);
 + simple command line interface;
 + Intel and GNU Fortran Compilers support;
-+ configuration-files-free.
++ configuration-files-free;
++ easy-extensible: FoBis.py is just a less-than 500 lines of Python statements... no bad for a poor-make-replacement;
++ ...
 
 ## Todos
-+ Add support for Fortran projects using non-module-contained libraries (a little modification to the present FoBiS.py, but I do not use such a bad-programming-style, thus this feature will be implemented only is someone ask to do);
-+ add pre-processing switches support to the CLI;
-+ add support for libraries;
++ Add support for building libraries;
 + add support for configuration file (for complex building-configurations);
-+ add MPI and OpenMP support;
 + add IBM, PGI, g95 Fortran Compilers support;
 + ...
++ GUI... nooooooooooo, we are _poor-fortran-men_!
++ ...
++ pythonic pre-processor;
++ ...
+
+## Requirements
++ Python 2.7+;
++ a lot of patience with the author.
+
+FoBiS.py is developed on a GNU/Linux architecture, and it has been tested also on AIX one. For Windows architecture there is no support, however it should be work out-of-the-box.
+
+## Copyrights
+
+FoBiS.py is an open source project, it is distributed under the [GPL v3](http://www.gnu.org/licenses/gpl-3.0.html). Anyone is interest to use, to develop or to contribute to FoBiS.py is welcome.
 
 ## Usage
 
@@ -60,16 +77,25 @@ Printing the _build_ help message:
 
 This will echo:
 
-      usage: FoBiS.py build [-h] [-target TARGET] [-compiler COMPILER]
-                      [-cflags CFLAGS] [-lflags LFLAGS]
-                      [-libs LIBS [LIBS ...]] [-dobj DOBJ] [-dmod DMOD]
-                      [-dexe DEXE] -src SRC
+
+      usage: FoBiS.py build [-h] [-colors] [-log] [-quiet]
+                            [-exclude EXCLUDE [EXCLUDE ...]] [-target TARGET]
+                            [-compiler COMPILER] [-mpi] [-cflags CFLAGS]
+                            [-lflags LFLAGS] [-libs LIBS [LIBS ...]] [-dobj DOBJ]
+                            [-dmod DMOD] [-dexe DEXE] [-src SRC]
 
       optional arguments:
         -h, --help            show this help message and exit
+        -colors               Activate colors in shell prints [default: no colors]
+        -log                  Activate the creation of a log file [default: no log
+                              file]
+        -quiet                Less verbose than default
+        -exclude EXCLUDE [EXCLUDE ...]
+                              Exclude a list of files from the building process
         -target TARGET        Build a specific file [default: all programs found]
         -compiler COMPILER    Compiler used: Intel, GNU, IBM, PGI or g95 [default:
                               Intel]
+        -mpi                  Use MPI enabled version of compiler
         -cflags CFLAGS        Compilation flags [default: -c -cpp]
         -lflags LFLAGS        Linking flags
         -libs LIBS [LIBS ...]
@@ -79,7 +105,7 @@ This will echo:
         -dmod DMOD            Directory containing .mod files of compiled objects
                               [default: ./mod/]
         -dexe DEXE            Directory containing executable objects [default: ./]
-        -src SRC              Root-directory of source files
+        -src SRC              Root-directory of source files [default: ./]
 
 Printing the _clean_ help message:
 
@@ -87,20 +113,27 @@ Printing the _clean_ help message:
 
 This will echo:
 
-      usage: FoBiS.py clean [-h] [-dobj DOBJ] [-dmod DMOD]
+      usage: FoBiS.py clean [-h] [-colors] [-dobj DOBJ] [-dmod DMOD]
 
       optional arguments:
         -h, --help  show this help message and exit
+        -colors     Activate colors in shell prints [default: no colors]
         -dobj DOBJ  Directory containing compiled objects [default: ./obj/]
         -dmod DMOD  Directory containing .mod files of compiled objects [default:
                     ./mod/]
 
 ### Compile all programs found
 
-      FoBiS.py bluid -src my_path
+      FoBiS.py bluid
 
-FoBiS.py will recursively search for _program_ files into the directories nested into "my\_path". Program files are captured parsing each file found: a file is a _program-file_ if it contains the Fortran statement _program_.
+FoBiS.py will recursively search for _program_ files into the directories nested into "./". Program files are captured parsing each file found: a file is a _program-file_ if it contains the Fortran statement _program_.
 It is worth noting that the above FoBiS.py call will use the default compilations options.
+
+### Compile all programs found excluding some files
+
+      FoBiS.py bluid -exclude foo.f90 bar.f
+
+FoBiS.py will recursively search for _program_ files into the directories nested into "./" and, excluding _foo,f90_ and _bar.f_, all other files will be parsed and, in case, built.
 
 ### Compile a specific target
 
@@ -115,3 +148,9 @@ FoBiS.py will recursively search for "my_path/my_sub_path/foo.f90" and for all i
 ### Clean project tree
 
       FoBiS.py clean
+
+## Tips for non pythonic users
+
+In the example above FoBiS.py is supposed to have the executable permissions, thus it is used without an explicit invocation of the Python interpreter. In general, if FoBiS.py is not set to have executable permissions, it must be executed as:
+
+      python FoBiS.py ...

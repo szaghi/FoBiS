@@ -5,7 +5,6 @@ FoBiS.py, Fortran Building System for poor men
 __appname__ = 'FoBiS.py'
 __version__ ="0.0.1"
 __author__  = 'Stefano Zaghi'
-
 # modules loading
 try:
   import sys,os,time,argparse,shutil
@@ -18,27 +17,31 @@ except:
         The regular expression module 're' not found
         """
   sys.exit(1)
-
 # setting CLI
 cliparser = argparse.ArgumentParser(prog=__appname__,description='FoBiS.py, Fortran Building System for poor men')
 cliparser.add_argument('-v','--version',action='version',help='Show version',version='%(prog)s '+__version__)
 clisubparsers = cliparser.add_subparsers(title='Commands',description='Valid commands')
 buildparser = clisubparsers.add_parser('build',help='Build all programs found or a specific target')
 buildparser.set_defaults(which='build')
+buildparser.add_argument('-colors',help='Activate colors in shell prints [default: no colors]',required=False,action='store_true',default=False)
+buildparser.add_argument('-log',help='Activate the creation of a log file [default: no log file]',required=False,action='store_true',default=False)
+buildparser.add_argument('-quiet',help='Less verbose than default',required=False,action='store_true',default=False)
+buildparser.add_argument('-exclude',help='Exclude a list of files from the building process',required=False,action='store',nargs='+',default=[''])
 buildparser.add_argument('-target',help='Build a specific file [default: all programs found]',required=False,action='store')
 buildparser.add_argument('-compiler',help='Compiler used: Intel, GNU, IBM, PGI or g95 [default: Intel]',required=False,action='store',default='Intel')
+buildparser.add_argument('-mpi',help='Use MPI enabled version of compiler',required=False,action='store_true',default=False)
 buildparser.add_argument('-cflags',help='Compilation flags [default: -c -cpp]',required=False,action='store',default='-c -cpp')
 buildparser.add_argument('-lflags',help='Linking flags',required=False,action='store',default='')
 buildparser.add_argument('-libs',help='List of external libraries used',required=False,action='store',nargs='+',default=[''])
 buildparser.add_argument('-dobj',help='Directory containing compiled objects [default: ./obj/]',required=False,action='store',default='./obj/')
 buildparser.add_argument('-dmod',help='Directory containing .mod files of compiled objects [default: ./mod/]',required=False,action='store',default='./mod/')
 buildparser.add_argument('-dexe',help='Directory containing executable objects [default: ./]',required=False,action='store',default='./')
-buildparser.add_argument('-src',help='Root-directory of source files',required=True,action='store')
+buildparser.add_argument('-src',help='Root-directory of source files [default: ./]',required=False,action='store',default='./')
 cleanparser = clisubparsers.add_parser('clean',help='Clean project: completely remove DOBJ and DMOD directories... use carefully')
 cleanparser.set_defaults(which='clean')
+cleanparser.add_argument('-colors',help='Activate colors in shell prints [default: no colors]',required=False,action='store_true',default=False)
 cleanparser.add_argument('-dobj',help='Directory containing compiled objects [default: ./obj/]',required=False,action='store',default='./obj/')
 cleanparser.add_argument('-dmod',help='Directory containing .mod files of compiled objects [default: ./mod/]',required=False,action='store',default='./mod/')
-
 # definition of regular expressions
 str_f95_apex         = r"('|"+r'")'
 str_f95_kw_include   = r"[Ii][Nn][Cc][Ll][Uu][Dd][Ee]"
@@ -46,6 +49,7 @@ str_f95_kw_intrinsic = r"[Ii][Nn][Tt][Rr][Ii][Nn][Ss][Ii][Cc]"
 str_f95_kw_module    = r"[Mm][Oo][Dd][Uu][Ll][Ee]"
 str_f95_kw_program   = r"[Pp][Rr][Oo][Gg][Rr][Aa][Mm]"
 str_f95_kw_use       = r"[Uu][Ss][Ee]"
+str_f95_kw_mpifh     = r"[Mm][Pp][Ii][Ff]\.[Hh]"
 str_f95_name         = r"(?P<name>[a-zA-Z][a-zA-Z0-9_]*)"
 str_f95_eol          = r"(?P<eol>\s*!.*|\s*)?$"
 str_f95_mod_rename   = r"(\s*,\s*[a-zA-Z][a-zA-Z0-9_]*\s*=>\s*[a-zA-Z][a-zA-Z0-9_]*)*"
@@ -54,11 +58,7 @@ str_f95_use_mod      = (r"^(\s*)"          + # eventual initial white spaces
                         str_f95_kw_use     + # f95 keyword "use"
                         r"(\s+)"           + # 1 or more white spaces
                         str_f95_name       + # f95 construct name
-                        r"(?P<mod_eol>"    +
-                        r"(.*&.*|"         + # eventual splitted scope
-                        str_f95_mod_only   + # f95 only access to module
-                        str_f95_mod_rename + # eventual module entities renaming
-                        str_f95_eol+"))")    # eventual eol white space and or comment
+                        r"(?P<mod_eol>(.*))")
 str_f95_include      = (r"^(\s*|\#)"       + # eventual initial white spaces or "#" character
                         str_f95_kw_include + # f95 keyword "include"
                         r"(\s+)"           + # 1 or more white spaces
@@ -79,21 +79,42 @@ str_f95_program      = (r"^(\s*)"                                + # eventual in
                         str_f95_name                             + # f95 construct name
                         str_f95_eol)                               # eventual eol white space and or comment
 str_f95_intrinsic    = (r"(,\s*)"+str_f95_kw_intrinsic+r"(\s+)")
+str_f95_mpifh        = (r"(.*)"+str_f95_kw_mpifh+r"(.*)")
 regex_f95_use_mod    = re.compile(str_f95_use_mod)
 regex_f95_include    = re.compile(str_f95_include)
 regex_f95_program    = re.compile(str_f95_program)
 regex_f95_module     = re.compile(str_f95_module)
 regex_f95_intrinsic  = re.compile(str_f95_intrinsic)
-
-__extensions_parsed__ = [".f",".F",".for",".FOR",".fpp",".FPP",".fortran",".f77",".F77",".f90",".F90",".f95",".F95",".f03",".F03",".f08",".F08",".f2k",".F2K",".inc",".INC"]
-
+regex_f95_mpifh      = re.compile(str_f95_mpifh)
+__extensions_old__    = [".f",".F",".for",".FOR",".fpp",".FPP",".fortran",".f77",".F77"]
+__extensions_modern__ = [".f90",".F90",".f95",".F95",".f03",".F03",".f08",".F08",".f2k",".F2K"]
+__extensions_inc__    = [".inc",".INC"]
+__extensions_parsed__ = __extensions_old__ + __extensions_modern__ + __extensions_inc__
 # classes definitions
+class bcolors:
+  """
+  bcolors is an object that handles colors of shell prints, its attributes and methods.
+  """
+  def __init__(self,
+               red = '\033[1;31m',
+               bld = '\033[1m',
+               err = '\033[91m'):
+    self.red = red
+    self.bld = bld
+    self.err = err
+    self.end = '\033[0m'
+  def disable(self):
+    self.red = ''
+    self.bld = ''
+    self.err = ''
+    self.end = ''
 class builder:
   """
   builder is an object that handles a single program building system, its attributes and methods.
   """
   def __init__(self,
                compiler = "GNU", # compiler used
+               mpi      = False, # use MPI enabled version of compiler
                cflags   = "-c",  # compilation flags
                lflags   = "",    # linking flags
                libs     = [],    # external libraries
@@ -101,6 +122,7 @@ class builder:
                dobj     = "./",  # directory containing compiled object files
                dexe     = "./"): # directory containing compiled executable files
     self.compiler = compiler
+    self.mpi      = mpi
     self.cflags   = cflags
     self.lflags   = lflags
     self.libs     = libs
@@ -108,11 +130,19 @@ class builder:
     self.dobj     = dobj
     self.dexe     = dexe
     if compiler == "GNU":
-      self.cmd_comp = "gfortran "+self.cflags+" -J"+self.dmod
-      self.cmd_link = "gfortran "+self.lflags+" -J"+self.dmod
+      if mpi:
+        self.cmd_comp = "mpif90 "+self.cflags+" -J"+self.dmod
+        self.cmd_link = "mpif90 "+self.lflags+" -J"+self.dmod
+      else:
+        self.cmd_comp = "gfortran "+self.cflags+" -J"+self.dmod
+        self.cmd_link = "gfortran "+self.lflags+" -J"+self.dmod
     elif compiler == "Intel":
-      self.cmd_comp = "ifort "+self.cflags+" -module "+self.dmod
-      self.cmd_link = "ifort "+self.lflags+" -module "+self.dmod
+      if mpi:
+        self.cmd_comp = "mpif90 "+self.cflags+" -module "+self.dmod
+        self.cmd_link = "mpif90 "+self.lflags+" -module "+self.dmod
+      else:
+        self.cmd_comp = "ifort "+self.cflags+" -module "+self.dmod
+        self.cmd_link = "ifort "+self.lflags+" -module "+self.dmod
   def compile(self,filename):
     if not os.path.exists(self.dmod):
       os.makedirs(self.dmod)
@@ -132,7 +162,6 @@ class builder:
       link_cmd = self.cmd_link+" "+"".join([self.dobj+s+" " for s in objs])                                    +"-o "+self.dexe+basename
     os.system(link_cmd)
     return link_cmd
-
 class dependency:
   """
   dependency is an object that handles a single file dependency, its attributes and methods.
@@ -144,7 +173,6 @@ class dependency:
     self.dep_type = dep_type
     self.dep_name = dep_name
     self.dep_file = dep_file
-
 class parsed_file:
   """
   parsed_file is an object that handles a single parsed file, its attributes and methods.
@@ -154,7 +182,9 @@ class parsed_file:
                program      = False,     # flag for checking if the file is a program
                module       = False,     # flag for checking if the file is a modules file
                include      = False,     # flag for checking if the file is an include-dependency
+               nomodlib     = False,     # flag for checking if the file is library of procedures with an enclosing module (old Fortran style)
                to_compile   = False,     # flag for checking if the file must be compiled
+               quiet        = False,     # make printings less verbose than default
                builder      = builder(), # debug builder
                module_names = [],        # in case the file contains modules definition, this is the list of modules defined
                dependencies = [],        # dependency list
@@ -163,13 +193,16 @@ class parsed_file:
     self.program      = program
     self.module       = module
     self.include      = include
+    self.nomodlib     = nomodlib
     self.to_compile   = to_compile
+    self.quiet        = quiet
     self.builder      = builder
     self.module_names = module_names
     self.dependencies = dependencies
     self.pfile_dep    = pfile_dep
     self.basename     = os.path.splitext(os.path.basename(self.name))[0]
     self.timestamp    = os.path.getmtime(self.name)
+    self.bcolors      = bcolors()
   def parse(self):
     """
     The method parse parses the fortran source code file.
@@ -193,9 +226,29 @@ class parsed_file:
             self.dependencies.append(dep)
       matching = re.match(regex_f95_include,line)
       if matching:
-        dep = dependency(dep_type="include",dep_name=matching.group('name'))
-        self.dependencies.append(dep)
+        if not re.match(regex_f95_mpifh,line):
+          dep = dependency(dep_type="include",dep_name=matching.group('name'))
+          self.dependencies.append(dep)
     ffile.close()
+    if not self.program and not self.module:
+      if  os.path.splitext(os.path.basename(self.name))[1] not in __extensions_inc__:
+        self.nomodlib = True
+  def save_build_log(self):
+    """
+    The method save_build_log save a log file containing information about the building options used.
+    """
+    log_file = open("build_"+self.basename+".log", "w")
+    log_file.writelines(" Building dependency of: "+self.name+"\n")
+    for dep in self.pfile_dep:
+      log_file.writelines("   "+dep.name+"\n")
+      log_file.writelines(dep.str_dependencies(pref="     "))
+    log_file.writelines(" Compiled-objects .o   directory: "+self.builder.dobj+"\n")
+    log_file.writelines(" Compiled-objects .mod directory: "+self.builder.dmod+"\n")
+    log_file.writelines(" Executable directory:            "+self.builder.dexe+"\n")
+    log_file.writelines(" Compiler used:                   "+self.builder.compiler+"\n")
+    log_file.writelines(" Compilation flags:               "+self.builder.cflags+"\n")
+    log_file.writelines(" Linking     flags:               "+self.builder.lflags+"\n")
+    log_file.close()
   def str_dependencies(self,
                        pref = ""): # prefixing string
     """
@@ -267,27 +320,39 @@ class parsed_file:
         if self.pfile_dep.__len__()>0:
           for dep in self.pfile_dep:
             dep.compile()
-        print self.builder.compile(filename=self.name)
+        if self.quiet:
+          print self.bcolors.bld+"Compiling "+self.name+self.bcolors.end
+          self.builder.compile(filename=self.name)
+        else:
+          print self.bcolors.bld+self.builder.compile(filename=self.name)+self.bcolors.end
         self.to_compile = False
   def build(self):
     """
     The method build builds current file.
     """
+    self.to_compile = True
     self.compile()
     if self.program:
-      objs = self.obj_dependencies()
-      print self.builder.link(filename=self.name,objs=objs)
-
+      objs = self.obj_dependencies(obj_dep=[])
+      if self.quiet:
+        print self.bcolors.red+"Linking "+self.builder.dexe+self.basename+self.bcolors.end
+      else:
+        print self.bcolors.red+self.builder.link(filename=self.name,objs=objs)+self.bcolors.end
 # auxiliary functions definitions
 def module_is_in(pfiles,module):
   """
   The function module_is_in find the parsed file containing the desidered module.
   """
-  for n,pfile in enumerate(pfiles):
+  filename = ""
+  n = -1
+  for f,pfile in enumerate(pfiles):
     if pfile.module:
       for module_name in pfile.module_names:
         if module_name.lower()==module.lower():
-          return pfile.name,n
+          filename = pfile.name
+          n = f
+          break
+  return filename,n
 def include_is_in(pfiles,include):
   """
   The function include_is_in find the parsed file containing the desidered include-file.
@@ -300,7 +365,7 @@ def include_is_in(pfiles,include):
       n = f
       break
   return filename,n
-def check_compiling_dependency(pfiles):
+def check_compiling_dependency(pfiles,depdump=False):
   """
   The function check_compiling_dependency refresh the compiling dependency list of the parsed files list.
   """
@@ -309,31 +374,62 @@ def check_compiling_dependency(pfiles):
   for pfile in pfiles:
     if any(pf.to_compile for pf in pfile.pfile_dep):
       pfile.to_compile = True
-
-# main parsing loop
+  if depdump:
+    # saving compiling dependency dump to file
+    dep_file = open("dependency_hierarchy.log","w")
+    for pfile in pfiles:
+      dep_file.writelines(" Building dependency of: "+pfile.name+"\n")
+      for dep in pfile.pfile_dep:
+        dep_file.writelines("   "+dep.name+"\n")
+        dep_file.writelines(dep.str_dependencies(pref="     "))
+    dep_file.close()
+def remove_other_main(pfiles,me):
+  """
+  The function remove_other_main removes all compiled objects of other program than the current target under building.
+  """
+  for pfile in pfiles:
+    if pfile.program and pfile.name!=me.name:
+      if os.path.exists(pfile.builder.dobj+pfile.basename+".o"):
+        os.remove(pfile.builder.dobj+pfile.basename+".o")
+# main loop
 if __name__ == '__main__':
   cliargs = cliparser.parse_args()
   if cliargs.which=='clean':
     # cleaning project
-    shutil.rmtree(cliargs.dobj)
-    shutil.rmtree(cliargs.dmod)
+    colors = bcolors()
+    if not cliargs.colors:
+      colors.disable()
+    print colors.red+"Removing "+cliargs.dobj+" and "+cliargs.dmod+colors.end
+    if os.path.exists(cliargs.dobj):
+      shutil.rmtree(cliargs.dobj)
+    if os.path.exists(cliargs.dmod):
+      shutil.rmtree(cliargs.dmod)
   elif cliargs.which=='build':
-    # setting building options
     pfiles = []
+    # parsing files loop
     for root, subFolders, files in os.walk(cliargs.src):
       for filename in files:
         if any(os.path.splitext(os.path.basename(filename))[1]==ext for ext in __extensions_parsed__):
-          file = os.path.join(root, filename)
-          pfile = parsed_file(name=file)
-          pfile.builder=builder(compiler=cliargs.compiler,cflags=cliargs.cflags,lflags=cliargs.lflags,libs=cliargs.libs,dobj=cliargs.dobj,dmod=cliargs.dmod,dexe=cliargs.dexe)
-          pfile.parse()
-          pfiles.append(pfile)
+          if os.path.basename(filename) not in [os.path.basename(exc) for exc in cliargs.exclude]:
+            file = os.path.join(root, filename)
+            pfile = parsed_file(name=file,
+                                quiet=cliargs.quiet,
+                                builder=builder(compiler=cliargs.compiler,mpi=cliargs.mpi,cflags=cliargs.cflags,lflags=cliargs.lflags,libs=cliargs.libs,dobj=cliargs.dobj,dmod=cliargs.dmod,dexe=cliargs.dexe))
+            if not cliargs.colors:
+              pfile.bcolors.disable()
+            pfile.parse()
+            pfiles.append(pfile)
+    # building dependencies hierarchy
     for pfile in pfiles:
       pfile.pfile_dep = []
       for dep in pfile.dependencies:
         if dep.dep_type=="module":
           dep.dep_file,n = module_is_in(pfiles=pfiles,module=dep.dep_name)
-          pfile.pfile_dep.append(pfiles[n])
+          if n>-1:
+            pfile.pfile_dep.append(pfiles[n])
+          else:
+            print pfile.bcolors.red+"Attention: the file '"+pfile.name+"' depends on '"+dep.dep_name+"' that is unreachable"+pfile.bcolors.end
+            sys.exit(1)
         if dep.dep_type=="include":
           dep.dep_file,n = include_is_in(pfiles=pfiles,include=dep.dep_name)
           if n>-1:
@@ -341,19 +437,28 @@ if __name__ == '__main__':
             pfiles[n].module  = False
             pfiles[n].include = True
             pfile.pfile_dep.append(pfiles[n])
-    check_compiling_dependency(pfiles=pfiles)
-    # building loop
+          else:
+            print pfile.bcolors.red+"Attention: the file '"+pfile.name+"' depends on '"+dep.dep_name+"' that is unreachable"+pfile.bcolors.end
+            sys.exit(1)
+    check_compiling_dependency(pfiles=pfiles,depdump=True)
+    # compiling independent files that are libraries of procedures not contained into a module (old Fortran style)
+    nomodlibs = ['']
+    for pfile in pfiles:
+      if pfile.nomodlib:
+        pfile.compile()
+        nomodlibs.append(pfile.basename+".o")
+    # building target or all programs found
     for pfile in pfiles:
       if cliargs.target:
-        if cliargs.target==pfile.name:
+        if os.path.basename(cliargs.target)==os.path.basename(pfile.name):
+          if pfile.program:
+            remove_other_main(pfiles=pfiles,me=pfile)
           pfile.build()
+          if cliargs.log:
+            pfile.save_build_log()
       else:
         if pfile.program:
+          remove_other_main(pfiles=pfiles,me=pfile)
           pfile.build()
-          build_file = open("build_"+pfile.basename, "w")
-          build_file.writelines(" Building dependency of: "+pfile.name+"\n")
-          build_file.writelines("  Dependency list"+"\n")
-          for dep in pfile.pfile_dep:
-            build_file.writelines("   "+dep.name+"\n")
-            build_file.writelines(dep.str_dependencies(pref="     "))
-          build_file.close()
+          if cliargs.log:
+            pfile.save_build_log()
