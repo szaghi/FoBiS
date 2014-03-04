@@ -24,12 +24,12 @@ Suppose you have a Fortran project composed of many Fortran modules placed into 
 + simple command line interface;
 + Intel and GNU Fortran Compilers support;
 + configuration-files-free;
++ ... but also configuration-file driven building for complex buildings;
 + easy-extensible: FoBis.py is just a less-than 500 lines of Python statements... no bad for a poor-make-replacement;
 + ...
 
 ## Todos
 + Add support for building libraries;
-+ add support for configuration file (for complex building-configurations);
 + add IBM, PGI, g95 Fortran Compilers support;
 + ...
 + GUI... nooooooooooo, we are _poor-fortran-men_!
@@ -148,6 +148,30 @@ FoBiS.py will recursively search for "my_path/my_sub_path/foo.f90" and for all i
 ### Clean project tree
 
       FoBiS.py clean
+
+## fobos: the FoBiS.py makefile
+
+For dealing with (repetitive) buildings of complex projects FoBiS.py execution can be driven by means of a configuration file placed into the current working directory and named _fobos_. The options defined into _fobos_ file completely override the CLI arguments: this file is designed to act as a makefile, but with a very simple syntax (similar to INI files). Presently, _fobos_ file looks as
+
+      [builder]
+      compiler=custom
+      fc=ifort
+      modsw=-module
+      mpi=False
+      cflags=-c -cpp -O2
+      lflags=-O2
+      libs=lib/bar.so
+      dmod=./mod/
+      dobj=./obj/
+      dexe=./
+      [parsed_files]
+      src=./src/
+      colors=True
+      log=False
+      quiet=False
+      target=foo.f90
+
+There are two sections, "builder" specifying builder options used for each parsed file and "parsed_files" specifying global options. If an option is present it will overrides the default value of CLI.
 
 ## Tips for non pythonic users
 
