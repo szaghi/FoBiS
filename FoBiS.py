@@ -7,7 +7,7 @@ __version__ ="0.0.1"
 __author__  = 'Stefano Zaghi'
 # modules loading
 try:
-  import sys,os,time,argparse,shutil
+  import sys,os,time,argparse,shutil,ConfigParser
 except:
   sys.exit(1)
 try:
@@ -28,7 +28,9 @@ buildparser.add_argument('-log',help='Activate the creation of a log file [defau
 buildparser.add_argument('-quiet',help='Less verbose than default',required=False,action='store_true',default=False)
 buildparser.add_argument('-exclude',help='Exclude a list of files from the building process',required=False,action='store',nargs='+',default=[''])
 buildparser.add_argument('-target',help='Build a specific file [default: all programs found]',required=False,action='store')
-buildparser.add_argument('-compiler',help='Compiler used: Intel, GNU, IBM, PGI or g95 [default: Intel]',required=False,action='store',default='Intel')
+buildparser.add_argument('-compiler',help='Compiler used: Intel, GNU, IBM, PGI, g95 or Custom [default: Intel]',required=False,action='store',default='Intel')
+buildparser.add_argument('-fc',help='Specify the Fortran compiler statement, necessary for custom compiler specification (-compiler Custom)',required=False,action='store',default='')
+buildparser.add_argument('-modsw',help='Specify the switch for specifing the module searching path, necessary for custom compiler specification (-compiler Custom)',required=False,action='store',default='')
 buildparser.add_argument('-mpi',help='Use MPI enabled version of compiler',required=False,action='store_true',default=False)
 buildparser.add_argument('-cflags',help='Compilation flags [default: -c -cpp]',required=False,action='store',default='-c -cpp')
 buildparser.add_argument('-lflags',help='Linking flags',required=False,action='store',default='')
@@ -91,7 +93,7 @@ __extensions_modern__ = [".f90",".F90",".f95",".F95",".f03",".F03",".f08",".F08"
 __extensions_inc__    = [".inc",".INC"]
 __extensions_parsed__ = __extensions_old__ + __extensions_modern__ + __extensions_inc__
 # classes definitions
-class bcolors:
+class bcolors(object):
   """
   bcolors is an object that handles colors of shell prints, its attributes and methods.
   """
@@ -108,20 +110,24 @@ class bcolors:
     self.bld = ''
     self.err = ''
     self.end = ''
-class builder:
+class builder(object):
   """
   builder is an object that handles a single program building system, its attributes and methods.
   """
   def __init__(self,
-               compiler = "GNU", # compiler used
-               mpi      = False, # use MPI enabled version of compiler
-               cflags   = "-c",  # compilation flags
-               lflags   = "",    # linking flags
-               libs     = [],    # external libraries
-               dmod     = "./",  # directory containing .mod files
-               dobj     = "./",  # directory containing compiled object files
-               dexe     = "./"): # directory containing compiled executable files
+               compiler = "Intel", # compiler used
+               fc       = "",      # custom compiler statement
+               modsw    = "",      # custom compiler switch for modules searching path
+               mpi      = False,   # use MPI enabled version of compiler
+               cflags   = "-c",    # compilation flags
+               lflags   = "",      # linking flags
+               libs     = [""],    # external libraries
+               dmod     = "./",    # directory containing .mod files
+               dobj     = "./",    # directory containing compiled object files
+               dexe     = "./"):   # directory containing compiled executable files
     self.compiler = compiler
+    self.fc       = fc
+    self.modsw    = modsw
     self.mpi      = mpi
     self.cflags   = cflags
     self.lflags   = lflags
@@ -129,20 +135,23 @@ class builder:
     self.dmod     = dmod
     self.dobj     = dobj
     self.dexe     = dexe
-    if compiler == "GNU":
+    if compiler.lower() == "gnu":
       if mpi:
         self.cmd_comp = "mpif90 "+self.cflags+" -J"+self.dmod
         self.cmd_link = "mpif90 "+self.lflags+" -J"+self.dmod
       else:
         self.cmd_comp = "gfortran "+self.cflags+" -J"+self.dmod
         self.cmd_link = "gfortran "+self.lflags+" -J"+self.dmod
-    elif compiler == "Intel":
+    elif compiler.lower() == "intel":
       if mpi:
         self.cmd_comp = "mpif90 "+self.cflags+" -module "+self.dmod
         self.cmd_link = "mpif90 "+self.lflags+" -module "+self.dmod
       else:
         self.cmd_comp = "ifort "+self.cflags+" -module "+self.dmod
         self.cmd_link = "ifort "+self.lflags+" -module "+self.dmod
+    elif compiler.lower() == "custom":
+      self.cmd_comp = self.fc+" "+self.cflags+" "+self.modsw+" "+self.dmod
+      self.cmd_link = self.fc+" "+self.lflags+" "+self.modsw+" "+self.dmod
   def compile(self,filename):
     if not os.path.exists(self.dmod):
       os.makedirs(self.dmod)
@@ -162,7 +171,7 @@ class builder:
       link_cmd = self.cmd_link+" "+"".join([self.dobj+s+" " for s in objs])                                    +"-o "+self.dexe+basename
     os.system(link_cmd)
     return link_cmd
-class dependency:
+class dependency(object):
   """
   dependency is an object that handles a single file dependency, its attributes and methods.
   """
@@ -173,7 +182,7 @@ class dependency:
     self.dep_type = dep_type
     self.dep_name = dep_name
     self.dep_file = dep_file
-class parsed_file:
+class parsed_file(object):
   """
   parsed_file is an object that handles a single parsed file, its attributes and methods.
   """
@@ -185,6 +194,7 @@ class parsed_file:
                nomodlib     = False,     # flag for checking if the file is library of procedures with an enclosing module (old Fortran style)
                to_compile   = False,     # flag for checking if the file must be compiled
                quiet        = False,     # make printings less verbose than default
+               colored      = False,     # make printings colored
                builder      = builder(), # debug builder
                module_names = [],        # in case the file contains modules definition, this is the list of modules defined
                dependencies = [],        # dependency list
@@ -203,6 +213,8 @@ class parsed_file:
     self.basename     = os.path.splitext(os.path.basename(self.name))[0]
     self.timestamp    = os.path.getmtime(self.name)
     self.bcolors      = bcolors()
+    if not colored:
+      self.bcolors.disable()
   def parse(self):
     """
     The method parse parses the fortran source code file.
@@ -391,9 +403,49 @@ def remove_other_main(pfiles,me):
     if pfile.program and pfile.name!=me.name:
       if os.path.exists(pfile.builder.dobj+pfile.basename+".o"):
         os.remove(pfile.builder.dobj+pfile.basename+".o")
+def inquire_fobos(cliargs):
+  """
+  The function inquiry_fobos checks if a file named 'fobos' is present in current working directory and, in case, parses it for CLI arguments overriding.
+  """
+  if os.path.exists('fobos'):
+    fobos = ConfigParser.ConfigParser()
+    fobos.read('fobos')
+    for item in fobos.items('builder'):
+      if item[0]=='compiler':
+        cliargs.compiler = item[1]
+      elif item[0]=='fc':
+        cliargs.fc = item[1]
+      elif item[0]=='modsw':
+        cliargs.modsw = item[1]
+      elif item[0]=='mpi':
+        cliargs.mpi = fobos.getboolean('builder',item[0])
+      elif item[0]=='cflags':
+        cliargs.cflags = item[1]
+      elif item[0]=='lflags':
+        cliargs.lflags = item[1]
+      elif item[0]=='libs':
+        cliargs.libs = item[1].split()
+      elif item[0]=='dmod':
+        cliargs.dmod = item[1]
+      elif item[0]=='dobj':
+        cliargs.dobj = item[1]
+      elif item[0]=='dexe':
+        cliargs.dexe = item[1]
+    for item in fobos.items('parsed_files'):
+      if item[0]=='src':
+        cliargs.src = item[1]
+      elif item[0]=='colors':
+        cliargs.colors = fobos.getboolean('parsed_files',item[0])
+      elif item[0]=='log':
+        cliargs.log = fobos.getboolean('parsed_files',item[0])
+      elif item[0]=='quiet':
+        cliargs.quiet = fobos.getboolean('parsed_files',item[0])
+      elif item[0]=='target':
+        cliargs.target = item[1]
 # main loop
 if __name__ == '__main__':
   cliargs = cliparser.parse_args()
+  inquire_fobos(cliargs=cliargs)
   if cliargs.which=='clean':
     # cleaning project
     colors = bcolors()
@@ -414,9 +466,8 @@ if __name__ == '__main__':
             file = os.path.join(root, filename)
             pfile = parsed_file(name=file,
                                 quiet=cliargs.quiet,
-                                builder=builder(compiler=cliargs.compiler,mpi=cliargs.mpi,cflags=cliargs.cflags,lflags=cliargs.lflags,libs=cliargs.libs,dobj=cliargs.dobj,dmod=cliargs.dmod,dexe=cliargs.dexe))
-            if not cliargs.colors:
-              pfile.bcolors.disable()
+                                colored=cliargs.colors,
+                                builder=builder(compiler=cliargs.compiler,fc=cliargs.fc,modsw=cliargs.modsw,mpi=cliargs.mpi,cflags=cliargs.cflags,lflags=cliargs.lflags,libs=cliargs.libs,dobj=cliargs.dobj,dmod=cliargs.dmod,dexe=cliargs.dexe))
             pfile.parse()
             pfiles.append(pfile)
     # building dependencies hierarchy
@@ -440,7 +491,7 @@ if __name__ == '__main__':
           else:
             print pfile.bcolors.red+"Attention: the file '"+pfile.name+"' depends on '"+dep.dep_name+"' that is unreachable"+pfile.bcolors.end
             sys.exit(1)
-    check_compiling_dependency(pfiles=pfiles,depdump=True)
+    check_compiling_dependency(pfiles=pfiles)
     # compiling independent files that are libraries of procedures not contained into a module (old Fortran style)
     nomodlibs = ['']
     for pfile in pfiles:
