@@ -27,7 +27,7 @@ buildparser.add_argument('-f',help='Specify a "fobos" file named differently fro
 buildparser.add_argument('-colors',help='Activate colors in shell prints [default: no colors]',required=False,action='store_true',default=False)
 buildparser.add_argument('-log',help='Activate the creation of a log file [default: no log file]',required=False,action='store_true',default=False)
 buildparser.add_argument('-quiet',help='Less verbose than default',required=False,action='store_true',default=False)
-buildparser.add_argument('-exclude',help='Exclude a list of files from the building process',required=False,action='store',nargs='+',default=[''])
+buildparser.add_argument('-exclude',help='Exclude a list of files from the building process',required=False,action='store',nargs='+',default=[])
 buildparser.add_argument('-target',help='Build a specific file [default: all programs found]',required=False,action='store')
 buildparser.add_argument('-compiler',help='Compiler used: Intel, GNU, IBM, PGI, g95 or Custom [default: Intel]',required=False,action='store',default='Intel')
 buildparser.add_argument('-fc',help='Specify the Fortran compiler statement, necessary for custom compiler specification (-compiler Custom)',required=False,action='store',default='')
@@ -35,7 +35,8 @@ buildparser.add_argument('-modsw',help='Specify the switch for specifing the mod
 buildparser.add_argument('-mpi',help='Use MPI enabled version of compiler',required=False,action='store_true',default=False)
 buildparser.add_argument('-cflags',help='Compilation flags [default: -c -cpp]',required=False,action='store',default='-c -cpp')
 buildparser.add_argument('-lflags',help='Linking flags',required=False,action='store',default='')
-buildparser.add_argument('-libs',help='List of external libraries used',required=False,action='store',nargs='+',default=[''])
+buildparser.add_argument('-libs',help='List of external libraries used',required=False,action='store',nargs='+',default=[])
+buildparser.add_argument('-I',help='List of directories for searching included files',required=False,action='store',nargs='+',default=[])
 buildparser.add_argument('-dobj',help='Directory containing compiled objects [default: ./obj/]',required=False,action='store',default='./obj/')
 buildparser.add_argument('-dmod',help='Directory containing .mod files of compiled objects [default: ./mod/]',required=False,action='store',default='./mod/')
 buildparser.add_argument('-dexe',help='Directory containing executable objects [default: ./]',required=False,action='store',default='./')
@@ -123,7 +124,8 @@ class builder(object):
                mpi      = False,   # use MPI enabled version of compiler
                cflags   = "-c",    # compilation flags
                lflags   = "",      # linking flags
-               libs     = [""],    # external libraries
+               libs     = [],      # list of external libraries
+               dinc     = [],      # list of directories for searching included files
                dmod     = "./",    # directory containing .mod files
                dobj     = "./",    # directory containing compiled object files
                dexe     = "./"):   # directory containing compiled executable files
@@ -134,6 +136,7 @@ class builder(object):
     self.cflags   = cflags
     self.lflags   = lflags
     self.libs     = libs
+    self.dinc     = dinc
     self.dmod     = dmod
     self.dobj     = dobj
     self.dexe     = dexe
@@ -160,7 +163,10 @@ class builder(object):
     if not os.path.exists(self.dobj):
       os.makedirs(self.dobj)
     basename = os.path.splitext(os.path.basename(filename))[0]
-    comp_cmd = self.cmd_comp+" "+filename+" -o "+self.dobj+basename+".o"
+    if self.dinc.__len__()>0:
+      comp_cmd = self.cmd_comp+" "+"".join(["-I"+s+" " for s in self.dinc])+filename+" -o "+self.dobj+basename+".o"
+    else:
+      comp_cmd = self.cmd_comp+" "                                         +filename+" -o "+self.dobj+basename+".o"
     os.system(comp_cmd)
     return comp_cmd
   def link(self,filename,objs):
@@ -433,15 +439,15 @@ def inquire_fobos(cliargs,filename='fobos'):
         cliargs.dobj = item[1]
       elif item[0]=='dexe':
         cliargs.dexe = item[1]
-    for item in fobos.items('parsed_files'):
+    for item in fobos.items('general'):
       if item[0]=='src':
         cliargs.src = item[1]
       elif item[0]=='colors':
-        cliargs.colors = fobos.getboolean('parsed_files',item[0])
+        cliargs.colors = fobos.getboolean('general',item[0])
       elif item[0]=='log':
-        cliargs.log = fobos.getboolean('parsed_files',item[0])
+        cliargs.log = fobos.getboolean('general',item[0])
       elif item[0]=='quiet':
-        cliargs.quiet = fobos.getboolean('parsed_files',item[0])
+        cliargs.quiet = fobos.getboolean('general',item[0])
       elif item[0]=='target':
         cliargs.target = item[1]
 # main loop
@@ -472,7 +478,7 @@ if __name__ == '__main__':
             pfile = parsed_file(name=file,
                                 quiet=cliargs.quiet,
                                 colored=cliargs.colors,
-                                builder=builder(compiler=cliargs.compiler,fc=cliargs.fc,modsw=cliargs.modsw,mpi=cliargs.mpi,cflags=cliargs.cflags,lflags=cliargs.lflags,libs=cliargs.libs,dobj=cliargs.dobj,dmod=cliargs.dmod,dexe=cliargs.dexe))
+                                builder=builder(compiler=cliargs.compiler,fc=cliargs.fc,modsw=cliargs.modsw,mpi=cliargs.mpi,cflags=cliargs.cflags,lflags=cliargs.lflags,libs=cliargs.libs,dinc=cliargs.I,dobj=cliargs.dobj,dmod=cliargs.dmod,dexe=cliargs.dexe))
             pfile.parse()
             pfiles.append(pfile)
     # building dependencies hierarchy
@@ -493,6 +499,8 @@ if __name__ == '__main__':
             pfiles[n].module  = False
             pfiles[n].include = True
             pfile.pfile_dep.append(pfiles[n])
+            if not os.path.dirname(pfiles[n].name) in pfile.builder.dinc:
+              pfile.builder.dinc.append(os.path.dirname(pfiles[n].name))
           else:
             print pfile.bcolors.red+"Attention: the file '"+pfile.name+"' depends on '"+dep.dep_name+"' that is unreachable"+pfile.bcolors.end
             sys.exit(1)

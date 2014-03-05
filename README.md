@@ -77,15 +77,16 @@ Printing the _build_ help message:
 
 This will echo:
 
-
-      usage: FoBiS.py build [-h] [-colors] [-log] [-quiet]
+      usage: FoBiS.py build [-h] [-f F] [-colors] [-log] [-quiet]
                             [-exclude EXCLUDE [EXCLUDE ...]] [-target TARGET]
-                            [-compiler COMPILER] [-mpi] [-cflags CFLAGS]
-                            [-lflags LFLAGS] [-libs LIBS [LIBS ...]] [-dobj DOBJ]
+                            [-compiler COMPILER] [-fc FC] [-modsw MODSW] [-mpi]
+                            [-cflags CFLAGS] [-lflags LFLAGS]
+                            [-libs LIBS [LIBS ...]] [-I I [I ...]] [-dobj DOBJ]
                             [-dmod DMOD] [-dexe DEXE] [-src SRC]
 
       optional arguments:
         -h, --help            show this help message and exit
+        -f F                  Specify a "fobos" file named differently from "fobos"
         -colors               Activate colors in shell prints [default: no colors]
         -log                  Activate the creation of a log file [default: no log
                               file]
@@ -93,13 +94,19 @@ This will echo:
         -exclude EXCLUDE [EXCLUDE ...]
                               Exclude a list of files from the building process
         -target TARGET        Build a specific file [default: all programs found]
-        -compiler COMPILER    Compiler used: Intel, GNU, IBM, PGI or g95 [default:
-                              Intel]
+        -compiler COMPILER    Compiler used: Intel, GNU, IBM, PGI, g95 or Custom
+                              [default: Intel]
+        -fc FC                Specify the Fortran compiler statement, necessary for
+                              custom compiler specification (-compiler Custom)
+        -modsw MODSW          Specify the switch for specifing the module searching
+                              path, necessary for custom compiler specification
+                              (-compiler Custom)
         -mpi                  Use MPI enabled version of compiler
         -cflags CFLAGS        Compilation flags [default: -c -cpp]
         -lflags LFLAGS        Linking flags
         -libs LIBS [LIBS ...]
                               List of external libraries used
+        -I I [I ...]          List of directories for searching included files
         -dobj DOBJ            Directory containing compiled objects [default:
                               ./obj/]
         -dmod DMOD            Directory containing .mod files of compiled objects
@@ -113,10 +120,11 @@ Printing the _clean_ help message:
 
 This will echo:
 
-      usage: FoBiS.py clean [-h] [-colors] [-dobj DOBJ] [-dmod DMOD]
+      usage: FoBiS.py clean [-h] [-f F] [-colors] [-dobj DOBJ] [-dmod DMOD]
 
       optional arguments:
         -h, --help  show this help message and exit
+        -f F        Specify a "fobos" file named differently from "fobos"
         -colors     Activate colors in shell prints [default: no colors]
         -dobj DOBJ  Directory containing compiled objects [default: ./obj/]
         -dmod DMOD  Directory containing .mod files of compiled objects [default:
@@ -151,7 +159,7 @@ FoBiS.py will recursively search for "my_path/my_sub_path/foo.f90" and for all i
 
 ## fobos: the FoBiS.py makefile
 
-For dealing with (repetitive) buildings of complex projects, FoBiS.py execution can be driven by means of a configuration file placed into the current working directory and named _fobos_: Fortran Building Options file. The options defined into _fobos_ file completely override the CLI arguments: this file is designed to act as a makefile, but with a very simple syntax (similar to INI files). Presently, _fobos_ file has, at most, the following options
+For dealing with (repetitive) buildings of complex projects, FoBiS.py execution can be driven by means of a configuration file placed into the current working directory and named _fobos_: FOrtran Building OptionS file. The options defined into _fobos_ file completely override the CLI arguments: this file is designed to act as a makefile, but with a very simple syntax (similar to INI files). Presently, _fobos_ file has, at most, the following options
 
       [general]
       src=./src/
@@ -171,13 +179,23 @@ For dealing with (repetitive) buildings of complex projects, FoBiS.py execution 
       dobj=./obj/
       dexe=./
 
-There are two sections: _builder_ specifying builder options used for each parsed file and _general_ specifying global options. If an option is present it will overrides the default value of CLI. The options can be commented with "#" symbol. For both _build_ and _clean_ executions of FoBiS.py a _fobos_ file placed elsewhere and having different name can be specified by means of "-f" switch
+There are two sections: _builder_ specifying builder options used for each parsed file and _general_ specifying global options. If an option is present it will overrides the default value of CLI. Options can be commented with "#" symbol. For both _build_ and _clean_ executions of FoBiS.py a _fobos_ file placed elsewhere and having different name can be specified by means of "-f" switch
 
       FoBiS.py build -f /other_path/fobos.other_name
 
       FoBiS.py clean -f /other_path/fobos.other_name
 
 Using this feature it is simple to perform context-specific buildings accordingly to different goals, e.g. it is convenient to have concurrently more _fobos_ files, one for debug building, one for release building, one for AIX architecture, one for MPI building and so on.
+
+## Example
+
+Into the _example_ directory there is an example of how FoBiS.py can be useful. This example consists of a very simple program, _cumbersome.f90_ contained into _src_ directory. This program is a cumbersome version of a classical _hello world_. The main program uses the module "nested_1" contained into "src/nested-1/first_dep.f90" file. The module "nested_1" has included the file "src/nested-1/nested-2/second_dep.f90". A _fobos_ file is provided for building the example.
+
+For testing the example type
+
+      FoBiS.py build
+
+Is worth noting that the module "nested_1" is contained into a file with a completely different name (first_dep.f90) and that the inclusion of second_dep.f90 is done without any paths neither absolute nor relative, i.e. "include 'second_dep.f90'", but FoBiS.f90 can automatically resolves all such a general dependencies.
 
 ## Tips for non pythonic users
 

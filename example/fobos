@@ -1,0 +1,15 @@
+[general]
+src=./src/
+colors=True
+log=False
+quiet=False
+target=cumbersome.f90
+[builder]
+compiler=custom
+fc=ifort
+modsw=-module
+mpi=False
+cflags=-c
+dmod=./mod/
+dobj=./obj/
+dexe=./
