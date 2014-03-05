@@ -23,6 +23,7 @@ cliparser.add_argument('-v','--version',action='version',help='Show version',ver
 clisubparsers = cliparser.add_subparsers(title='Commands',description='Valid commands')
 buildparser = clisubparsers.add_parser('build',help='Build all programs found or a specific target')
 buildparser.set_defaults(which='build')
+buildparser.add_argument('-f',help='Specify a "fobos" file named differently from "fobos"',required=False,action='store')
 buildparser.add_argument('-colors',help='Activate colors in shell prints [default: no colors]',required=False,action='store_true',default=False)
 buildparser.add_argument('-log',help='Activate the creation of a log file [default: no log file]',required=False,action='store_true',default=False)
 buildparser.add_argument('-quiet',help='Less verbose than default',required=False,action='store_true',default=False)
@@ -41,6 +42,7 @@ buildparser.add_argument('-dexe',help='Directory containing executable objects [
 buildparser.add_argument('-src',help='Root-directory of source files [default: ./]',required=False,action='store',default='./')
 cleanparser = clisubparsers.add_parser('clean',help='Clean project: completely remove DOBJ and DMOD directories... use carefully')
 cleanparser.set_defaults(which='clean')
+cleanparser.add_argument('-f',help='Specify a "fobos" file named differently from "fobos"',required=False,action='store')
 cleanparser.add_argument('-colors',help='Activate colors in shell prints [default: no colors]',required=False,action='store_true',default=False)
 cleanparser.add_argument('-dobj',help='Directory containing compiled objects [default: ./obj/]',required=False,action='store',default='./obj/')
 cleanparser.add_argument('-dmod',help='Directory containing .mod files of compiled objects [default: ./mod/]',required=False,action='store',default='./mod/')
@@ -403,13 +405,13 @@ def remove_other_main(pfiles,me):
     if pfile.program and pfile.name!=me.name:
       if os.path.exists(pfile.builder.dobj+pfile.basename+".o"):
         os.remove(pfile.builder.dobj+pfile.basename+".o")
-def inquire_fobos(cliargs):
+def inquire_fobos(cliargs,filename='fobos'):
   """
   The function inquiry_fobos checks if a file named 'fobos' is present in current working directory and, in case, parses it for CLI arguments overriding.
   """
-  if os.path.exists('fobos'):
+  if os.path.exists(filename):
     fobos = ConfigParser.ConfigParser()
-    fobos.read('fobos')
+    fobos.read(filename)
     for item in fobos.items('builder'):
       if item[0]=='compiler':
         cliargs.compiler = item[1]
@@ -445,7 +447,10 @@ def inquire_fobos(cliargs):
 # main loop
 if __name__ == '__main__':
   cliargs = cliparser.parse_args()
-  inquire_fobos(cliargs=cliargs)
+  if cliargs.f:
+    inquire_fobos(cliargs=cliargs,filename=cliargs.f)
+  else:
+    inquire_fobos(cliargs=cliargs)
   if cliargs.which=='clean':
     # cleaning project
     colors = bcolors()

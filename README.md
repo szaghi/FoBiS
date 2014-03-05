@@ -151,8 +151,14 @@ FoBiS.py will recursively search for "my_path/my_sub_path/foo.f90" and for all i
 
 ## fobos: the FoBiS.py makefile
 
-For dealing with (repetitive) buildings of complex projects FoBiS.py execution can be driven by means of a configuration file placed into the current working directory and named _fobos_. The options defined into _fobos_ file completely override the CLI arguments: this file is designed to act as a makefile, but with a very simple syntax (similar to INI files). Presently, _fobos_ file looks as
+For dealing with (repetitive) buildings of complex projects, FoBiS.py execution can be driven by means of a configuration file placed into the current working directory and named _fobos_: Fortran Building Options file. The options defined into _fobos_ file completely override the CLI arguments: this file is designed to act as a makefile, but with a very simple syntax (similar to INI files). Presently, _fobos_ file has, at most, the following options
 
+      [general]
+      src=./src/
+      colors=True
+      log=False
+      quiet=False
+      target=foo.f90
       [builder]
       compiler=custom
       fc=ifort
@@ -160,18 +166,18 @@ For dealing with (repetitive) buildings of complex projects FoBiS.py execution c
       mpi=False
       cflags=-c -cpp -O2
       lflags=-O2
-      libs=lib/bar.so
+      libs=lib/bar.so lib/boo.a
       dmod=./mod/
       dobj=./obj/
       dexe=./
-      [parsed_files]
-      src=./src/
-      colors=True
-      log=False
-      quiet=False
-      target=foo.f90
 
-There are two sections, "builder" specifying builder options used for each parsed file and "parsed_files" specifying global options. If an option is present it will overrides the default value of CLI.
+There are two sections: _builder_ specifying builder options used for each parsed file and _general_ specifying global options. If an option is present it will overrides the default value of CLI. The options can be commented with "#" symbol. For both _build_ and _clean_ executions of FoBiS.py a _fobos_ file placed elsewhere and having different name can be specified by means of "-f" switch
+
+      FoBiS.py build -f /other_path/fobos.other_name
+
+      FoBiS.py clean -f /other_path/fobos.other_name
+
+Using this feature it is simple to perform context-specific buildings accordingly to different goals, e.g. it is convenient to have concurrently more _fobos_ files, one for debug building, one for release building, one for AIX architecture, one for MPI building and so on.
 
 ## Tips for non pythonic users
 

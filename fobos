@@ -1,3 +1,9 @@
+[general]
+src=./src/
+colors=True
+log=False
+quiet=False
+target=foo.f90
 [builder]
 compiler=custom
 fc=ifort
@@ -5,13 +11,7 @@ modsw=-module
 mpi=False
 cflags=-c -cpp -O2
 lflags=-O2
-libs=lib/bar.so
+libs=lib/bar.so lib/boo.a
 dmod=./mod/
 dobj=./obj/
 dexe=./
-[parsed_files]
-src=./src/
-colors=True
-log=False
-quiet=False
-target=foo.f90
