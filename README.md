@@ -195,7 +195,7 @@ For testing the example type
 
       FoBiS.py build
 
-Is worth noting that the module "nested_1" is contained into a file with a completely different name (first_dep.f90) and that the inclusion of second_dep.f90 is done without any paths neither absolute nor relative, i.e. "include 'second_dep.f90'", but FoBiS.f90 can automatically resolves all such a general dependencies.
+It is worth noting that the module "nested_1" is contained into a file whose name if completely different from the module one (first_dep.f90) and that the inclusion of "second_dep.f90" is done without any paths neither absolute nor relative, i.e. "include 'second_dep.f90'", but FoBiS.f90 can automatically resolves such general dependencies.
 
 ## Tips for non pythonic users
 
