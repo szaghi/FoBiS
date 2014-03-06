@@ -3,7 +3,9 @@ src=./src/
 colors=True
 log=False
 quiet=False
+jobs=1
 target=cumbersome.f90
+output=Cumbersome
 [builder]
 compiler=custom
 fc=ifort

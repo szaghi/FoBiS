@@ -3,7 +3,9 @@ src=./src/
 colors=True
 log=False
 quiet=False
+jobs=2
 target=foo.f90
+output=Foo
 [builder]
 compiler=custom
 fc=ifort
