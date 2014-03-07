@@ -1,11 +1,3 @@
-[general]
-src=./src/
-colors=True
-log=False
-quiet=False
-jobs=1
-target=cumbersome.f90
-output=Cumbersome
 [builder]
 compiler=custom
 fc=ifort
@@ -15,3 +7,11 @@ cflags=-c
 dmod=./mod/
 dobj=./obj/
 dexe=./
+src=./src/
+colors=True
+quiet=False
+jobs=1
+[files]
+target=cumbersome.f90
+output=Cumbersome
+log=False

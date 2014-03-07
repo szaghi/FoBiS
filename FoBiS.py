@@ -31,7 +31,7 @@ buildparser.add_argument('-quiet',help='Less verbose than default',required=Fals
 buildparser.add_argument('-j',help='Specify the number of concurrent jobs used for compiling dependencies (enable parallel, multiprocessing buildings useful on parallel architectures for speedup compiling)',required=False,action='store',default=1,type=int)
 buildparser.add_argument('-exclude',help='Exclude a list of files from the building process',required=False,action='store',nargs='+',default=[])
 buildparser.add_argument('-target',help='Build a specific file [default: all programs found]',required=False,action='store')
-buildparser.add_argument('-o',help='Specify the output file name is used with -target switch [default: basename of target]',required=False,action='store')
+buildparser.add_argument('-o',help='Specify the output file name is used with -target switch [default: basename of target]',required=False,action='store',default=None)
 buildparser.add_argument('-compiler',help='Compiler used: Intel, GNU, IBM, PGI, g95 or Custom [default: Intel]',required=False,action='store',default='Intel')
 buildparser.add_argument('-fc',help='Specify the Fortran compiler statement, necessary for custom compiler specification (-compiler Custom)',required=False,action='store',default='')
 buildparser.add_argument('-modsw',help='Specify the switch for specifying the module searching path, necessary for custom compiler specification (-compiler Custom)',required=False,action='store',default='')
@@ -99,9 +99,9 @@ __extensions_modern__ = [".f90",".F90",".f95",".F95",".f03",".F03",".f08",".F08"
 __extensions_inc__    = [".inc",".INC"]
 __extensions_parsed__ = __extensions_old__ + __extensions_modern__ + __extensions_inc__
 # classes definitions
-class bcolors(object):
+class Colors(object):
   """
-  bcolors is an object that handles colors of shell prints, its attributes and methods.
+  Colors is an object that handles colors of shell prints, its attributes and methods.
   """
   def __init__(self,
                red = '\033[1;31m',
@@ -116,9 +116,9 @@ class bcolors(object):
     self.bld = ''
     self.err = ''
     self.end = ''
-class builder(object):
+class Builder(object):
   """
-  builder is an object that handles a single program building system, its attributes and methods.
+  Builder is an object that handles the building system, its attributes and methods.
   """
   def __init__(self,
                compiler = "Intel", # compiler used
@@ -131,7 +131,10 @@ class builder(object):
                dinc     = [],      # list of directories for searching included files
                dmod     = "./",    # directory containing .mod files
                dobj     = "./",    # directory containing compiled object files
-               dexe     = "./"):   # directory containing compiled executable files
+               dexe     = "./",    # directory containing compiled executable files
+               quiet    = False,   # make printings less verbose than default
+               colors   = False,   # make printings colored
+               jobs     = 1):      # concurrent compiling jobs
     self.compiler = compiler
     self.fc       = fc
     self.modsw    = modsw
@@ -143,6 +146,11 @@ class builder(object):
     self.dmod     = dmod
     self.dobj     = dobj
     self.dexe     = dexe
+    self.quiet    = quiet
+    self.jobs     = jobs
+    self.colors   = Colors()
+    if not colors:
+      self.colors.disable()
     if compiler.lower() == "gnu":
       if mpi:
         self.cmd_comp = "mpif90 "+self.cflags+" -J"+self.dmod
@@ -160,46 +168,79 @@ class builder(object):
     elif compiler.lower() == "custom":
       self.cmd_comp = self.fc+" "+self.cflags+" "+self.modsw+" "+self.dmod
       self.cmd_link = self.fc+" "+self.lflags+" "+self.modsw+" "+self.dmod
-  def compile(self,filename):
     if not os.path.exists(self.dmod):
       os.makedirs(self.dmod)
     if not os.path.exists(self.dobj):
       os.makedirs(self.dobj)
-    basename = os.path.splitext(os.path.basename(filename))[0]
-    if self.dinc.__len__()>0:
-      comp_cmd = self.cmd_comp+" "+"".join(["-I"+s+" " for s in self.dinc])+filename+" -o "+self.dobj+basename+".o"
-    else:
-      comp_cmd = self.cmd_comp+" "                                         +filename+" -o "+self.dobj+basename+".o"
-    os.system(comp_cmd)
-    return comp_cmd
-  def link(self,filename,objs,output=None):
     if not os.path.exists(self.dexe):
       os.makedirs(self.dexe)
-    basename = os.path.splitext(os.path.basename(filename))[0]
-    if output:
-      exe=output
-    else:
-      exe=basename
-    if self.libs.__len__>0:
-      link_cmd = self.cmd_link+" "+"".join([self.dobj+s+" " for s in objs])+"".join([s+" " for s in self.libs])+"-o "+self.dexe+exe
-    else:
-      link_cmd = self.cmd_link+" "+"".join([self.dobj+s+" " for s in objs])                                    +"-o "+self.dexe+exe
-    os.system(link_cmd)
-    return link_cmd
-class dependency(object):
+  def compile(self,pfile):
+    """
+    The method compile compiles pfile and all its dependencies if necessary.
+    """
+    if not pfile.include:
+     if pfile.to_compile:
+       if len(pfile.pfile_dep)>0:
+         if pfile.target and self.jobs>1:
+           print self.colors.bld+"Using "+str(self.jobs)+" concurrent processes for comiling "+pfile.name+" dependencies"+self.colors.end
+           pool = Pool(processes=self.jobs)
+           for dep in pfile.pfile_dep:
+             pool.apply_async(self.compile(pfile=dep))
+           pool.close()
+           pool.join()
+         else:
+           for dep in pfile.pfile_dep:
+             self.compile(pfile=dep)
+       if len(self.dinc)>0:
+         comp_cmd = self.cmd_comp+" "+"".join(["-I"+s+" " for s in self.dinc])+pfile.name+" -o "+self.dobj+pfile.basename+".o"
+       else:
+         comp_cmd = self.cmd_comp+" "                                         +pfile.name+" -o "+self.dobj+pfile.basename+".o"
+       if self.quiet:
+         print self.colors.bld+"Compiling "+pfile.name+self.colors.end
+       else:
+         print self.colors.bld+comp_cmd+self.colors.end
+       os.system(comp_cmd)
+       pfile.to_compile = False
+  def build(self,pfile,output=None):
+    """
+    The method build builds current file.
+    """
+    pfile.to_compile = True
+    pfile.target = True
+   # Ndep = sum(1 for dep in pfile.pfile_dep_all if dep.to_compile) # number of dependencies that must be compiled
+   # for dep in pfile.pfile_dep_all:
+   #   if dep.to_compile and dep != pfile:
+   #     self.compile(pfile=dep)
+    self.compile(pfile=pfile)
+    if pfile.program:
+      objs = pfile.obj_dependencies()
+      if output:
+        exe=output
+      else:
+        exe=pfile.basename
+      if len(self.libs)>0:
+        link_cmd = self.cmd_link+" "+"".join([self.dobj+s+" " for s in objs])+"".join([s+" " for s in self.libs])+"-o "+self.dexe+exe
+      else:
+        link_cmd = self.cmd_link+" "+"".join([self.dobj+s+" " for s in objs])                                    +"-o "+self.dexe+exe
+      if self.quiet:
+        print self.colors.red+"Linking "+self.builder.dexe+self.basename+self.colors.end
+      else:
+        print self.colors.red+link_cmd+self.colors.end
+      os.system(link_cmd)
+class Dependency(object):
   """
-  dependency is an object that handles a single file dependency, its attributes and methods.
+  Dependency is an object that handles a single file dependency, its attributes and methods.
   """
   def __init__(self,
-               dep_type = "",  # type of dependency: "module" or "include" type
-               dep_name = "",  # name of depedency: module name for "use" type or file name for include type
-               dep_file = ""): # file name containing module in the case of "use" type
-    self.dep_type = dep_type
-    self.dep_name = dep_name
-    self.dep_file = dep_file
-class parsed_file(object):
+               type = "",  # type of dependency: "module" or "include" type
+               name = "",  # name of depedency: module name for "use" type or file name for include type
+               file = ""): # file name containing module in the case of "use" type
+    self.type = type
+    self.name = name
+    self.file = file
+class Parsed_file(object):
   """
-  parsed_file is an object that handles a single parsed file, its attributes and methods.
+  Parsed_file is an object that handles a single parsed file, its attributes and methods.
   """
   def __init__(self,
                name,                     # file name
@@ -208,33 +249,21 @@ class parsed_file(object):
                include      = False,     # flag for checking if the file is an include-dependency
                nomodlib     = False,     # flag for checking if the file is library of procedures with an enclosing module (old Fortran style)
                to_compile   = False,     # flag for checking if the file must be compiled
-               quiet        = False,     # make printings less verbose than default
-               colored      = False,     # make printings colored
-               builder      = builder(), # debug builder
-               module_names = [],        # in case the file contains modules definition, this is the list of modules defined
-               dependencies = [],        # dependency list
-               pfile_dep    = [],        # parsed file dependent list
-               jobs         = 1):        # concurrent compiling jobs
+               target       = False,     # flag for checking if the file is a target to be built
+               output       = None):     # eventual user-supplied output file name
     self.name         = name
     self.program      = program
     self.module       = module
     self.include      = include
     self.nomodlib     = nomodlib
     self.to_compile   = to_compile
-    self.quiet        = quiet
-    self.builder      = builder
-    self.module_names = module_names
-    self.dependencies = dependencies
-    self.pfile_dep    = pfile_dep
-    self.jobs         = jobs
+    self.target       = target
+    self.output       = output
     self.basename     = os.path.splitext(os.path.basename(self.name))[0]
     self.timestamp    = os.path.getmtime(self.name)
-    self.bcolors      = bcolors()
-    if not colored:
-      self.bcolors.disable()
   def parse(self):
     """
-    The method parse parses the fortran source code file.
+    The method parse parses the file creating its the dependencies list and the list of modules names that self eventually contains.
     """
     self.module_names = []
     self.dependencies = []
@@ -251,32 +280,36 @@ class parsed_file(object):
       if matching:
         if not re.match(regex_f95_intrinsic,line):
           if matching.group('name').lower()!='mpi' and matching.group('name').lower()!='omp_lib':
-            dep = dependency(dep_type="module",dep_name=matching.group('name'))
+            dep = Dependency(type="module",name=matching.group('name'))
             self.dependencies.append(dep)
       matching = re.match(regex_f95_include,line)
       if matching:
         if not re.match(regex_f95_mpifh,line):
-          dep = dependency(dep_type="include",dep_name=matching.group('name'))
+          dep = Dependency(type="include",name=matching.group('name'))
           self.dependencies.append(dep)
     ffile.close()
     if not self.program and not self.module:
-      if  os.path.splitext(os.path.basename(self.name))[1] not in __extensions_inc__:
+      if os.path.splitext(os.path.basename(self.name))[1] not in __extensions_inc__:
         self.nomodlib = True
-  def save_build_log(self):
+  def save_build_log(self,builder):
     """
     The method save_build_log save a log file containing information about the building options used.
     """
     log_file = open("build_"+self.basename+".log", "w")
-    log_file.writelines(" Building dependency of: "+self.name+"\n")
+    log_file.writelines(" Hierarchical dependencies list of: "+self.name+"\n")
     for dep in self.pfile_dep:
       log_file.writelines("   "+dep.name+"\n")
       log_file.writelines(dep.str_dependencies(pref="     "))
-    log_file.writelines(" Compiled-objects .o   directory: "+self.builder.dobj+"\n")
-    log_file.writelines(" Compiled-objects .mod directory: "+self.builder.dmod+"\n")
-    log_file.writelines(" Executable directory:            "+self.builder.dexe+"\n")
-    log_file.writelines(" Compiler used:                   "+self.builder.compiler+"\n")
-    log_file.writelines(" Compilation flags:               "+self.builder.cflags+"\n")
-    log_file.writelines(" Linking     flags:               "+self.builder.lflags+"\n")
+    log_file.writelines(" Complete ordered dependencies list of: "+self.name+"\n")
+    for dep in self.pfile_dep_all:
+      log_file.writelines("  "+dep.name+"\n")
+    log_file.writelines(" Builder options"+"\n")
+    log_file.writelines("   Compiled-objects .o   directory: "+builder.dobj+"\n")
+    log_file.writelines("   Compiled-objects .mod directory: "+builder.dmod+"\n")
+    log_file.writelines("   Executable directory:            "+builder.dexe+"\n")
+    log_file.writelines("   Compiler used:                   "+builder.compiler+"\n")
+    log_file.writelines("   Compilation flags:               "+builder.cflags+"\n")
+    log_file.writelines("   Linking     flags:               "+builder.lflags+"\n")
     log_file.close()
   def str_dependencies(self,
                        pref = ""): # prefixing string
@@ -287,52 +320,44 @@ class parsed_file(object):
     for dep in self.pfile_dep:
       str_dep = str_dep+pref+dep.name+"\n"
     return str_dep
-  def obj_dependencies(self,obj_dep=[]):
+  def obj_dependencies(self):
     """
     The method obj_dependencies create a list containing the dependencies object files list.
     """
-    if self.pfile_dep.__len__()>0:
-      for dep in self.pfile_dep:
-        if not dep.include:
-          dep.obj_dependencies(obj_dep)
-          obj_dep.append(dep.basename+".o")
-    obj_dep.append(self.basename+".o")
-    return list(set(obj_dep))
-  def check_compile(self):
+    return [p.basename+".o" for p in self.pfile_dep_all if not p.include]
+  def check_compile(self,dobj):
     """
-    The method check_compile checks if self must be set to be compiled.
+    The method check_compile checks if self must be compiled.
     """
     if not self.include:
-      # verifiyng if self must be compiled
-      if self.pfile_dep.__len__()>0:
-        # verifying if any depencies must be compiled
-        for dep in self.pfile_dep:
-          if not dep.include:
-            obj = dep.builder.dobj+dep.basename+".o"
-            # verifying if dep is up-to-date
-            if os.path.exists(obj):
-              if os.path.getmtime(obj) < dep.timestamp:
-                # found a dependency object that is out-of-date, thus self (and dep) must be compiled
-                self.to_compile = True
-            else:
-              # compiled object of a dependency is absent, thus self must be compiled
+      # verifying if dependencies are up-to-date
+      for dep in self.pfile_dep_all:
+        if not dep.include:
+          obj = dobj+dep.basename+".o"
+          # verifying if dep is up-to-date
+          if os.path.exists(obj):
+            if os.path.getmtime(obj) < dep.timestamp:
+              # found a dependency object that is out-of-date, thus self (and dep) must be compiled
               self.to_compile = True
           else:
-            # verifying if dep is newer than self
-            if not os.path.exists(dep.name):
-              print " Attention: file "+dep.name+" does not exist, but it is a dependency of file "+self.name
-              sys.exit(1)
-            else:
-              # comparing the include dependency with the self-compiled-object if exist
-              obj = self.builder.dobj+self.basename+".o"
-              # verifying if dep is up-to-date
-              if os.path.exists(obj):
-                if os.path.getmtime(obj) < os.path.getmtime(dep.name):
-                  # found an include that is newer than self-compiled-object, thus self must be compiled
-                  self.to_compile = True
+            # compiled object of a dependency is absent, thus self must be compiled
+            self.to_compile = True
+        else:
+          # verifying if dep is newer than self
+          if not os.path.exists(dep.name):
+            print " Attention: file "+dep.name+" does not exist, but it is a dependency of file "+self.name
+            sys.exit(1)
+          else:
+            # comparing the include dependency with the self-compiled-object if exist
+            obj = dobj+self.basename+".o"
+            # verifying if dep is up-to-date
+            if os.path.exists(obj):
+              if os.path.getmtime(obj) < os.path.getmtime(dep.name):
+                # found an include that is newer than self-compiled-object, thus self must be compiled
+                self.to_compile = True
       # verifying if self is up-to-date
       if not self.to_compile:
-        obj = self.builder.dobj+self.basename+".o"
+        obj = dobj+self.basename+".o"
         if os.path.exists(obj):
           if os.path.getmtime(obj) < self.timestamp:
             # the compiled object is out-of-date, thus self must be compiled
@@ -340,45 +365,36 @@ class parsed_file(object):
         else:
           # compiled object is absent, thus self must be compiled
           self.to_compile = True
-  def compile(self,target=False):
+  def create_pfile_dep_all(self):
     """
-    The method compile compiles current file and all its dependencies if necessary.
+    The method create_pfile_dep_all create a complete list of all dependencies direct and indirect.
     """
-    if not self.include:
-      if self.to_compile:
-        if self.pfile_dep.__len__()>0:
-          if target and self.jobs>1:
-            pool = Pool(processes=self.jobs)
-            for dep in self.pfile_dep:
-              pool.apply_async(dep.compile())
-            pool.close()
-            pool.join()
-          else:
-            for dep in self.pfile_dep:
-              dep.compile()
-        if self.quiet:
-          print self.bcolors.bld+"Compiling "+self.name+self.bcolors.end
-          self.builder.compile(filename=self.name)
-        else:
-          print self.bcolors.bld+self.builder.compile(filename=self.name)+self.bcolors.end
-        self.to_compile = False
-  def build(self,output=None):
-    """
-    The method build builds current file.
-    """
-    self.to_compile = True
-    self.compile(target=True)
-    if self.program:
-      objs = self.obj_dependencies(obj_dep=[])
-      if self.quiet:
-        print self.bcolors.red+"Linking "+self.builder.dexe+self.basename+self.bcolors.end
-        self.builder.link(filename=self.name,objs=objs,output=output)
-      else:
-        print self.bcolors.red+self.builder.link(filename=self.name,objs=objs,output=output)+self.bcolors.end
+    self.pfile_dep_all = []
+    for path in traverse_recursive(self):
+      self.pfile_dep_all.append(path[-1])
+    self.pfile_dep_all = unique_seq(self.pfile_dep_all)
 # auxiliary functions definitions
+def traverse_recursive(pfile, path=list()):
+  """
+  The function traverse_recursive performs a yeld-recursive traversing of pfile direct dependencies.
+  """
+  path.append(pfile)
+  yield path
+  for n in pfile.pfile_dep:
+      for path in traverse_recursive(n, path):
+          yield path
+  if path:
+      path.pop()
+def unique_seq(seq):
+  """
+  The function unique_seq returns the input sequence removing duplicated elements but peserving the original order.
+  """
+  seen = set()
+  seen_add = seen.add
+  return [ x for x in seq if x not in seen and not seen_add(x)]
 def module_is_in(pfiles,module):
   """
-  The function module_is_in find the parsed file containing the desidered module.
+  The function module_is_in finds the parsed file containing the desidered module.
   """
   filename = ""
   n = -1
@@ -402,32 +418,50 @@ def include_is_in(pfiles,include):
       n = f
       break
   return filename,n
-def check_compiling_dependency(pfiles,depdump=False):
+def dependency_hiearchy(builder,pfiles):
   """
-  The function check_compiling_dependency refresh the compiling dependency list of the parsed files list.
+  The function dependency_hiearchy builds parsed files hierarchy.
   """
+  # direct dependencies list used after for building indirect (complete) dependencies list
   for pfile in pfiles:
-    pfile.check_compile()
+    pfile.pfile_dep = []
+    for dep in pfile.dependencies:
+      if dep.type=="module":
+        dep.file,n = module_is_in(pfiles=pfiles,module=dep.name)
+        if n>-1:
+          if not pfiles[n] in pfile.pfile_dep:
+            pfile.pfile_dep.append(pfiles[n])
+        else:
+          print builder.colors.red+"Attention: the file '"+pfile.name+"' depends on '"+dep.name+"' that is unreachable"+builder.colors.end
+          sys.exit(1)
+      if dep.type=="include":
+        dep.file,n = include_is_in(pfiles=pfiles,include=dep.name)
+        if n>-1:
+          if not pfiles[n] in pfile.pfile_dep:
+            pfiles[n].program  = False
+            pfiles[n].module   = False
+            pfiles[n].nomodlib = False
+            pfiles[n].include  = True
+            pfile.pfile_dep.append(pfiles[n])
+            if not os.path.dirname(pfiles[n].name) in builder.dinc:
+              builder.dinc.append(os.path.dirname(pfiles[n].name))
+        else:
+          print builder.colors.red+"Attention: the file '"+pfile.name+"' depends on '"+dep.name+"' that is unreachable"+builder.colors.end
+          sys.exit(1)
+  # indirect dependency list
   for pfile in pfiles:
-    if any(pf.to_compile for pf in pfile.pfile_dep):
-      pfile.to_compile = True
-  if depdump:
-    # saving compiling dependency dump to file
-    dep_file = open("dependency_hierarchy.log","w")
-    for pfile in pfiles:
-      dep_file.writelines(" Building dependency of: "+pfile.name+"\n")
-      for dep in pfile.pfile_dep:
-        dep_file.writelines("   "+dep.name+"\n")
-        dep_file.writelines(dep.str_dependencies(pref="     "))
-    dep_file.close()
-def remove_other_main(pfiles,me):
+    pfile.create_pfile_dep_all()
+  # using the just created hiearchy for checking which files must be (re-)compiled
+  for pfile in pfiles:
+    pfile.check_compile(dobj=builder.dobj)
+def remove_other_main(builder,pfiles,me):
   """
   The function remove_other_main removes all compiled objects of other program than the current target under building.
   """
   for pfile in pfiles:
     if pfile.program and pfile.name!=me.name:
-      if os.path.exists(pfile.builder.dobj+pfile.basename+".o"):
-        os.remove(pfile.builder.dobj+pfile.basename+".o")
+      if os.path.exists(builder.dobj+pfile.basename+".o"):
+        os.remove(builder.dobj+pfile.basename+".o")
 def inquire_fobos(cliargs,filename='fobos'):
   """
   The function inquiry_fobos checks if a file named 'fobos' is present in current working directory and, in case, parses it for CLI arguments overriding.
@@ -456,21 +490,21 @@ def inquire_fobos(cliargs,filename='fobos'):
         cliargs.dobj = item[1]
       elif item[0]=='dexe':
         cliargs.dexe = item[1]
-    for item in fobos.items('general'):
-      if item[0]=='src':
+      elif item[0]=='src':
         cliargs.src = item[1]
       elif item[0]=='colors':
-        cliargs.colors = fobos.getboolean('general',item[0])
-      elif item[0]=='log':
-        cliargs.log = fobos.getboolean('general',item[0])
+        cliargs.colors = fobos.getboolean('builder',item[0])
       elif item[0]=='quiet':
-        cliargs.quiet = fobos.getboolean('general',item[0])
+        cliargs.quiet = fobos.getboolean('builder',item[0])
       elif item[0]=='jobs':
         cliargs.j = int(item[1])
-      elif item[0]=='target':
+    for item in fobos.items('files'):
+      if item[0]=='target':
         cliargs.target = item[1]
       elif item[0]=='output':
         cliargs.o = item[1]
+      elif item[0]=='log':
+        cliargs.log = fobos.getboolean('files',item[0])
 # main loop
 if __name__ == '__main__':
   cliargs = cliparser.parse_args()
@@ -480,7 +514,7 @@ if __name__ == '__main__':
     inquire_fobos(cliargs=cliargs)
   if cliargs.which=='clean':
     # cleaning project
-    colors = bcolors()
+    colors = Colors()
     if not cliargs.colors:
       colors.disable()
     print colors.red+"Removing "+cliargs.dobj+" and "+cliargs.dmod+colors.end
@@ -489,65 +523,37 @@ if __name__ == '__main__':
     if os.path.exists(cliargs.dmod):
       shutil.rmtree(cliargs.dmod)
   elif cliargs.which=='build':
-    pfiles = []
+    builder=Builder(compiler=cliargs.compiler,fc=cliargs.fc,modsw=cliargs.modsw,mpi=cliargs.mpi,cflags=cliargs.cflags,lflags=cliargs.lflags,libs=cliargs.libs,dinc=cliargs.I,dobj=cliargs.dobj,dmod=cliargs.dmod,dexe=cliargs.dexe,quiet=cliargs.quiet,colors=cliargs.colors,jobs=cliargs.j)
+    pfiles = [] # main parsed files list
     # parsing files loop
     for root, subFolders, files in os.walk(cliargs.src):
       for filename in files:
         if any(os.path.splitext(os.path.basename(filename))[1]==ext for ext in __extensions_parsed__):
           if os.path.basename(filename) not in [os.path.basename(exc) for exc in cliargs.exclude]:
             file = os.path.join(root, filename)
-            pfile = parsed_file(name=file,
-                                quiet=cliargs.quiet,
-                                colored=cliargs.colors,
-                                jobs=cliargs.j,
-                                builder=builder(compiler=cliargs.compiler,fc=cliargs.fc,modsw=cliargs.modsw,mpi=cliargs.mpi,cflags=cliargs.cflags,lflags=cliargs.lflags,libs=cliargs.libs,dinc=cliargs.I,dobj=cliargs.dobj,dmod=cliargs.dmod,dexe=cliargs.dexe))
+            pfile = Parsed_file(name=file)
             pfile.parse()
             pfiles.append(pfile)
     # building dependencies hierarchy
-    for pfile in pfiles:
-      pfile.pfile_dep = []
-      for dep in pfile.dependencies:
-        if dep.dep_type=="module":
-          dep.dep_file,n = module_is_in(pfiles=pfiles,module=dep.dep_name)
-          if n>-1:
-            pfile.pfile_dep.append(pfiles[n])
-          else:
-            print pfile.bcolors.red+"Attention: the file '"+pfile.name+"' depends on '"+dep.dep_name+"' that is unreachable"+pfile.bcolors.end
-            sys.exit(1)
-        if dep.dep_type=="include":
-          dep.dep_file,n = include_is_in(pfiles=pfiles,include=dep.dep_name)
-          if n>-1:
-            pfiles[n].program = False
-            pfiles[n].module  = False
-            pfiles[n].include = True
-            pfile.pfile_dep.append(pfiles[n])
-            if not os.path.dirname(pfiles[n].name) in pfile.builder.dinc:
-              pfile.builder.dinc.append(os.path.dirname(pfiles[n].name))
-          else:
-            print pfile.bcolors.red+"Attention: the file '"+pfile.name+"' depends on '"+dep.dep_name+"' that is unreachable"+pfile.bcolors.end
-            sys.exit(1)
-    check_compiling_dependency(pfiles=pfiles)
+    dependency_hiearchy(builder=builder,pfiles=pfiles)
     # compiling independent files that are libraries of procedures not contained into a module (old Fortran style)
     nomodlibs = ['']
     for pfile in pfiles:
       if pfile.nomodlib:
-        pfile.compile()
+        builder.compile(pfile=pfile)
         nomodlibs.append(pfile.basename+".o")
     # building target or all programs found
     for pfile in pfiles:
       if cliargs.target:
         if os.path.basename(cliargs.target)==os.path.basename(pfile.name):
           if pfile.program:
-            remove_other_main(pfiles=pfiles,me=pfile)
-          if cliargs.o:
-            pfile.build(output=cliargs.o)
-          else:
-            pfile.build()
+            remove_other_main(builder=builder,pfiles=pfiles,me=pfile)
+          builder.build(pfile=pfile,output=cliargs.o)
           if cliargs.log:
-            pfile.save_build_log()
+            pfile.save_build_log(builder=builder)
       else:
         if pfile.program:
-          remove_other_main(pfiles=pfiles,me=pfile)
-          pfile.build()
+          remove_other_main(builder=builder,pfiles=pfiles,me=pfile)
+          builder.build(pfile=pfile,output=cliargs.o)
           if cliargs.log:
-            pfile.save_build_log()
+            pfile.save_build_log(builder=builder)
