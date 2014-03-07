@@ -8,6 +8,7 @@ __author__  = 'Stefano Zaghi'
 # modules loading
 try:
   import sys,os,time,argparse,shutil,ConfigParser
+  from multiprocessing import Pool
 except:
   sys.exit(1)
 try:
@@ -27,11 +28,13 @@ buildparser.add_argument('-f',help='Specify a "fobos" file named differently fro
 buildparser.add_argument('-colors',help='Activate colors in shell prints [default: no colors]',required=False,action='store_true',default=False)
 buildparser.add_argument('-log',help='Activate the creation of a log file [default: no log file]',required=False,action='store_true',default=False)
 buildparser.add_argument('-quiet',help='Less verbose than default',required=False,action='store_true',default=False)
+buildparser.add_argument('-j',help='Specify the number of concurrent jobs used for compiling dependencies (enable parallel, multiprocessing buildings useful on parallel architectures for speedup compiling)',required=False,action='store',default=1,type=int)
 buildparser.add_argument('-exclude',help='Exclude a list of files from the building process',required=False,action='store',nargs='+',default=[])
 buildparser.add_argument('-target',help='Build a specific file [default: all programs found]',required=False,action='store')
+buildparser.add_argument('-o',help='Specify the output file name is used with -target switch [default: basename of target]',required=False,action='store')
 buildparser.add_argument('-compiler',help='Compiler used: Intel, GNU, IBM, PGI, g95 or Custom [default: Intel]',required=False,action='store',default='Intel')
 buildparser.add_argument('-fc',help='Specify the Fortran compiler statement, necessary for custom compiler specification (-compiler Custom)',required=False,action='store',default='')
-buildparser.add_argument('-modsw',help='Specify the switch for specifing the module searching path, necessary for custom compiler specification (-compiler Custom)',required=False,action='store',default='')
+buildparser.add_argument('-modsw',help='Specify the switch for specifying the module searching path, necessary for custom compiler specification (-compiler Custom)',required=False,action='store',default='')
 buildparser.add_argument('-mpi',help='Use MPI enabled version of compiler',required=False,action='store_true',default=False)
 buildparser.add_argument('-cflags',help='Compilation flags [default: -c -cpp]',required=False,action='store',default='-c -cpp')
 buildparser.add_argument('-lflags',help='Linking flags',required=False,action='store',default='')
@@ -169,14 +172,18 @@ class builder(object):
       comp_cmd = self.cmd_comp+" "                                         +filename+" -o "+self.dobj+basename+".o"
     os.system(comp_cmd)
     return comp_cmd
-  def link(self,filename,objs):
+  def link(self,filename,objs,output=None):
     if not os.path.exists(self.dexe):
       os.makedirs(self.dexe)
     basename = os.path.splitext(os.path.basename(filename))[0]
-    if self.libs.__len__>0:
-      link_cmd = self.cmd_link+" "+"".join([self.dobj+s+" " for s in objs])+"".join([s+" " for s in self.libs])+"-o "+self.dexe+basename
+    if output:
+      exe=output
     else:
-      link_cmd = self.cmd_link+" "+"".join([self.dobj+s+" " for s in objs])                                    +"-o "+self.dexe+basename
+      exe=basename
+    if self.libs.__len__>0:
+      link_cmd = self.cmd_link+" "+"".join([self.dobj+s+" " for s in objs])+"".join([s+" " for s in self.libs])+"-o "+self.dexe+exe
+    else:
+      link_cmd = self.cmd_link+" "+"".join([self.dobj+s+" " for s in objs])                                    +"-o "+self.dexe+exe
     os.system(link_cmd)
     return link_cmd
 class dependency(object):
@@ -206,7 +213,8 @@ class parsed_file(object):
                builder      = builder(), # debug builder
                module_names = [],        # in case the file contains modules definition, this is the list of modules defined
                dependencies = [],        # dependency list
-               pfile_dep    = []):       # parsed file dependent list
+               pfile_dep    = [],        # parsed file dependent list
+               jobs         = 1):        # concurrent compiling jobs
     self.name         = name
     self.program      = program
     self.module       = module
@@ -218,6 +226,7 @@ class parsed_file(object):
     self.module_names = module_names
     self.dependencies = dependencies
     self.pfile_dep    = pfile_dep
+    self.jobs         = jobs
     self.basename     = os.path.splitext(os.path.basename(self.name))[0]
     self.timestamp    = os.path.getmtime(self.name)
     self.bcolors      = bcolors()
@@ -331,33 +340,41 @@ class parsed_file(object):
         else:
           # compiled object is absent, thus self must be compiled
           self.to_compile = True
-  def compile(self):
+  def compile(self,target=False):
     """
     The method compile compiles current file and all its dependencies if necessary.
     """
     if not self.include:
       if self.to_compile:
         if self.pfile_dep.__len__()>0:
-          for dep in self.pfile_dep:
-            dep.compile()
+          if target and self.jobs>1:
+            pool = Pool(processes=self.jobs)
+            for dep in self.pfile_dep:
+              pool.apply_async(dep.compile())
+            pool.close()
+            pool.join()
+          else:
+            for dep in self.pfile_dep:
+              dep.compile()
         if self.quiet:
           print self.bcolors.bld+"Compiling "+self.name+self.bcolors.end
           self.builder.compile(filename=self.name)
         else:
           print self.bcolors.bld+self.builder.compile(filename=self.name)+self.bcolors.end
         self.to_compile = False
-  def build(self):
+  def build(self,output=None):
     """
     The method build builds current file.
     """
     self.to_compile = True
-    self.compile()
+    self.compile(target=True)
     if self.program:
       objs = self.obj_dependencies(obj_dep=[])
       if self.quiet:
         print self.bcolors.red+"Linking "+self.builder.dexe+self.basename+self.bcolors.end
+        self.builder.link(filename=self.name,objs=objs,output=output)
       else:
-        print self.bcolors.red+self.builder.link(filename=self.name,objs=objs)+self.bcolors.end
+        print self.bcolors.red+self.builder.link(filename=self.name,objs=objs,output=output)+self.bcolors.end
 # auxiliary functions definitions
 def module_is_in(pfiles,module):
   """
@@ -448,8 +465,12 @@ def inquire_fobos(cliargs,filename='fobos'):
         cliargs.log = fobos.getboolean('general',item[0])
       elif item[0]=='quiet':
         cliargs.quiet = fobos.getboolean('general',item[0])
+      elif item[0]=='jobs':
+        cliargs.j = int(item[1])
       elif item[0]=='target':
         cliargs.target = item[1]
+      elif item[0]=='output':
+        cliargs.o = item[1]
 # main loop
 if __name__ == '__main__':
   cliargs = cliparser.parse_args()
@@ -478,6 +499,7 @@ if __name__ == '__main__':
             pfile = parsed_file(name=file,
                                 quiet=cliargs.quiet,
                                 colored=cliargs.colors,
+                                jobs=cliargs.j,
                                 builder=builder(compiler=cliargs.compiler,fc=cliargs.fc,modsw=cliargs.modsw,mpi=cliargs.mpi,cflags=cliargs.cflags,lflags=cliargs.lflags,libs=cliargs.libs,dinc=cliargs.I,dobj=cliargs.dobj,dmod=cliargs.dmod,dexe=cliargs.dexe))
             pfile.parse()
             pfiles.append(pfile)
@@ -517,7 +539,10 @@ if __name__ == '__main__':
         if os.path.basename(cliargs.target)==os.path.basename(pfile.name):
           if pfile.program:
             remove_other_main(pfiles=pfiles,me=pfile)
-          pfile.build()
+          if cliargs.o:
+            pfile.build(output=cliargs.o)
+          else:
+            pfile.build()
           if cliargs.log:
             pfile.save_build_log()
       else:

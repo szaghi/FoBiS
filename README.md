@@ -25,6 +25,7 @@ Suppose you have a Fortran project composed of many Fortran modules placed into 
 + Intel and GNU Fortran Compilers support;
 + configuration-files-free;
 + ... but also configuration-file driven building for complex buildings;
++ parallel compiling enabled by means of concurrent multiprocesses jobs;
 + easy-extensible: FoBis.py is just a less-than 500 lines of Python statements... no bad for a poor-make-replacement;
 + ...
 
@@ -77,8 +78,8 @@ Printing the _build_ help message:
 
 This will echo:
 
-      usage: FoBiS.py build [-h] [-f F] [-colors] [-log] [-quiet]
-                            [-exclude EXCLUDE [EXCLUDE ...]] [-target TARGET]
+      usage: FoBiS.py build [-h] [-f F] [-colors] [-log] [-quiet] [-j J]
+                            [-exclude EXCLUDE [EXCLUDE ...]] [-target TARGET] [-o O]
                             [-compiler COMPILER] [-fc FC] [-modsw MODSW] [-mpi]
                             [-cflags CFLAGS] [-lflags LFLAGS]
                             [-libs LIBS [LIBS ...]] [-I I [I ...]] [-dobj DOBJ]
@@ -91,14 +92,20 @@ This will echo:
         -log                  Activate the creation of a log file [default: no log
                               file]
         -quiet                Less verbose than default
+        -j J                  Specify the number of concurrent jobs used for
+                              compiling dependencies (enable parallel,
+                              multiprocessing buildings useful on parallel
+                              architectures for speedup compiling)
         -exclude EXCLUDE [EXCLUDE ...]
                               Exclude a list of files from the building process
         -target TARGET        Build a specific file [default: all programs found]
+        -o O                  Specify the output file name is used with -target
+                              switch [default: basename of target]
         -compiler COMPILER    Compiler used: Intel, GNU, IBM, PGI, g95 or Custom
                               [default: Intel]
         -fc FC                Specify the Fortran compiler statement, necessary for
                               custom compiler specification (-compiler Custom)
-        -modsw MODSW          Specify the switch for specifing the module searching
+        -modsw MODSW          Specify the switch for specifying the module searching
                               path, necessary for custom compiler specification
                               (-compiler Custom)
         -mpi                  Use MPI enabled version of compiler
@@ -147,11 +154,19 @@ FoBiS.py will recursively search for _program_ files into the directories nested
 
       FoBiS.py bluid -src my_path -target my_path/my_sub_path/foo.f90
 
-FoBiS.py will recursively search for "my_path/my_sub_path/foo.f90" and for all its dependency files into the directories nested into "my\_path". FoBiS.py will (re-)compile only _foo.f90_ file (independently if it is a program-file or not) and all its dependencies if necessary.
+FoBiS.py will recursively search for "my_path/my_sub_path/foo.f90" and for all its dependency files into the directories nested into "my\_path". FoBiS.py will (re-)compile only _foo.f90_ file (independently if it is a program-file or not) and all its dependencies if necessary. In case the target is a program is output name will be the basename without any extension (i.e. _foo_ in the example). If a different output name is preferable it can be specified by the "-o" switch, namely
+
+      FoBiS.py bluid -src my_path -target my_path/my_sub_path/foo.f90 -o FoO
 
 ### Compile a specific target with user-defined flags
 
       FoBiS.py bluid -cflags '-c -cpp -O2' -src my_path -target my_path/my_sub_path/foo.f90
+
+### Compile large projects with parallel capability enabled for maximize speedup on parallel architectures
+
+      FoBiS.py bluid -j #cpus
+
+This is an experimental feature not yet completely tested, thus it should be carefully used. Using the switch "-j" enables a pool of concurrent jobs (the number of which should be equal to the number of physical cpus or cores available) for compiling targets dependencies. Presently, the pool is not optimized and balanced accordingly to the number of files that must be (re-)compiled and the use of some recursive functions can degrades the speedup.
 
 ### Clean project tree
 
@@ -166,7 +181,9 @@ For dealing with (repetitive) buildings of complex projects, FoBiS.py execution 
       colors=True
       log=False
       quiet=False
+      jobs=4
       target=foo.f90
+      output=FoO
       [builder]
       compiler=custom
       fc=ifort
