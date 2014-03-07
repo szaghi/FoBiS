@@ -309,7 +309,7 @@ class parsed_file(object):
               # compiled object of a dependency is absent, thus self must be compiled
               self.to_compile = True
           else:
-            # verifying if dep newer than self
+            # verifying if dep is newer than self
             if not os.path.exists(dep.name):
               print " Attention: file "+dep.name+" does not exist, but it is a dependency of file "+self.name
               sys.exit(1)
