@@ -14,4 +14,4 @@ jobs=1
 [files]
 target=cumbersome.f90
 output=Cumbersome
-log=False
+log=True

@@ -7,7 +7,7 @@ __version__ ="0.0.1"
 __author__  = 'Stefano Zaghi'
 # modules loading
 try:
-  import sys,os,time,argparse,shutil,ConfigParser
+  import sys,os,time,argparse,shutil,ConfigParser,operator
   from multiprocessing import Pool
 except:
   sys.exit(1)
@@ -174,7 +174,7 @@ class Builder(object):
       os.makedirs(self.dobj)
     if not os.path.exists(self.dexe):
       os.makedirs(self.dexe)
-  def compile(self,pfile):
+  def compile_recurive(self,pfile):
     """
     The method compile compiles pfile and all its dependencies if necessary.
     """
@@ -201,16 +201,32 @@ class Builder(object):
          print self.colors.bld+comp_cmd+self.colors.end
        os.system(comp_cmd)
        pfile.to_compile = False
+  def compile(self,pfile):
+    """
+    The method compile compiles pfile and all its dependencies if necessary.
+    """
+    if not pfile.include:
+     if pfile.to_compile:
+       if len(self.dinc)>0:
+         comp_cmd = self.cmd_comp+" "+"".join(["-I"+s+" " for s in self.dinc])+pfile.name+" -o "+self.dobj+pfile.basename+".o"
+       else:
+         comp_cmd = self.cmd_comp+" "                                         +pfile.name+" -o "+self.dobj+pfile.basename+".o"
+       if self.quiet:
+         print self.colors.bld+"Compiling "+pfile.name+self.colors.end
+       else:
+         print self.colors.bld+comp_cmd+self.colors.end
+       os.system(comp_cmd)
+       pfile.to_compile = False
   def build(self,pfile,output=None):
     """
     The method build builds current file.
     """
     pfile.to_compile = True
     pfile.target = True
-   # Ndep = sum(1 for dep in pfile.pfile_dep_all if dep.to_compile) # number of dependencies that must be compiled
-   # for dep in pfile.pfile_dep_all:
-   #   if dep.to_compile and dep != pfile:
-   #     self.compile(pfile=dep)
+    #Ndep = sum(1 for dep in pfile.pfile_dep_all if dep.to_compile) # number of dependencies that must be compiled
+    for dep in pfile.pfile_dep_all:
+      if dep.to_compile and dep != pfile:
+        self.compile(pfile=dep)
     self.compile(pfile=pfile)
     if pfile.program:
       objs = pfile.obj_dependencies()
@@ -261,6 +277,7 @@ class Parsed_file(object):
     self.output       = output
     self.basename     = os.path.splitext(os.path.basename(self.name))[0]
     self.timestamp    = os.path.getmtime(self.name)
+    self.order        = 0
   def parse(self):
     """
     The method parse parses the file creating its the dependencies list and the list of modules names that self eventually contains.
@@ -454,6 +471,13 @@ def dependency_hiearchy(builder,pfiles):
   # using the just created hiearchy for checking which files must be (re-)compiled
   for pfile in pfiles:
     pfile.check_compile(dobj=builder.dobj)
+    # correct the list ordering accordingly to indirect dependency
+    for dep in pfile.pfile_dep_all:
+      for other_dep in pfile.pfile_dep_all:
+        if other_dep != dep:
+          if dep in other_dep.pfile_dep_all:
+            dep.order = other_dep.order+1
+    pfile.pfile_dep_all.sort(key=operator.attrgetter('order'),reverse=True)
 def remove_other_main(builder,pfiles,me):
   """
   The function remove_other_main removes all compiled objects of other program than the current target under building.
