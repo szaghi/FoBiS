@@ -105,16 +105,13 @@ class Colors(object):
   """
   def __init__(self,
                red = '\033[1;31m',
-               bld = '\033[1m',
-               err = '\033[91m'):
+               bld = '\033[1m'):
     self.red = red
     self.bld = bld
-    self.err = err
     self.end = '\033[0m'
   def disable(self):
     self.red = ''
     self.bld = ''
-    self.err = ''
     self.end = ''
 class Builder(object):
   """
@@ -174,36 +171,9 @@ class Builder(object):
       os.makedirs(self.dobj)
     if not os.path.exists(self.dexe):
       os.makedirs(self.dexe)
-  def compile_recurive(self,pfile):
+  def compile_command(self,pfile):
     """
-    The method compile compiles pfile and all its dependencies if necessary.
-    """
-    if not pfile.include:
-     if pfile.to_compile:
-       if len(pfile.pfile_dep)>0:
-         if pfile.target and self.jobs>1:
-           print self.colors.bld+"Using "+str(self.jobs)+" concurrent processes for comiling "+pfile.name+" dependencies"+self.colors.end
-           pool = Pool(processes=self.jobs)
-           for dep in pfile.pfile_dep:
-             pool.apply_async(self.compile(pfile=dep))
-           pool.close()
-           pool.join()
-         else:
-           for dep in pfile.pfile_dep:
-             self.compile(pfile=dep)
-       if len(self.dinc)>0:
-         comp_cmd = self.cmd_comp+" "+"".join(["-I"+s+" " for s in self.dinc])+pfile.name+" -o "+self.dobj+pfile.basename+".o"
-       else:
-         comp_cmd = self.cmd_comp+" "                                         +pfile.name+" -o "+self.dobj+pfile.basename+".o"
-       if self.quiet:
-         print self.colors.bld+"Compiling "+pfile.name+self.colors.end
-       else:
-         print self.colors.bld+comp_cmd+self.colors.end
-       os.system(comp_cmd)
-       pfile.to_compile = False
-  def compile(self,pfile):
-    """
-    The method compile compiles pfile and all its dependencies if necessary.
+    The method compile returns the OS command for compiling pfile.
     """
     if not pfile.include:
      if pfile.to_compile:
@@ -211,23 +181,37 @@ class Builder(object):
          comp_cmd = self.cmd_comp+" "+"".join(["-I"+s+" " for s in self.dinc])+pfile.name+" -o "+self.dobj+pfile.basename+".o"
        else:
          comp_cmd = self.cmd_comp+" "                                         +pfile.name+" -o "+self.dobj+pfile.basename+".o"
-       if self.quiet:
-         print self.colors.bld+"Compiling "+pfile.name+self.colors.end
-       else:
-         print self.colors.bld+comp_cmd+self.colors.end
-       os.system(comp_cmd)
-       pfile.to_compile = False
+       return comp_cmd
   def build(self,pfile,output=None):
     """
     The method build builds current file.
     """
-    pfile.to_compile = True
-    pfile.target = True
-    #Ndep = sum(1 for dep in pfile.pfile_dep_all if dep.to_compile) # number of dependencies that must be compiled
-    for dep in pfile.pfile_dep_all:
-      if dep.to_compile and dep != pfile:
-        self.compile(pfile=dep)
-    self.compile(pfile=pfile)
+    print self.colors.bld+'Building '+pfile.name+self.colors.end
+    # creating a hierarchy list of compiling commands accordingly to the order of all dependencies
+    if len([p for p in pfile.pfile_dep_all if not p.include and p.to_compile])>0:
+      order_max = max([p for p in pfile.pfile_dep_all if not p.include and p.to_compile],key=operator.attrgetter('order')).order + 1
+      hierarchy = [[] for i in range(order_max)]
+      for dep in pfile.pfile_dep_all:
+        if dep.to_compile and not dep.include:
+          hierarchy[dep.order].append([dep.name,self.compile_command(pfile=dep)])
+      for deps in reversed(hierarchy):
+        files = ''
+        cmds = []
+        for dep in deps:
+          files = files+" "+dep[0]
+          cmds.append(dep[1])
+        if len(deps)>1 and self.jobs>1:
+          print self.colors.bld+"Compiling"+files+" using "+str(self.jobs)+" concurrent processes"+self.colors.end
+          pool = Pool(processes=self.jobs)
+          pool.map(os.system,cmds)
+          pool.close()
+          pool.join()
+        else:
+          print self.colors.bld+"Compiling"+files+" serially "                                    +self.colors.end
+          for cmd in cmds:
+            os.system(cmd)
+    else:
+      print self.colors.bld+'Nothing to compile, all objects are up-to-date'+self.colors.end
     if pfile.program:
       objs = pfile.obj_dependencies()
       if output:
@@ -238,18 +222,32 @@ class Builder(object):
         link_cmd = self.cmd_link+" "+"".join([self.dobj+s+" " for s in objs])+"".join([s+" " for s in self.libs])+"-o "+self.dexe+exe
       else:
         link_cmd = self.cmd_link+" "+"".join([self.dobj+s+" " for s in objs])                                    +"-o "+self.dexe+exe
-      if self.quiet:
-        print self.colors.red+"Linking "+self.builder.dexe+self.basename+self.colors.end
-      else:
-        print self.colors.red+link_cmd+self.colors.end
+      print self.colors.bld+"Linking "+self.dexe+exe+self.colors.end
       os.system(link_cmd)
+    print self.colors.bld+'Target '+pfile.name+' has been successfully built'+self.colors.end
+  def verbose(self):
+    """
+    The method verbose returns a verbose message containing builder infos.
+    """
+    message = ''
+    if not self.quiet:
+      message = "Builder options"+"\n"
+      message+= "  Compiled-objects .o   directory: "+builder.dobj+"\n"
+      message+= "  Compiled-objects .mod directory: "+builder.dmod+"\n"
+      message+= "  Executable directory:            "+builder.dexe+"\n"
+      message+= "  Included paths:                  "+"".join([s+" " for s in builder.dinc])+"\n"
+      message+= "  Linked libraries:                "+"".join([s+" " for s in builder.libs])+"\n"
+      message+= "  Compiler used:                   "+builder.compiler+"\n"
+      message+= "  Compilation flags:               "+builder.cflags+"\n"
+      message+= "  Linking     flags:               "+builder.lflags+"\n"
+    return message
 class Dependency(object):
   """
   Dependency is an object that handles a single file dependency, its attributes and methods.
   """
   def __init__(self,
                type = "",  # type of dependency: "module" or "include" type
-               name = "",  # name of depedency: module name for "use" type or file name for include type
+               name = "",  # name of dependency: module name for "use" type or file name for include type
                file = ""): # file name containing module in the case of "use" type
     self.type = type
     self.name = name
@@ -320,13 +318,7 @@ class Parsed_file(object):
     log_file.writelines(" Complete ordered dependencies list of: "+self.name+"\n")
     for dep in self.pfile_dep_all:
       log_file.writelines("  "+dep.name+"\n")
-    log_file.writelines(" Builder options"+"\n")
-    log_file.writelines("   Compiled-objects .o   directory: "+builder.dobj+"\n")
-    log_file.writelines("   Compiled-objects .mod directory: "+builder.dmod+"\n")
-    log_file.writelines("   Executable directory:            "+builder.dexe+"\n")
-    log_file.writelines("   Compiler used:                   "+builder.compiler+"\n")
-    log_file.writelines("   Compilation flags:               "+builder.cflags+"\n")
-    log_file.writelines("   Linking     flags:               "+builder.lflags+"\n")
+    log_file.writelines(builder.verbose())
     log_file.close()
   def str_dependencies(self,
                        pref = ""): # prefixing string
@@ -581,3 +573,4 @@ if __name__ == '__main__':
           builder.build(pfile=pfile,output=cliargs.o)
           if cliargs.log:
             pfile.save_build_log(builder=builder)
+    print builder.colors.bld+builder.verbose()+builder.colors.end
