@@ -176,14 +176,6 @@ This is an experimental feature not yet completely tested, thus it should be car
 
 For dealing with (repetitive) buildings of complex projects, FoBiS.py execution can be driven by means of a configuration file placed into the current working directory and named _fobos_: FOrtran Building OptionS file. The options defined into _fobos_ file completely override the CLI arguments: this file is designed to act as a makefile, but with a very simple syntax (similar to INI files). Presently, _fobos_ file has, at most, the following options
 
-      [general]
-      src=./src/
-      colors=True
-      log=False
-      quiet=False
-      jobs=4
-      target=foo.f90
-      output=FoO
       [builder]
       compiler=custom
       fc=ifort
@@ -195,6 +187,14 @@ For dealing with (repetitive) buildings of complex projects, FoBiS.py execution 
       dmod=./mod/
       dobj=./obj/
       dexe=./
+      src=./src/
+      colors=True
+      quiet=False
+      jobs=1
+      [files]
+      log=False
+      target=foo.f90
+      output=FoO
 
 There are two sections: _builder_ specifying builder options used for each parsed file and _general_ specifying global options. If an option is present it will overrides the default value of CLI. Options can be commented with "#" symbol. For both _build_ and _clean_ executions of FoBiS.py a _fobos_ file placed elsewhere and having different name can be specified by means of "-f" switch
 
