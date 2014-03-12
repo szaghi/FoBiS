@@ -173,16 +173,22 @@ class Builder(object):
       os.makedirs(self.dexe)
   def compile_command(self,pfile):
     """
-    The method compile returns the OS command for compiling pfile.
+    The method compile_command returns the OS command for compiling pfile.
+    """
+    if len(self.dinc)>0:
+      comp_cmd = self.cmd_comp+" "+"".join(["-I"+s+" " for s in self.dinc])+pfile.name+" -o "+self.dobj+pfile.basename+".o"
+    else:
+      comp_cmd = self.cmd_comp+" "                                         +pfile.name+" -o "+self.dobj+pfile.basename+".o"
+    return comp_cmd
+  def compile(self,pfile):
+    """
+    The method compile compile (serially) pfile.
     """
     if not pfile.include:
      if pfile.to_compile:
-       if len(self.dinc)>0:
-         comp_cmd = self.cmd_comp+" "+"".join(["-I"+s+" " for s in self.dinc])+pfile.name+" -o "+self.dobj+pfile.basename+".o"
-       else:
-         comp_cmd = self.cmd_comp+" "                                         +pfile.name+" -o "+self.dobj+pfile.basename+".o"
-       return comp_cmd
-  def build(self,pfile,output=None):
+       os.system(self.compile_command(pfile=pfile))
+       pfile.to_compile = False
+  def build(self,pfile,output=None,nomodlibs=[]):
     """
     The method build builds current file.
     """
@@ -194,6 +200,7 @@ class Builder(object):
       for dep in pfile.pfile_dep_all:
         if dep.to_compile and not dep.include:
           hierarchy[dep.order].append([dep.name,self.compile_command(pfile=dep)])
+          dep.to_compile = False
       for deps in reversed(hierarchy):
         files = ''
         cmds = []
@@ -207,13 +214,13 @@ class Builder(object):
           pool.close()
           pool.join()
         else:
-          print self.colors.bld+"Compiling"+files+" serially "                                    +self.colors.end
+          print self.colors.bld+"Compiling"+files+" serially "+self.colors.end
           for cmd in cmds:
             os.system(cmd)
     else:
       print self.colors.bld+'Nothing to compile, all objects are up-to-date'+self.colors.end
     if pfile.program:
-      objs = pfile.obj_dependencies()
+      objs = nomodlibs + pfile.obj_dependencies()
       if output:
         exe=output
       else:
@@ -224,7 +231,7 @@ class Builder(object):
         link_cmd = self.cmd_link+" "+"".join([self.dobj+s+" " for s in objs])                                    +"-o "+self.dexe+exe
       print self.colors.bld+"Linking "+self.dexe+exe+self.colors.end
       os.system(link_cmd)
-    print self.colors.bld+'Target '+pfile.name+' has been successfully built'+self.colors.end
+      print self.colors.bld+'Target '+pfile.name+' has been successfully built'+self.colors.end
   def verbose(self):
     """
     The method verbose returns a verbose message containing builder infos.
@@ -553,10 +560,10 @@ if __name__ == '__main__':
     # building dependencies hierarchy
     dependency_hiearchy(builder=builder,pfiles=pfiles)
     # compiling independent files that are libraries of procedures not contained into a module (old Fortran style)
-    nomodlibs = ['']
+    nomodlibs = []
     for pfile in pfiles:
       if pfile.nomodlib:
-        builder.compile(pfile=pfile)
+        builder.build(pfile=pfile)
         nomodlibs.append(pfile.basename+".o")
     # building target or all programs found
     for pfile in pfiles:
@@ -564,13 +571,13 @@ if __name__ == '__main__':
         if os.path.basename(cliargs.target)==os.path.basename(pfile.name):
           if pfile.program:
             remove_other_main(builder=builder,pfiles=pfiles,me=pfile)
-          builder.build(pfile=pfile,output=cliargs.o)
+          builder.build(pfile=pfile,output=cliargs.o,nomodlibs=nomodlibs)
           if cliargs.log:
             pfile.save_build_log(builder=builder)
       else:
         if pfile.program:
           remove_other_main(builder=builder,pfiles=pfiles,me=pfile)
-          builder.build(pfile=pfile,output=cliargs.o)
+          builder.build(pfile=pfile,output=cliargs.o,nomodlibs=nomodlibs)
           if cliargs.log:
             pfile.save_build_log(builder=builder)
     print builder.colors.bld+builder.verbose()+builder.colors.end
