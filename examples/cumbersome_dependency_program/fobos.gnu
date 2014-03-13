@@ -1,0 +1,15 @@
+[builder]
+compiler=Gnu
+mpi=False
+cflags=-c
+dmod=./mod/
+dobj=./obj/
+dexe=./
+src=./src/
+colors=True
+quiet=False
+jobs=1
+[files]
+target=cumbersome.f90
+output=Cumbersome
+log=True

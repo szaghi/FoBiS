@@ -139,34 +139,34 @@ This will echo:
 
 ### Compile all programs found
 
-      FoBiS.py bluid
+      FoBiS.py build
 
 FoBiS.py will recursively search for _program_ files into the directories nested into "./". Program files are captured parsing each file found: a file is a _program-file_ if it contains the Fortran statement _program_.
 It is worth noting that the above FoBiS.py call will use the default compilations options.
 
 ### Compile all programs found excluding some files
 
-      FoBiS.py bluid -exclude foo.f90 bar.f
+      FoBiS.py build -exclude foo.f90 bar.f
 
 FoBiS.py will recursively search for _program_ files into the directories nested into "./" and, excluding _foo,f90_ and _bar.f_, all other files will be parsed and, in case, built.
 
 ### Compile a specific target
 
-      FoBiS.py bluid -src my_path -target my_path/my_sub_path/foo.f90
+      FoBiS.py build -src my_path -target my_path/my_sub_path/foo.f90
 
 FoBiS.py will recursively search for "my_path/my_sub_path/foo.f90" and for all its dependency files into the directories nested into "my\_path". FoBiS.py will (re-)compile only _foo.f90_ file (independently if it is a program-file or not) and all its dependencies if necessary. In case the target is a program is output name will be the basename without any extension (i.e. _foo_ in the example). If a different output name is preferable it can be specified by the "-o" switch, namely
 
-      FoBiS.py bluid -src my_path -target my_path/my_sub_path/foo.f90 -o FoO
+      FoBiS.py build -src my_path -target my_path/my_sub_path/foo.f90 -o FoO
 
 ### Compile a specific target with user-defined flags
 
-      FoBiS.py bluid -cflags '-c -cpp -O2' -src my_path -target my_path/my_sub_path/foo.f90
+      FoBiS.py build -cflags '-c -cpp -O2' -src my_path -target my_path/my_sub_path/foo.f90
 
-### Compile large projects with parallel capability enabled for maximize speedup on parallel architectures
+### Compile large projects: maximize building speedup on parallel architectures
 
-      FoBiS.py bluid -j #cpus
+      FoBiS.py build -j #cpus
 
-This is an experimental feature not yet completely tested, thus it should be carefully used. Using the switch "-j" enables a pool of concurrent jobs (the number of which should be equal to the number of physical cpus or cores available) for compiling targets dependencies. Presently, the pool is not optimized and balanced accordingly to the number of files that must be (re-)compiled and the use of some recursive functions can degrades the speedup.
+This is an experimental feature not yet completely tested, thus it should be carefully used. Using the switch "-j" enables a pool of concurrent jobs (the number of which should be equal to the number of physical cpus or cores available) for compiling targets dependencies. Presently, the pool is not optimized and balanced accordingly to the number of files that must be (re-)compiled.
 
 ### Clean project tree
 
@@ -204,18 +204,12 @@ There are two sections: _builder_ specifying builder options used for each parse
 
 Using this feature it is simple to perform context-specific buildings accordingly to different goals, e.g. it is convenient to have concurrently more _fobos_ files, one for debug building, one for release building, one for AIX architecture, one for MPI building and so on.
 
-## Example
+## Examples
 
-Into the _example_ directory there is an example of how FoBiS.py can be useful. This example consists of a very simple program, _cumbersome.f90_ contained into _src_ directory. This program is a cumbersome version of a classical _hello world_. The main program uses the module "nested_1" contained into "src/nested-1/first_dep.f90" file. The module "nested_1" has included the file "src/nested-1/nested-2/second_dep.f90". A _fobos_ file is provided for building the example.
-
-For testing the example type
-
-      FoBiS.py build
-
-It is worth noting that the module "nested_1" is contained into a file whose name if completely different from the module one (first_dep.f90) and that the inclusion of "second_dep.f90" is done without any paths neither absolute nor relative, i.e. "include 'second_dep.f90'", but FoBiS.f90 can automatically resolves such general dependencies.
+Into the directories _examples_ there are some KISS examples, just read their provided _REAMDE.md_.
 
 ## Tips for non pythonic users
 
-In the example above FoBiS.py is supposed to have the executable permissions, thus it is used without an explicit invocation of the Python interpreter. In general, if FoBiS.py is not set to have executable permissions, it must be executed as:
+In the examples above FoBiS.py is supposed to have the executable permissions, thus it is used without an explicit invocation of the Python interpreter. In general, if FoBiS.py is not set to have executable permissions, it must be executed as:
 
       python FoBiS.py ...
