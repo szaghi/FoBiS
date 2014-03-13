@@ -206,7 +206,7 @@ Using this feature it is simple to perform context-specific buildings accordingl
 
 ## Examples
 
-Into the directories _examples_ there are some KISS examples, just read their provided _REAMDE.md_.
+Into the directory _examples_ there are some KISS examples, just read their provided _REAMDE.md_.
 
 ## Tips for non pythonic users
 
