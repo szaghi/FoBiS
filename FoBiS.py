@@ -30,7 +30,7 @@ buildparser.add_argument('-log',help='Activate the creation of a log file [defau
 buildparser.add_argument('-quiet',help='Less verbose than default',required=False,action='store_true',default=False)
 buildparser.add_argument('-j',help='Specify the number of concurrent jobs used for compiling dependencies (enable parallel, multiprocessing buildings useful on parallel architectures for speedup compiling)',required=False,action='store',default=1,type=int)
 buildparser.add_argument('-exclude',help='Exclude a list of files from the building process',required=False,action='store',nargs='+',default=[])
-buildparser.add_argument('-target',help='Build a specific file [default: all programs found]',required=False,action='store')
+buildparser.add_argument('-target',help='Specify a target file [default: all programs found]',required=False,action='store',default=None)
 buildparser.add_argument('-o',help='Specify the output file name is used with -target switch [default: basename of target]',required=False,action='store',default=None)
 buildparser.add_argument('-compiler',help='Compiler used: Intel, GNU, IBM, PGI, g95 or Custom [default: Intel]',required=False,action='store',default='Intel')
 buildparser.add_argument('-fc',help='Specify the Fortran compiler statement, necessary for custom compiler specification (-compiler Custom)',required=False,action='store',default='')
@@ -50,6 +50,7 @@ cleanparser.add_argument('-f',help='Specify a "fobos" file named differently fro
 cleanparser.add_argument('-colors',help='Activate colors in shell prints [default: no colors]',required=False,action='store_true',default=False)
 cleanparser.add_argument('-dobj',help='Directory containing compiled objects [default: ./obj/]',required=False,action='store',default='./obj/')
 cleanparser.add_argument('-dmod',help='Directory containing .mod files of compiled objects [default: ./mod/]',required=False,action='store',default='./mod/')
+cleanparser.add_argument('-target',help='Specify a target file [default: all programs found]',required=False,action='store',default=None)
 # definition of regular expressions
 str_f95_apex         = r"('|"+r'")'
 str_f95_kw_include   = r"[Ii][Nn][Cc][Ll][Uu][Dd][Ee]"
@@ -148,23 +149,27 @@ class Builder(object):
     self.colors   = Colors()
     if not colors:
       self.colors.disable()
-    if compiler.lower() == "gnu":
-      if mpi:
-        self.cmd_comp = "mpif90 "+self.cflags+" -J"+self.dmod
-        self.cmd_link = "mpif90 "+self.lflags+" -J"+self.dmod
-      else:
-        self.cmd_comp = "gfortran "+self.cflags+" -J"+self.dmod
-        self.cmd_link = "gfortran "+self.lflags+" -J"+self.dmod
-    elif compiler.lower() == "intel":
-      if mpi:
-        self.cmd_comp = "mpif90 "+self.cflags+" -module "+self.dmod
-        self.cmd_link = "mpif90 "+self.lflags+" -module "+self.dmod
-      else:
-        self.cmd_comp = "ifort "+self.cflags+" -module "+self.dmod
-        self.cmd_link = "ifort "+self.lflags+" -module "+self.dmod
-    elif compiler.lower() == "custom":
-      self.cmd_comp = self.fc+" "+self.cflags+" "+self.modsw+" "+self.dmod
-      self.cmd_link = self.fc+" "+self.lflags+" "+self.modsw+" "+self.dmod
+    if mpi:
+      self.fc = 'mpif90'
+    if compiler.lower() == 'gnu':
+      if not mpi:
+        self.fc = 'gfortran'
+      self.modsw = '-J'
+    elif compiler.lower() == 'intel':
+      if not mpi:
+        self.fc = 'ifort'
+      self.modsw = '-module'
+    elif compiler.lower() == 'g95':
+      if not mpi:
+        self.fc = 'g95'
+      self.modsw = '-fmod='
+    elif compiler.lower() == 'custom':
+      pass # all is set from CLI
+    if self.modsw[-1]!='=': # check necessary for g95 CLI trapping error
+      self.modsw += ' '
+    self.cmd_comp = self.fc+' '+self.cflags+' '+self.modsw+self.dmod
+    self.cmd_link = self.fc+' '+self.lflags+' '+self.modsw+self.dmod
+    # checking paths integrity
     if not os.path.exists(self.dmod):
       os.makedirs(self.dmod)
     if not os.path.exists(self.dobj):
@@ -176,9 +181,9 @@ class Builder(object):
     The method compile_command returns the OS command for compiling pfile.
     """
     if len(self.dinc)>0:
-      comp_cmd = self.cmd_comp+" "+"".join(["-I"+s+" " for s in self.dinc])+pfile.name+" -o "+self.dobj+pfile.basename+".o"
+      comp_cmd = self.cmd_comp+' '+''.join(['-I'+s+' ' for s in self.dinc])+pfile.name+' -o '+self.dobj+pfile.basename+'.o'
     else:
-      comp_cmd = self.cmd_comp+" "                                         +pfile.name+" -o "+self.dobj+pfile.basename+".o"
+      comp_cmd = self.cmd_comp+' '                                         +pfile.name+' -o '+self.dobj+pfile.basename+'.o'
     return comp_cmd
   def compile(self,pfile):
     """
@@ -244,7 +249,9 @@ class Builder(object):
       message+= "  Executable directory:            "+builder.dexe+"\n"
       message+= "  Included paths:                  "+"".join([s+" " for s in builder.dinc])+"\n"
       message+= "  Linked libraries:                "+"".join([s+" " for s in builder.libs])+"\n"
-      message+= "  Compiler used:                   "+builder.compiler+"\n"
+      message+= "  Compiler class:                  "+builder.compiler+"\n"
+      message+= "  Compiler:                        "+builder.fc+"\n"
+      message+= "  Compiler module switch:          "+builder.modsw+"\n"
       message+= "  Compilation flags:               "+builder.cflags+"\n"
       message+= "  Linking     flags:               "+builder.lflags+"\n"
     return message
@@ -270,7 +277,6 @@ class Parsed_file(object):
                include      = False,     # flag for checking if the file is an include-dependency
                nomodlib     = False,     # flag for checking if the file is library of procedures with an enclosing module (old Fortran style)
                to_compile   = False,     # flag for checking if the file must be compiled
-               target       = False,     # flag for checking if the file is a target to be built
                output       = None):     # eventual user-supplied output file name
     self.name         = name
     self.program      = program
@@ -278,7 +284,6 @@ class Parsed_file(object):
     self.include      = include
     self.nomodlib     = nomodlib
     self.to_compile   = to_compile
-    self.target       = target
     self.output       = output
     self.basename     = os.path.splitext(os.path.basename(self.name))[0]
     self.timestamp    = os.path.getmtime(self.name)
@@ -540,11 +545,23 @@ if __name__ == '__main__':
     colors = Colors()
     if not cliargs.colors:
       colors.disable()
-    print colors.red+"Removing "+cliargs.dobj+" and "+cliargs.dmod+colors.end
     if os.path.exists(cliargs.dobj):
+      print colors.red+'Removing '+cliargs.dobj+colors.end
       shutil.rmtree(cliargs.dobj)
     if os.path.exists(cliargs.dmod):
+      print colors.red+'Removing '+cliargs.dmod+colors.end
       shutil.rmtree(cliargs.dmod)
+    if cliargs.target:
+      if cliargs.o:
+        exe = cliargs.o
+      else:
+        exe = os.path.basename(cliargs.target)
+      if os.path.exists(cliargs.dexe+exe):
+        print colors.red+'Removing '+cliargs.dexe+exe+colors.end
+        os.remove(cliargs.dexe+exe)
+      if os.path.exists('build_'+os.path.splitext(os.path.basename(cliargs.target))[0]+'.log'):
+        print colors.red+'Removing build_'+os.path.splitext(os.path.basename(cliargs.target))[0]+'.log'+colors.end
+        os.remove('build_'+os.path.splitext(os.path.basename(cliargs.target))[0]+'.log')
   elif cliargs.which=='build':
     builder=Builder(compiler=cliargs.compiler,fc=cliargs.fc,modsw=cliargs.modsw,mpi=cliargs.mpi,cflags=cliargs.cflags,lflags=cliargs.lflags,libs=cliargs.libs,dinc=cliargs.I,dobj=cliargs.dobj,dmod=cliargs.dmod,dexe=cliargs.dexe,quiet=cliargs.quiet,colors=cliargs.colors,jobs=cliargs.j)
     pfiles = [] # main parsed files list

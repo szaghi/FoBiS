@@ -1,7 +1,5 @@
 [builder]
-compiler=custom
-fc=ifort
-modsw=-module
+compiler=G95
 mpi=False
 cflags=-c
 dmod=./mod/

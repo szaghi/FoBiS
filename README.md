@@ -22,16 +22,16 @@ Suppose you have a Fortran project composed of many Fortran modules placed into 
 + automatic building of all _programs_ found into the root directory parsed or only a specific selected target;
 + avoid unnecessary re-compilation (algorithm based on file-timestamp value);
 + simple command line interface;
-+ Intel and GNU Fortran Compilers support;
++ Intel, GNU and g95 Fortran Compilers support;
 + configuration-files-free;
 + ... but also configuration-file driven building for complex buildings;
 + parallel compiling enabled by means of concurrent multiprocesses jobs;
-+ easy-extensible: FoBis.py is just a less-than 500 lines of Python statements... no bad for a poor-make-replacement;
++ easy-extensible: FoBis.py is just a less-than 600 lines of Python statements... no bad for a poor-make-replacement;
 + ...
 
 ## Todos
 + Add support for building libraries;
-+ add IBM, PGI, g95 Fortran Compilers support;
++ add IBM, PGI Fortran Compilers support;
 + ...
 + GUI... nooooooooooo, we are _poor-fortran-men_!
 + ...
