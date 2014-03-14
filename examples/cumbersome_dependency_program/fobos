@@ -8,8 +8,9 @@ dexe=./
 src=./src/
 colors=True
 quiet=False
-jobs=1
+j=1
+inc=.h .H
 [files]
 target=cumbersome.f90
-output=Cumbersome
+o=Cumbersome
 log=True

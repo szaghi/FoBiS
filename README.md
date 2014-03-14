@@ -82,8 +82,9 @@ This will echo:
                             [-exclude EXCLUDE [EXCLUDE ...]] [-target TARGET] [-o O]
                             [-compiler COMPILER] [-fc FC] [-modsw MODSW] [-mpi]
                             [-cflags CFLAGS] [-lflags LFLAGS]
-                            [-libs LIBS [LIBS ...]] [-I I [I ...]] [-dobj DOBJ]
-                            [-dmod DMOD] [-dexe DEXE] [-src SRC]
+                            [-libs LIBS [LIBS ...]] [-I I [I ...]]
+                            [-inc INC [INC ...]] [-dobj DOBJ] [-dmod DMOD]
+                            [-dexe DEXE] [-src SRC]
 
       optional arguments:
         -h, --help            show this help message and exit
@@ -93,19 +94,17 @@ This will echo:
                               file]
         -quiet                Less verbose than default
         -j J                  Specify the number of concurrent jobs used for
-                              compiling dependencies (enable parallel,
-                              multiprocessing buildings useful on parallel
-                              architectures for speedup compiling)
+                              compiling dependencies [default 1]
         -exclude EXCLUDE [EXCLUDE ...]
                               Exclude a list of files from the building process
-        -target TARGET        Build a specific file [default: all programs found]
+        -target TARGET        Specify a target file [default: all programs found]
         -o O                  Specify the output file name is used with -target
                               switch [default: basename of target]
         -compiler COMPILER    Compiler used: Intel, GNU, IBM, PGI, g95 or Custom
                               [default: Intel]
         -fc FC                Specify the Fortran compiler statement, necessary for
                               custom compiler specification (-compiler Custom)
-        -modsw MODSW          Specify the switch for specifying the module searching
+        -modsw MODSW          Specify the switch for setting the module searching
                               path, necessary for custom compiler specification
                               (-compiler Custom)
         -mpi                  Use MPI enabled version of compiler
@@ -114,6 +113,8 @@ This will echo:
         -libs LIBS [LIBS ...]
                               List of external libraries used
         -I I [I ...]          List of directories for searching included files
+        -inc INC [INC ...]    Add a list of custom-defined file extensions for
+                              include files
         -dobj DOBJ            Directory containing compiled objects [default:
                               ./obj/]
         -dmod DMOD            Directory containing .mod files of compiled objects
@@ -128,14 +129,19 @@ Printing the _clean_ help message:
 This will echo:
 
       usage: FoBiS.py clean [-h] [-f F] [-colors] [-dobj DOBJ] [-dmod DMOD]
+                            [-dexe DEXE] [-target TARGET] [-o O]
 
       optional arguments:
-        -h, --help  show this help message and exit
-        -f F        Specify a "fobos" file named differently from "fobos"
-        -colors     Activate colors in shell prints [default: no colors]
-        -dobj DOBJ  Directory containing compiled objects [default: ./obj/]
-        -dmod DMOD  Directory containing .mod files of compiled objects [default:
-                    ./mod/]
+        -h, --help      show this help message and exit
+        -f F            Specify a "fobos" file named differently from "fobos"
+        -colors         Activate colors in shell prints [default: no colors]
+        -dobj DOBJ      Directory containing compiled objects [default: ./obj/]
+        -dmod DMOD      Directory containing .mod files of compiled objects
+                        [default: ./mod/]
+        -dexe DEXE      Directory containing executable objects [default: ./]
+        -target TARGET  Specify a target file [default: all programs found]
+        -o O            Specify the output file name is used with -target switch
+                        [default: basename of target]
 
 ### Compile all programs found
 
@@ -190,11 +196,14 @@ For dealing with (repetitive) buildings of complex projects, FoBiS.py execution 
       src=./src/
       colors=True
       quiet=False
-      jobs=1
+      j=1
+      exclude=pon.F cin.f90
+      I=other_include_path another_include_path
+      inc=.cmn .icp
       [files]
       log=False
       target=foo.f90
-      output=FoO
+      o=FoO
 
 There are two sections: _builder_ specifying builder options used for each parsed file and _general_ specifying global options. If an option is present it will overrides the default value of CLI. Options can be commented with "#" symbol. For both _build_ and _clean_ executions of FoBiS.py a _fobos_ file placed elsewhere and having different name can be specified by means of "-f" switch
 
