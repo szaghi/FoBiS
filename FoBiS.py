@@ -40,6 +40,7 @@ buildparser.add_argument('-cflags',help='Compilation flags [default: -c -cpp]',r
 buildparser.add_argument('-lflags',help='Linking flags',required=False,action='store',default='')
 buildparser.add_argument('-libs',help='List of external libraries used',required=False,action='store',nargs='+',default=[])
 buildparser.add_argument('-I',help='List of directories for searching included files',required=False,action='store',nargs='+',default=[])
+buildparser.add_argument('-inc',help='Add a list of custom-defined file extensions for include files',required=False,action='store',nargs='+',default=[])
 buildparser.add_argument('-dobj',help='Directory containing compiled objects [default: ./obj/]',required=False,action='store',default='./obj/')
 buildparser.add_argument('-dmod',help='Directory containing .mod files of compiled objects [default: ./mod/]',required=False,action='store',default='./mod/')
 buildparser.add_argument('-dexe',help='Directory containing executable objects [default: ./]',required=False,action='store',default='./')
@@ -510,6 +511,8 @@ def inquire_fobos(cliargs,filename='fobos'):
         cliargs.cflags = item[1]
       elif item[0]=='lflags':
         cliargs.lflags = item[1]
+      elif item[0]=='inc':
+        cliargs.inc = item[1].split()
       elif item[0]=='libs':
         cliargs.libs = item[1].split()
       elif item[0]=='dmod':
@@ -563,6 +566,7 @@ if __name__ == '__main__':
         print colors.red+'Removing build_'+os.path.splitext(os.path.basename(cliargs.target))[0]+'.log'+colors.end
         os.remove('build_'+os.path.splitext(os.path.basename(cliargs.target))[0]+'.log')
   elif cliargs.which=='build':
+    __extensions_inc__  += cliargs.inc
     builder=Builder(compiler=cliargs.compiler,fc=cliargs.fc,modsw=cliargs.modsw,mpi=cliargs.mpi,cflags=cliargs.cflags,lflags=cliargs.lflags,libs=cliargs.libs,dinc=cliargs.I,dobj=cliargs.dobj,dmod=cliargs.dmod,dexe=cliargs.dexe,quiet=cliargs.quiet,colors=cliargs.colors,jobs=cliargs.j)
     pfiles = [] # main parsed files list
     # parsing files loop
