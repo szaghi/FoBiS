@@ -1,0 +1,11 @@
+[builder]
+compiler=Gnu
+cflags=-c -fPIC
+lflags=-shared
+src=./src/
+colors=True
+quiet=False
+[files]
+target=library.f90
+mklib=shared
+log=True

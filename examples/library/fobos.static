@@ -1,0 +1,11 @@
+[builder]
+compiler=Gnu
+cflags=-c
+src=./src/
+colors=True
+quiet=False
+[files]
+target=library.f90
+o=Staticlib.a
+mklib=static
+log=True
