@@ -6,7 +6,7 @@ A KISS usage example of FoBiS.py
 
 This example consists of a very simple program, _cumbersome.f90_ contained into _src_ directory. This program is a cumbersome version of a classical _hello world_. The main program uses the module "nested_1" contained into "src/nested-1/first_dep.f90" file. The module "nested_1" has included the file "src/nested-1/nested-2/second_dep.f90". Five _fobos_ files are provided for building the example.
 
-For testing the example type on of the followings
+For testing the example type one of the followings
 
 + `FoBiS.py build` using _fobos_ file;
 + `FoBiS.py build -f fobos.custom` using custom-complier-configuration file;

@@ -32,7 +32,6 @@ Suppose you have a Fortran project composed of many Fortran modules placed into 
 
 ## Todos
 + Pythonic pre-processor;
-+ add support for building libraries;
 + add IBM, PGI Fortran Compilers support;
 + ...
 + GUI... nooooooooooo, we are _poor-fortran-men_!
@@ -79,12 +78,12 @@ Printing the _build_ help message:
 This will echo:
 
       usage: FoBiS.py build [-h] [-f F] [-colors] [-log] [-quiet] [-j J]
-                            [-exclude EXCLUDE [EXCLUDE ...]] [-target TARGET] [-o O]
                             [-compiler COMPILER] [-fc FC] [-modsw MODSW] [-mpi]
                             [-cflags CFLAGS] [-lflags LFLAGS]
                             [-libs LIBS [LIBS ...]] [-I I [I ...]]
                             [-inc INC [INC ...]] [-dobj DOBJ] [-dmod DMOD]
-                            [-dexe DEXE] [-src SRC]
+                            [-dexe DEXE] [-src SRC] [-exclude EXCLUDE [EXCLUDE ...]]
+                            [-target TARGET] [-o O] [-mklib MKLIB]
 
       optional arguments:
         -h, --help            show this help message and exit
@@ -95,11 +94,6 @@ This will echo:
         -quiet                Less verbose than default
         -j J                  Specify the number of concurrent jobs used for
                               compiling dependencies [default 1]
-        -exclude EXCLUDE [EXCLUDE ...]
-                              Exclude a list of files from the building process
-        -target TARGET        Specify a target file [default: all programs found]
-        -o O                  Specify the output file name is used with -target
-                              switch [default: basename of target]
         -compiler COMPILER    Compiler used: Intel, GNU, IBM, PGI, g95 or Custom
                               [default: Intel]
         -fc FC                Specify the Fortran compiler statement, necessary for
@@ -121,6 +115,13 @@ This will echo:
                               [default: ./mod/]
         -dexe DEXE            Directory containing executable objects [default: ./]
         -src SRC              Root-directory of source files [default: ./]
+        -exclude EXCLUDE [EXCLUDE ...]
+                              Exclude a list of files from the building process
+        -target TARGET        Specify a target file [default: all programs found]
+        -o O                  Specify the output file name is used with -target
+                              switch [default: basename of target]
+        -mklib MKLIB          Build library instead of program (use with -target
+                              switch); usage: -mklib static or -mklib shared
 
 Printing the _clean_ help message:
 
@@ -129,7 +130,7 @@ Printing the _clean_ help message:
 This will echo:
 
       usage: FoBiS.py clean [-h] [-f F] [-colors] [-dobj DOBJ] [-dmod DMOD]
-                            [-dexe DEXE] [-target TARGET] [-o O]
+                            [-dexe DEXE] [-target TARGET] [-o O] [-mklib MKLIB]
 
       optional arguments:
         -h, --help      show this help message and exit
@@ -142,6 +143,8 @@ This will echo:
         -target TARGET  Specify a target file [default: all programs found]
         -o O            Specify the output file name is used with -target switch
                         [default: basename of target]
+        -mklib MKLIB    Build library instead of program (use with -target switch);
+                        usage: -mklib static or -mklib shared
 
 ### Compile all programs found
 
@@ -174,6 +177,16 @@ FoBiS.py will recursively search for "my_path/my_sub_path/foo.f90" and for all i
 
 This is an experimental feature not yet completely tested, thus it should be carefully used. Using the switch "-j" enables a pool of concurrent jobs (the number of which should be equal to the number of physical cpus or cores available) for compiling targets dependencies. Presently, the pool is not optimized and balanced accordingly to the number of files that must be (re-)compiled.
 
+### Build a library
+
+      FoBiS.py build -target mylib.f90 -mklib static
+
+      FoBiS.py build -target mylib.f90 -mklib shared
+
+FoBiS.py offers a primitive support for building libraries, both static and shared. Presently, this feature can be used only within -target switch. Notably, this should work only on Unix-like architectures.
+
+Into _examples_ directory there is an example of a _cumbersome_ library building.
+
 ### Clean project tree
 
       FoBiS.py clean
@@ -200,6 +213,7 @@ For dealing with (repetitive) buildings of complex projects, FoBiS.py execution 
       exclude=pon.F cin.f90
       I=other_include_path another_include_path
       inc=.cmn .icp
+      mklib=static
       [files]
       log=False
       target=foo.f90

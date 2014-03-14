@@ -31,9 +31,6 @@ buildparser.add_argument('-colors',  required=False,action='store_true',        
 buildparser.add_argument('-log',     required=False,action='store_true',          default=False,         help='Activate the creation of a log file [default: no log file]')
 buildparser.add_argument('-quiet',   required=False,action='store_true',          default=False,         help='Less verbose than default')
 buildparser.add_argument('-j',       required=False,action='store',               default=1,    type=int,help='Specify the number of concurrent jobs used for compiling dependencies [default 1]')
-buildparser.add_argument('-exclude', required=False,action='store',     nargs='+',default=[],            help='Exclude a list of files from the building process')
-buildparser.add_argument('-target',  required=False,action='store',               default=None,          help='Specify a target file [default: all programs found]')
-buildparser.add_argument('-o',       required=False,action='store',               default=None,          help='Specify the output file name is used with -target switch [default: basename of target]')
 buildparser.add_argument('-compiler',required=False,action='store',               default='Intel',       help='Compiler used: Intel, GNU, IBM, PGI, g95 or Custom [default: Intel]')
 buildparser.add_argument('-fc',      required=False,action='store',               default='',            help='Specify the Fortran compiler statement, necessary for custom compiler specification (-compiler Custom)')
 buildparser.add_argument('-modsw',   required=False,action='store',               default='',            help='Specify the switch for setting the module searching path, necessary for custom compiler specification (-compiler Custom)')
@@ -47,6 +44,10 @@ buildparser.add_argument('-dobj',    required=False,action='store',             
 buildparser.add_argument('-dmod',    required=False,action='store',               default='./mod/',      help='Directory containing .mod files of compiled objects [default: ./mod/]')
 buildparser.add_argument('-dexe',    required=False,action='store',               default='./',          help='Directory containing executable objects [default: ./]')
 buildparser.add_argument('-src',     required=False,action='store',               default='./',          help='Root-directory of source files [default: ./]')
+buildparser.add_argument('-exclude', required=False,action='store',     nargs='+',default=[],            help='Exclude a list of files from the building process')
+buildparser.add_argument('-target',  required=False,action='store',               default=None,          help='Specify a target file [default: all programs found]')
+buildparser.add_argument('-o',       required=False,action='store',               default=None,          help='Specify the output file name is used with -target switch [default: basename of target]')
+buildparser.add_argument('-mklib',   required=False,action='store',               default=None,          help='Build library instead of program (use with -target switch); usage: -mklib static or -mklib shared')
 cleanparser.add_argument('-f',       required=False,action='store',               default=None,          help='Specify a "fobos" file named differently from "fobos"')
 cleanparser.add_argument('-colors',  required=False,action='store_true',          default=False,         help='Activate colors in shell prints [default: no colors]')
 cleanparser.add_argument('-dobj',    required=False,action='store',               default='./obj/',      help='Directory containing compiled objects [default: ./obj/]')
@@ -54,6 +55,7 @@ cleanparser.add_argument('-dmod',    required=False,action='store',             
 cleanparser.add_argument('-dexe',    required=False,action='store',               default='./',          help='Directory containing executable objects [default: ./]')
 cleanparser.add_argument('-target',  required=False,action='store',               default=None,          help='Specify a target file [default: all programs found]')
 cleanparser.add_argument('-o',       required=False,action='store',               default=None,          help='Specify the output file name is used with -target switch [default: basename of target]')
+cleanparser.add_argument('-mklib',   required=False,action='store',               default=None,          help='Build library instead of program (use with -target switch); usage: -mklib static or -mklib shared')
 # definition of regular expressions
 str_f95_apex         = r"('|"+r'")'
 str_f95_kw_include   = r"[Ii][Nn][Cc][Ll][Uu][Dd][Ee]"
@@ -196,7 +198,7 @@ class Builder(object):
      if pfile.to_compile:
        os.system(self.compile_command(pfile=pfile))
        pfile.to_compile = False
-  def build(self,pfile,output=None,nomodlibs=[]):
+  def build(self,pfile,output=None,nomodlibs=[],mklib=None):
     """
     The method build builds current file.
     """
@@ -230,14 +232,26 @@ class Builder(object):
     if pfile.program:
       objs = nomodlibs + pfile.obj_dependencies()
       if output:
-        exe=output
+        exe=self.dexe+output
       else:
-        exe=pfile.basename
-      if len(self.libs)>0:
-        link_cmd = self.cmd_link+" "+"".join([self.dobj+s+" " for s in objs])+"".join([s+" " for s in self.libs])+"-o "+self.dexe+exe
+        exe=self.dexe+pfile.basename
+      link_cmd = self.cmd_link+" "+"".join([self.dobj+s+" " for s in objs])+"".join([s+" " for s in self.libs])+"-o "+exe
+      print self.colors.bld+"Linking "+exe+self.colors.end
+      os.system(link_cmd)
+      print self.colors.bld+'Target '+pfile.name+' has been successfully built'+self.colors.end
+    elif mklib:
+      if output:
+        lib=self.dexe+output
       else:
-        link_cmd = self.cmd_link+" "+"".join([self.dobj+s+" " for s in objs])                                    +"-o "+self.dexe+exe
-      print self.colors.bld+"Linking "+self.dexe+exe+self.colors.end
+        if mklib.lower()=='shared':
+          lib=self.dexe+pfile.basename+'.so'
+        elif mklib.lower()=='static':
+          lib=self.dexe+pfile.basename+'.a'
+      if mklib.lower()=='shared':
+        link_cmd = self.cmd_link+" "+"".join([s+" " for s in self.libs])+self.dobj+pfile.basename+".o -o "+lib
+      elif mklib.lower()=='static':
+        link_cmd = "ar -rcs "+lib+" "+self.dobj+pfile.basename+".o ; ranlib "+lib
+      print self.colors.bld+"Linking "+lib+self.colors.end
       os.system(link_cmd)
       print self.colors.bld+'Target '+pfile.name+' has been successfully built'+self.colors.end
   def verbose(self):
@@ -534,7 +548,13 @@ if __name__ == '__main__':
       if cliargs.o:
         exe = cliargs.o
       else:
-        exe = os.path.basename(cliargs.target)
+        if cliargs.mklib:
+          if cliargs.mklib.lower()=='static':
+            exe = os.path.splitext(os.path.basename(cliargs.target))[0]+'.a'
+          elif cliargs.mklib.lower()=='shared':
+            exe = os.path.splitext(os.path.basename(cliargs.target))[0]+'.so'
+        else:
+          exe = os.path.splitext(os.path.basename(cliargs.target))[0]
       if os.path.exists(cliargs.dexe+exe):
         print colors.red+'Removing '+cliargs.dexe+exe+colors.end
         os.remove(cliargs.dexe+exe)
@@ -568,7 +588,7 @@ if __name__ == '__main__':
         if os.path.basename(cliargs.target)==os.path.basename(pfile.name):
           if pfile.program:
             remove_other_main(builder=builder,pfiles=pfiles,me=pfile)
-          builder.build(pfile=pfile,output=cliargs.o,nomodlibs=nomodlibs)
+          builder.build(pfile=pfile,output=cliargs.o,nomodlibs=nomodlibs,mklib=cliargs.mklib)
           if cliargs.log:
             pfile.save_build_log(builder=builder)
       else:
