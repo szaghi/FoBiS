@@ -97,7 +97,7 @@ regex_f95_intrinsic  = re.compile(str_f95_intrinsic)
 regex_f95_mpifh      = re.compile(str_f95_mpifh)
 __extensions_old__    = [".f",".F",".for",".FOR",".fpp",".FPP",".fortran",".f77",".F77"]
 __extensions_modern__ = [".f90",".F90",".f95",".F95",".f03",".F03",".f08",".F08",".f2k",".F2K"]
-__extensions_inc__    = [".inc",".INC"]
+__extensions_inc__    = [".inc",".INC",".h",".H"]
 __extensions_parsed__ = __extensions_old__ + __extensions_modern__ + __extensions_inc__
 # classes definitions
 class Colors(object):

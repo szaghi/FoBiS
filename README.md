@@ -23,6 +23,7 @@ Suppose you have a Fortran project composed of many Fortran modules placed into 
 + avoid unnecessary re-compilation (algorithm based on file-timestamp value);
 + simple command line interface;
 + Intel, GNU and g95 Fortran Compilers support;
++ custom compiler support;
 + configuration-files-free;
 + ... but also configuration-file driven building for complex buildings;
 + parallel compiling enabled by means of concurrent multiprocesses jobs;
@@ -30,12 +31,11 @@ Suppose you have a Fortran project composed of many Fortran modules placed into 
 + ...
 
 ## Todos
-+ Add support for building libraries;
++ Pythonic pre-processor;
++ add support for building libraries;
 + add IBM, PGI Fortran Compilers support;
 + ...
 + GUI... nooooooooooo, we are _poor-fortran-men_!
-+ ...
-+ pythonic pre-processor;
 + ...
 
 ## Requirements
