@@ -203,6 +203,13 @@ class Builder(object):
     The method build builds current file.
     """
     print self.colors.bld+'Building '+pfile.name+self.colors.end
+    # correct the list ordering accordingly to indirect dependency
+    for n,dep in enumerate(pfile.pfile_dep_all):
+      for other_dep in pfile.pfile_dep_all:
+        if other_dep != dep:
+          if dep in other_dep.pfile_dep_all:
+            dep.order+=1
+    pfile.pfile_dep_all.sort(key=operator.attrgetter('order'),reverse=True)
     # creating a hierarchy list of compiling commands accordingly to the order of all dependencies
     if len([p for p in pfile.pfile_dep_all if not p.include and p.to_compile])>0:
       order_max = max([p for p in pfile.pfile_dep_all if not p.include and p.to_compile],key=operator.attrgetter('order')).order + 1
@@ -211,6 +218,7 @@ class Builder(object):
         if dep.to_compile and not dep.include:
           hierarchy[dep.order].append([dep.name,self.compile_command(pfile=dep)])
           dep.to_compile = False
+      hierarchy = [h for h in hierarchy if len(h)>0]
       for deps in reversed(hierarchy):
         files = ''
         cmds = []
@@ -218,8 +226,9 @@ class Builder(object):
           files = files+" "+dep[0]
           cmds.append(dep[1])
         if len(deps)>1 and self.jobs>1:
-          print self.colors.bld+"Compiling"+files+" using "+str(self.jobs)+" concurrent processes"+self.colors.end
-          pool = Pool(processes=self.jobs)
+          jobs = min(len(deps),self.jobs)
+          print self.colors.bld+"Compiling"+files+" using "+str(jobs)+" concurrent processes"+self.colors.end
+          pool = Pool(processes=jobs)
           pool.map(os.system,cmds)
           pool.close()
           pool.join()
@@ -346,7 +355,7 @@ class Parsed_file(object):
       log_file.writelines(dep.str_dependencies(pref="    "))
     log_file.writelines("Complete ordered dependencies list of: "+self.name+"\n")
     for dep in self.pfile_dep_all:
-      log_file.writelines("  "+dep.name+"\n")
+      log_file.writelines("  "+dep.name+" "+str(dep.order)+"\n")
     log_file.writelines(builder.verbose())
     log_file.close()
   def str_dependencies(self,
@@ -493,13 +502,6 @@ def dependency_hiearchy(builder,pfiles):
   # using the just created hiearchy for checking which files must be (re-)compiled
   for pfile in pfiles:
     pfile.check_compile(dobj=builder.dobj)
-    # correct the list ordering accordingly to indirect dependency
-    for dep in pfile.pfile_dep_all:
-      for other_dep in pfile.pfile_dep_all:
-        if other_dep != dep:
-          if dep in other_dep.pfile_dep_all:
-            dep.order = other_dep.order+1
-    pfile.pfile_dep_all.sort(key=operator.attrgetter('order'),reverse=True)
 def remove_other_main(builder,pfiles,me):
   """
   The function remove_other_main removes all compiled objects of other program than the current target under building.
