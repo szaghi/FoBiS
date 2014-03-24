@@ -355,7 +355,7 @@ class Parsed_file(object):
       log_file.writelines(dep.str_dependencies(pref="    "))
     log_file.writelines("Complete ordered dependencies list of: "+self.name+"\n")
     for dep in self.pfile_dep_all:
-      log_file.writelines("  "+dep.name+" "+str(dep.order)+"\n")
+      log_file.writelines("  "+dep.name+"\n")
     log_file.writelines(builder.verbose())
     log_file.close()
   def str_dependencies(self,
