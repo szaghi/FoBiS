@@ -340,11 +340,11 @@ class Parsed_file(object):
     The method save_build_log save a log file containing information about the building options used.
     """
     log_file = open("build_"+self.basename+".log", "w")
-    log_file.writelines(" Hierarchical dependencies list of: "+self.name+"\n")
+    log_file.writelines("Hierarchical dependencies list of: "+self.name+"\n")
     for dep in self.pfile_dep:
-      log_file.writelines("   "+dep.name+"\n")
-      log_file.writelines(dep.str_dependencies(pref="     "))
-    log_file.writelines(" Complete ordered dependencies list of: "+self.name+"\n")
+      log_file.writelines("  "+dep.name+"\n")
+      log_file.writelines(dep.str_dependencies(pref="    "))
+    log_file.writelines("Complete ordered dependencies list of: "+self.name+"\n")
     for dep in self.pfile_dep_all:
       log_file.writelines("  "+dep.name+"\n")
     log_file.writelines(builder.verbose())
@@ -419,6 +419,7 @@ def traverse_recursive(pfile, path=list()):
   path.append(pfile)
   yield path
   for n in pfile.pfile_dep:
+    if n != pfile:
       for path in traverse_recursive(n, path):
           yield path
   if path:
