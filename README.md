@@ -27,7 +27,7 @@ Suppose you have a Fortran project composed of many Fortran modules placed into 
 + configuration-files-free;
 + ... but also configuration-file driven building for complex buildings;
 + parallel compiling enabled by means of concurrent multiprocesses jobs;
-+ easy-extensible: FoBis.py is just a less-than 600 lines of Python statements... no bad for a poor-make-replacement;
++ easy-extensible: FoBis.py is just a less-than 1000 lines of Python statements... no bad for a poor-make-replacement;
 + ...
 
 ## Todos

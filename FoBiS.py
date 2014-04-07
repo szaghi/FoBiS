@@ -6,17 +6,57 @@ __appname__ = 'FoBiS.py'
 __version__ ="0.0.1"
 __author__  = 'Stefano Zaghi'
 # modules loading
+import sys
 try:
-  import sys,os,time,argparse,shutil,ConfigParser,operator
-  from multiprocessing import Pool
+  import os
 except:
+  print "Module 'os' not found"
   sys.exit(1)
+try:
+  import time
+except:
+  print "Module 'time' not found"
+  sys.exit(1)
+try:
+  import argparse
+except:
+  print "Module 'argparse' not found"
+  sys.exit(1)
+try:
+  from copy import deepcopy
+except:
+  print "Module 'copy' not found"
+  sys.exit(1)
+try:
+  import subprocess
+except:
+  print "Module 'subprocess' not found"
+  sys.exit(1)
+try:
+  import shutil
+except:
+  print "Module 'shutil' not found"
+  sys.exit(1)
+try:
+  import ConfigParser
+except:
+  print "Module 'ConfigParser' not found"
+  sys.exit(1)
+try:
+  import operator
+except:
+  print "Module 'operator' not found"
+  sys.exit(1)
+try:
+  from multiprocessing import Pool
+  parallel=True
+except:
+  print "Module 'multiprocessing' not found: parallel compilation disabled"
+  parallel=False
 try:
   import re
 except:
-  print """
-        The regular expression module 're' not found
-        """
+  print "The regular expression module 're' not found"
   sys.exit(1)
 # setting CLI
 cliparser = argparse.ArgumentParser(prog=__appname__,description='FoBiS.py, Fortran Building System for poor men')
@@ -26,36 +66,37 @@ buildparser = clisubparsers.add_parser('build',help='Build all programs found or
 buildparser.set_defaults(which='build')
 cleanparser = clisubparsers.add_parser('clean',help='Clean project: completely remove DOBJ and DMOD directories... use carefully')
 cleanparser.set_defaults(which='clean')
-buildparser.add_argument('-f',       required=False,action='store',               default=None,          help='Specify a "fobos" file named differently from "fobos"')
-buildparser.add_argument('-colors',  required=False,action='store_true',          default=False,         help='Activate colors in shell prints [default: no colors]')
-buildparser.add_argument('-log',     required=False,action='store_true',          default=False,         help='Activate the creation of a log file [default: no log file]')
-buildparser.add_argument('-quiet',   required=False,action='store_true',          default=False,         help='Less verbose than default')
-buildparser.add_argument('-j',       required=False,action='store',               default=1,    type=int,help='Specify the number of concurrent jobs used for compiling dependencies [default 1]')
-buildparser.add_argument('-compiler',required=False,action='store',               default='Intel',       help='Compiler used: Intel, GNU, IBM, PGI, g95 or Custom [default: Intel]')
-buildparser.add_argument('-fc',      required=False,action='store',               default='',            help='Specify the Fortran compiler statement, necessary for custom compiler specification (-compiler Custom)')
-buildparser.add_argument('-modsw',   required=False,action='store',               default='',            help='Specify the switch for setting the module searching path, necessary for custom compiler specification (-compiler Custom)')
-buildparser.add_argument('-mpi',     required=False,action='store_true',          default=False,         help='Use MPI enabled version of compiler')
-buildparser.add_argument('-cflags',  required=False,action='store',               default='-c -cpp',     help='Compilation flags [default: -c -cpp]')
-buildparser.add_argument('-lflags',  required=False,action='store',               default='',            help='Linking flags')
-buildparser.add_argument('-libs',    required=False,action='store',     nargs='+',default=[],            help='List of external libraries used')
-buildparser.add_argument('-I',       required=False,action='store',     nargs='+',default=[],            help='List of directories for searching included files')
-buildparser.add_argument('-inc',     required=False,action='store',     nargs='+',default=[],            help='Add a list of custom-defined file extensions for include files')
-buildparser.add_argument('-dobj',    required=False,action='store',               default='./obj/',      help='Directory containing compiled objects [default: ./obj/]')
-buildparser.add_argument('-dmod',    required=False,action='store',               default='./mod/',      help='Directory containing .mod files of compiled objects [default: ./mod/]')
-buildparser.add_argument('-dexe',    required=False,action='store',               default='./',          help='Directory containing executable objects [default: ./]')
-buildparser.add_argument('-src',     required=False,action='store',               default='./',          help='Root-directory of source files [default: ./]')
-buildparser.add_argument('-exclude', required=False,action='store',     nargs='+',default=[],            help='Exclude a list of files from the building process')
-buildparser.add_argument('-target',  required=False,action='store',               default=None,          help='Specify a target file [default: all programs found]')
-buildparser.add_argument('-o',       required=False,action='store',               default=None,          help='Specify the output file name is used with -target switch [default: basename of target]')
-buildparser.add_argument('-mklib',   required=False,action='store',               default=None,          help='Build library instead of program (use with -target switch); usage: -mklib static or -mklib shared')
-cleanparser.add_argument('-f',       required=False,action='store',               default=None,          help='Specify a "fobos" file named differently from "fobos"')
-cleanparser.add_argument('-colors',  required=False,action='store_true',          default=False,         help='Activate colors in shell prints [default: no colors]')
-cleanparser.add_argument('-dobj',    required=False,action='store',               default='./obj/',      help='Directory containing compiled objects [default: ./obj/]')
-cleanparser.add_argument('-dmod',    required=False,action='store',               default='./mod/',      help='Directory containing .mod files of compiled objects [default: ./mod/]')
-cleanparser.add_argument('-dexe',    required=False,action='store',               default='./',          help='Directory containing executable objects [default: ./]')
-cleanparser.add_argument('-target',  required=False,action='store',               default=None,          help='Specify a target file [default: all programs found]')
-cleanparser.add_argument('-o',       required=False,action='store',               default=None,          help='Specify the output file name is used with -target switch [default: basename of target]')
-cleanparser.add_argument('-mklib',   required=False,action='store',               default=None,          help='Build library instead of program (use with -target switch); usage: -mklib static or -mklib shared')
+buildparser.add_argument('-f',       required=False,action='store',               default=None,            help='Specify a "fobos" file named differently from "fobos"')
+buildparser.add_argument('-colors',  required=False,action='store_true',          default=False,           help='Activate colors in shell prints [default: no colors]')
+buildparser.add_argument('-log',     required=False,action='store_true',          default=False,           help='Activate the creation of a log file [default: no log file]')
+buildparser.add_argument('-quiet',   required=False,action='store_true',          default=False,           help='Less verbose than default')
+buildparser.add_argument('-j',       required=False,action='store',               default=1,      type=int,help='Specify the number of concurrent jobs used for compiling dependencies [default 1]')
+buildparser.add_argument('-compiler',required=False,action='store',               default='Intel',         help='Compiler used: Intel, GNU, IBM, PGI, g95 or Custom [default: Intel]')
+buildparser.add_argument('-fc',      required=False,action='store',               default='',              help='Specify the Fortran compiler statement, necessary for custom compiler specification (-compiler Custom)')
+buildparser.add_argument('-modsw',   required=False,action='store',               default='',              help='Specify the switch for setting the module searching path, necessary for custom compiler specification (-compiler Custom)')
+buildparser.add_argument('-mpi',     required=False,action='store_true',          default=False,           help='Use MPI enabled version of compiler')
+buildparser.add_argument('-cflags',  required=False,action='store',               default='',              help='Compile flags')
+buildparser.add_argument('-lflags',  required=False,action='store',               default='',              help='Link flags')
+buildparser.add_argument('-libs',    required=False,action='store',     nargs='+',default=[],              help='List of external libraries used')
+buildparser.add_argument('-I',       required=False,action='store',     nargs='+',default=[],              help='List of directories for searching included files')
+buildparser.add_argument('-inc',     required=False,action='store',     nargs='+',default=[],              help='Add a list of custom-defined file extensions for include files')
+buildparser.add_argument('-preproc', required=False,action='store',               default='',              help='Preprocessor flags')
+buildparser.add_argument('-dobj',    required=False,action='store',               default='./obj/',        help='Directory containing compiled objects [default: ./obj/]')
+buildparser.add_argument('-dmod',    required=False,action='store',               default='./mod/',        help='Directory containing .mod files of compiled objects [default: ./mod/]')
+buildparser.add_argument('-dexe',    required=False,action='store',               default='./',            help='Directory containing executable objects [default: ./]')
+buildparser.add_argument('-src',     required=False,action='store',               default='./',            help='Root-directory of source files [default: ./]')
+buildparser.add_argument('-exclude', required=False,action='store',     nargs='+',default=[],              help='Exclude a list of files from the building process')
+buildparser.add_argument('-target',  required=False,action='store',               default=None,            help='Specify a target file [default: all programs found]')
+buildparser.add_argument('-o',       required=False,action='store',               default=None,            help='Specify the output file name is used with -target switch [default: basename of target]')
+buildparser.add_argument('-mklib',   required=False,action='store',               default=None,            help='Build library instead of program (use with -target switch); usage: -mklib static or -mklib shared')
+cleanparser.add_argument('-f',       required=False,action='store',               default=None,            help='Specify a "fobos" file named differently from "fobos"')
+cleanparser.add_argument('-colors',  required=False,action='store_true',          default=False,           help='Activate colors in shell prints [default: no colors]')
+cleanparser.add_argument('-dobj',    required=False,action='store',               default='./obj/',        help='Directory containing compiled objects [default: ./obj/]')
+cleanparser.add_argument('-dmod',    required=False,action='store',               default='./mod/',        help='Directory containing .mod files of compiled objects [default: ./mod/]')
+cleanparser.add_argument('-dexe',    required=False,action='store',               default='./',            help='Directory containing executable objects [default: ./]')
+cleanparser.add_argument('-target',  required=False,action='store',               default=None,            help='Specify a target file [default: all programs found]')
+cleanparser.add_argument('-o',       required=False,action='store',               default=None,            help='Specify the output file name is used with -target switch [default: basename of target]')
+cleanparser.add_argument('-mklib',   required=False,action='store',               default=None,            help='Build library instead of program (use with -target switch); usage: -mklib static or -mklib shared')
 # definition of regular expressions
 str_f95_apex         = r"('|"+r'")'
 str_f95_kw_include   = r"[Ii][Nn][Cc][Ll][Uu][Dd][Ee]"
@@ -104,6 +145,17 @@ __extensions_old__    = [".f",".F",".for",".FOR",".fpp",".FPP",".fortran",".f77"
 __extensions_modern__ = [".f90",".F90",".f95",".F95",".f03",".F03",".f08",".F08",".f2k",".F2K"]
 __extensions_inc__    = [".inc",".INC",".h",".H"]
 __extensions_parsed__ = __extensions_old__ + __extensions_modern__ + __extensions_inc__
+# system worker function
+def syswork(cmd):
+  """
+  Function for executing system command 'cmd': for compiling and linking files.
+  """
+  try:
+    output = subprocess.check_output(cmd, shell=True)
+  except subprocess.CalledProcessError as err:
+    if err.returncode != 0:
+      sys.exit(1)
+  return
 # classes definitions
 class Colors(object):
   """
@@ -132,6 +184,7 @@ class Builder(object):
                lflags   = "",      # linking flags
                libs     = [],      # list of external libraries
                dinc     = [],      # list of directories for searching included files
+               preproc  = "",      # preprocessor flags
                dmod     = "./",    # directory containing .mod files
                dobj     = "./",    # directory containing compiled object files
                dexe     = "./",    # directory containing compiled executable files
@@ -146,6 +199,7 @@ class Builder(object):
     self.lflags   = lflags
     self.libs     = libs
     self.dinc     = dinc
+    self.preproc  = preproc
     self.dmod     = dmod
     self.dobj     = dobj
     self.dexe     = dexe
@@ -172,7 +226,7 @@ class Builder(object):
       pass # all is set from CLI
     if self.modsw[-1]!='=': # check necessary for g95 CLI trapping error
       self.modsw += ' '
-    self.cmd_comp = self.fc+' '+self.cflags+' '+self.modsw+self.dmod
+    self.cmd_comp = self.fc+' '+self.cflags+' '+self.modsw+self.dmod+' '+self.preproc
     self.cmd_link = self.fc+' '+self.lflags+' '+self.modsw+self.dmod
     # checking paths integrity
     if not os.path.exists(self.dmod):
@@ -190,14 +244,6 @@ class Builder(object):
     else:
       comp_cmd = self.cmd_comp+' '                                         +pfile.name+' -o '+self.dobj+pfile.basename+'.o'
     return comp_cmd
-  def compile(self,pfile):
-    """
-    The method compile compile (serially) pfile.
-    """
-    if not pfile.include:
-     if pfile.to_compile:
-       os.system(self.compile_command(pfile=pfile))
-       pfile.to_compile = False
   def build(self,pfile,output=None,nomodlibs=[],mklib=None):
     """
     The method build builds current file.
@@ -225,17 +271,17 @@ class Builder(object):
         for dep in deps:
           files = files+" "+dep[0]
           cmds.append(dep[1])
-        if len(deps)>1 and self.jobs>1:
+        if len(deps)>1 and self.jobs>1 and parallel:
           jobs = min(len(deps),self.jobs)
           print self.colors.bld+"Compiling"+files+" using "+str(jobs)+" concurrent processes"+self.colors.end
           pool = Pool(processes=jobs)
-          pool.map(os.system,cmds)
+          pool.map(syswork,cmds)
           pool.close()
           pool.join()
         else:
           print self.colors.bld+"Compiling"+files+" serially "+self.colors.end
           for cmd in cmds:
-            os.system(cmd)
+            syswork(cmd)
     else:
       print self.colors.bld+'Nothing to compile, all objects are up-to-date'+self.colors.end
     if pfile.program:
@@ -246,7 +292,7 @@ class Builder(object):
         exe=self.dexe+pfile.basename
       link_cmd = self.cmd_link+" "+"".join([self.dobj+s+" " for s in objs])+"".join([s+" " for s in self.libs])+"-o "+exe
       print self.colors.bld+"Linking "+exe+self.colors.end
-      os.system(link_cmd)
+      syswork(link_cmd)
       print self.colors.bld+'Target '+pfile.name+' has been successfully built'+self.colors.end
     elif mklib:
       if output:
@@ -261,7 +307,7 @@ class Builder(object):
       elif mklib.lower()=='static':
         link_cmd = "ar -rcs "+lib+" "+self.dobj+pfile.basename+".o ; ranlib "+lib
       print self.colors.bld+"Linking "+lib+self.colors.end
-      os.system(link_cmd)
+      syswork(link_cmd)
       print self.colors.bld+'Target '+pfile.name+' has been successfully built'+self.colors.end
   def verbose(self):
     """
@@ -280,6 +326,7 @@ class Builder(object):
       message+= "  Compiler module switch:          "+builder.modsw+"\n"
       message+= "  Compilation flags:               "+builder.cflags+"\n"
       message+= "  Linking     flags:               "+builder.lflags+"\n"
+      message+= "  Preprocessing flags:             "+builder.preproc+"\n"
     return message
 class Dependency(object):
   """
@@ -512,9 +559,9 @@ def remove_other_main(builder,pfiles,me):
         os.remove(builder.dobj+pfile.basename+".o")
 def inquire_fobos(cliargs,filename='fobos'):
   """
-  The function inquiry_fobos checks if a 'fobos' file is present in current working directory and, in case, parses it for CLI arguments overriding.
+  The function inquiry_fobos checks if a 'fobos' file is present in current working directory and, in case, parses it for CLI arguments overloading.
   """
-  cliargs_dict = vars(cliargs)
+  cliargs_dict = deepcopy(cliargs.__dict__)
   if os.path.exists(filename):
     fobos = ConfigParser.ConfigParser()
     fobos.read(filename)
@@ -529,6 +576,12 @@ def inquire_fobos(cliargs,filename='fobos'):
             setattr(cliargs,item[0],item[1].split())
           else:
             setattr(cliargs,item[0],item[1])
+    for item in cliargs_dict:
+      if item in ['cflags','lflags','preproc']:
+        val_fobos = cliargs_dict[item]
+        val_cli   = getattr(cliargs,item)
+        if val_fobos and val_cli:
+          setattr(cliargs,item,val_fobos+val_cli)
 # main loop
 if __name__ == '__main__':
   cliargs = cliparser.parse_args()
@@ -566,7 +619,7 @@ if __name__ == '__main__':
         os.remove('build_'+os.path.splitext(os.path.basename(cliargs.target))[0]+'.log')
   elif cliargs.which=='build':
     __extensions_inc__  += cliargs.inc
-    builder=Builder(compiler=cliargs.compiler,fc=cliargs.fc,modsw=cliargs.modsw,mpi=cliargs.mpi,cflags=cliargs.cflags,lflags=cliargs.lflags,libs=cliargs.libs,dinc=cliargs.I,dobj=cliargs.dobj,dmod=cliargs.dmod,dexe=cliargs.dexe,quiet=cliargs.quiet,colors=cliargs.colors,jobs=cliargs.j)
+    builder=Builder(compiler=cliargs.compiler,fc=cliargs.fc,modsw=cliargs.modsw,mpi=cliargs.mpi,cflags=cliargs.cflags,lflags=cliargs.lflags,libs=cliargs.libs,dinc=cliargs.I,preproc=cliargs.preproc,dobj=cliargs.dobj,dmod=cliargs.dmod,dexe=cliargs.dexe,quiet=cliargs.quiet,colors=cliargs.colors,jobs=cliargs.j)
     pfiles = [] # main parsed files list
     # parsing files loop
     for root, subFolders, files in os.walk(cliargs.src):
@@ -589,6 +642,7 @@ if __name__ == '__main__':
     for pfile in pfiles:
       if cliargs.target:
         if os.path.basename(cliargs.target)==os.path.basename(pfile.name):
+          print builder.colors.bld+builder.verbose()+builder.colors.end
           if pfile.program:
             remove_other_main(builder=builder,pfiles=pfiles,me=pfile)
           builder.build(pfile=pfile,output=cliargs.o,nomodlibs=nomodlibs,mklib=cliargs.mklib)
@@ -596,8 +650,8 @@ if __name__ == '__main__':
             pfile.save_build_log(builder=builder)
       else:
         if pfile.program:
+          print builder.colors.bld+builder.verbose()+builder.colors.end
           remove_other_main(builder=builder,pfiles=pfiles,me=pfile)
           builder.build(pfile=pfile,output=cliargs.o,nomodlibs=nomodlibs)
           if cliargs.log:
             pfile.save_build_log(builder=builder)
-    print builder.colors.bld+builder.verbose()+builder.colors.end
