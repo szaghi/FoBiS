@@ -15,5 +15,5 @@ quiet=False
 jobs=2
 [files]
 target=foo.f90
-output=Foo
+o=Foo
 log=False

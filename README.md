@@ -1,12 +1,13 @@
 # FoBiS.py
 ### FoBiS.py, Fortran Building System for poor men
 
-A very simple and stupid tool for automatic building modern Fortran project.
+A very simple and stupid tool for automatic building modern Fortran projects.
 
 ## Table of Contents
 
 * [Team Members](#team-members)
 * [Why?](#why)
+* [Why not use an auto-make-like tool?](#automake)
 * [OK, what can FoBiS.py do? I am a _poor-fortran-man_, I do not understand you...](#fobis-explained)
 * [Main features](#main-features)
 * [Todos](#todos)
@@ -98,9 +99,10 @@ This will echo:
                             [-compiler COMPILER] [-fc FC] [-modsw MODSW] [-mpi]
                             [-cflags CFLAGS] [-lflags LFLAGS]
                             [-libs LIBS [LIBS ...]] [-I I [I ...]]
-                            [-inc INC [INC ...]] [-dobj DOBJ] [-dmod DMOD]
-                            [-dexe DEXE] [-src SRC] [-exclude EXCLUDE [EXCLUDE ...]]
-                            [-target TARGET] [-o O] [-mklib MKLIB]
+                            [-inc INC [INC ...]] [-preproc PREPROC] [-dobj DOBJ]
+                            [-dmod DMOD] [-dexe DEXE] [-src SRC]
+                            [-exclude EXCLUDE [EXCLUDE ...]] [-target TARGET] [-o O]
+                            [-mklib MKLIB]
 
       optional arguments:
         -h, --help            show this help message and exit
@@ -119,13 +121,14 @@ This will echo:
                               path, necessary for custom compiler specification
                               (-compiler Custom)
         -mpi                  Use MPI enabled version of compiler
-        -cflags CFLAGS        Compilation flags [default: -c -cpp]
-        -lflags LFLAGS        Linking flags
+        -cflags CFLAGS        Compile flags
+        -lflags LFLAGS        Link flags
         -libs LIBS [LIBS ...]
                               List of external libraries used
         -I I [I ...]          List of directories for searching included files
         -inc INC [INC ...]    Add a list of custom-defined file extensions for
                               include files
+        -preproc PREPROC      Preprocessor flags
         -dobj DOBJ            Directory containing compiled objects [default:
                               ./obj/]
         -dmod DMOD            Directory containing .mod files of compiled objects
@@ -210,7 +213,7 @@ Into _examples_ directory there is an example of a _cumbersome_ library building
 
 ## <a name="fobos"></a>fobos: the FoBiS.py makefile
 
-For dealing with (repetitive) buildings of complex projects, FoBiS.py execution can be driven by means of a configuration file placed into the current working directory and named _fobos_: FOrtran Building OptionS file. The options defined into _fobos_ file completely override the CLI arguments: this file is designed to act as a makefile, but with a very simple syntax (similar to INI files). Presently, _fobos_ file has, at most, the following options
+For dealing with (repetitive) buildings of complex projects, FoBiS.py execution can be driven by means of a configuration file placed into the current working directory and named _fobos_: FOrtran Building OptionS file. The options defined into _fobos_ file override or in the case of _cflags_, _lflags_ and _preproc_ overload, the CLI arguments: this file is designed to act as a makefile, but with a very simple syntax (similar to INI files). Presently, _fobos_ file has, at most, the following options
 
       [builder]
       compiler=custom
