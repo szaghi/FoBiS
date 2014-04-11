@@ -68,140 +68,164 @@ FoBiS.py is an open source project, it is distributed under the [GPL v3](http://
 ## <a name="usage"></a>Usage
 
 Printing the main help message:
-
-      FoBiS.py -h
-
+```bash
+FoBiS.py -h
+```
 This will echo:
+```bash
+usage: FoBiS.py [-h] [-v] {build,clean} ...
 
-      usage: FoBiS.py [-h] [-v] {build,clean} ...
+FoBiS.py, Fortran Building System for poor men
 
-      FoBiS.py, Fortran Building System for poor men
+optional arguments:
+  -h, --help     show this help message and exit
+  -v, --version  Show version
 
-      optional arguments:
-        -h, --help     show this help message and exit
-        -v, --version  Show version
+Commands:
+  Valid commands
 
-      Commands:
-        Valid commands
-
-        {build,clean}
-          build        Build all programs found or a specific target
-          clean        Clean project: completely remove DOBJ and DMOD directories...
-                       use carefully
-
+  {build,clean}
+    build        Build all programs found or a specific target
+    clean        Clean project: completely remove DOBJ and DMOD directories...
+                 use carefully
+```
 Printing the _build_ help message:
-
-      FoBiS.py build -h
-
+```bash
+FoBiS.py build -h
+```
 This will echo:
+```bash
+usage: FoBiS.py build [-h] [-f FOBOS] [-colors] [-l] [-q] [-j JOBS]
+                      [-compiler COMPILER] [-fc FC] [-modsw MODSW] [-mpi]
+                      [-cflags CFLAGS] [-lflags LFLAGS]
+                      [-libs LIBS [LIBS ...]] [-i INCLUDE [INCLUDE ...]]
+                      [-inc INC [INC ...]] [-p PREPROC] [-dobj DOBJ]
+                      [-dmod DMOD] [-dexe DEXE] [-s SRC]
+                      [-e EXCLUDE [EXCLUDE ...]] [-t TARGET] [-o OUTPUT]
+                      [-mklib MKLIB]
 
-      usage: FoBiS.py build [-h] [-f F] [-colors] [-log] [-quiet] [-j J]
-                            [-compiler COMPILER] [-fc FC] [-modsw MODSW] [-mpi]
-                            [-cflags CFLAGS] [-lflags LFLAGS]
-                            [-libs LIBS [LIBS ...]] [-I I [I ...]]
-                            [-inc INC [INC ...]] [-preproc PREPROC] [-dobj DOBJ]
-                            [-dmod DMOD] [-dexe DEXE] [-src SRC]
-                            [-exclude EXCLUDE [EXCLUDE ...]] [-target TARGET] [-o O]
-                            [-mklib MKLIB]
-
-      optional arguments:
-        -h, --help            show this help message and exit
-        -f F                  Specify a "fobos" file named differently from "fobos"
-        -colors               Activate colors in shell prints [default: no colors]
-        -log                  Activate the creation of a log file [default: no log
-                              file]
-        -quiet                Less verbose than default
-        -j J                  Specify the number of concurrent jobs used for
-                              compiling dependencies [default 1]
-        -compiler COMPILER    Compiler used: Intel, GNU, IBM, PGI, g95 or Custom
-                              [default: Intel]
-        -fc FC                Specify the Fortran compiler statement, necessary for
-                              custom compiler specification (-compiler Custom)
-        -modsw MODSW          Specify the switch for setting the module searching
-                              path, necessary for custom compiler specification
-                              (-compiler Custom)
-        -mpi                  Use MPI enabled version of compiler
-        -cflags CFLAGS        Compile flags
-        -lflags LFLAGS        Link flags
-        -libs LIBS [LIBS ...]
-                              List of external libraries used
-        -I I [I ...]          List of directories for searching included files
-        -inc INC [INC ...]    Add a list of custom-defined file extensions for
-                              include files
-        -preproc PREPROC      Preprocessor flags
-        -dobj DOBJ            Directory containing compiled objects [default:
-                              ./obj/]
-        -dmod DMOD            Directory containing .mod files of compiled objects
-                              [default: ./mod/]
-        -dexe DEXE            Directory containing executable objects [default: ./]
-        -src SRC              Root-directory of source files [default: ./]
-        -exclude EXCLUDE [EXCLUDE ...]
-                              Exclude a list of files from the building process
-        -target TARGET        Specify a target file [default: all programs found]
-        -o O                  Specify the output file name is used with -target
-                              switch [default: basename of target]
-        -mklib MKLIB          Build library instead of program (use with -target
-                              switch); usage: -mklib static or -mklib shared
-
-Printing the _clean_ help message:
-
-      FoBiS.py clean -h
-
-This will echo:
-
-      usage: FoBiS.py clean [-h] [-f F] [-colors] [-dobj DOBJ] [-dmod DMOD]
-                            [-dexe DEXE] [-target TARGET] [-o O] [-mklib MKLIB]
-
-      optional arguments:
-        -h, --help      show this help message and exit
-        -f F            Specify a "fobos" file named differently from "fobos"
-        -colors         Activate colors in shell prints [default: no colors]
-        -dobj DOBJ      Directory containing compiled objects [default: ./obj/]
-        -dmod DMOD      Directory containing .mod files of compiled objects
+optional arguments:
+  -h, --help            show this help message and exit
+  -f FOBOS, --fobos FOBOS
+                        Specify a "fobos" file named differently from "fobos"
+  -colors               Activate colors in shell prints [default: no colors]
+  -l, --log             Activate the creation of a log file [default: no log
+                        file]
+  -q, --quiet           Less verbose than default
+  -j JOBS, --jobs JOBS  Specify the number of concurrent jobs used for
+                        compiling dependencies [default 1]
+  -compiler COMPILER    Compiler used: Intel, GNU, IBM, PGI, g95 or Custom
+                        [default: Intel]
+  -fc FC                Specify the Fortran compiler statement, necessary for
+                        custom compiler specification (-compiler Custom)
+  -modsw MODSW          Specify the switch for setting the module searching
+                        path, necessary for custom compiler specification
+                        (-compiler Custom)
+  -mpi                  Use MPI enabled version of compiler
+  -cflags CFLAGS        Compile flags
+  -lflags LFLAGS        Link flags
+  -libs LIBS [LIBS ...]
+                        List of external libraries used
+  -i INCLUDE [INCLUDE ...], --include INCLUDE [INCLUDE ...]
+                        List of directories for searching included files
+  -inc INC [INC ...]    Add a list of custom-defined file extensions for
+                        include files
+  -p PREPROC, --preproc PREPROC
+                        Preprocessor flags
+  -dobj DOBJ            Directory containing compiled objects [default:
+                        ./obj/]
+  -dmod DMOD            Directory containing .mod files of compiled objects
                         [default: ./mod/]
-        -dexe DEXE      Directory containing executable objects [default: ./]
-        -target TARGET  Specify a target file [default: all programs found]
-        -o O            Specify the output file name is used with -target switch
-                        [default: basename of target]
-        -mklib MKLIB    Build library instead of program (use with -target switch);
-                        usage: -mklib static or -mklib shared
+  -dexe DEXE            Directory containing executable objects [default: ./]
+  -s SRC, --src SRC     Root-directory of source files [default: ./]
+  -e EXCLUDE [EXCLUDE ...], --exclude EXCLUDE [EXCLUDE ...]
+                        Exclude a list of files from the building process
+  -t TARGET, --target TARGET
+                        Specify a target file [default: all programs found]
+  -o OUTPUT, --output OUTPUT
+                        Specify the output file name is used with -target
+                        switch [default: basename of target]
+  -mklib MKLIB          Build library instead of program (use with -target
+                        switch); usage: -mklib static or -mklib shared
+```
+Printing the _clean_ help message:
+```bash
+FoBiS.py clean -h
+```
+This will echo:
+```bash
+usage: FoBiS.py clean [-h] [-f FOBOS] [-colors] [-dobj DOBJ] [-dmod DMOD]
+                      [-dexe DEXE] [-t TARGET] [-o OUTPUT] [-mklib MKLIB]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -f FOBOS, --fobos FOBOS
+                        Specify a "fobos" file named differently from "fobos"
+  -colors               Activate colors in shell prints [default: no colors]
+  -dobj DOBJ            Directory containing compiled objects [default:
+                        ./obj/]
+  -dmod DMOD            Directory containing .mod files of compiled objects
+                        [default: ./mod/]
+  -dexe DEXE            Directory containing executable objects [default: ./]
+  -t TARGET, --target TARGET
+                        Specify a target file [default: all programs found]
+  -o OUTPUT, --output OUTPUT
+                        Specify the output file name is used with -target
+                        switch [default: basename of target]
+  -mklib MKLIB          Build library instead of program (use with -target
+                        switch); usage: -mklib static or -mklib shared
+```
 
 ### Compile all programs found
 
-      FoBiS.py build
+```bash
+FoBiS.py build
+```
 
 FoBiS.py will recursively search for _program_ files into the directories nested into "./". Program files are captured parsing each file found: a file is a _program-file_ if it contains the Fortran statement _program_.
 It is worth noting that the above FoBiS.py call will use the default compilations options.
 
 ### Compile all programs found excluding some files
 
-      FoBiS.py build -exclude foo.f90 bar.f
+```bash
+FoBiS.py build -exclude foo.f90 bar.f
+```
 
 FoBiS.py will recursively search for _program_ files into the directories nested into "./" and, excluding _foo,f90_ and _bar.f_, all other files will be parsed and, in case, built.
 
 ### Compile a specific target
 
-      FoBiS.py build -src my_path -target my_path/my_sub_path/foo.f90
+```bash
+FoBiS.py build -src my_path -target my_path/my_sub_path/foo.f90
+```
 
 FoBiS.py will recursively search for "my_path/my_sub_path/foo.f90" and for all its dependency files into the directories nested into "my\_path". FoBiS.py will (re-)compile only _foo.f90_ file (independently if it is a program-file or not) and all its dependencies if necessary. In case the target is a program is output name will be the basename without any extension (i.e. _foo_ in the example). If a different output name is preferable it can be specified by the "-o" switch, namely
 
-      FoBiS.py build -src my_path -target my_path/my_sub_path/foo.f90 -o FoO
+```bash
+FoBiS.py build -src my_path -target my_path/my_sub_path/foo.f90 -o FoO
+```
 
 ### Compile a specific target with user-defined flags
 
-      FoBiS.py build -cflags '-c -cpp -O2' -src my_path -target my_path/my_sub_path/foo.f90
+```bash
+FoBiS.py build -cflags '-c -cpp -O2' -src my_path -target my_path/my_sub_path/foo.f90
+```
 
 ### Compile large projects: maximize building speedup on parallel architectures
 
-      FoBiS.py build -j #cpus
+```bash
+FoBiS.py build -j #cpus
+```
 
 This is an experimental feature not yet completely tested, thus it should be carefully used. Using the switch "-j" enables a pool of concurrent jobs (the number of which should be equal to the number of physical cpus or cores available) for compiling targets dependencies. Presently, the pool is not optimized and balanced accordingly to the number of files that must be (re-)compiled.
 
 ### Build a library
 
-      FoBiS.py build -target mylib.f90 -mklib static
+```bash
+FoBiS.py build -target mylib.f90 -mklib static
 
-      FoBiS.py build -target mylib.f90 -mklib shared
+FoBiS.py build -target mylib.f90 -mklib shared
+```
 
 FoBiS.py offers a primitive support for building libraries, both static and shared. Presently, this feature can be used only within -target switch. Notably, this should work only on Unix-like architectures.
 
@@ -209,42 +233,45 @@ Into _examples_ directory there is an example of a _cumbersome_ library building
 
 ### Clean project tree
 
-      FoBiS.py clean
+```bash
+FoBiS.py clean
+```
 
 ## <a name="fobos"></a>fobos: the FoBiS.py makefile
 
-For dealing with (repetitive) buildings of complex projects, FoBiS.py execution can be driven by means of a configuration file placed into the current working directory and named _fobos_: FOrtran Building OptionS file. The options defined into _fobos_ file override or in the case of _cflags_, _lflags_ and _preproc_ overload, the CLI arguments: this file is designed to act as a makefile, but with a very simple syntax (similar to INI files). Presently, _fobos_ file has, at most, the following options
-
-      [builder]
-      compiler=custom
-      fc=ifort
-      modsw=-module
-      mpi=False
-      cflags=-c -cpp -O2
-      lflags=-O2
-      libs=lib/bar.so lib/boo.a
-      dmod=./mod/
-      dobj=./obj/
-      dexe=./
-      src=./src/
-      colors=True
-      quiet=False
-      j=1
-      exclude=pon.F cin.f90
-      I=other_include_path another_include_path
-      inc=.cmn .icp
-      mklib=static
-      [files]
-      log=False
-      target=foo.f90
-      o=FoO
-
+For dealing with (repetitive) buildings of complex projects, FoBiS.py execution can be driven by means of a configuration file placed into the current working directory and named _fobos_, FOrtran Building OptionS file. The options defined into _fobos_ file override or in the case of _cflags_, _lflags_ and _preproc_ overload, the CLI arguments: this file is designed to act as a makefile, but with a very simple syntax (similar to INI files). _fobos_ file has exactly the same options available for the command line, in particular the options names are identical to the extended switches names (the ones prefixed with '--') or to the abbreviated ones (prefixed with '-') in case they are the only defined:
+```ini
+[builder]
+colors=True
+quiet=False
+jobs=1
+compiler=custom
+fc=ifort
+modsw=-module
+mpi=False
+cflags=-c -cpp -O2
+lflags=-O2
+preproc=-O2
+libs=lib/bar.so lib/boo.a
+include=other_include_path another_include_path
+inc=.cmn .icp
+dmod=./mod/
+dobj=./obj/
+dexe=./
+src=./src/
+exclude=pon.F cin.f90
+mklib=static
+[files]
+log=False
+target=foo.f90
+output=FoO
+```
 There are two sections: _builder_ specifying builder options used for each parsed file and _general_ specifying global options. If an option is present it will overrides the default value of CLI. Options can be commented with "#" symbol. For both _build_ and _clean_ executions of FoBiS.py a _fobos_ file placed elsewhere and having different name can be specified by means of "-f" switch
+```bash
+FoBiS.py build -f /other_path/fobos.other_name
 
-      FoBiS.py build -f /other_path/fobos.other_name
-
-      FoBiS.py clean -f /other_path/fobos.other_name
-
+FoBiS.py clean -f /other_path/fobos.other_name
+```
 Using this feature it is simple to perform context-specific buildings accordingly to different goals, e.g. it is convenient to have concurrently more _fobos_ files, one for debug building, one for release building, one for AIX architecture, one for MPI building and so on.
 
 ## <a name="examples"></a>Examples
@@ -255,4 +282,6 @@ Into the directory _examples_ there are some KISS examples, just read their prov
 
 In the examples above FoBiS.py is supposed to have the executable permissions, thus it is used without an explicit invocation of the Python interpreter. In general, if FoBiS.py is not set to have executable permissions, it must be executed as:
 
-      python FoBiS.py ...
+```bash
+python FoBiS.py ...
+```
