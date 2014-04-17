@@ -586,7 +586,7 @@ def inquire_fobos(cliargs,filename='fobos'):
 if __name__ == '__main__':
   cliargs = cliparser.parse_args()
   if cliargs.fobos:
-    inquire_fobos(cliargs=cliargs,filename=cliargs.f)
+    inquire_fobos(cliargs=cliargs,filename=cliargs.fobos)
   else:
     inquire_fobos(cliargs=cliargs)
   if cliargs.which=='clean':
