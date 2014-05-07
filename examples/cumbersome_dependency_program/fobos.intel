@@ -2,13 +2,14 @@
 compiler=Intel
 mpi=False
 cflags=-c
-dmod=./mod/
-dobj=./obj/
-dexe=./
+mod_dir=./mod/
+obj_dir=./obj/
+build_dir=./build/
 src=./src/
 colors=True
 quiet=False
 jobs=1
+inc=.h .H
 [files]
 target=cumbersome.f90
 output=Cumbersome

@@ -2,6 +2,9 @@
 compiler=Gnu
 cflags=-c -fPIC
 lflags=-shared
+mod_dir=./mod/
+obj_dir=./obj/
+build_dir=./build/
 src=./src/
 colors=True
 quiet=False

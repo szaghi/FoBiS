@@ -2,9 +2,9 @@
 compiler=G95
 mpi=False
 cflags=-c
-dmod=./mod/
-dobj=./obj/
-dexe=./
+mod_dir=./mod/
+obj_dir=./obj/
+build_dir=./build/
 src=./src/
 colors=True
 quiet=False
