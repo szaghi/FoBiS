@@ -89,6 +89,7 @@ buildparser.add_argument('-e',       '--exclude',  required=False,action='store'
 buildparser.add_argument('-t',       '--target',   required=False,action='store',               default=None,            help='Specify a target file [default: all programs found]')
 buildparser.add_argument('-o',       '--output',   required=False,action='store',               default=None,            help='Specify the output file name is used with -target switch [default: basename of target]')
 buildparser.add_argument('-mklib',                 required=False,action='store',               default=None,            help='Build library instead of program (use with -target switch); usage: -mklib static or -mklib shared')
+buildparser.add_argument('-mode',                  required=False,action='store',               default=None,            help='Select a mode defined inside a fobos file')
 buildparser.add_argument('-m',       '--makefile', required=False,action='store_true',          default=False,           help='Generate a GNU Makefile for building the project')
 cleanparser.add_argument('-f',       '--fobos',    required=False,action='store',               default=None,            help='Specify a "fobos" file named differently from "fobos"')
 cleanparser.add_argument('-colors',                required=False,action='store_true',          default=False,           help='Activate colors in shell prints [default: no colors]')
@@ -100,6 +101,7 @@ cleanparser.add_argument('-o',       '--output',   required=False,action='store'
 cleanparser.add_argument('-only_obj',              required=False,action='store_true',          default=False,           help='Clean only compiled objects and not also built targets')
 cleanparser.add_argument('-only_target',           required=False,action='store_true',          default=False,           help='Clean only built targets and not also compiled objects')
 cleanparser.add_argument('-mklib',                 required=False,action='store',               default=None,            help='Build library instead of program (use with -target switch); usage: -mklib static or -mklib shared')
+cleanparser.add_argument('-mode',                  required=False,action='store',               default=None,            help='Select a mode defined inside a fobos file')
 # definition of regular expressions
 str_f95_apex         = r"('|"+r'")'
 str_f95_kw_include   = r"[Ii][Nn][Cc][Ll][Uu][Dd][Ee]"
@@ -624,17 +626,29 @@ def inquire_fobos(cliargs,filename='fobos'):
   if os.path.exists(filename):
     fobos = ConfigParser.ConfigParser()
     fobos.read(filename)
-    for sec in ['builder','files']:
-      for item in fobos.items(sec):
-        if item[0] in cliargs_dict:
-          if type(cliargs_dict[item[0]])==type(False):
-            setattr(cliargs,item[0],fobos.getboolean(sec,item[0]))
-          elif type(cliargs_dict[item[0]])==type(1):
-            setattr(cliargs,item[0],int(item[1]))
-          elif type(cliargs_dict[item[0]])==type([]):
-            setattr(cliargs,item[0],item[1].split())
-          else:
-            setattr(cliargs,item[0],item[1])
+    section = False
+    if fobos.has_option('modes','modes'):
+      if cliargs.mode:
+        if cliargs.mode in fobos.get('modes','modes'):
+          section = cliargs.mode
+      else:
+        section = fobos.get('modes','modes').split()[0]
+    if not section:
+      if fobos.has_section('default'):
+        section = 'default'
+      else:
+        print 'Error: fobos file has not "modes" section neither "default" one'
+        sys.exit(1)
+    for item in fobos.items(section):
+      if item[0] in cliargs_dict:
+        if type(cliargs_dict[item[0]])==type(False):
+          setattr(cliargs,item[0],fobos.getboolean(section,item[0]))
+        elif type(cliargs_dict[item[0]])==type(1):
+          setattr(cliargs,item[0],int(item[1]))
+        elif type(cliargs_dict[item[0]])==type([]):
+          setattr(cliargs,item[0],item[1].split())
+        else:
+          setattr(cliargs,item[0],item[1])
     for item in cliargs_dict:
       if item in ['cflags','lflags','preproc']:
         val_fobos = cliargs_dict[item]
@@ -650,6 +664,7 @@ if __name__ == '__main__':
     inquire_fobos(cliargs=cliargs)
   if cliargs.which=='clean':
     cleaner=Cleaner(build_dir=cliargs.build_dir,obj_dir=cliargs.obj_dir,mod_dir=cliargs.mod_dir,target=cliargs.target,output=cliargs.output,mklib=cliargs.mklib,colors=cliargs.colors)
+    # clean project
     if not cliargs.only_obj and not cliargs.only_target:
       cleaner.clean_mod()
       cleaner.clean_obj()

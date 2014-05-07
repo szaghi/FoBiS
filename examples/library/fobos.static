@@ -1,4 +1,4 @@
-[builder]
+[default]
 compiler=Gnu
 cflags=-c
 mod_dir=./mod/
@@ -7,7 +7,6 @@ build_dir=./build/
 src=./src/
 colors=True
 quiet=False
-[files]
 target=library.f90
 output=Staticlib.a
 mklib=static

@@ -1,4 +1,4 @@
-[builder]
+[default]
 compiler=Gnu
 cflags=-c -fPIC
 lflags=-shared
@@ -8,7 +8,6 @@ build_dir=./build/
 src=./src/
 colors=True
 quiet=False
-[files]
 target=library.f90
 mklib=shared
 log=True

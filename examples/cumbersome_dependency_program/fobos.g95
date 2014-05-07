@@ -1,4 +1,4 @@
-[builder]
+[default]
 compiler=G95
 mpi=False
 cflags=-c
@@ -9,7 +9,6 @@ src=./src/
 colors=True
 quiet=False
 jobs=1
-[files]
 target=cumbersome.f90
 output=Cumbersome
 log=True
