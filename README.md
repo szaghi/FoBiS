@@ -99,11 +99,10 @@ usage: FoBiS.py build [-h] [-f FOBOS] [-colors] [-l] [-q] [-j JOBS]
                       [-compiler COMPILER] [-fc FC] [-modsw MODSW] [-mpi]
                       [-cflags CFLAGS] [-lflags LFLAGS]
                       [-libs LIBS [LIBS ...]] [-i INCLUDE [INCLUDE ...]]
-                      [-inc INC [INC ...]] [-p PREPROC] [-dobj DOBJ]
-                      [-dmod DMOD] [-dexe DEXE] [-s SRC]
+                      [-inc INC [INC ...]] [-p PREPROC] [-dobj OBJ_DIR]
+                      [-dmod MOD_DIR] [-dbld BUILD_DIR] [-s SRC]
                       [-e EXCLUDE [EXCLUDE ...]] [-t TARGET] [-o OUTPUT]
-                      [-mklib MKLIB]
-
+                      [-mklib MKLIB] [-mode MODE] [-m]
 optional arguments:
   -h, --help            show this help message and exit
   -f FOBOS, --fobos FOBOS
@@ -132,11 +131,14 @@ optional arguments:
                         include files
   -p PREPROC, --preproc PREPROC
                         Preprocessor flags
-  -dobj DOBJ            Directory containing compiled objects [default:
+  -dobj OBJ_DIR, --obj_dir OBJ_DIR
+                        Directory containing compiled objects [default:
                         ./obj/]
-  -dmod DMOD            Directory containing .mod files of compiled objects
+  -dmod MOD_DIR, --mod_dir MOD_DIR
+                        Directory containing .mod files of compiled objects
                         [default: ./mod/]
-  -dexe DEXE            Directory containing executable objects [default: ./]
+  -dbld BUILD_DIR, --build_dir BUILD_DIR
+                        Directory containing executable objects [default: ./]
   -s SRC, --src SRC     Root-directory of source files [default: ./]
   -e EXCLUDE [EXCLUDE ...], --exclude EXCLUDE [EXCLUDE ...]
                         Exclude a list of files from the building process
@@ -147,6 +149,8 @@ optional arguments:
                         switch [default: basename of target]
   -mklib MKLIB          Build library instead of program (use with -target
                         switch); usage: -mklib static or -mklib shared
+  -mode MODE            Select a mode defined inside a fobos file
+  -m, --makefile        Generate a GNU Makefile for building the project
 ```
 Printing the _clean_ help message:
 ```bash
@@ -154,26 +158,34 @@ FoBiS.py clean -h
 ```
 This will echo:
 ```bash
-usage: FoBiS.py clean [-h] [-f FOBOS] [-colors] [-dobj DOBJ] [-dmod DMOD]
-                      [-dexe DEXE] [-t TARGET] [-o OUTPUT] [-mklib MKLIB]
+usage: FoBiS.py clean [-h] [-f FOBOS] [-colors] [-dobj OBJ_DIR]
+                      [-dmod MOD_DIR] [-dbld BUILD_DIR] [-t TARGET]
+                      [-o OUTPUT] [-only_obj] [-only_target] [-mklib MKLIB]
+                      [-mode MODE]
 
 optional arguments:
   -h, --help            show this help message and exit
   -f FOBOS, --fobos FOBOS
                         Specify a "fobos" file named differently from "fobos"
   -colors               Activate colors in shell prints [default: no colors]
-  -dobj DOBJ            Directory containing compiled objects [default:
+  -dobj OBJ_DIR, --obj_dir OBJ_DIR
+                        Directory containing compiled objects [default:
                         ./obj/]
-  -dmod DMOD            Directory containing .mod files of compiled objects
+  -dmod MOD_DIR, --mod_dir MOD_DIR
+                        Directory containing .mod files of compiled objects
                         [default: ./mod/]
-  -dexe DEXE            Directory containing executable objects [default: ./]
+  -dbld BUILD_DIR, --build_dir BUILD_DIR
+                        Directory containing executable objects [default: ./]
   -t TARGET, --target TARGET
                         Specify a target file [default: all programs found]
   -o OUTPUT, --output OUTPUT
                         Specify the output file name is used with -target
                         switch [default: basename of target]
+  -only_obj             Clean only compiled objects and not also built targets
+  -only_target          Clean only built targets and not also compiled objects
   -mklib MKLIB          Build library instead of program (use with -target
                         switch); usage: -mklib static or -mklib shared
+  -mode MODE            Select a mode defined inside a fobos file
 ```
 
 ### Compile all programs found
@@ -239,9 +251,24 @@ FoBiS.py clean
 
 ## <a name="fobos"></a>fobos: the FoBiS.py makefile
 
-For dealing with (repetitive) buildings of complex projects, FoBiS.py execution can be driven by means of a configuration file placed into the current working directory and named _fobos_, FOrtran Building OptionS file. The options defined into _fobos_ file override or in the case of _cflags_, _lflags_ and _preproc_ overload, the CLI arguments: this file is designed to act as a makefile, but with a very simple syntax (similar to INI files). _fobos_ file has exactly the same options available for the command line, in particular the options names are identical to the extended switches names (the ones prefixed with '--') or to the abbreviated ones (prefixed with '-') in case they are the only defined:
+For dealing with (repetitive) buildings of complex projects, FoBiS.py execution can be driven by means of a configuration file placed into the current working directory and named _fobos_, FOrtran Building OptionS file. The options defined into _fobos_ file override or in the case of _cflags_, _lflags_ and _preproc_ overload, the CLI arguments: this file is designed to act as a makefile, but with a very simple syntax (similar to INI files). _fobos_ file has exactly the same options available for the command line, in particular the options names are identical to the extended switches names (the ones prefixed with '--') or to the abbreviated ones (prefixed with '-') in case they are the only defined. If an option is present it will overrides the default value of CLI. Options can be commented with "#" symbol. 
+
+Note that if the fobos file is placed into the current working directory it is automatically loaded for both _build_ and _clean_ executions of FoBiS.py, however if a _fobos_ file is placed elsewhere and/or it is named differently from _fobos_ it can still be specified by means of "-f" switch
+```bash
+FoBiS.py build -f /other_path/fobos.other_name
+
+FoBiS.py clean -f /other_path/fobos.other_name
+```
+Using this feature it is simple to perform context-specific buildings accordingly to different goals, e.g. it is convenient to have concurrently more _fobos_ files, one for debug building, one for release building, one for AIX architecture, one for MPI building and so on. Nevertheless, many programmers prefer to have only one "makefile" into which different building profiles are defined (they being selected by means of defined switch). For this reason two different kind of fobos file can be defined accordingly to the user _modus operandi_:
++ a fobos file with only one default building _profile_;
++ a fobos file with many different building _profiles_.
+
+In the following the two kind of fobos files are described. 
+
+## single-building-profile fobos file
+This kind of fobos file _should_ have only one building profile defined by the section _[default]_, e.g. 
 ```ini
-[builder]
+[default]
 colors=True
 quiet=False
 jobs=1
@@ -261,18 +288,55 @@ dexe=./
 src=./src/
 exclude=pon.F cin.f90
 mklib=static
-[files]
 log=False
 target=foo.f90
 output=FoO
 ```
-There are two sections: _builder_ specifying builder options used for each parsed file and _general_ specifying global options. If an option is present it will overrides the default value of CLI. Options can be commented with "#" symbol. For both _build_ and _clean_ executions of FoBiS.py a _fobos_ file placed elsewhere and having different name can be specified by means of "-f" switch
+Note that due to the design-idea of this kind of fobos file only one default profile should be defined, but if other profiles (sections) are defined only the one named _default_ is used, whereas the others are ignored. Moreover, the default profile can be placed everywhere into the file, it is not requested to be the first profile defined. Finally, if there is no section named default an error message is prompted, e.g.
 ```bash
-FoBiS.py build -f /other_path/fobos.other_name
-
-FoBiS.py clean -f /other_path/fobos.other_name
+Error: fobos file has not "modes" section neither "default" one
 ```
-Using this feature it is simple to perform context-specific buildings accordingly to different goals, e.g. it is convenient to have concurrently more _fobos_ files, one for debug building, one for release building, one for AIX architecture, one for MPI building and so on.
+
+## many-building-profiles fobos file
+This kind of fobos file can have many different building profiles, as a consequence it is necessary a mechanism (a switch) to select one profile (in the following indicated as mode) respect the others. Such a switch mechanism is defined by a particular section defined into the fobos file, namely the section _modes_ that has only one option named again _modes_ which list the available modes defined into the fobos file, e.g.
+```ini
+[modes]
+modes = debug-gnu realese-gnu dbg-intel
+
+[debug-gnu]
+compiler=gnu
+cflags=-c -cpp -O0 -C -g
+...
+ 
+[realese-gnu]
+compiler=gnu
+cflags=-c -cpp -O3
+...
+
+[dbg-intel]
+compiler=intel
+cflags=-c -cpp -O0 -debug all -warn all
+...
+
+```
+The presence of the section and option _modes_ distinguishes a single-building-profile fobos file from a many-building-profiles ones, as consequence this section should be the first defined into the fobos file. However it is possible to place the sections in any order, even with the _modes_ one placed at the end of the fobos file. When a many-building-profiles fobos file is used the switch _-mode_ must be used when invoking FoBiS.py for selecting a particular mode, e.g. 
+
+```bash
+FoBiS.py build -mode realese-gnu
+```
+or, if the fobos file has user-defined name
+```bash
+FoBiS.py build -f fobos.other.name -mode realese-gnu
+```
+In the case the switch _-mode_ is omitted, the first defined mode is used (in the example above it is the mode _debug-gnu_). It is worth noting that if the switch _-mode_ is used with a mode name not present in the list defined into the fobos file an error message is prompted, e.g.
+```bash
+FoBiS.py build -mode unknown-mode
+
+Error: fobos file has not mode named "unknown-mode". Defined modes are:
+  -) "debug-gnu"
+  -) "realese-gnu"
+  -) "dbg-intel"
+```
 
 ## <a name="examples"></a>Examples
 
