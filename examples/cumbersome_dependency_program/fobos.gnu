@@ -1,4 +1,4 @@
-[builder]
+[default]
 compiler=Gnu
 mpi=False
 cflags=-c
@@ -10,7 +10,6 @@ colors=True
 quiet=False
 jobs=1
 inc=.h .H
-[files]
 target=cumbersome.f90
 output=Cumbersome
 log=True
