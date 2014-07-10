@@ -620,8 +620,9 @@ def remove_other_main(builder,pfiles,me):
         os.remove(builder.obj_dir+pfile.basename+".o")
 def inquire_fobos(cliargs,filename='fobos'):
   """
-  The function inquiry_fobos checks if a 'fobos' file is present in current working directory and, in case, parses it for CLI arguments overloading.
+  The function inquire_fobos checks if a 'fobos' file is present in current working directory and, in case, parses it for CLI arguments overloading.
   """
+  fobos_colors = Colors()
   cliargs_dict = deepcopy(cliargs.__dict__)
   if os.path.exists(filename):
     fobos = ConfigParser.ConfigParser()
@@ -631,13 +632,18 @@ def inquire_fobos(cliargs,filename='fobos'):
       if cliargs.mode:
         if cliargs.mode in fobos.get('modes','modes'):
           section = cliargs.mode
+        else:
+          print fobos_colors.bld+'Error: fobos file has not mode named "'+cliargs.mode+'". Defined modes are:'+fobos_colors.end
+          for m in fobos.get('modes','modes').split():
+            print fobos_colors.bld+'  -) "'+m+'"'+fobos_colors.end
+          sys.exit(1)
       else:
-        section = fobos.get('modes','modes').split()[0]
+        section = fobos.get('modes','modes').split()[0] # first mode selected
     if not section:
       if fobos.has_section('default'):
         section = 'default'
       else:
-        print 'Error: fobos file has not "modes" section neither "default" one'
+        print fobos_colors.bld+'Error: fobos file has not "modes" section neither "default" one'+fobos_colors.end
         sys.exit(1)
     for item in fobos.items(section):
       if item[0] in cliargs_dict:
