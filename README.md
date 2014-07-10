@@ -259,13 +259,13 @@ FoBiS.py build -f /other_path/fobos.other_name
 
 FoBiS.py clean -f /other_path/fobos.other_name
 ```
-Using this feature it is simple to perform context-specific buildings accordingly to different goals, e.g. it is convenient to have concurrently more _fobos_ files, one for debug building, one for release building, one for AIX architecture, one for MPI building and so on. Nevertheless, many programmers prefer to have only one "makefile" into which different building profiles are defined (they being selected by means of defined switch). For this reason two different kind of fobos file can be defined accordingly to the user _modus operandi_:
+Using this feature it is simple to perform context-specific buildings accordingly to different goals, e.g. it is convenient to have concurrently more _fobos_ files, one for debug building, one for release building, one for AIX architecture, one for MPI building and so on. Nevertheless, many programmers prefer to have only one "makefile" into which different building profiles are defined (they being selected by means of defined switches). For this reason two different kind of fobos file can be defined accordingly to the user _modus operandi_:
 + a fobos file with only one default building _profile_;
 + a fobos file with many different building _profiles_.
 
 In the following the two kind of fobos files are described. 
 
-## single-building-profile fobos file
+### single-building-profile fobos file
 This kind of fobos file _should_ have only one building profile defined by the section _[default]_, e.g. 
 ```ini
 [default]
@@ -292,13 +292,13 @@ log=False
 target=foo.f90
 output=FoO
 ```
-Note that due to the design-idea of this kind of fobos file only one default profile should be defined, but if other profiles (sections) are defined only the one named _default_ is used, whereas the others are ignored. Moreover, the default profile can be placed everywhere into the file, it is not requested to be the first profile defined. Finally, if there is no section named default an error message is prompted, e.g.
+Note that due to the design-idea of this kind of fobos file, only one default profile should be defined, but if other profiles (sections) are defined, only the one named _default_ is used, whereas the others are ignored. Moreover, the default profile can be placed everywhere into the file, it is not requested to be the first profile defined. Finally, if there is no section named default an error message is prompted, e.g.
 ```bash
 Error: fobos file has not "modes" section neither "default" one
 ```
 
-## many-building-profiles fobos file
-This kind of fobos file can have many different building profiles, as a consequence it is necessary a mechanism (a switch) to select one profile (in the following indicated as mode) respect the others. Such a switch mechanism is defined by a particular section defined into the fobos file, namely the section _modes_ that has only one option named again _modes_ which list the available modes defined into the fobos file, e.g.
+### many-building-profiles fobos file
+This kind of fobos file can have many different building profiles, as a consequence it is necessary a mechanism (a switch) to select one profile (in the following indicated as mode) respect to the others. Such a switch mechanism is defined by a particular section defined into the fobos file, namely the section _modes_, that has only one option named again _modes_, which lists the available modes defined into the fobos file, e.g.
 ```ini
 [modes]
 modes = debug-gnu realese-gnu dbg-intel
@@ -319,7 +319,7 @@ cflags=-c -cpp -O0 -debug all -warn all
 ...
 
 ```
-The presence of the section and option _modes_ distinguishes a single-building-profile fobos file from a many-building-profiles ones, as consequence this section should be the first defined into the fobos file. However it is possible to place the sections in any order, even with the _modes_ one placed at the end of the fobos file. When a many-building-profiles fobos file is used the switch _-mode_ must be used when invoking FoBiS.py for selecting a particular mode, e.g. 
+The presence of the section and option _modes_ distinguishes a single-building-profile fobos file from a many-building-profiles one, as consequence this section should be the first defined into the fobos file. However, it is possible to place the sections in any order, even with the _modes_ one placed at the end of the fobos file. When a many-building-profiles fobos file is used, the switch _-mode_ must be used when invoking FoBiS.py for selecting a particular mode, e.g. 
 
 ```bash
 FoBiS.py build -mode realese-gnu
@@ -328,7 +328,7 @@ or, if the fobos file has user-defined name
 ```bash
 FoBiS.py build -f fobos.other.name -mode realese-gnu
 ```
-In the case the switch _-mode_ is omitted, the first defined mode is used (in the example above it is the mode _debug-gnu_). It is worth noting that if the switch _-mode_ is used with a mode name not present in the list defined into the fobos file an error message is prompted, e.g.
+In the case the switch _-mode_ is omitted, the first defined mode is used (in the example above it is the mode _debug-gnu_). It is worth noting that if the switch _-mode_ is used with a mode name not present in the list defined into the fobos file, an error message is prompted, e.g.
 ```bash
 FoBiS.py build -mode unknown-mode
 
