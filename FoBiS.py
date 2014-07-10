@@ -635,7 +635,7 @@ def inquire_fobos(cliargs,filename='fobos'):
         else:
           print fobos_colors.bld+'Error: fobos file has not mode named "'+cliargs.mode+'". Defined modes are:'+fobos_colors.end
           for m in fobos.get('modes','modes').split():
-            print fobos_colors.bld+'  -) "'+m+'"'+fobos_colors.end
+            print fobos_colors.bld+'  - "'+m+'"'+fobos_colors.end
           sys.exit(1)
       else:
         section = fobos.get('modes','modes').split()[0] # first mode selected

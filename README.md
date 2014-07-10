@@ -7,14 +7,23 @@ A very simple and stupid tool for automatic building modern Fortran projects.
 
 * [Team Members](#team-members)
 * [Why?](#why)
-* [Why not use an auto-make-like tool?](#automake)
-* [OK, what can FoBiS.py do? I am a _poor-fortran-man_, I do not understand you...](#fobis-explained)
+    + [Why not use an auto-make-like tool?](#automake)
+    + [OK, what can FoBiS.py do? I am a _poor-fortran-man_, I do not understand you...](#fobis-explained)
 * [Main features](#main-features)
 * [Todos](#todos)
 * [Requirements](#requirements)
 * [Copyrights](#copyrights)
 * [Usage](#usage)
+    + [Build all programs found](#build-all)
+    + [Build all programs found excluding some files](#build-all-exclude)
+    + [Build a specific target](#build-target)
+    + [Build a specific target with user-defined flags](#build-user-flags)
+    + [Build large projects: maximize building speedup on parallel architectures](#build-parallel)
+    + [Build a library](#build-library)
+    + [Clean project tree](#clean)
 * [fobos: the FoBiS.py makefile](#fobos)
+    + [single-building-profile fobos](#single-prof-fobos)
+    + [many-building-profiles fobos](#many-prof-fobos)
 * [Examples](#examples)
 * [Tips for non pythonic users](#tips)
 
@@ -27,11 +36,11 @@ GNU Make, CMake, SCons & Co. are fantastic tools, even too much for a _poor-fort
 However, the support for modern Fortran project is still poor: in particular, it is quite difficult (and boring) to track the inter-module-dependency hierarchy of project using many module files.
 Modern Fortran programs can take great advantages of module using, however their compilations can become quickly a nightmare as the number of modules grows. As consequence, an automatic building system able to track (on the fly) any changes on the inter-module-dependency hierarchy can save the life of a _poor-fortran-man_.
 
-## <a name="automake"></a>Why not use an auto-make-like tool?
+### <a name="automake"></a>Why not use an auto-make-like tool?
 
 There are a lot of alternatives for deal with inter-module-dependency hierarchy, but they can be viewed as a pre-processor for the actual building system (such as auto-make tools or even the Fortran compiler itself that, in most cases, can generate a dependency list of a processed file), thus they introduce another level of complexity... but a _poor-fortran-man_ always loves the KISS (Keep It Simple, Stupid) things! FoBiS.py is designed to do just one thing: build a modern Fortran program without boring you to specify a particular compilation hierarchy.
 
-## <a name="fobis-explained"></a>OK, what can FoBiS.py do? I am a _poor-fortran-man_, I do not understand you...
+### <a name="fobis-explained"></a>OK, what can FoBiS.py do? I am a _poor-fortran-man_, I do not understand you...
 
 Suppose you have a Fortran project composed of many Fortran modules placed into a complicated nested directories tree. Your goal is to build some (all) of the main programs contained into the project tree, but you have no time (or patience) to write the complicated makefile(s) able to correctly build your programs. In this case FoBiS.py can save your life: just type _python FoBiS.py build_ into the root of your project and FoBis.py will (try to) build all the main programs nested into the current directory. Obviously, FoBiS.py will not (re-)compile unnecessary objects if they are up-to-date (like the "magic" of a makefile). FoBiS.py have many (ok... some) others interesting features: if I have convinced you, please read the following.
 
@@ -188,7 +197,7 @@ optional arguments:
   -mode MODE            Select a mode defined inside a fobos file
 ```
 
-### Compile all programs found
+### <a name="build-all"></a>Build all programs found
 
 ```bash
 FoBiS.py build
@@ -197,7 +206,7 @@ FoBiS.py build
 FoBiS.py will recursively search for _program_ files into the directories nested into "./". Program files are captured parsing each file found: a file is a _program-file_ if it contains the Fortran statement _program_.
 It is worth noting that the above FoBiS.py call will use the default compilations options.
 
-### Compile all programs found excluding some files
+### <a name="build-all-exclude"></a>Build all programs found excluding some files
 
 ```bash
 FoBiS.py build -exclude foo.f90 bar.f
@@ -205,7 +214,7 @@ FoBiS.py build -exclude foo.f90 bar.f
 
 FoBiS.py will recursively search for _program_ files into the directories nested into "./" and, excluding _foo,f90_ and _bar.f_, all other files will be parsed and, in case, built.
 
-### Compile a specific target
+### <a name="build-target"></a>Build a specific target
 
 ```bash
 FoBiS.py build -src my_path -target my_path/my_sub_path/foo.f90
@@ -217,13 +226,13 @@ FoBiS.py will recursively search for "my_path/my_sub_path/foo.f90" and for all i
 FoBiS.py build -src my_path -target my_path/my_sub_path/foo.f90 -o FoO
 ```
 
-### Compile a specific target with user-defined flags
+### <a name="build-user-flags"></a>Build a specific target with user-defined flags
 
 ```bash
 FoBiS.py build -cflags '-c -cpp -O2' -src my_path -target my_path/my_sub_path/foo.f90
 ```
 
-### Compile large projects: maximize building speedup on parallel architectures
+### <a name="build-parallel"></a>Build large projects: maximize building speedup on parallel architectures
 
 ```bash
 FoBiS.py build -j #cpus
@@ -231,7 +240,7 @@ FoBiS.py build -j #cpus
 
 This is an experimental feature not yet completely tested, thus it should be carefully used. Using the switch "-j" enables a pool of concurrent jobs (the number of which should be equal to the number of physical cpus or cores available) for compiling targets dependencies. Presently, the pool is not optimized and balanced accordingly to the number of files that must be (re-)compiled.
 
-### Build a library
+### <a name="build-library"></a>Build a library
 
 ```bash
 FoBiS.py build -target mylib.f90 -mklib static
@@ -243,7 +252,7 @@ FoBiS.py offers a primitive support for building libraries, both static and shar
 
 Into _examples_ directory there is an example of a _cumbersome_ library building.
 
-### Clean project tree
+### <a name="clean"></a>Clean project tree
 
 ```bash
 FoBiS.py clean
@@ -265,7 +274,7 @@ Using this feature it is simple to perform context-specific buildings accordingl
 
 In the following the two kind of fobos files are described. 
 
-### single-building-profile fobos file
+### <a name="single-prof-fobos"></a>single-building-profile fobos file
 This kind of fobos file _should_ have only one building profile defined by the section _[default]_, e.g. 
 ```ini
 [default]
@@ -297,7 +306,7 @@ Note that due to the design-idea of this kind of fobos file, only one default pr
 Error: fobos file has not "modes" section neither "default" one
 ```
 
-### many-building-profiles fobos file
+### <a name="many-prof-fobos"></a>many-building-profiles fobos file
 This kind of fobos file can have many different building profiles, as a consequence it is necessary a mechanism (a switch) to select one profile (in the following indicated as mode) respect to the others. Such a switch mechanism is defined by a particular section defined into the fobos file, namely the section _modes_, that has only one option named again _modes_, which lists the available modes defined into the fobos file, e.g.
 ```ini
 [modes]
@@ -333,9 +342,9 @@ In the case the switch _-mode_ is omitted, the first defined mode is used (in th
 FoBiS.py build -mode unknown-mode
 
 Error: fobos file has not mode named "unknown-mode". Defined modes are:
-  -) "debug-gnu"
-  -) "realese-gnu"
-  -) "dbg-intel"
+  - "debug-gnu"
+  - "realese-gnu"
+  - "dbg-intel"
 ```
 
 ## <a name="examples"></a>Examples
