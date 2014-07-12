@@ -90,6 +90,7 @@ buildparser.add_argument('-t',       '--target',   required=False,action='store'
 buildparser.add_argument('-o',       '--output',   required=False,action='store',               default=None,            help='Specify the output file name is used with -target switch [default: basename of target]')
 buildparser.add_argument('-mklib',                 required=False,action='store',               default=None,            help='Build library instead of program (use with -target switch); usage: -mklib static or -mklib shared')
 buildparser.add_argument('-mode',                  required=False,action='store',               default=None,            help='Select a mode defined inside a fobos file')
+buildparser.add_argument('-lmodes',                required=False,action='store_true',          default=False,           help='List the modes defined inside a fobos file')
 buildparser.add_argument('-m',       '--makefile', required=False,action='store_true',          default=False,           help='Generate a GNU Makefile for building the project')
 cleanparser.add_argument('-f',       '--fobos',    required=False,action='store',               default=None,            help='Specify a "fobos" file named differently from "fobos"')
 cleanparser.add_argument('-colors',                required=False,action='store_true',          default=False,           help='Activate colors in shell prints [default: no colors]')
@@ -102,6 +103,7 @@ cleanparser.add_argument('-only_obj',              required=False,action='store_
 cleanparser.add_argument('-only_target',           required=False,action='store_true',          default=False,           help='Clean only built targets and not also compiled objects')
 cleanparser.add_argument('-mklib',                 required=False,action='store',               default=None,            help='Build library instead of program (use with -target switch); usage: -mklib static or -mklib shared')
 cleanparser.add_argument('-mode',                  required=False,action='store',               default=None,            help='Select a mode defined inside a fobos file')
+cleanparser.add_argument('-lmodes',                required=False,action='store_true',          default=False,           help='List the modes defined inside a fobos file')
 # definition of regular expressions
 str_f95_apex         = r"('|"+r'")'
 str_f95_kw_include   = r"[Ii][Nn][Cc][Ll][Uu][Dd][Ee]"
@@ -627,15 +629,24 @@ def inquire_fobos(cliargs,filename='fobos'):
   if os.path.exists(filename):
     fobos = ConfigParser.ConfigParser()
     fobos.read(filename)
+    if cliargs.lmodes:
+      if fobos.has_option('modes','modes'):
+        print fobos_colors.bld+'The fobos file has defined the following modes:'+fobos_colors.end
+        for m in fobos.get('modes','modes').split():
+          print fobos_colors.bld+'  - "'+m+'"'+fobos_colors.end
+        sys.exit(0)
+      else:
+        print fobos_colors.red+'Error: the fobos file has not defined following modes other than the default none!'+fobos_colors.end
+        sys.exit(1)
     section = False
     if fobos.has_option('modes','modes'):
       if cliargs.mode:
         if cliargs.mode in fobos.get('modes','modes'):
           section = cliargs.mode
         else:
-          print fobos_colors.bld+'Error: fobos file has not mode named "'+cliargs.mode+'". Defined modes are:'+fobos_colors.end
+          print fobos_colors.red+'Error: fobos file has not mode named "'+cliargs.mode+'". Defined modes are:'+fobos_colors.end
           for m in fobos.get('modes','modes').split():
-            print fobos_colors.bld+'  - "'+m+'"'+fobos_colors.end
+            print fobos_colors.red+'  - "'+m+'"'+fobos_colors.end
           sys.exit(1)
       else:
         section = fobos.get('modes','modes').split()[0] # first mode selected
@@ -643,7 +654,7 @@ def inquire_fobos(cliargs,filename='fobos'):
       if fobos.has_section('default'):
         section = 'default'
       else:
-        print fobos_colors.bld+'Error: fobos file has not "modes" section neither "default" one'+fobos_colors.end
+        print fobos_colors.red+'Error: fobos file has not "modes" section neither "default" one'+fobos_colors.end
         sys.exit(1)
     for item in fobos.items(section):
       if item[0] in cliargs_dict:

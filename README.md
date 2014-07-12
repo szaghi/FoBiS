@@ -159,6 +159,7 @@ optional arguments:
   -mklib MKLIB          Build library instead of program (use with -target
                         switch); usage: -mklib static or -mklib shared
   -mode MODE            Select a mode defined inside a fobos file
+  -lmodes               List the modes defined inside a fobos file
   -m, --makefile        Generate a GNU Makefile for building the project
 ```
 Printing the _clean_ help message:
@@ -195,6 +196,7 @@ optional arguments:
   -mklib MKLIB          Build library instead of program (use with -target
                         switch); usage: -mklib static or -mklib shared
   -mode MODE            Select a mode defined inside a fobos file
+  -lmodes               List the modes defined inside a fobos file
 ```
 
 ### <a name="build-all"></a>Build all programs found
@@ -342,6 +344,23 @@ In the case the switch _-mode_ is omitted, the first defined mode is used (in th
 FoBiS.py build -mode unknown-mode
 
 Error: fobos file has not mode named "unknown-mode". Defined modes are:
+  - "debug-gnu"
+  - "realese-gnu"
+  - "dbg-intel"
+```
+There is also a CLI switch, for both _clean_ and _build_ excutions, for listing the modes defined into a fobos file
+```bash
+FoBiS.py build -lmodes
+```
+or 
+```bash
+FoBiS.py clean -lmodes
+```
+than a list of modes is prompted, e.g.
+```bash
+FoBiS.py build -lmodes
+
+The fobos file has defined the following modes:
   - "debug-gnu"
   - "realese-gnu"
   - "dbg-intel"
