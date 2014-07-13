@@ -343,7 +343,7 @@ In the case the switch _-mode_ is omitted, the first defined mode is used (in th
 ```bash
 FoBiS.py build -mode unknown-mode
 
-Error: fobos file has not mode named "unknown-mode". Defined modes are:
+Error: the mode "unknown-mode" is not defined into the fobos file. Defined modes are:
   - "debug-gnu"
   - "realese-gnu"
   - "dbg-intel"
@@ -360,7 +360,7 @@ than a list of modes is prompted, e.g.
 ```bash
 FoBiS.py build -lmodes
 
-The fobos file has defined the following modes:
+The fobos file defines the following modes:
   - "debug-gnu"
   - "realese-gnu"
   - "dbg-intel"

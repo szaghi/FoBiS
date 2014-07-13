@@ -631,12 +631,12 @@ def inquire_fobos(cliargs,filename='fobos'):
     fobos.read(filename)
     if cliargs.lmodes:
       if fobos.has_option('modes','modes'):
-        print fobos_colors.bld+'The fobos file has defined the following modes:'+fobos_colors.end
+        print fobos_colors.bld+'The fobos file defines the following modes:'+fobos_colors.end
         for m in fobos.get('modes','modes').split():
           print fobos_colors.bld+'  - "'+m+'"'+fobos_colors.end
         sys.exit(0)
       else:
-        print fobos_colors.red+'Error: the fobos file has not defined following modes other than the default none!'+fobos_colors.end
+        print fobos_colors.red+'Error: no modes are defined into the fobos file!'+fobos_colors.end
         sys.exit(1)
     section = False
     if fobos.has_option('modes','modes'):
@@ -644,7 +644,7 @@ def inquire_fobos(cliargs,filename='fobos'):
         if cliargs.mode in fobos.get('modes','modes'):
           section = cliargs.mode
         else:
-          print fobos_colors.red+'Error: fobos file has not mode named "'+cliargs.mode+'". Defined modes are:'+fobos_colors.end
+          print fobos_colors.red+'Error: the mode "'+cliargs.mode+'" is not defined into the fobos file. Defined modes are:'+fobos_colors.end
           for m in fobos.get('modes','modes').split():
             print fobos_colors.red+'  - "'+m+'"'+fobos_colors.end
           sys.exit(1)
