@@ -66,6 +66,8 @@ buildparser = clisubparsers.add_parser('build',help='Build all programs found or
 buildparser.set_defaults(which='build')
 cleanparser = clisubparsers.add_parser('clean',help='Clean project: completely remove OBJ and MOD directories... use carefully')
 cleanparser.set_defaults(which='clean')
+rulexparser = clisubparsers.add_parser('rule', help='Execute rules defined into a fobos file')
+rulexparser.set_defaults(which='rule')
 buildparser.add_argument('-f',       '--fobos',    required=False,action='store',               default=None,            help='Specify a "fobos" file named differently from "fobos"')
 buildparser.add_argument('-colors',                required=False,action='store_true',          default=False,           help='Activate colors in shell prints [default: no colors]')
 buildparser.add_argument('-l',       '--log',      required=False,action='store_true',          default=False,           help='Activate the creation of a log file [default: no log file]')
@@ -89,8 +91,8 @@ buildparser.add_argument('-e',       '--exclude',  required=False,action='store'
 buildparser.add_argument('-t',       '--target',   required=False,action='store',               default=None,            help='Specify a target file [default: all programs found]')
 buildparser.add_argument('-o',       '--output',   required=False,action='store',               default=None,            help='Specify the output file name is used with -target switch [default: basename of target]')
 buildparser.add_argument('-mklib',                 required=False,action='store',               default=None,            help='Build library instead of program (use with -target switch); usage: -mklib static or -mklib shared')
-buildparser.add_argument('-mode',                  required=False,action='store',               default=None,            help='Select a mode defined inside a fobos file')
-buildparser.add_argument('-lmodes',                required=False,action='store_true',          default=False,           help='List the modes defined inside a fobos file')
+buildparser.add_argument('-mode',                  required=False,action='store',               default=None,            help='Select a mode defined into a fobos file')
+buildparser.add_argument('-lmodes',                required=False,action='store_true',          default=False,           help='List the modes defined into a fobos file')
 buildparser.add_argument('-m',       '--makefile', required=False,action='store_true',          default=False,           help='Generate a GNU Makefile for building the project')
 cleanparser.add_argument('-f',       '--fobos',    required=False,action='store',               default=None,            help='Specify a "fobos" file named differently from "fobos"')
 cleanparser.add_argument('-colors',                required=False,action='store_true',          default=False,           help='Activate colors in shell prints [default: no colors]')
@@ -102,8 +104,11 @@ cleanparser.add_argument('-o',       '--output',   required=False,action='store'
 cleanparser.add_argument('-only_obj',              required=False,action='store_true',          default=False,           help='Clean only compiled objects and not also built targets')
 cleanparser.add_argument('-only_target',           required=False,action='store_true',          default=False,           help='Clean only built targets and not also compiled objects')
 cleanparser.add_argument('-mklib',                 required=False,action='store',               default=None,            help='Build library instead of program (use with -target switch); usage: -mklib static or -mklib shared')
-cleanparser.add_argument('-mode',                  required=False,action='store',               default=None,            help='Select a mode defined inside a fobos file')
-cleanparser.add_argument('-lmodes',                required=False,action='store_true',          default=False,           help='List the modes defined inside a fobos file')
+cleanparser.add_argument('-mode',                  required=False,action='store',               default=None,            help='Select a mode defined into a fobos file')
+cleanparser.add_argument('-lmodes',                required=False,action='store_true',          default=False,           help='List the modes defined into a fobos file')
+rulexparser.add_argument('-f',       '--fobos',    required=False,action='store',               default=None,            help='Specify a "fobos" file named differently from "fobos"')
+rulexparser.add_argument('-ex',      '--execute',  required=False,action='store',               default=None,            help='Specify a rule (defined into fobos file) to be executed', metavar='RULE')
+rulexparser.add_argument('-ls',      '--list',     required=False,action='store_true',          default=False,           help='List the rules defined into a fobos file')
 # definition of regular expressions
 str_f95_apex         = r"('|"+r'")'
 str_f95_kw_include   = r"[Ii][Nn][Cc][Ll][Uu][Dd][Ee]"
@@ -159,6 +164,8 @@ def syswork(cmd):
   """
   try:
     output = subprocess.check_output(cmd, shell=True)
+    if output:
+      print output
   except subprocess.CalledProcessError as err:
     if err.returncode != 0:
       sys.exit(1)
@@ -629,6 +636,29 @@ def inquire_fobos(cliargs,filename='fobos'):
   if os.path.exists(filename):
     fobos = ConfigParser.ConfigParser()
     fobos.read(filename)
+    if cliargs.which=='rule':
+      if cliargs.list:
+        print fobos_colors.bld+'The fobos file defines the following rules:'+fobos_colors.end
+        for rule in fobos.sections():
+          if rule.startswith('rule-'):
+            if fobos.has_option(rule,'rule'):
+              r = rule.split('rule-')
+              print fobos_colors.bld+'  - "'+r[1]+'": '+fobos.get(rule,'rule')+fobos_colors.end
+        sys.exit(0)
+      elif cliargs.execute:
+        rule = 'rule-'+cliargs.execute
+        if fobos.has_option(rule,'rule'):
+          print fobos_colors.bld+' Executing rule "'+cliargs.execute+'"'+fobos_colors.end
+          syswork(fobos.get(rule,'rule'))
+          sys.exit(0)
+        else:
+          print fobos_colors.red+'Error: the rule "'+cliargs.execute+'" is not defined into the fobos file. Defined rules are:'+fobos_colors.end
+          for rule in fobos.sections():
+            if rule.startswith('rule-'):
+              if fobos.has_option(rule,'rule'):
+                r = rule.split('rule-')
+                print fobos_colors.red+'  - "'+r[1]+'": '+fobos.get(rule,'rule')+fobos_colors.end
+          sys.exit(1)
     if cliargs.lmodes:
       if fobos.has_option('modes','modes'):
         print fobos_colors.bld+'The fobos file defines the following modes:'+fobos_colors.end

@@ -34,3 +34,9 @@ inc       = .h .H
 target    = cumbersome.f90
 output    = Cumbersome
 log       = True
+
+[rule-makedoc]
+rule = echo "I am making the doc... nope, this is a joke!"
+
+[rule-maketar]
+rule = tar cf cum_example.tar *

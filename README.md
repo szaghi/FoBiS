@@ -1,10 +1,8 @@
 # FoBiS.py
 ### FoBiS.py, Fortran Building System for poor men
-
 A very simple and stupid tool for automatic building modern Fortran projects.
 
 ## Table of Contents
-
 * [Team Members](#team-members)
     + [Contributors](#contributors)
 * [Why?](#why)
@@ -25,6 +23,7 @@ A very simple and stupid tool for automatic building modern Fortran projects.
 * [fobos: the FoBiS.py makefile](#fobos)
     + [single-building-mode fobos](#single-mode-fobos)
     + [many-building-modes fobos](#many-mode-fobos)
+    + [Rules: using fobos file for performing minor (repetitive) tasks](#fobos-rules)
 * [Examples](#examples)
 * [Tips for non pythonic users](#tips)
 
@@ -35,7 +34,6 @@ A very simple and stupid tool for automatic building modern Fortran projects.
 * Tomas Bylund, aka _Tobychev_ <https://github.com/Tobychev>
 
 ## <a name="why"></a>Why?
-
 GNU Make, CMake, SCons & Co. are fantastic tools, even too much for a _poor-fortran-man_.
 However, the support for modern Fortran project is still poor: in particular, it is quite difficult (and boring) to track the inter-module-dependency hierarchy of project using many module files.
 Modern Fortran programs can take great advantages of module using, however their compilations can become quickly a nightmare as the number of modules grows. As consequence, an automatic building system able to track (on the fly) any changes on the inter-module-dependency hierarchy can save the life of a _poor-fortran-man_.
@@ -75,32 +73,31 @@ Suppose you have a Fortran project composed of many Fortran modules placed into 
 FoBiS.py is developed on a GNU/Linux architecture, and it has been tested also on AIX one. For Windows architecture there is no support, however it should be work out-of-the-box.
 
 ## <a name="Copyrights"></a>Copyrights
-
 FoBiS.py is an open source project, it is distributed under the [GPL v3](http://www.gnu.org/licenses/gpl-3.0.html). Anyone is interest to use, to develop or to contribute to FoBiS.py is welcome.
 
 ## <a name="usage"></a>Usage
-
 Printing the main help message:
 ```bash
 FoBiS.py -h
 ```
 This will echo:
 ```bash
-usage: FoBiS.py [-h] [-v] {build,clean} ...
+usage: FoBiS.py [-h] [-v] {build,clean,rule} ...
 
 FoBiS.py, Fortran Building System for poor men
 
 optional arguments:
-  -h, --help     show this help message and exit
-  -v, --version  Show version
+  -h, --help          show this help message and exit
+  -v, --version       Show version
 
 Commands:
   Valid commands
 
-  {build,clean}
-    build        Build all programs found or a specific target
-    clean        Clean project: completely remove DOBJ and DMOD directories...
-                 use carefully
+  {build,clean,rule}
+    build             Build all programs found or a specific target
+    clean             Clean project: completely remove OBJ and MOD
+                      directories... use carefully
+    rule              Execute rules defined into a fobos file
 ```
 Printing the _build_ help message:
 ```bash
@@ -162,8 +159,8 @@ optional arguments:
                         switch [default: basename of target]
   -mklib MKLIB          Build library instead of program (use with -target
                         switch); usage: -mklib static or -mklib shared
-  -mode MODE            Select a mode defined inside a fobos file
-  -lmodes               List the modes defined inside a fobos file
+  -mode MODE            Select a mode defined into a fobos file
+  -lmodes               List the modes defined into a fobos file
   -m, --makefile        Generate a GNU Makefile for building the project
 ```
 Printing the _clean_ help message:
@@ -199,9 +196,27 @@ optional arguments:
   -only_target          Clean only built targets and not also compiled objects
   -mklib MKLIB          Build library instead of program (use with -target
                         switch); usage: -mklib static or -mklib shared
-  -mode MODE            Select a mode defined inside a fobos file
-  -lmodes               List the modes defined inside a fobos file
+  -mode MODE            Select a mode defined into a fobos file
+  -lmodes               List the modes defined into a fobos file
 ```
+Printing the _rule_ help message:
+```bash
+FoBiS.py rule -h
+```
+This will echo:
+```bash
+usage: FoBiS.py rule [-h] [-f FOBOS] [-ex RULE] [-ls]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -f FOBOS, --fobos FOBOS
+                        Specify a "fobos" file named differently from "fobos"
+  -ex RULE, --execute RULE
+                        Specify a rule (defined into fobos file) to be
+                        executed
+  -ls, --list           List the rules defined into a fobos file
+```
+This third execution switch of FoBiS.py can be done only within a proper fobos file. For more details read the section dedicated to the [Rules](#fobos-rules).
 
 ### <a name="build-all"></a>Build all programs found
 
@@ -259,13 +274,11 @@ FoBiS.py offers a primitive support for building libraries, both static and shar
 Into _examples_ directory there is an example of a _cumbersome_ library building.
 
 ### <a name="clean"></a>Clean project tree
-
 ```bash
 FoBiS.py clean
 ```
 
 ## <a name="fobos"></a>fobos: the FoBiS.py makefile
-
 For dealing with (repetitive) buildings of complex projects, FoBiS.py execution can be driven by means of a configuration file placed into the current working directory and named _fobos_, FOrtran Building OptionS file. The options defined into _fobos_ file override or in the case of _cflags_, _lflags_ and _preproc_ overload, the CLI arguments: this file is designed to act as a makefile, but with a very simple syntax (similar to INI files). _fobos_ file has exactly the same options available for the command line, in particular the options names are identical to the extended switches names (the ones prefixed with '--') or to the abbreviated ones (prefixed with '-') in case they are the only defined. If an option is present it will overrides the default value of CLI. Options can be commented with "#" symbol. 
 
 Note that if the fobos file is placed into the current working directory it is automatically loaded for both _build_ and _clean_ executions of FoBiS.py, however if a _fobos_ file is placed elsewhere and/or it is named differently from _fobos_ it can still be specified by means of "-f" switch
@@ -278,7 +291,7 @@ Using this feature it is simple to perform context-specific buildings accordingl
 + a fobos file with only one default building _mode_;
 + a fobos file with many different building _modes_.
 
-In the following the two kind of fobos files are described. 
+In the following the two kind of fobos files are described. Note that the fobos file can be used also to define _rules_ for performing minor-tasks, see the [rules](#fobos-rules) section.
 
 ### <a name="single-mode-fobos"></a>single-building-mode fobos file
 This kind of fobos file _should_ have only one building mode defined by the section _[default]_, e.g. 
@@ -311,6 +324,7 @@ Note that due to the design-idea of this kind of fobos file, only one default mo
 ```bash
 Error: fobos file has not "modes" section neither "default" one
 ```
+The fobos files of the provided [examples](#examples) show rules usage.
 
 ### <a name="many-mode-fobos"></a>many-building-modes fobos file
 This kind of fobos file can have many different building modes, as a consequence it is necessary a mechanism (a switch) to select one mode (in the following indicated as mode) respect to the others. Such a switch mechanism is defined by a particular section defined into the fobos file, namely the section _modes_, that has only one option named again _modes_, which lists the available modes defined into the fobos file, e.g.
@@ -369,13 +383,113 @@ The fobos file defines the following modes:
   - "realese-gnu"
   - "dbg-intel"
 ```
+The fobos files of the provided [examples](#examples) show rules usage.
+
+### <a name="fobos-rules"></a>Rules: using fobos file for performing minor (repetitive) tasks
+Among the others, one useful feature of GNU Make is the ability to perform heterogeneous tasks other than the code building. In general, a _makefile_ can contain generic _rules_ designed to perform any kind of tasks (not only to compile and link codes), e.g. it is often useful to define rule for creating documentation or to generate an archive containing the whole project, just to cite the two most common minor-tasks performed. The fobos file has a similar feature.
+
+For both single and many building-modes fobos file, it is possible to define as many _rules_ as you want by means of a special set of fobos sections. The name of such a section _must_ start with the prefix _rule-_ and must have only one defined option named _rule_ that contains the commands that must be executed. For example
+```ini
+...
+[rule-makedoc]
+rule = doxygen doxy.config
+...
+[rule-maketar]
+rule = tar cf project.tar *
+...
+```
+this defines two (auto explicative) rules. In order to use the defined rules, FoBiS.py must be invoked by means of _rule_ execution: the rules are not usable in the _build_ and _clean_ executions switches. The _rule_ execution has the following CLI: 
+```bash
+FoBiS.py rule -h
+```
+This will echo:
+```bash
+usage: FoBiS.py rule [-h] [-f FOBOS] [-ex RULE] [-ls]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -f FOBOS, --fobos FOBOS
+                        Specify a "fobos" file named differently from "fobos"
+  -ex RULE, --execute RULE
+                        Specify a rule (defined into fobos file) to be
+                        executed
+  -ls, --list           List the rules defined into a fobos file
+```
+Assuming to have defined the 2 rules of the example above, to list the defined rules type
+```bash
+FoBiS.py rule --list
+```
+This will echo:
+```bash
+The fobos file defines the following rules:
+  - "makedoc": doxygen doxy.config
+  - "maketar": tar cf project.tar *
+```
+To execute one rule type
+```bash
+FoBiS.py rule --execute makedoc
+```
+Note that if a typo is made when selecting the rule, an error message is prompted
+```bash
+FoBiS.py rule --execute makedocs
+```
+This will echo:
+```bash
+Error: the rule "makedocs" is not defined into the fobos file. Defined rules are:
+  - "makedoc": doxygen doxy.config
+  - "maketar": tar cf project.tar *
+```
+The fobos files of the provided [examples](#examples) show rules usage.
 
 ## <a name="examples"></a>Examples
+Into the directory _examples_ there are some KISS examples, just read their provided _REAMDE.md_. Here is reported only the fobos file of the "cumbersome_dependency_program" example where the main features of fobos file are shown. 
 
-Into the directory _examples_ there are some KISS examples, just read their provided _REAMDE.md_.
+```ini
+[modes]
+modes = gnu custom
+
+[gnu]
+compiler  = Gnu
+mpi       = False
+cflags    = -c
+mod_dir   = ./mod/
+obj_dir   = ./obj/
+build_dir = ./build/
+src       = ./src/
+colors    = True
+quiet     = False
+jobs      = 1
+inc       = .h .H
+target    = cumbersome.f90
+output    = Cumbersome
+log       = True
+
+[custom]
+compiler  = custom
+fc        = g95
+modsw     = -fmod=
+mpi       = False
+cflags    = -c
+mod_dir   = ./mod/
+obj_dir   = ./obj/
+build_dir = ./build/
+src       = ./src/
+colors    = True
+quiet     = False
+jobs      = 1
+inc       = .h .H
+target    = cumbersome.f90
+output    = Cumbersome
+log       = True
+
+[rule-makedoc]
+rule = echo "I am making the doc... nope, this is a joke!"
+
+[rule-maketar]
+rule = tar cf cum_example.tar *
+```
 
 ## <a name="tips"></a>Tips for non pythonic users
-
 In the examples above FoBiS.py is supposed to have the executable permissions, thus it is used without an explicit invocation of the Python interpreter. In general, if FoBiS.py is not set to have executable permissions, it must be executed as:
 
 ```bash
