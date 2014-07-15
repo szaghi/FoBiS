@@ -32,8 +32,7 @@ A very simple and stupid tool for automatic building modern Fortran projects.
 * Stefano Zaghi, aka _szaghi_ <https://github.com/szaghi>
 
 ### <a name="contributors"></a>Contributors
-* Stefano Zaghi <stefano.zaghi@gmail.com>
-    Tomas Bylund, aka _Tobychev_ <https://github.com/Tobychev>
+* Tomas Bylund, aka _Tobychev_ <https://github.com/Tobychev>
 
 ## <a name="why"></a>Why?
 
