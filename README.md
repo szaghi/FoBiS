@@ -6,6 +6,7 @@ A very simple and stupid tool for automatic building modern Fortran projects.
 ## Table of Contents
 
 * [Team Members](#team-members)
+    + [Contributors](#contributors)
 * [Why?](#why)
     + [Why not use an auto-make-like tool?](#automake)
     + [OK, what can FoBiS.py do? I am a _poor-fortran-man_, I do not understand you...](#fobis-explained)
@@ -28,7 +29,11 @@ A very simple and stupid tool for automatic building modern Fortran projects.
 * [Tips for non pythonic users](#tips)
 
 ## <a name="team-members"></a>Team Members
+* Stefano Zaghi, aka _szaghi_ <https://github.com/szaghi>
+
+### <a name="contributors"></a>Contributors
 * Stefano Zaghi <stefano.zaghi@gmail.com>
+    Tomas Bylund, aka _Tobychev_ <https://github.com/Tobychev>
 
 ## <a name="why"></a>Why?
 
