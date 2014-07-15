@@ -444,6 +444,7 @@ The fobos files of the provided [examples](#examples) show rules usage.
 ## <a name="examples"></a>Examples
 Into the directory _examples_ there are some KISS examples, just read their provided _REAMDE.md_. Here is reported only the fobos file of the "cumbersome_dependency_program" example where the main features of fobos file are shown. 
 
+#### Example of features-rich fobos file
 ```ini
 [modes]
 modes = gnu custom
