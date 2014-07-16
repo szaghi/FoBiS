@@ -67,7 +67,20 @@ Suppose you have a Fortran project composed of many Fortran modules placed into 
 + ...
 
 ## <a name="requirements"></a>Requirements
-+ Python 2.7+;
++ Python 2.7+ (not yet ready for Python 3.x);
+    + required modules:
+        + sys;
+        + os;
+        + time;
+        + argparse;
+        + copy;
+        + subprocess;
+        + shutil;
+        + configparser;
+        + operator;
+        + re;
+    + optional modules:
+        + multiprocessing;
 + a lot of patience with the author.
 
 FoBiS.py is developed on a GNU/Linux architecture, and it has been tested also on AIX one. For Windows architecture there is no support, however it should be work out-of-the-box.

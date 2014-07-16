@@ -48,16 +48,16 @@ except:
   print "Module 'operator' not found"
   sys.exit(1)
 try:
+  import re
+except:
+  print "The regular expression module 're' not found"
+  sys.exit(1)
+try:
   from multiprocessing import Pool
   parallel=True
 except:
   print "Module 'multiprocessing' not found: parallel compilation disabled"
   parallel=False
-try:
-  import re
-except:
-  print "The regular expression module 're' not found"
-  sys.exit(1)
 # setting CLI
 cliparser = argparse.ArgumentParser(prog=__appname__,description='FoBiS.py, Fortran Building System for poor men')
 cliparser.add_argument('-v','--version',action='version',help='Show version',version='%(prog)s '+__version__)
