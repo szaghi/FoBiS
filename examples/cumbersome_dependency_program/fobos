@@ -39,4 +39,5 @@ log       = True
 rule = echo "I am making the doc... nope, this is a joke!"
 
 [rule-maketar]
-rule = tar cf cum_example.tar *
+rule  = rm -f cum_example.tar
+rule-1= tar cf cum_example.tar *

@@ -77,7 +77,7 @@ buildparser.add_argument('-compiler',              required=False,action='store'
 buildparser.add_argument('-fc',                    required=False,action='store',               default='',              help='Specify the Fortran compiler statement, necessary for custom compiler specification (-compiler Custom)')
 buildparser.add_argument('-modsw',                 required=False,action='store',               default='',              help='Specify the switch for setting the module searching path, necessary for custom compiler specification (-compiler Custom)')
 buildparser.add_argument('-mpi',                   required=False,action='store_true',          default=False,           help='Use MPI enabled version of compiler')
-buildparser.add_argument('-cflags',                required=False,action='store',               default='',              help='Compile flags')
+buildparser.add_argument('-cflags',                required=False,action='store',               default='-c',            help='Compile flags')
 buildparser.add_argument('-lflags',                required=False,action='store',               default='',              help='Link flags')
 buildparser.add_argument('-libs',                  required=False,action='store',     nargs='+',default=[],              help='List of external libraries used')
 buildparser.add_argument('-i',       '--include',  required=False,action='store',     nargs='+',default=[],              help='List of directories for searching included files')
@@ -109,6 +109,7 @@ cleanparser.add_argument('-lmodes',                required=False,action='store_
 rulexparser.add_argument('-f',       '--fobos',    required=False,action='store',               default=None,            help='Specify a "fobos" file named differently from "fobos"')
 rulexparser.add_argument('-ex',      '--execute',  required=False,action='store',               default=None,            help='Specify a rule (defined into fobos file) to be executed', metavar='RULE')
 rulexparser.add_argument('-ls',      '--list',     required=False,action='store_true',          default=False,           help='List the rules defined into a fobos file')
+rulexparser.add_argument('-q',       '--quiet',    required=False,action='store_true',          default=False,           help='Less verbose than default')
 # definition of regular expressions
 str_f95_apex         = r"('|"+r'")'
 str_f95_kw_include   = r"[Ii][Nn][Cc][Ll][Uu][Dd][Ee]"
@@ -647,9 +648,14 @@ def inquire_fobos(cliargs,filename='fobos'):
         sys.exit(0)
       elif cliargs.execute:
         rule = 'rule-'+cliargs.execute
-        if fobos.has_option(rule,'rule'):
-          print fobos_colors.bld+' Executing rule "'+cliargs.execute+'"'+fobos_colors.end
-          syswork(fobos.get(rule,'rule'))
+        #if fobos.has_option(rule,'rule'):
+        print fobos_colors.bld+' Executing rule "'+cliargs.execute+'"'+fobos_colors.end
+        if fobos.has_section(rule):
+          for r in fobos.options(rule):
+            if r.startswith('rule'):
+              if not cliargs.quiet:
+                print fobos_colors.bld+'   Command "'+fobos.get(rule,r)+'"'+fobos_colors.end
+              syswork(fobos.get(rule,r))
           sys.exit(0)
         else:
           print fobos_colors.red+'Error: the rule "'+cliargs.execute+'" is not defined into the fobos file. Defined rules are:'+fobos_colors.end

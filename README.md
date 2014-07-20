@@ -228,6 +228,7 @@ optional arguments:
                         Specify a rule (defined into fobos file) to be
                         executed
   -ls, --list           List the rules defined into a fobos file
+  -q, --quiet           Less verbose than default
 ```
 This third execution switch of FoBiS.py can be done only within a proper fobos file. For more details read the section dedicated to the [Rules](#fobos-rules).
 
@@ -401,17 +402,18 @@ The fobos files of the provided [examples](#examples) show rules usage.
 ### <a name="fobos-rules"></a>Rules: using fobos file for performing minor (repetitive) tasks
 Among the others, one useful feature of GNU Make is the ability to perform heterogeneous tasks other than the code building. In general, a _makefile_ can contain generic _rules_ designed to perform any kind of tasks (not only to compile and link codes), e.g. it is often useful to define rule for creating documentation or to generate an archive containing the whole project, just to cite the two most common minor-tasks performed. The fobos file has a similar feature.
 
-For both single and many building-modes fobos file, it is possible to define as many _rules_ as you want by means of a special set of fobos sections. The name of such a section _must_ start with the prefix _rule-_ and must have only one defined option named _rule_ that contains the commands that must be executed. For example
+For both single and many building-modes fobos file, it is possible to define as many _rules_ as you want by means of a special set of fobos sections. The name of such a section _must_ start with the prefix _rule_ and can have many defined options named with the starting prefix _rule_ containing the commands that must be executed. For example
 ```ini
 ...
 [rule-makedoc]
 rule = doxygen doxy.config
 ...
 [rule-maketar]
-rule = tar cf project.tar *
+rule_rm = rm -f project.tar
+rule_mk = tar cf project.tar *
 ...
 ```
-this defines two (auto explicative) rules. In order to use the defined rules, FoBiS.py must be invoked by means of _rule_ execution: the rules are not usable in the _build_ and _clean_ executions switches. The _rule_ execution has the following CLI: 
+this defines two (auto explicative) rules. Note that if more than one options have the same name, only the last command is executed. In order to use the defined rules, FoBiS.py must be invoked by means of _rule_ execution: the rules are not usable in the _build_ and _clean_ executions switches. The _rule_ execution has the following CLI: 
 ```bash
 FoBiS.py rule -h
 ```
@@ -427,6 +429,7 @@ optional arguments:
                         Specify a rule (defined into fobos file) to be
                         executed
   -ls, --list           List the rules defined into a fobos file
+  -q, --quiet           Less verbose than default
 ```
 Assuming to have defined the 2 rules of the example above, to list the defined rules type
 ```bash
