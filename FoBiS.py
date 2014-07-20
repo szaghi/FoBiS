@@ -707,7 +707,7 @@ def inquire_fobos(cliargs,filename='fobos'):
         val_fobos = cliargs_dict[item]
         val_cli   = getattr(cliargs,item)
         if val_fobos and val_cli:
-          setattr(cliargs,item,val_fobos+val_cli)
+          setattr(cliargs,item,val_fobos+' '+val_cli)
 # main loop
 if __name__ == '__main__':
   cliargs = cliparser.parse_args()
