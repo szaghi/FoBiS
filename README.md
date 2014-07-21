@@ -311,28 +311,29 @@ In the following the two kind of fobos files are described. Note that the fobos 
 This kind of fobos file _should_ have only one building mode defined by the section _[default]_, e.g. 
 ```ini
 [default]
-colors=True
-quiet=False
-jobs=1
-compiler=custom
-fc=ifort
-modsw=-module
-mpi=False
-cflags=-c -cpp -O2
-lflags=-O2
-preproc=-DPROFILING
-libs=lib/bar.so lib/boo.a
-include=other_include_path another_include_path
-inc=.cmn .icp
-dmod=./mod/
-dobj=./obj/
-dexe=./
-src=./src/
-exclude=pon.F cin.f90
-mklib=static
-log=False
-target=foo.f90
-output=FoO
+help     = This is the help message...
+colors   = True
+quiet    = False
+jobs     = 1
+compiler = custom
+fc       = ifort
+modsw    = -module
+mpi      = False
+cflags   = -c -cpp -O2
+lflags   = -O2
+preproc  = -DPROFILING
+libs     = lib/bar.so lib/boo.a
+include  = other_include_path another_include_path
+inc      = .cmn .icp
+dmod     = ./mod/
+dobj     = ./obj/
+dexe     = ./
+src      = ./src/
+exclude  = pon.F cin.f90
+mklib    = static
+log      = False
+target   = foo.f90
+output   = FoO
 ```
 Note that due to the design-idea of this kind of fobos file, only one default mode should be defined, but if other modes (sections) are defined, only the one named _default_ is used, whereas the others are ignored. Moreover, the default mode can be placed everywhere into the file, it is not requested to be the first mode defined. Finally, if there is no section named default an error message is prompted, e.g.
 ```bash
@@ -347,18 +348,21 @@ This kind of fobos file can have many different building modes, as a consequence
 modes = debug-gnu realese-gnu dbg-intel
 
 [debug-gnu]
-compiler=gnu
-cflags=-c -cpp -O0 -C -g
+help     = Compile with GNU gfortran in debug mode
+compiler = gnu
+cflags   = -c -cpp -O0 -C -g
 ...
  
 [realese-gnu]
-compiler=gnu
-cflags=-c -cpp -O3
+help     = Compile with GNU gfortran in realese mode
+compiler = gnu
+cflags   = -c -cpp -O3
 ...
 
 [dbg-intel]
-compiler=intel
-cflags=-c -cpp -O0 -debug all -warn all
+help     = Compile with Intel Fortran in debug mode
+compiler = intel
+cflags   = -c -cpp -O0 -debug all -warn all
 ...
 
 ```
@@ -376,9 +380,9 @@ In the case the switch _-mode_ is omitted, the first defined mode is used (in th
 FoBiS.py build -mode unknown-mode
 
 Error: the mode "unknown-mode" is not defined into the fobos file. Defined modes are:
-  - "debug-gnu"
-  - "realese-gnu"
-  - "dbg-intel"
+  - "debug-gnu" Compile with GNU gfortran in debug mode
+  - "realese-gnu" Compile with GNU gfortran in realese mode
+  - "dbg-intel" Compile with Intel Fortran in debug mode
 ```
 There is also a CLI switch, for both _clean_ and _build_ excutions, for listing the modes defined into a fobos file
 ```bash
@@ -393,27 +397,30 @@ than a list of modes is prompted, e.g.
 FoBiS.py build -lmodes
 
 The fobos file defines the following modes:
-  - "debug-gnu"
-  - "realese-gnu"
-  - "dbg-intel"
+  - "debug-gnu" Compile with GNU gfortran in debug mode
+  - "realese-gnu" Compile with GNU gfortran in realese mode
+  - "dbg-intel" Compile with Intel Fortran in debug mode
 ```
 The fobos files of the provided [examples](#examples) show rules usage.
 
 ### <a name="fobos-rules"></a>Rules: using fobos file for performing minor (repetitive) tasks
 Among the others, one useful feature of GNU Make is the ability to perform heterogeneous tasks other than the code building. In general, a _makefile_ can contain generic _rules_ designed to perform any kind of tasks (not only to compile and link codes), e.g. it is often useful to define rule for creating documentation or to generate an archive containing the whole project, just to cite the two most common minor-tasks performed. The fobos file has a similar feature.
 
-For both single and many building-modes fobos file, it is possible to define as many _rules_ as you want by means of a special set of fobos sections. The name of such a section _must_ start with the prefix _rule_ and can have many defined options named with the starting prefix _rule_ containing the commands that must be executed. For example
+For both single and many building-modes fobos file, it is possible to define as many _rules_ as you want by means of a special set of fobos sections. The name of such a section _must_ start with the prefix _rule-_ and can have many defined options named with the starting prefix _rule_ containing the commands that must be executed. For example
 ```ini
 ...
 [rule-makedoc]
+help = Rule for building documentation from source files
 rule = doxygen doxy.config
 ...
 [rule-maketar]
+quiet   = True
+help    = Rule for building project archive
 rule_rm = rm -f project.tar
 rule_mk = tar cf project.tar *
 ...
 ```
-this defines two (auto explicative) rules. Note that if more than one options have the same name, only the last command is executed. In order to use the defined rules, FoBiS.py must be invoked by means of _rule_ execution: the rules are not usable in the _build_ and _clean_ executions switches. The _rule_ execution has the following CLI: 
+this defines two (auto explicative) rules. Note that three different options can be defined: _help_ contains the help message describing the aim of the rule, _quiet_ makes less verbose the output of rules execution and list (suppressing the commands printing, it overrides the -q switch of CLI) and _rule_ that actually defines the rule's commands. Note also that if more than one options have the same name, only the last command is executed. In order to use the defined rules, FoBiS.py must be invoked by means of _rule_ execution: the rules are not usable in the _build_ and _clean_ executions switches. The _rule_ execution has the following CLI: 
 ```bash
 FoBiS.py rule -h
 ```
@@ -438,8 +445,9 @@ FoBiS.py rule --list
 This will echo:
 ```bash
 The fobos file defines the following rules:
-  - "makedoc": doxygen doxy.config
-  - "maketar": tar cf project.tar *
+ - "makedoc" Rule for building the documentation from source files
+       Command => doxygen doxy.config
+  - "maketar" Rule for building project archive
 ```
 To execute one rule type
 ```bash
@@ -452,8 +460,9 @@ FoBiS.py rule --execute makedocs
 This will echo:
 ```bash
 Error: the rule "makedocs" is not defined into the fobos file. Defined rules are:
-  - "makedoc": doxygen doxy.config
-  - "maketar": tar cf project.tar *
+  - "makedoc" Rule for building the documentation from source files
+       Command => doxygen doxy.config
+  - "maketar" Rule for building project archive
 ```
 The fobos files of the provided [examples](#examples) show rules usage.
 

@@ -632,6 +632,40 @@ def inquire_fobos(cliargs,filename='fobos'):
   """
   The function inquire_fobos checks if a 'fobos' file is present in current working directory and, in case, parses it for CLI arguments overloading.
   """
+  def modes_list(fobos=None,txtcolor='',colorend=''):
+    """
+    The function modes_list print the list of modes defined into fobos file.
+    """
+    if fobos.has_option('modes','modes'):
+      modes = fobos.get('modes','modes').split()
+      for mode in modes:
+        if fobos.has_section(mode):
+          if fobos.has_option(mode,'help'):
+            helpmsg = fobos.get(mode,'help')
+          else:
+            helpmsg = ''
+          print txtcolor+'  - "'+mode+'" '+colorend+helpmsg
+    return
+  def rules_list(cliargs=None,fobos=None,txtcolor='',colorend=''):
+    """
+    The function rules_list print the list of rules defined into fobos file.
+    """
+    for rule in fobos.sections():
+      if rule.startswith('rule-'):
+        if fobos.has_option(rule,'help'):
+          helpmsg = fobos.get(rule,'help')
+        else:
+          helpmsg = ''
+        print txtcolor+'  - "'+rule.split('rule-')[1]+'" '+colorend+helpmsg
+        if fobos.has_option(rule,'quiet'):
+          quiet = fobos.getboolean(rule,'quiet')
+        else:
+          quiet = cliargs.quiet
+        for r in fobos.options(rule):
+          if r.startswith('rule'):
+            if not quiet:
+              print txtcolor+'       Command => '+fobos.get(rule,r)+colorend
+    return
   fobos_colors = Colors()
   cliargs_dict = deepcopy(cliargs.__dict__)
   if os.path.exists(filename):
@@ -640,36 +674,32 @@ def inquire_fobos(cliargs,filename='fobos'):
     if cliargs.which=='rule':
       if cliargs.list:
         print fobos_colors.bld+'The fobos file defines the following rules:'+fobos_colors.end
-        for rule in fobos.sections():
-          if rule.startswith('rule-'):
-            if fobos.has_option(rule,'rule'):
-              r = rule.split('rule-')
-              print fobos_colors.bld+'  - "'+r[1]+'": '+fobos.get(rule,'rule')+fobos_colors.end
+        rules_list(cliargs=cliargs,fobos=fobos,txtcolor=fobos_colors.bld,colorend=fobos_colors.end)
         sys.exit(0)
       elif cliargs.execute:
         rule = 'rule-'+cliargs.execute
-        #if fobos.has_option(rule,'rule'):
         print fobos_colors.bld+' Executing rule "'+cliargs.execute+'"'+fobos_colors.end
         if fobos.has_section(rule):
+          if fobos.has_option(rule,'quiet'):
+            quiet = fobos.getboolean(rule,'quiet')
+          else:
+            quiet = cliargs.quiet
           for r in fobos.options(rule):
             if r.startswith('rule'):
-              if not cliargs.quiet:
-                print fobos_colors.bld+'   Command "'+fobos.get(rule,r)+'"'+fobos_colors.end
+              if not quiet:
+                print fobos_colors.bld+'   Command => '+fobos.get(rule,r)+fobos_colors.end
               syswork(fobos.get(rule,r))
           sys.exit(0)
         else:
           print fobos_colors.red+'Error: the rule "'+cliargs.execute+'" is not defined into the fobos file. Defined rules are:'+fobos_colors.end
-          for rule in fobos.sections():
-            if rule.startswith('rule-'):
-              if fobos.has_option(rule,'rule'):
-                r = rule.split('rule-')
-                print fobos_colors.red+'  - "'+r[1]+'": '+fobos.get(rule,'rule')+fobos_colors.end
+          rules_list(cliargs=cliargs,fobos=fobos,txtcolor=fobos_colors.red,colorend=fobos_colors.end)
           sys.exit(1)
     if cliargs.lmodes:
       if fobos.has_option('modes','modes'):
         print fobos_colors.bld+'The fobos file defines the following modes:'+fobos_colors.end
-        for m in fobos.get('modes','modes').split():
-          print fobos_colors.bld+'  - "'+m+'"'+fobos_colors.end
+        modes_list(fobos=fobos,txtcolor=fobos_colors.bld,colorend=fobos_colors.end)
+        #for m in fobos.get('modes','modes').split():
+          #print fobos_colors.bld+'  - "'+m+'"'+fobos_colors.end
         sys.exit(0)
       else:
         print fobos_colors.red+'Error: no modes are defined into the fobos file!'+fobos_colors.end
@@ -681,8 +711,9 @@ def inquire_fobos(cliargs,filename='fobos'):
           section = cliargs.mode
         else:
           print fobos_colors.red+'Error: the mode "'+cliargs.mode+'" is not defined into the fobos file. Defined modes are:'+fobos_colors.end
-          for m in fobos.get('modes','modes').split():
-            print fobos_colors.red+'  - "'+m+'"'+fobos_colors.end
+          modes_list(fobos=fobos,txtcolor=fobos_colors.red,colorend=fobos_colors.end)
+          #for m in fobos.get('modes','modes').split():
+            #print fobos_colors.red+'  - "'+m+'"'+fobos_colors.end
           sys.exit(1)
       else:
         section = fobos.get('modes','modes').split()[0] # first mode selected

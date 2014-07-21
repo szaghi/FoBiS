@@ -2,6 +2,7 @@
 modes = gnu custom
 
 [gnu]
+help      = Compile with GNU gfortran
 compiler  = Gnu
 mpi       = False
 cflags    = -c
@@ -18,6 +19,7 @@ output    = Cumbersome
 log       = True
 
 [custom]
+help      = Compile with custom g95 compiler
 compiler  = custom
 fc        = g95
 modsw     = -fmod=
@@ -36,8 +38,16 @@ output    = Cumbersome
 log       = True
 
 [rule-makedoc]
+help = Rule for building the documentation from source files
 rule = echo "I am making the doc... nope, this is a joke!"
 
+[rule-deltar]
+help = Rule for deleting project archive
+quiet = True
+rule  = rm -f cum_example.tar
+
 [rule-maketar]
+help = Rule for building project archive
+quiet = True
 rule  = rm -f cum_example.tar
 rule-1= tar cf cum_example.tar *
