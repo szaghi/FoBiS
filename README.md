@@ -35,7 +35,7 @@ A very simple and stupid tool for automatic building modern Fortran projects.
 
 ### <a name="contributors"></a>Contributors
 * Tomas Bylund, aka _Tobychev_ <https://github.com/Tobychev>
-<p style='text-align: right;'>_Go to [Top](#top) or [Toc](#toc)_</p>
+<p style='text-align: right;'>Go to [Top](#top) or [Toc](#toc)</p>
 ## <a name="why"></a>Why?
 GNU Make, CMake, SCons & Co. are fantastic tools, even too much for a _poor-fortran-man_.
 However, the support for modern Fortran project is still poor: in particular, it is quite difficult (and boring) to track the inter-module-dependency hierarchy of project using many module files.
@@ -49,7 +49,7 @@ There are a lot of alternatives for deal with inter-module-dependency hierarchy,
 
 Suppose you have a Fortran project composed of many Fortran modules placed into a complicated nested directories tree. Your goal is to build some (all) of the main programs contained into the project tree, but you have no time (or patience) to write the complicated makefile(s) able to correctly build your programs. In this case FoBiS.py can save your life: just type _python FoBiS.py build_ in the root of your project and FoBis.py will (try to) build all the main programs nested into the current directory. Obviously, FoBiS.py will not (re-)compile unnecessary objects if they are up-to-date (like the "magic" of a makefile). FoBiS.py have many (ok... some) others interesting features: if I have convinced you, please read the following.
 
-<p style='text-align: right;'>_Go to [Top](#top) or [Toc](#toc)_</p>
+<p style='text-align: right;'>Go to [Top](#top) or [Toc](#toc)</p>
 ## <a name="main-features"></a>Main features
 + Automatic parsing of files for dependency-hierarchy creation in case of _use_ and _include_ statements;
 + automatic building of all _programs_ found into the root directory parsed or only a specific selected target;
@@ -62,13 +62,13 @@ Suppose you have a Fortran project composed of many Fortran modules placed into 
 + parallel compiling enabled by means of concurrent multiprocesses jobs;
 + easy-extensible: FoBis.py is just a less-than 1000 lines of Python statements... no bad for a poor-make-replacement;
 
-<p style='text-align: right;'>_Go to [Top](#top) or [Toc](#toc)_</p>
+<p style='text-align: right;'>Go to [Top](#top) or [Toc](#toc)</p>
 ## <a name="todos"></a>Todos
 + Pythonic pre-processor;
 + add IBM, PGI Fortran Compilers support;
 + ...
 
-<p style='text-align: right;'>_Go to [Top](#top) or [Toc](#toc)_</p>
+<p style='text-align: right;'>Go to [Top](#top) or [Toc](#toc)</p>
 ## <a name="requirements"></a>Requirements
 + Python 2.7+ (not yet ready for Python 3.x);
     + required modules:
@@ -88,17 +88,17 @@ Suppose you have a Fortran project composed of many Fortran modules placed into 
 
 FoBiS.py is developed on a GNU/Linux architecture, and it has also been tested on AIX one. For Windows architecture there is no support, however it should work out-of-the-box.
 
-<p style='text-align: right;'>_Go to [Top](#top) or [Toc](#toc)_</p>
+<p style='text-align: right;'>Go to [Top](#top) or [Toc](#toc)</p>
 ## <a name="install"></a>Install
 The installation is very simple: put FoBiS.py in your path or execute it using full path. See the [requirements](#requirements) section.
-<p style='text-align: right;'>_Go to [Top](#top) or [Toc](#toc)_</p>
+<p style='text-align: right;'>Go to [Top](#top) or [Toc](#toc)</p>
 ## <a name="help"></a>Getting Help]
 You are reading the main documentation of FoBiS.py that should be comprehensive. For more help contact directly the [author](stefano.zaghi@gmail.com). 
-<p style='text-align: right;'>_Go to [Top](#top) or [Toc](#toc)_</p>
+<p style='text-align: right;'>Go to [Top](#top) or [Toc](#toc)</p>
 ## <a name="Copyrights"></a>Copyrights
 FoBiS.py is an open source project, it is distributed under the [GPL v3](http://www.gnu.org/licenses/gpl-3.0.html) license. A copy of the license should be distributed within FoBiS.py. Anyone interested to use, develop or to contribute to FoBiS.py is welcome. Take a look at the [contributing guidelines](CONTRIBUTING.md) for starting to contribute to the project.
 
-<p style='text-align: right;'>_Go to [Top](#top) or [Toc](#toc)_</p>
+<p style='text-align: right;'>Go to [Top](#top) or [Toc](#toc)</p>
 ## <a name="usage"></a>Usage
 Printing the main help message:
 ```bash
@@ -303,7 +303,7 @@ Into _examples_ directory there is an example of a _cumbersome_ library building
 FoBiS.py clean
 ```
 
-<p style='text-align: right;'>_Go to [Top](#top) or [Toc](#toc)_</p>
+<p style='text-align: right;'>Go to [Top](#top) or [Toc](#toc)</p>
 ## <a name="fobos"></a>fobos: the FoBiS.py makefile
 For dealing with (repetitive) buildings of complex projects, FoBiS.py execution can be driven by means of a configuration file placed into the current working directory and named _fobos_, FOrtran Building OptionS file. The options defined into _fobos_ file override or in the case of _cflags_, _lflags_ and _preproc_ overload, the CLI arguments: this file is designed to act as a makefile, but with a very simple syntax (similar to INI files). _fobos_ file has exactly the same options available for the command line, in particular the options names are identical to the extended switches names (the ones prefixed with '--') or to the abbreviated ones (prefixed with '-') in case they are the only defined. If an option is present it will overrides the default value of CLI. Options can be commented with "#" symbol. 
 
@@ -478,7 +478,7 @@ Error: the rule "makedocs" is not defined into the fobos file. Defined rules are
 ```
 The fobos files of the provided [examples](#examples) show rules usage.
 
-<p style='text-align: right;'>_Go to [Top](#top) or [Toc](#toc)_</p>
+<p style='text-align: right;'>Go to [Top](#top) or [Toc](#toc)</p>
 ## <a name="examples"></a>Examples
 Into the directory _examples_ there are some KISS examples, just read their provided _REAMDE.md_. Here is reported only the fobos file of the "cumbersome_dependency_program" example where the main features of fobos file are shown. 
 
@@ -528,16 +528,16 @@ rule = echo "I am making the doc... nope, this is a joke!"
 rule = tar cf cum_example.tar *
 ```
 
-<p style='text-align: right;'>_Go to [Top](#top) or [Toc](#toc)_</p>
+<p style='text-align: right;'>Go to [Top](#top) or [Toc](#toc)</p>
 ## <a name="tips"></a>Tips for non pythonic users
 In the examples above FoBiS.py is supposed to have the executable permissions, thus it is used without an explicit invocation of the Python interpreter. In general, if FoBiS.py is not set to have executable permissions, it must be executed as:
 
 ```bash
 python FoBiS.py ...
 ```
-<p style='text-align: right;'>_Go to [Top](#top) or [Toc](#toc)_</p>
+<p style='text-align: right;'>Go to [Top](#top) or [Toc](#toc)</p>
 ## <a name="versions"></a>Version History
 In the following the changelog of most important releases is reported.
 ### 1.0.3
 First stable release.
-<p style='text-align: right;'>_Go to [Top](#top) or [Toc](#toc)_</p>
+<p style='text-align: right;'>Go to [Top](#top) or [Toc](#toc)</p>
