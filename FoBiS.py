@@ -93,7 +93,7 @@ buildparser.add_argument('-o',       '--output',   required=False,action='store'
 buildparser.add_argument('-mklib',                 required=False,action='store',               default=None,            help='Build library instead of program (use with -target switch); usage: -mklib static or -mklib shared')
 buildparser.add_argument('-mode',                  required=False,action='store',               default=None,            help='Select a mode defined into a fobos file')
 buildparser.add_argument('-lmodes',                required=False,action='store_true',          default=False,           help='List the modes defined into a fobos file')
-buildparser.add_argument('-m',       '--makefile', required=False,action='store_true',          default=False,           help='Generate a GNU Makefile for building the project')
+buildparser.add_argument('-m',       '--makefile', required=False,action='store',               default=None,            help='Generate a GNU Makefile for building the project', metavar='MAKEFILE_name')
 cleanparser.add_argument('-f',       '--fobos',    required=False,action='store',               default=None,            help='Specify a "fobos" file named differently from "fobos"')
 cleanparser.add_argument('-colors',                required=False,action='store_true',          default=False,           help='Activate colors in shell prints [default: no colors]')
 cleanparser.add_argument('-dobj',    '--obj_dir',  required=False,action='store',               default='./obj/',        help='Directory containing compiled objects [default: ./obj/]')
@@ -476,6 +476,29 @@ class Parsed_file(object):
       log_file.writelines("  "+dep.name+"\n")
     log_file.writelines(builder.verbose())
     log_file.close()
+  def save_makefile(self,makefile,builder):
+    """
+    The method save_makefile save a minimal makefile for building the file by means of GNU Make.
+    """
+    if not self.include:
+      mk_file = open(makefile, "a")
+      file_dep = [self.name]
+      for dep in self.pfile_dep:
+        if dep.include:
+          file_dep.append(dep.name)
+      if (len(self.pfile_dep)-len(file_dep))>=0:
+        mk_file.writelines("$(DOBJ)"+self.basename.lower()+".o:"+"".join([" "+f for f in file_dep])+" \\"+"\n")
+        for dep in self.pfile_dep[:-1]:
+          if not dep.include:
+            mk_file.writelines("\t$(DOBJ)"+os.path.splitext(os.path.basename(dep.name))[0].lower()+".o \\"+"\n")
+        if not self.pfile_dep[-1].include:
+          mk_file.writelines("\t$(DOBJ)"+os.path.splitext(os.path.basename(self.pfile_dep[-1].name))[0].lower()+".o\n")
+      else:
+        mk_file.writelines("$(DOBJ)"+self.basename.lower()+".o:"+"".join([" "+f for f in file_dep])+"\n")
+      mk_file.writelines("\t@echo $(COTEXT)\n")
+      mk_file.writelines("\t@$(FC) $(OPTSC) $(PREPROC) "+''.join(['-I'+i+' ' for i in builder.dinc])+" $< -o $@\n")
+      mk_file.writelines("\n")
+      mk_file.close()
   def str_dependencies(self,
                        pref = ""): # prefixing string
     """
@@ -747,6 +770,9 @@ if __name__ == '__main__':
   else:
     inquire_fobos(cliargs=cliargs)
   if cliargs.which=='clean':
+    cliargs.build_dir = os.path.normpath(cliargs.build_dir)+"/"
+    cliargs.mod_dir   = os.path.normpath(cliargs.mod_dir)+"/"
+    cliargs.obj_dir   = os.path.normpath(cliargs.obj_dir)+"/"
     cleaner=Cleaner(build_dir=cliargs.build_dir,obj_dir=cliargs.obj_dir,mod_dir=cliargs.mod_dir,target=cliargs.target,output=cliargs.output,mklib=cliargs.mklib,colors=cliargs.colors)
     # clean project
     if not cliargs.only_obj and not cliargs.only_target:
@@ -759,6 +785,10 @@ if __name__ == '__main__':
     if cliargs.only_target:
       cleaner.clean_target()
   elif cliargs.which=='build':
+    cliargs.src       = os.path.normpath(cliargs.src)+"/"
+    cliargs.build_dir = os.path.normpath(cliargs.build_dir)+"/"
+    cliargs.mod_dir   = os.path.normpath(cliargs.mod_dir)+"/"
+    cliargs.obj_dir   = os.path.normpath(cliargs.obj_dir)+"/"
     __extensions_inc__  += cliargs.inc
     builder=Builder(compiler=cliargs.compiler,fc=cliargs.fc,modsw=cliargs.modsw,mpi=cliargs.mpi,cflags=cliargs.cflags,lflags=cliargs.lflags,libs=cliargs.libs,dinc=cliargs.include,preproc=cliargs.preproc,build_dir=cliargs.build_dir,obj_dir=cliargs.obj_dir,mod_dir=cliargs.mod_dir,quiet=cliargs.quiet,colors=cliargs.colors,jobs=cliargs.jobs)
     pfiles = [] # main parsed files list
@@ -773,6 +803,76 @@ if __name__ == '__main__':
             pfiles.append(pfile)
     # building dependencies hierarchy
     dependency_hiearchy(builder=builder,pfiles=pfiles)
+    # saving makefile if requested
+    if cliargs.makefile:
+      # initializing makefile
+      mk_file = open(cliargs.makefile, "w")
+      mk_file.writelines("#!/usr/bin/make\n")
+      mk_file.writelines("\n")
+      mk_file.writelines("#main building variables\n")
+      mk_file.writelines("DSRC    = "+cliargs.src+"\n")
+      mk_file.writelines("DOBJ    = "+os.path.normpath(builder.obj_dir)+"/\n")
+      mk_file.writelines("DMOD    = "+os.path.normpath(builder.mod_dir)+"/\n")
+      mk_file.writelines("VPATH   = $(DSRC) $(DOBJ) $(DMOD)"+"\n")
+      mk_file.writelines("DEXE    = "+os.path.normpath(builder.build_dir)+"/\n")
+      mk_file.writelines("MKDIRS  = $(DOBJ) $(DMOD) $(DEXE)"+"\n")
+      mk_file.writelines("LIBS    ="+"".join(" "+l for l in builder.libs)+"\n")
+      mk_file.writelines("FC      = "+builder.fc+"\n")
+      mk_file.writelines("OPTSC   = "+builder.cflags+" "+builder.modsw+builder.mod_dir+"\n")
+      mk_file.writelines("OPTSL   = "+builder.lflags+" "+builder.modsw+builder.mod_dir+"\n")
+      mk_file.writelines("PREPROC = "+builder.preproc+"\n")
+      mk_file.writelines("LCEXES  = $(shell echo $(EXES) | tr '[:upper:]' '[:lower:]')\n")
+      mk_file.writelines("EXESPO  = $(addsuffix .o,$(LCEXES))\n")
+      mk_file.writelines("EXESOBJ = $(addprefix $(DOBJ),$(EXESPO))\n")
+      mk_file.writelines("\n")
+      mk_file.writelines("#auxiliary variables\n")
+      mk_file.writelines('COTEXT  = "Compiling $(<F)"\n')
+      mk_file.writelines('LITEXT  = "Assembling $@"\n')
+      mk_file.writelines("\n")
+      mk_file.writelines("#building rules \n")
+      # linking rules
+      for pfile in pfiles:
+        save_target_rule = False
+        if pfile.program:
+          save_target_rule = True
+        elif cliargs.target:
+          if os.path.basename(cliargs.target)==os.path.basename(pfile.name):
+            save_target_rule = True
+        if save_target_rule:
+          mk_file.writelines("$(DEXE)"+pfile.basename.upper()+": $(MKDIRS) "+"$(DOBJ)"+pfile.basename.lower()+".o\n")
+          mk_file.writelines("\t@rm -f $(filter-out $(DOBJ)"+pfile.basename.lower()+".o,$(EXESOBJ))\n")
+          mk_file.writelines("\t@echo $(LITEXT)\n")
+          mk_file.writelines("\t@$(FC) $(OPTSL) $(PREPROC) $(DOBJ)*.o $(LIBS) -o $@\n")
+          mk_file.writelines("EXES := $(EXES) "+pfile.basename.upper()+"\n")
+          mk_file.writelines("\n")
+      mk_file.close()
+      # compiling rules
+      for pfile in pfiles:
+        pfile.save_makefile(makefile=cliargs.makefile,builder=builder)
+      # phony auxiliary rules
+      mk_file = open(cliargs.makefile, "a")
+      mk_file.writelines("#phony rules \n")
+      mk_file.writelines(".PHONY : $(MKDIRS)\n")
+      mk_file.writelines("$(MKDIRS):\n")
+      mk_file.writelines("\t@mkdir -p $@\n")
+      mk_file.writelines(".PHONY : cleanobj\n")
+      mk_file.writelines("cleanobj:\n")
+      mk_file.writelines("\t@echo deleting objects\n")
+      mk_file.writelines("\t@rm -fr $(DOBJ)\n")
+      mk_file.writelines(".PHONY : cleanmod\n")
+      mk_file.writelines("cleanmod:\n")
+      mk_file.writelines("\t@echo deleting mods\n")
+      mk_file.writelines("\t@rm -fr $(DMOD)\n")
+      mk_file.writelines(".PHONY : cleanexe\n")
+      mk_file.writelines("cleanexe:\n")
+      mk_file.writelines("\t@echo deleting exes\n")
+      mk_file.writelines("\t@rm -f $(addprefix $(DEXE),$(EXES))\n")
+      mk_file.writelines(".PHONY : clean\n")
+      mk_file.writelines("clean: cleanobj cleanmod\n")
+      mk_file.writelines(".PHONY : cleanall\n")
+      mk_file.writelines("cleanall: clean cleanexe\n")
+      mk_file.close()
+      sys.exit(0)
     # compiling independent files that are libraries of procedures not contained into a module (old Fortran style)
     nomodlibs = []
     for pfile in pfiles:
