@@ -62,6 +62,7 @@ Go to [Top](#top) or [Toc](#toc)
 + configuration-files-free;
 + ... but also configuration-file driven building for complex buildings;
 + parallel compiling enabled by means of concurrent multiprocesses jobs;
++ generation of GNU Make makefile  with rules fully supporting dependency-hierarchy for _make-irriducible users_; 
 + easy-extensible: FoBis.py is just a less-than 1000 lines of Python statements... no bad for a poor-make-replacement;
 
 Go to [Top](#top) or [Toc](#toc)
@@ -555,6 +556,8 @@ python FoBiS.py ...
 Go to [Top](#top) or [Toc](#toc)
 ## <a name="versions"></a>Version History
 In the following the changelog of most important releases is reported.
+### 1.1.3
+Implement GNU Make makefile generation. Fully backward compatible.
 ### 1.0.3
 First stable release.
 
