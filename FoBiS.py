@@ -3,7 +3,7 @@
 FoBiS.py, Fortran Building System for poor men
 """
 __appname__ = 'FoBiS.py'
-__version__ ="0.0.1"
+__version__ ="1.1.4"
 __author__  = 'Stefano Zaghi'
 # modules loading
 import sys
