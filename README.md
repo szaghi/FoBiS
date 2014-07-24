@@ -73,7 +73,7 @@ Go to [Top](#top) or [Toc](#toc)
 
 Go to [Top](#top) or [Toc](#toc)
 ## <a name="requirements"></a>Requirements
-+ Python 2.7+ (not yet ready for Python 3.x);
++ Python 2.7+ or Python 3.x;
     + required modules:
         + sys;
         + os;
