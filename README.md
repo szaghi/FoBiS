@@ -4,6 +4,7 @@ A very simple and stupid tool for automatic building modern Fortran projects.
 
 ## <a name="toc">Table of Contents
 * [Team Members](#team-members)
+    + [Developers](#developers)
     + [Contributors](#contributors)
 * [Why?](#why)
     + [Why not use an auto-make-like tool?](#automake)
@@ -32,10 +33,12 @@ A very simple and stupid tool for automatic building modern Fortran projects.
 * [Version History](#versions)
 
 ## <a name="team-members"></a>Team Members
+### <a name="developers"></a>Developers
 * Stefano Zaghi, aka _szaghi_ <https://github.com/szaghi>
 
 ### <a name="contributors"></a>Contributors
 * Tomas Bylund, aka _Tobychev_ <https://github.com/Tobychev>
+* Jacob Williams, aka _jacobwilliams_ <https://github.com/jacobwilliams>
 
 Go to [Top](#top) or [Toc](#toc)
 ## <a name="why"></a>Why?
