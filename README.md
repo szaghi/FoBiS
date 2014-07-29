@@ -577,14 +577,14 @@ python FoBiS.py ...
 Go to [Top](#top) or [Toc](#toc)
 ## <a name="versions"></a>Version History
 In the following the changelog of most important releases is reported.
-### 1.1.4 
-##### Download [ZIP](https://github.com/szaghi/FoBiS/archive/1.1.4.zip) ball or [TAR](https://github.com/szaghi/FoBiS/archive/1.1.4.tar.gz) one
+### v1.1.4 
+##### Download [ZIP](https://github.com/szaghi/FoBiS/archive/v1.1.4.zip) ball or [TAR](https://github.com/szaghi/FoBiS/archive/v1.1.4.tar.gz) one
 Add support for both Python 2.7+ and Python 3.x. Fully backward compatible.
-### 1.1.3
-##### Download [ZIP](https://github.com/szaghi/FoBiS/archive/1.1.3.zip) ball or [TAR](https://github.com/szaghi/FoBiS/archive/1.1.3.tar.gz) one
+### v1.1.3
+##### Download [ZIP](https://github.com/szaghi/FoBiS/archive/v1.1.3.zip) ball or [TAR](https://github.com/szaghi/FoBiS/archive/v1.1.3.tar.gz) one
 Implement GNU Make makefile generation. Fully backward compatible.
-### 1.0.3
-##### Download [ZIP](https://github.com/szaghi/FoBiS/archive/1.0.3.zip) ball or [TAR](https://github.com/szaghi/FoBiS/archive/1.0.3.tar.gz) one
+### v1.0.3
+##### Download [ZIP](https://github.com/szaghi/FoBiS/archive/v1.0.3.zip) ball or [TAR](https://github.com/szaghi/FoBiS/archive/v1.0.3.tar.gz) one
 First stable release.
 
 Go to [Top](#top) or [Toc](#toc)
