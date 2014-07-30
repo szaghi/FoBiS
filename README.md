@@ -68,7 +68,7 @@ Go to [Top](#top) or [Toc](#toc)
 + parallel compiling enabled by means of concurrent multiprocesses jobs;
 + generation of GNU Make makefile  with rules fully supporting dependency-hierarchy for _make-irriducible users_; 
 + easy-extensible: FoBis.py is just a less-than 1000 lines of Python statements... no bad for a poor-make-replacement;
-+ well integrate with a flexible pythonic pre-processor, [PreForM.py](#https://github.com/szaghi/PreForM).
++ well integrate with a flexible pythonic pre-processor, [PreForM.py](https://github.com/szaghi/PreForM).
 
 Go to [Top](#top) or [Toc](#toc)
 ## <a name="todos"></a>Todos
@@ -91,6 +91,7 @@ Go to [Top](#top) or [Toc](#toc)
         + re;
     + optional modules:
         + multiprocessing;
++ [PreForM.py](https://github.com/szaghi/PreForM) (optional) for pre-process on-the-fly sources with this cool pre-processor;
 + a lot of patience with the author.
 
 FoBiS.py is developed on a GNU/Linux architecture, and it has also been tested on AIX one. For Windows architecture there is no support, however it should work out-of-the-box.
@@ -311,7 +312,7 @@ FoBiS.py offers a primitive support for building libraries, both static and shar
 Into _examples_ directory there is an example of a _cumbersome_ library building.
 
 ### <a name="build-preform"></a>Build a project pre-processing sources files with PreForM.py
-FoBiS.py is well integrated with [PreForM.py](#https://github.com/szaghi/PreForM), a powerful yet simple pre-processor mainly designed for Fortran poor-men. PreForM.py is template system (besides other things such as a `cpp-compatible` pre-processir) that is very helpful in many circumstances. Pre-process a project with PreForM.py and automatically build it with FoBiS.py is very simple, just activate the FoBiS.py CLI switch (also available as _fobos_ option):
+FoBiS.py is well integrated with [PreForM.py](https://github.com/szaghi/PreForM), a powerful yet simple pre-processor mainly designed for Fortran poor-men. PreForM.py is template system (besides other things such as a `cpp-compatible` pre-processir) that is very helpful in many circumstances. Pre-process a project with PreForM.py and automatically build it with FoBiS.py is very simple, just activate the FoBiS.py CLI switch (also available as _fobos_ option):
 ```bash
 FoBiS.py build --preform
 ```
@@ -594,7 +595,7 @@ Go to [Top](#top) or [Toc](#toc)
 In the following the changelog of most important releases is reported.
 ### v1.2.4 
 ##### Download [ZIP](https://github.com/szaghi/FoBiS/archive/v1.2.4.zip) ball or [TAR](https://github.com/szaghi/FoBiS/archive/v1.2.4.tar.gz) one
-Integrate with [PreForM.py](#https://github.com/szaghi/PreForM) pre-processor. Fully backward compatible.
+Integrate with [PreForM.py](https://github.com/szaghi/PreForM) pre-processor. Fully backward compatible.
 ### v1.1.4 
 ##### Download [ZIP](https://github.com/szaghi/FoBiS/archive/v1.1.4.zip) ball or [TAR](https://github.com/szaghi/FoBiS/archive/v1.1.4.tar.gz) one
 Add support for both Python 2.7+ and Python 3.x. Fully backward compatible.
