@@ -784,6 +784,11 @@ def inquire_fobos(cliargs,filename='fobos'):
       if item in ['cflags','lflags','preproc']:
         val_fobos = cliargs_dict[item]
         val_cli   = getattr(cliargs,item)
+        if item == 'cflags':
+          if val_cli == '-c':
+            match = re.search('(-c\s+|-c$)',val_fobos)
+            if match:
+              val_cli ='' # avoid multiple -c flags
         if val_fobos and val_cli:
           setattr(cliargs,item,val_fobos+' '+val_cli)
 # main loop
