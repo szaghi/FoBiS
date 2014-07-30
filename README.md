@@ -22,6 +22,7 @@ A very simple and stupid tool for automatic building modern Fortran projects.
     + [Build a specific target with user-defined flags](#build-user-flags)
     + [Build large projects: maximize building speedup on parallel architectures](#build-parallel)
     + [Build a library](#build-library)
+    + [Build a project pre-processing sources files with PreForM.py](#build-preform)
     + [Clean project tree](#clean)
 * [fobos: the FoBiS.py makefile](#fobos)
     + [single-building-mode fobos](#single-mode-fobos)
@@ -67,12 +68,12 @@ Go to [Top](#top) or [Toc](#toc)
 + parallel compiling enabled by means of concurrent multiprocesses jobs;
 + generation of GNU Make makefile  with rules fully supporting dependency-hierarchy for _make-irriducible users_; 
 + easy-extensible: FoBis.py is just a less-than 1000 lines of Python statements... no bad for a poor-make-replacement;
++ well integrate with a flexible pythonic pre-processor, [PreForM.py](#https://github.com/szaghi/PreForM).
 
 Go to [Top](#top) or [Toc](#toc)
 ## <a name="todos"></a>Todos
-+ Pythonic pre-processor;
 + add IBM, PGI Fortran Compilers support;
-+ ...
++ any feature request is welcome.
 
 Go to [Top](#top) or [Toc](#toc)
 ## <a name="requirements"></a>Requirements
@@ -195,6 +196,8 @@ optional arguments:
   -lmodes               List the modes defined into a fobos file
   -m MAKEFILE_name, --makefile MAKEFILE_name
                         Generate a GNU Makefile for building the project
+  -pfm, --preform       Use PreForM.py pre-processor for pre-processing
+                        sources file
 ```
 Printing the _clean_ help message:
 ```bash
@@ -306,6 +309,17 @@ FoBiS.py build -target mylib.f90 -mklib shared
 FoBiS.py offers a primitive support for building libraries, both static and shared. Presently, this feature can be used only within -target switch. Notably, this should work only on Unix-like architectures.
 
 Into _examples_ directory there is an example of a _cumbersome_ library building.
+
+### <a name="build-preform"></a>Build a project pre-processing sources files with PreForM.py
+FoBiS.py is well integrated with [PreForM.py](#https://github.com/szaghi/PreForM), a powerful yet simple pre-processor mainly designed for Fortran poor-men. PreForM.py is template system (besides other things such as a `cpp-compatible` pre-processir) that is very helpful in many circumstances. Pre-process a project with PreForM.py and automatically build it with FoBiS.py is very simple, just activate the FoBiS.py CLI switch (also available as _fobos_ option):
+```bash
+FoBiS.py build --preform
+```
+or
+```bash
+FoBiS.py build -pfm
+```
+Doing so, each source file is pre-processed by PreForM.py before it is compiled. Obviously, PreForM.py must be in your path.
 
 ### <a name="clean"></a>Clean project tree
 ```bash
@@ -522,7 +536,7 @@ Into the directory _examples_ there are some KISS examples, just read their prov
 modes = gnu custom
 
 [gnu]
-help      = Mode "gnu" use GNU gfortran for building the project
+help      = Mode "gnu" use GNU gfortran for building the project within PreForM.py pre-processor
 compiler  = Gnu
 mpi       = False
 cflags    = -c
@@ -537,6 +551,7 @@ inc       = .h .H
 target    = cumbersome.f90
 output    = Cumbersome
 log       = True
+preform   = True
 
 [custom]
 help      = Mode "custom" use g95 for building the project
@@ -577,6 +592,9 @@ python FoBiS.py ...
 Go to [Top](#top) or [Toc](#toc)
 ## <a name="versions"></a>Version History
 In the following the changelog of most important releases is reported.
+### v1.2.4 
+##### Download [ZIP](https://github.com/szaghi/FoBiS/archive/v1.2.4.zip) ball or [TAR](https://github.com/szaghi/FoBiS/archive/v1.2.4.tar.gz) one
+Integrate with [PreForM.py](#https://github.com/szaghi/PreForM) pre-processor. Fully backward compatible.
 ### v1.1.4 
 ##### Download [ZIP](https://github.com/szaghi/FoBiS/archive/v1.1.4.zip) ball or [TAR](https://github.com/szaghi/FoBiS/archive/v1.1.4.tar.gz) one
 Add support for both Python 2.7+ and Python 3.x. Fully backward compatible.

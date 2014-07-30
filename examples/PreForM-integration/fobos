@@ -1,0 +1,26 @@
+[default]
+help      = Using PreForM.py pre-processor within FoBiS.py
+compiler  = Gnu
+mpi       = False
+cflags    = -c
+mod_dir   = ./mod/
+obj_dir   = ./obj/
+build_dir = ./build/
+src       = ./src/
+colors    = True
+quiet     = False
+jobs      = 1
+target    = simple-for-loop.f90
+output    = simple-for-loop
+log       = True
+
+[rule-deltar]
+help  = Rule for deleting project archive
+quiet = True
+rule  = rm -f PreForM-Integration.tar
+
+[rule-maketar]
+help  = Rule for building project archive
+quiet = True
+rule  = FoBiS.py rule -ex deltar
+rule-1= tar cf PreForM-Integration.tar *

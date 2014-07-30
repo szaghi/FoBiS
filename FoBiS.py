@@ -97,6 +97,7 @@ buildparser.add_argument('-mklib',                 required=False,action='store'
 buildparser.add_argument('-mode',                  required=False,action='store',               default=None,            help='Select a mode defined into a fobos file')
 buildparser.add_argument('-lmodes',                required=False,action='store_true',          default=False,           help='List the modes defined into a fobos file')
 buildparser.add_argument('-m',       '--makefile', required=False,action='store',               default=None,            help='Generate a GNU Makefile for building the project', metavar='MAKEFILE_name')
+buildparser.add_argument('-pfm',     '--preform',  required=False,action='store_true',          default=False,           help='Use PreForM.py pre-processor for pre-processing sources file')
 cleanparser.add_argument('-f',       '--fobos',    required=False,action='store',               default=None,            help='Specify a "fobos" file named differently from "fobos"')
 cleanparser.add_argument('-colors',                required=False,action='store_true',          default=False,           help='Activate colors in shell prints [default: no colors]')
 cleanparser.add_argument('-dobj',    '--obj_dir',  required=False,action='store',               default='./obj/',        help='Directory containing compiled objects [default: ./obj/]')
@@ -198,7 +199,8 @@ class Builder(object):
                fc        = "",      # custom compiler statement
                modsw     = "",      # custom compiler switch for modules searching path
                mpi       = False,   # use MPI enabled version of compiler
-               cflags    = "-c",    # compilation flags
+               cflags    = "",      # compilation flags
+               #cflags    = "-c",    # compilation flags
                lflags    = "",      # linking flags
                libs      = [],      # list of external libraries
                dinc      = [],      # list of directories for searching included files
@@ -208,7 +210,8 @@ class Builder(object):
                obj_dir   = "./",    # directory containing compiled object files
                quiet     = False,   # make printings less verbose than default
                colors    = False,   # make printings colored
-               jobs      = 1):      # concurrent compiling jobs
+               jobs      = 1,       # concurrent compiling jobs
+               preform   = False):  # activate PreForM.py pre-processing
     self.compiler  = compiler
     self.fc        = fc
     self.modsw     = modsw
@@ -222,10 +225,20 @@ class Builder(object):
     self.mod_dir   = build_dir+mod_dir
     self.obj_dir   = build_dir+obj_dir
     self.quiet     = quiet
-    self.jobs      = jobs
     self.colors    = Colors()
+    self.jobs      = jobs
+    self.preform   = preform
     if not colors:
       self.colors.disable()
+    if self.preform:
+      pfm_exist = False
+      for p in os.environ["PATH"].split(os.pathsep):
+        pfm_exist = os.path.exists(os.path.join(p, 'PreForM.py'))
+        if pfm_exist:
+          break
+      if not pfm_exist:
+        print(self.colors.red+'Error: PreForM.py is not in your PATH! You cannot use --preform or -pfm switches.'+self.colors.end)
+        sys.exit(1)
     if mpi:
       self.fc = 'mpif90'
     if compiler.lower() == 'gnu':
@@ -257,10 +270,16 @@ class Builder(object):
     """
     The method compile_command returns the OS command for compiling pfile.
     """
-    if len(self.dinc)>0:
-      comp_cmd = self.cmd_comp+' '+''.join(['-I'+s+' ' for s in self.dinc])+pfile.name+' -o '+self.obj_dir+pfile.basename+'.o'
+    if self.preform:
+      if len(self.dinc)>0:
+        comp_cmd = 'PreForM.py '+pfile.name+' -o '+pfile.basename+'.pfm'+pfile.extension+' ; '+self.cmd_comp+' '+''.join(['-I'+s+' ' for s in self.dinc])+pfile.basename+'.pfm'+pfile.extension+' -o '+self.obj_dir+pfile.basename+'.o'+' ; rm -f '+pfile.basename+'.pfm'+pfile.extension
+      else:
+        comp_cmd = 'PreForM.py '+pfile.name+' -o '+pfile.basename+'.pfm'+pfile.extension+' ; '+self.cmd_comp+' '+                                         pfile.basename+'.pfm'+pfile.extension+' -o '+self.obj_dir+pfile.basename+'.o'+' ; rm -f '+pfile.basename+'.pfm'+pfile.extension
     else:
-      comp_cmd = self.cmd_comp+' '                                         +pfile.name+' -o '+self.obj_dir+pfile.basename+'.o'
+      if len(self.dinc)>0:
+        comp_cmd = self.cmd_comp+' '+''.join(['-I'+s+' ' for s in self.dinc])+pfile.name+' -o '+self.obj_dir+pfile.basename+'.o'
+      else:
+        comp_cmd = self.cmd_comp+' '                                         +pfile.name+' -o '+self.obj_dir+pfile.basename+'.o'
     return comp_cmd
   def build(self,pfile,output=None,nomodlibs=[],mklib=None):
     """
@@ -345,6 +364,7 @@ class Builder(object):
       message+= "  Compilation flags:               "+builder.cflags+"\n"
       message+= "  Linking     flags:               "+builder.lflags+"\n"
       message+= "  Preprocessing flags:             "+builder.preproc+"\n"
+      message+= "  PreForM.py used:                 "+str(builder.preform)+"\n"
     return message
 class Cleaner(object):
   """
@@ -433,6 +453,7 @@ class Parsed_file(object):
     self.to_compile   = to_compile
     self.output       = output
     self.basename     = os.path.splitext(os.path.basename(self.name))[0]
+    self.extension    = os.path.splitext(os.path.basename(self.name))[1]
     self.timestamp    = os.path.getmtime(self.name)
     self.order        = 0
   def parse(self):
@@ -793,7 +814,7 @@ if __name__ == '__main__':
     cliargs.mod_dir   = os.path.normpath(cliargs.mod_dir)+"/"
     cliargs.obj_dir   = os.path.normpath(cliargs.obj_dir)+"/"
     __extensions_inc__  += cliargs.inc
-    builder=Builder(compiler=cliargs.compiler,fc=cliargs.fc,modsw=cliargs.modsw,mpi=cliargs.mpi,cflags=cliargs.cflags,lflags=cliargs.lflags,libs=cliargs.libs,dinc=cliargs.include,preproc=cliargs.preproc,build_dir=cliargs.build_dir,obj_dir=cliargs.obj_dir,mod_dir=cliargs.mod_dir,quiet=cliargs.quiet,colors=cliargs.colors,jobs=cliargs.jobs)
+    builder=Builder(compiler=cliargs.compiler,fc=cliargs.fc,modsw=cliargs.modsw,mpi=cliargs.mpi,cflags=cliargs.cflags,lflags=cliargs.lflags,libs=cliargs.libs,dinc=cliargs.include,preproc=cliargs.preproc,build_dir=cliargs.build_dir,obj_dir=cliargs.obj_dir,mod_dir=cliargs.mod_dir,quiet=cliargs.quiet,colors=cliargs.colors,jobs=cliargs.jobs,preform=cliargs.preform)
     pfiles = [] # main parsed files list
     # parsing files loop
     for root, subFolders, files in os.walk(cliargs.src):
