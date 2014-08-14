@@ -42,12 +42,17 @@ help = Rule for building the documentation from source files
 rule = echo "I am making the doc... nope, this is a joke!"
 
 [rule-deltar]
-help = Rule for deleting project archive
+help  = Rule for deleting project archive
 quiet = True
 rule  = rm -f cum_example.tar
 
 [rule-maketar]
-help = Rule for building project archive
+help  = Rule for building project archive
 quiet = True
 rule  = rm -f cum_example.tar
 rule-1= tar cf cum_example.tar *
+
+[rule-genmakefile]
+help  = Rule for generating a GNU Make makefile for building the example
+quiet = True
+rule  = FoBiS.py build -m makefile

@@ -3,60 +3,63 @@
 FoBiS.py, Fortran Building System for poor men
 """
 __appname__ = 'FoBiS.py'
-__version__ ="0.0.1"
+__version__ ="1.1.4"
 __author__  = 'Stefano Zaghi'
 # modules loading
 import sys
 try:
   import os
 except:
-  print "Module 'os' not found"
+  print("Module 'os' not found")
   sys.exit(1)
 try:
   import time
 except:
-  print "Module 'time' not found"
+  print("Module 'time' not found")
   sys.exit(1)
 try:
   import argparse
 except:
-  print "Module 'argparse' not found"
+  print("Module 'argparse' not found")
   sys.exit(1)
 try:
   from copy import deepcopy
 except:
-  print "Module 'copy' not found"
+  print("Module 'copy' not found")
   sys.exit(1)
 try:
   import subprocess
 except:
-  print "Module 'subprocess' not found"
+  print("Module 'subprocess' not found")
   sys.exit(1)
 try:
   import shutil
 except:
-  print "Module 'shutil' not found"
+  print("Module 'shutil' not found")
   sys.exit(1)
 try:
-  import ConfigParser
+  import ConfigParser as configparser
 except:
-  print "Module 'ConfigParser' not found"
-  sys.exit(1)
+  try:
+    import configparser
+  except:
+    print("Module 'ConfigParser' not found")
+    sys.exit(1)
 try:
   import operator
 except:
-  print "Module 'operator' not found"
+  print("Module 'operator' not found")
   sys.exit(1)
 try:
   import re
 except:
-  print "The regular expression module 're' not found"
+  print("The regular expression module 're' not found")
   sys.exit(1)
 try:
   from multiprocessing import Pool
   parallel=True
 except:
-  print "Module 'multiprocessing' not found: parallel compilation disabled"
+  print("Module 'multiprocessing' not found: parallel compilation disabled")
   parallel=False
 # setting CLI
 cliparser = argparse.ArgumentParser(prog=__appname__,description='FoBiS.py, Fortran Building System for poor men')
@@ -93,7 +96,8 @@ buildparser.add_argument('-o',       '--output',   required=False,action='store'
 buildparser.add_argument('-mklib',                 required=False,action='store',               default=None,            help='Build library instead of program (use with -target switch); usage: -mklib static or -mklib shared')
 buildparser.add_argument('-mode',                  required=False,action='store',               default=None,            help='Select a mode defined into a fobos file')
 buildparser.add_argument('-lmodes',                required=False,action='store_true',          default=False,           help='List the modes defined into a fobos file')
-buildparser.add_argument('-m',       '--makefile', required=False,action='store_true',          default=False,           help='Generate a GNU Makefile for building the project')
+buildparser.add_argument('-m',       '--makefile', required=False,action='store',               default=None,            help='Generate a GNU Makefile for building the project', metavar='MAKEFILE_name')
+buildparser.add_argument('-pfm',     '--preform',  required=False,action='store_true',          default=False,           help='Use PreForM.py pre-processor for pre-processing sources file')
 cleanparser.add_argument('-f',       '--fobos',    required=False,action='store',               default=None,            help='Specify a "fobos" file named differently from "fobos"')
 cleanparser.add_argument('-colors',                required=False,action='store_true',          default=False,           help='Activate colors in shell prints [default: no colors]')
 cleanparser.add_argument('-dobj',    '--obj_dir',  required=False,action='store',               default='./obj/',        help='Directory containing compiled objects [default: ./obj/]')
@@ -166,7 +170,7 @@ def syswork(cmd):
   try:
     output = subprocess.check_output(cmd, shell=True)
     if output:
-      print output
+      print(output)
   except subprocess.CalledProcessError as err:
     if err.returncode != 0:
       sys.exit(1)
@@ -195,7 +199,8 @@ class Builder(object):
                fc        = "",      # custom compiler statement
                modsw     = "",      # custom compiler switch for modules searching path
                mpi       = False,   # use MPI enabled version of compiler
-               cflags    = "-c",    # compilation flags
+               cflags    = "",      # compilation flags
+               #cflags    = "-c",    # compilation flags
                lflags    = "",      # linking flags
                libs      = [],      # list of external libraries
                dinc      = [],      # list of directories for searching included files
@@ -205,7 +210,8 @@ class Builder(object):
                obj_dir   = "./",    # directory containing compiled object files
                quiet     = False,   # make printings less verbose than default
                colors    = False,   # make printings colored
-               jobs      = 1):      # concurrent compiling jobs
+               jobs      = 1,       # concurrent compiling jobs
+               preform   = False):  # activate PreForM.py pre-processing
     self.compiler  = compiler
     self.fc        = fc
     self.modsw     = modsw
@@ -219,10 +225,20 @@ class Builder(object):
     self.mod_dir   = build_dir+mod_dir
     self.obj_dir   = build_dir+obj_dir
     self.quiet     = quiet
-    self.jobs      = jobs
     self.colors    = Colors()
+    self.jobs      = jobs
+    self.preform   = preform
     if not colors:
       self.colors.disable()
+    if self.preform:
+      pfm_exist = False
+      for p in os.environ["PATH"].split(os.pathsep):
+        pfm_exist = os.path.exists(os.path.join(p, 'PreForM.py'))
+        if pfm_exist:
+          break
+      if not pfm_exist:
+        print(self.colors.red+'Error: PreForM.py is not in your PATH! You cannot use --preform or -pfm switches.'+self.colors.end)
+        sys.exit(1)
     if mpi:
       self.fc = 'mpif90'
     if compiler.lower() == 'gnu':
@@ -254,16 +270,22 @@ class Builder(object):
     """
     The method compile_command returns the OS command for compiling pfile.
     """
-    if len(self.dinc)>0:
-      comp_cmd = self.cmd_comp+' '+''.join(['-I'+s+' ' for s in self.dinc])+pfile.name+' -o '+self.obj_dir+pfile.basename+'.o'
+    if self.preform:
+      if len(self.dinc)>0:
+        comp_cmd = 'PreForM.py '+pfile.name+' -o '+pfile.basename+'.pfm'+pfile.extension+' ; '+self.cmd_comp+' '+''.join(['-I'+s+' ' for s in self.dinc])+pfile.basename+'.pfm'+pfile.extension+' -o '+self.obj_dir+pfile.basename+'.o'+' ; rm -f '+pfile.basename+'.pfm'+pfile.extension
+      else:
+        comp_cmd = 'PreForM.py '+pfile.name+' -o '+pfile.basename+'.pfm'+pfile.extension+' ; '+self.cmd_comp+' '+                                         pfile.basename+'.pfm'+pfile.extension+' -o '+self.obj_dir+pfile.basename+'.o'+' ; rm -f '+pfile.basename+'.pfm'+pfile.extension
     else:
-      comp_cmd = self.cmd_comp+' '                                         +pfile.name+' -o '+self.obj_dir+pfile.basename+'.o'
+      if len(self.dinc)>0:
+        comp_cmd = self.cmd_comp+' '+''.join(['-I'+s+' ' for s in self.dinc])+pfile.name+' -o '+self.obj_dir+pfile.basename+'.o'
+      else:
+        comp_cmd = self.cmd_comp+' '                                         +pfile.name+' -o '+self.obj_dir+pfile.basename+'.o'
     return comp_cmd
   def build(self,pfile,output=None,nomodlibs=[],mklib=None):
     """
     The method build builds current file.
     """
-    print self.colors.bld+'Building '+pfile.name+self.colors.end
+    print(self.colors.bld+'Building '+pfile.name+self.colors.end)
     # correct the list ordering accordingly to indirect dependency
     for n,dep in enumerate(pfile.pfile_dep_all):
       for other_dep in pfile.pfile_dep_all:
@@ -288,17 +310,17 @@ class Builder(object):
           cmds.append(dep[1])
         if len(deps)>1 and self.jobs>1 and parallel:
           jobs = min(len(deps),self.jobs)
-          print self.colors.bld+"Compiling"+files+" using "+str(jobs)+" concurrent processes"+self.colors.end
+          print(self.colors.bld+"Compiling"+files+" using "+str(jobs)+" concurrent processes"+self.colors.end)
           pool = Pool(processes=jobs)
           pool.map(syswork,cmds)
           pool.close()
           pool.join()
         else:
-          print self.colors.bld+"Compiling"+files+" serially "+self.colors.end
+          print(self.colors.bld+"Compiling"+files+" serially "+self.colors.end)
           for cmd in cmds:
             syswork(cmd)
     else:
-      print self.colors.bld+'Nothing to compile, all objects are up-to-date'+self.colors.end
+      print(self.colors.bld+'Nothing to compile, all objects are up-to-date'+self.colors.end)
     if pfile.program:
       objs = nomodlibs + pfile.obj_dependencies()
       if output:
@@ -306,9 +328,9 @@ class Builder(object):
       else:
         exe=self.build_dir+pfile.basename
       link_cmd = self.cmd_link+" "+"".join([self.obj_dir+s+" " for s in objs])+"".join([s+" " for s in self.libs])+"-o "+exe
-      print self.colors.bld+"Linking "+exe+self.colors.end
+      print(self.colors.bld+"Linking "+exe+self.colors.end)
       syswork(link_cmd)
-      print self.colors.bld+'Target '+pfile.name+' has been successfully built'+self.colors.end
+      print(self.colors.bld+'Target '+pfile.name+' has been successfully built'+self.colors.end)
     elif mklib:
       if output:
         lib=self.build_dir+output
@@ -321,9 +343,9 @@ class Builder(object):
         link_cmd = self.cmd_link+" "+"".join([s+" " for s in self.libs])+self.obj_dir+pfile.basename+".o -o "+lib
       elif mklib.lower()=='static':
         link_cmd = "ar -rcs "+lib+" "+self.obj_dir+pfile.basename+".o ; ranlib "+lib
-      print self.colors.bld+"Linking "+lib+self.colors.end
+      print(self.colors.bld+"Linking "+lib+self.colors.end)
       syswork(link_cmd)
-      print self.colors.bld+'Target '+pfile.name+' has been successfully built'+self.colors.end
+      print(self.colors.bld+'Target '+pfile.name+' has been successfully built'+self.colors.end)
   def verbose(self):
     """
     The method verbose returns a verbose message containing builder infos.
@@ -342,6 +364,7 @@ class Builder(object):
       message+= "  Compilation flags:               "+builder.cflags+"\n"
       message+= "  Linking     flags:               "+builder.lflags+"\n"
       message+= "  Preprocessing flags:             "+builder.preproc+"\n"
+      message+= "  PreForM.py used:                 "+str(builder.preform)+"\n"
     return message
 class Cleaner(object):
   """
@@ -369,14 +392,14 @@ class Cleaner(object):
     Function clean_mod clean compiled MODs directory.
     """
     if os.path.exists(self.mod_dir):
-      print self.colors.red+'Removing '+self.mod_dir+self.colors.end
+      print(self.colors.red+'Removing '+self.mod_dir+self.colors.end)
       shutil.rmtree(self.mod_dir)
   def clean_obj(self):
     """
     Function clean_obj clean compiled OBJs directory.
     """
     if os.path.exists(self.obj_dir):
-      print self.colors.red+'Removing '+self.obj_dir+self.colors.end
+      print(self.colors.red+'Removing '+self.obj_dir+self.colors.end)
       shutil.rmtree(self.obj_dir)
   def clean_target(self):
     """
@@ -394,10 +417,10 @@ class Cleaner(object):
         else:
           exe = os.path.splitext(os.path.basename(self.target))[0]
       if os.path.exists(self.build_dir+exe):
-        print self.colors.red+'Removing '+self.build_dir+exe+self.colors.end
+        print(self.colors.red+'Removing '+self.build_dir+exe+self.colors.end)
         os.remove(self.build_dir+exe)
       if os.path.exists('build_'+os.path.splitext(os.path.basename(self.target))[0]+'.log'):
-        print self.colors.red+'Removing build_'+os.path.splitext(os.path.basename(self.target))[0]+'.log'+self.colors.end
+        print(self.colors.red+'Removing build_'+os.path.splitext(os.path.basename(self.target))[0]+'.log'+self.colors.end)
         os.remove('build_'+os.path.splitext(os.path.basename(self.target))[0]+'.log')
 class Dependency(object):
   """
@@ -430,6 +453,7 @@ class Parsed_file(object):
     self.to_compile   = to_compile
     self.output       = output
     self.basename     = os.path.splitext(os.path.basename(self.name))[0]
+    self.extension    = os.path.splitext(os.path.basename(self.name))[1]
     self.timestamp    = os.path.getmtime(self.name)
     self.order        = 0
   def parse(self):
@@ -476,6 +500,29 @@ class Parsed_file(object):
       log_file.writelines("  "+dep.name+"\n")
     log_file.writelines(builder.verbose())
     log_file.close()
+  def save_makefile(self,makefile,builder):
+    """
+    The method save_makefile save a minimal makefile for building the file by means of GNU Make.
+    """
+    if not self.include:
+      mk_file = open(makefile, "a")
+      file_dep = [self.name]
+      for dep in self.pfile_dep:
+        if dep.include:
+          file_dep.append(dep.name)
+      if (len(self.pfile_dep)-len(file_dep))>=0:
+        mk_file.writelines("$(DOBJ)"+self.basename.lower()+".o:"+"".join([" "+f for f in file_dep])+" \\"+"\n")
+        for dep in self.pfile_dep[:-1]:
+          if not dep.include:
+            mk_file.writelines("\t$(DOBJ)"+os.path.splitext(os.path.basename(dep.name))[0].lower()+".o \\"+"\n")
+        if not self.pfile_dep[-1].include:
+          mk_file.writelines("\t$(DOBJ)"+os.path.splitext(os.path.basename(self.pfile_dep[-1].name))[0].lower()+".o\n")
+      else:
+        mk_file.writelines("$(DOBJ)"+self.basename.lower()+".o:"+"".join([" "+f for f in file_dep])+"\n")
+      mk_file.writelines("\t@echo $(COTEXT)\n")
+      mk_file.writelines("\t@$(FC) $(OPTSC) $(PREPROC) "+''.join(['-I'+i+' ' for i in builder.dinc])+" $< -o $@\n")
+      mk_file.writelines("\n")
+      mk_file.close()
   def str_dependencies(self,
                        pref = ""): # prefixing string
     """
@@ -510,7 +557,7 @@ class Parsed_file(object):
         else:
           # verifying if dep is newer than self
           if not os.path.exists(dep.name):
-            print " Attention: file "+dep.name+" does not exist, but it is a dependency of file "+self.name
+            print(" Attention: file "+dep.name+" does not exist, but it is a dependency of file "+self.name)
             sys.exit(1)
           else:
             # comparing the include dependency with the self-compiled-object if exist
@@ -598,7 +645,7 @@ def dependency_hiearchy(builder,pfiles):
           if not pfiles[n] in pfile.pfile_dep:
             pfile.pfile_dep.append(pfiles[n])
         else:
-          print builder.colors.red+"Attention: the file '"+pfile.name+"' depends on '"+dep.name+"' that is unreachable"+builder.colors.end
+          print(builder.colors.red+"Attention: the file '"+pfile.name+"' depends on '"+dep.name+"' that is unreachable"+builder.colors.end)
           sys.exit(1)
       if dep.type=="include":
         dep.file,n = include_is_in(pfiles=pfiles,include=dep.name)
@@ -612,7 +659,7 @@ def dependency_hiearchy(builder,pfiles):
             if not os.path.dirname(pfiles[n].name) in builder.dinc:
               builder.dinc.append(os.path.dirname(pfiles[n].name))
         else:
-          print builder.colors.red+"Attention: the file '"+pfile.name+"' depends on '"+dep.name+"' that is unreachable"+builder.colors.end
+          print(builder.colors.red+"Attention: the file '"+pfile.name+"' depends on '"+dep.name+"' that is unreachable"+builder.colors.end)
           sys.exit(1)
   # indirect dependency list
   for pfile in pfiles:
@@ -644,7 +691,7 @@ def inquire_fobos(cliargs,filename='fobos'):
             helpmsg = fobos.get(mode,'help')
           else:
             helpmsg = ''
-          print txtcolor+'  - "'+mode+'" '+colorend+helpmsg
+          print(txtcolor+'  - "'+mode+'" '+colorend+helpmsg)
     return
   def rules_list(cliargs=None,fobos=None,txtcolor='',colorend=''):
     """
@@ -656,7 +703,7 @@ def inquire_fobos(cliargs,filename='fobos'):
           helpmsg = fobos.get(rule,'help')
         else:
           helpmsg = ''
-        print txtcolor+'  - "'+rule.split('rule-')[1]+'" '+colorend+helpmsg
+        print(txtcolor+'  - "'+rule.split('rule-')[1]+'" '+colorend+helpmsg)
         if fobos.has_option(rule,'quiet'):
           quiet = fobos.getboolean(rule,'quiet')
         else:
@@ -664,21 +711,21 @@ def inquire_fobos(cliargs,filename='fobos'):
         for r in fobos.options(rule):
           if r.startswith('rule'):
             if not quiet:
-              print txtcolor+'       Command => '+fobos.get(rule,r)+colorend
+              print(txtcolor+'       Command => '+fobos.get(rule,r)+colorend)
     return
   fobos_colors = Colors()
   cliargs_dict = deepcopy(cliargs.__dict__)
   if os.path.exists(filename):
-    fobos = ConfigParser.ConfigParser()
+    fobos = configparser.ConfigParser()
     fobos.read(filename)
     if cliargs.which=='rule':
       if cliargs.list:
-        print fobos_colors.bld+'The fobos file defines the following rules:'+fobos_colors.end
+        print(fobos_colors.bld+'The fobos file defines the following rules:'+fobos_colors.end)
         rules_list(cliargs=cliargs,fobos=fobos,txtcolor=fobos_colors.bld,colorend=fobos_colors.end)
         sys.exit(0)
       elif cliargs.execute:
         rule = 'rule-'+cliargs.execute
-        print fobos_colors.bld+' Executing rule "'+cliargs.execute+'"'+fobos_colors.end
+        print(fobos_colors.bld+' Executing rule "'+cliargs.execute+'"'+fobos_colors.end)
         if fobos.has_section(rule):
           if fobos.has_option(rule,'quiet'):
             quiet = fobos.getboolean(rule,'quiet')
@@ -687,22 +734,22 @@ def inquire_fobos(cliargs,filename='fobos'):
           for r in fobos.options(rule):
             if r.startswith('rule'):
               if not quiet:
-                print fobos_colors.bld+'   Command => '+fobos.get(rule,r)+fobos_colors.end
+                print(fobos_colors.bld+'   Command => '+fobos.get(rule,r)+fobos_colors.end)
               syswork(fobos.get(rule,r))
           sys.exit(0)
         else:
-          print fobos_colors.red+'Error: the rule "'+cliargs.execute+'" is not defined into the fobos file. Defined rules are:'+fobos_colors.end
+          print(fobos_colors.red+'Error: the rule "'+cliargs.execute+'" is not defined into the fobos file. Defined rules are:'+fobos_colors.end)
           rules_list(cliargs=cliargs,fobos=fobos,txtcolor=fobos_colors.red,colorend=fobos_colors.end)
           sys.exit(1)
     if cliargs.lmodes:
       if fobos.has_option('modes','modes'):
-        print fobos_colors.bld+'The fobos file defines the following modes:'+fobos_colors.end
+        print(fobos_colors.bld+'The fobos file defines the following modes:'+fobos_colors.end)
         modes_list(fobos=fobos,txtcolor=fobos_colors.bld,colorend=fobos_colors.end)
         #for m in fobos.get('modes','modes').split():
           #print fobos_colors.bld+'  - "'+m+'"'+fobos_colors.end
         sys.exit(0)
       else:
-        print fobos_colors.red+'Error: no modes are defined into the fobos file!'+fobos_colors.end
+        print(fobos_colors.red+'Error: no modes are defined into the fobos file!'+fobos_colors.end)
         sys.exit(1)
     section = False
     if fobos.has_option('modes','modes'):
@@ -710,7 +757,7 @@ def inquire_fobos(cliargs,filename='fobos'):
         if cliargs.mode in fobos.get('modes','modes'):
           section = cliargs.mode
         else:
-          print fobos_colors.red+'Error: the mode "'+cliargs.mode+'" is not defined into the fobos file. Defined modes are:'+fobos_colors.end
+          print(fobos_colors.red+'Error: the mode "'+cliargs.mode+'" is not defined into the fobos file. Defined modes are:'+fobos_colors.end)
           modes_list(fobos=fobos,txtcolor=fobos_colors.red,colorend=fobos_colors.end)
           #for m in fobos.get('modes','modes').split():
             #print fobos_colors.red+'  - "'+m+'"'+fobos_colors.end
@@ -721,7 +768,7 @@ def inquire_fobos(cliargs,filename='fobos'):
       if fobos.has_section('default'):
         section = 'default'
       else:
-        print fobos_colors.red+'Error: fobos file has not "modes" section neither "default" one'+fobos_colors.end
+        print(fobos_colors.red+'Error: fobos file has not "modes" section neither "default" one'+fobos_colors.end)
         sys.exit(1)
     for item in fobos.items(section):
       if item[0] in cliargs_dict:
@@ -737,6 +784,11 @@ def inquire_fobos(cliargs,filename='fobos'):
       if item in ['cflags','lflags','preproc']:
         val_fobos = cliargs_dict[item]
         val_cli   = getattr(cliargs,item)
+        if item == 'cflags':
+          if val_cli == '-c':
+            match = re.search('(-c\s+|-c$)',val_fobos)
+            if match:
+              val_cli ='' # avoid multiple -c flags
         if val_fobos and val_cli:
           setattr(cliargs,item,val_fobos+' '+val_cli)
 # main loop
@@ -747,6 +799,9 @@ if __name__ == '__main__':
   else:
     inquire_fobos(cliargs=cliargs)
   if cliargs.which=='clean':
+    cliargs.build_dir = os.path.normpath(cliargs.build_dir)+"/"
+    cliargs.mod_dir   = os.path.normpath(cliargs.mod_dir)+"/"
+    cliargs.obj_dir   = os.path.normpath(cliargs.obj_dir)+"/"
     cleaner=Cleaner(build_dir=cliargs.build_dir,obj_dir=cliargs.obj_dir,mod_dir=cliargs.mod_dir,target=cliargs.target,output=cliargs.output,mklib=cliargs.mklib,colors=cliargs.colors)
     # clean project
     if not cliargs.only_obj and not cliargs.only_target:
@@ -759,8 +814,12 @@ if __name__ == '__main__':
     if cliargs.only_target:
       cleaner.clean_target()
   elif cliargs.which=='build':
+    cliargs.src       = os.path.normpath(cliargs.src)+"/"
+    cliargs.build_dir = os.path.normpath(cliargs.build_dir)+"/"
+    cliargs.mod_dir   = os.path.normpath(cliargs.mod_dir)+"/"
+    cliargs.obj_dir   = os.path.normpath(cliargs.obj_dir)+"/"
     __extensions_inc__  += cliargs.inc
-    builder=Builder(compiler=cliargs.compiler,fc=cliargs.fc,modsw=cliargs.modsw,mpi=cliargs.mpi,cflags=cliargs.cflags,lflags=cliargs.lflags,libs=cliargs.libs,dinc=cliargs.include,preproc=cliargs.preproc,build_dir=cliargs.build_dir,obj_dir=cliargs.obj_dir,mod_dir=cliargs.mod_dir,quiet=cliargs.quiet,colors=cliargs.colors,jobs=cliargs.jobs)
+    builder=Builder(compiler=cliargs.compiler,fc=cliargs.fc,modsw=cliargs.modsw,mpi=cliargs.mpi,cflags=cliargs.cflags,lflags=cliargs.lflags,libs=cliargs.libs,dinc=cliargs.include,preproc=cliargs.preproc,build_dir=cliargs.build_dir,obj_dir=cliargs.obj_dir,mod_dir=cliargs.mod_dir,quiet=cliargs.quiet,colors=cliargs.colors,jobs=cliargs.jobs,preform=cliargs.preform)
     pfiles = [] # main parsed files list
     # parsing files loop
     for root, subFolders, files in os.walk(cliargs.src):
@@ -773,6 +832,76 @@ if __name__ == '__main__':
             pfiles.append(pfile)
     # building dependencies hierarchy
     dependency_hiearchy(builder=builder,pfiles=pfiles)
+    # saving makefile if requested
+    if cliargs.makefile:
+      # initializing makefile
+      mk_file = open(cliargs.makefile, "w")
+      mk_file.writelines("#!/usr/bin/make\n")
+      mk_file.writelines("\n")
+      mk_file.writelines("#main building variables\n")
+      mk_file.writelines("DSRC    = "+cliargs.src+"\n")
+      mk_file.writelines("DOBJ    = "+os.path.normpath(builder.obj_dir)+"/\n")
+      mk_file.writelines("DMOD    = "+os.path.normpath(builder.mod_dir)+"/\n")
+      mk_file.writelines("VPATH   = $(DSRC) $(DOBJ) $(DMOD)"+"\n")
+      mk_file.writelines("DEXE    = "+os.path.normpath(builder.build_dir)+"/\n")
+      mk_file.writelines("MKDIRS  = $(DOBJ) $(DMOD) $(DEXE)"+"\n")
+      mk_file.writelines("LIBS    ="+"".join(" "+l for l in builder.libs)+"\n")
+      mk_file.writelines("FC      = "+builder.fc+"\n")
+      mk_file.writelines("OPTSC   = "+builder.cflags+" "+builder.modsw+builder.mod_dir+"\n")
+      mk_file.writelines("OPTSL   = "+builder.lflags+" "+builder.modsw+builder.mod_dir+"\n")
+      mk_file.writelines("PREPROC = "+builder.preproc+"\n")
+      mk_file.writelines("LCEXES  = $(shell echo $(EXES) | tr '[:upper:]' '[:lower:]')\n")
+      mk_file.writelines("EXESPO  = $(addsuffix .o,$(LCEXES))\n")
+      mk_file.writelines("EXESOBJ = $(addprefix $(DOBJ),$(EXESPO))\n")
+      mk_file.writelines("\n")
+      mk_file.writelines("#auxiliary variables\n")
+      mk_file.writelines('COTEXT  = "Compiling $(<F)"\n')
+      mk_file.writelines('LITEXT  = "Assembling $@"\n')
+      mk_file.writelines("\n")
+      mk_file.writelines("#building rules \n")
+      # linking rules
+      for pfile in pfiles:
+        save_target_rule = False
+        if pfile.program:
+          save_target_rule = True
+        elif cliargs.target:
+          if os.path.basename(cliargs.target)==os.path.basename(pfile.name):
+            save_target_rule = True
+        if save_target_rule:
+          mk_file.writelines("$(DEXE)"+pfile.basename.upper()+": $(MKDIRS) "+"$(DOBJ)"+pfile.basename.lower()+".o\n")
+          mk_file.writelines("\t@rm -f $(filter-out $(DOBJ)"+pfile.basename.lower()+".o,$(EXESOBJ))\n")
+          mk_file.writelines("\t@echo $(LITEXT)\n")
+          mk_file.writelines("\t@$(FC) $(OPTSL) $(PREPROC) $(DOBJ)*.o $(LIBS) -o $@\n")
+          mk_file.writelines("EXES := $(EXES) "+pfile.basename.upper()+"\n")
+          mk_file.writelines("\n")
+      mk_file.close()
+      # compiling rules
+      for pfile in pfiles:
+        pfile.save_makefile(makefile=cliargs.makefile,builder=builder)
+      # phony auxiliary rules
+      mk_file = open(cliargs.makefile, "a")
+      mk_file.writelines("#phony rules \n")
+      mk_file.writelines(".PHONY : $(MKDIRS)\n")
+      mk_file.writelines("$(MKDIRS):\n")
+      mk_file.writelines("\t@mkdir -p $@\n")
+      mk_file.writelines(".PHONY : cleanobj\n")
+      mk_file.writelines("cleanobj:\n")
+      mk_file.writelines("\t@echo deleting objects\n")
+      mk_file.writelines("\t@rm -fr $(DOBJ)\n")
+      mk_file.writelines(".PHONY : cleanmod\n")
+      mk_file.writelines("cleanmod:\n")
+      mk_file.writelines("\t@echo deleting mods\n")
+      mk_file.writelines("\t@rm -fr $(DMOD)\n")
+      mk_file.writelines(".PHONY : cleanexe\n")
+      mk_file.writelines("cleanexe:\n")
+      mk_file.writelines("\t@echo deleting exes\n")
+      mk_file.writelines("\t@rm -f $(addprefix $(DEXE),$(EXES))\n")
+      mk_file.writelines(".PHONY : clean\n")
+      mk_file.writelines("clean: cleanobj cleanmod\n")
+      mk_file.writelines(".PHONY : cleanall\n")
+      mk_file.writelines("cleanall: clean cleanexe\n")
+      mk_file.close()
+      sys.exit(0)
     # compiling independent files that are libraries of procedures not contained into a module (old Fortran style)
     nomodlibs = []
     for pfile in pfiles:
@@ -783,7 +912,7 @@ if __name__ == '__main__':
     for pfile in pfiles:
       if cliargs.target:
         if os.path.basename(cliargs.target)==os.path.basename(pfile.name):
-          print builder.colors.bld+builder.verbose()+builder.colors.end
+          print(builder.colors.bld+builder.verbose()+builder.colors.end)
           if pfile.program:
             remove_other_main(builder=builder,pfiles=pfiles,me=pfile)
           builder.build(pfile=pfile,output=cliargs.output,nomodlibs=nomodlibs,mklib=cliargs.mklib)
@@ -791,7 +920,7 @@ if __name__ == '__main__':
             pfile.save_build_log(builder=builder)
       else:
         if pfile.program:
-          print builder.colors.bld+builder.verbose()+builder.colors.end
+          print(builder.colors.bld+builder.verbose()+builder.colors.end)
           remove_other_main(builder=builder,pfiles=pfiles,me=pfile)
           builder.build(pfile=pfile,output=cliargs.output,nomodlibs=nomodlibs)
           if cliargs.log:

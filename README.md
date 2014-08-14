@@ -1,9 +1,10 @@
 # FoBiS.py
-### FoBiS.py, Fortran Building System for poor men
+### <a name="top">FoBiS.py, Fortran Building System for poor men
 A very simple and stupid tool for automatic building modern Fortran projects.
 
-## Table of Contents
+## <a name="toc">Table of Contents
 * [Team Members](#team-members)
+    + [Developers](#developers)
     + [Contributors](#contributors)
 * [Why?](#why)
     + [Why not use an auto-make-like tool?](#automake)
@@ -11,6 +12,8 @@ A very simple and stupid tool for automatic building modern Fortran projects.
 * [Main features](#main-features)
 * [Todos](#todos)
 * [Requirements](#requirements)
+* [Install](#install)
+* [Getting Help](#help)
 * [Copyrights](#copyrights)
 * [Usage](#usage)
     + [Build all programs found](#build-all)
@@ -19,20 +22,26 @@ A very simple and stupid tool for automatic building modern Fortran projects.
     + [Build a specific target with user-defined flags](#build-user-flags)
     + [Build large projects: maximize building speedup on parallel architectures](#build-parallel)
     + [Build a library](#build-library)
+    + [Build a project pre-processing sources files with PreForM.py](#build-preform)
     + [Clean project tree](#clean)
 * [fobos: the FoBiS.py makefile](#fobos)
     + [single-building-mode fobos](#single-mode-fobos)
     + [many-building-modes fobos](#many-mode-fobos)
     + [Rules: using fobos file for performing minor (repetitive) tasks](#fobos-rules)
+* [Generating a GNU Makefile for building the project](#makefile)
 * [Examples](#examples)
 * [Tips for non pythonic users](#tips)
+* [Version History](#versions)
 
 ## <a name="team-members"></a>Team Members
+### <a name="developers"></a>Developers
 * Stefano Zaghi, aka _szaghi_ <https://github.com/szaghi>
 
 ### <a name="contributors"></a>Contributors
 * Tomas Bylund, aka _Tobychev_ <https://github.com/Tobychev>
+* Jacob Williams, aka _jacobwilliams_ <https://github.com/jacobwilliams>
 
+Go to [Top](#top) or [Toc](#toc)
 ## <a name="why"></a>Why?
 GNU Make, CMake, SCons & Co. are fantastic tools, even too much for a _poor-fortran-man_.
 However, the support for modern Fortran project is still poor: in particular, it is quite difficult (and boring) to track the inter-module-dependency hierarchy of project using many module files.
@@ -46,6 +55,7 @@ There are a lot of alternatives for deal with inter-module-dependency hierarchy,
 
 Suppose you have a Fortran project composed of many Fortran modules placed into a complicated nested directories tree. Your goal is to build some (all) of the main programs contained into the project tree, but you have no time (or patience) to write the complicated makefile(s) able to correctly build your programs. In this case FoBiS.py can save your life: just type _python FoBiS.py build_ in the root of your project and FoBis.py will (try to) build all the main programs nested into the current directory. Obviously, FoBiS.py will not (re-)compile unnecessary objects if they are up-to-date (like the "magic" of a makefile). FoBiS.py have many (ok... some) others interesting features: if I have convinced you, please read the following.
 
+Go to [Top](#top) or [Toc](#toc)
 ## <a name="main-features"></a>Main features
 + Automatic parsing of files for dependency-hierarchy creation in case of _use_ and _include_ statements;
 + automatic building of all _programs_ found into the root directory parsed or only a specific selected target;
@@ -56,15 +66,18 @@ Suppose you have a Fortran project composed of many Fortran modules placed into 
 + configuration-files-free;
 + ... but also configuration-file driven building for complex buildings;
 + parallel compiling enabled by means of concurrent multiprocesses jobs;
++ generation of GNU Make makefile  with rules fully supporting dependency-hierarchy for _make-irriducible users_; 
 + easy-extensible: FoBis.py is just a less-than 1000 lines of Python statements... no bad for a poor-make-replacement;
++ well integrate with a flexible pythonic pre-processor, [PreForM.py](https://github.com/szaghi/PreForM).
 
+Go to [Top](#top) or [Toc](#toc)
 ## <a name="todos"></a>Todos
-+ Pythonic pre-processor;
 + add IBM, PGI Fortran Compilers support;
-+ ...
++ any feature request is welcome.
 
+Go to [Top](#top) or [Toc](#toc)
 ## <a name="requirements"></a>Requirements
-+ Python 2.7+ (not yet ready for Python 3.x);
++ Python 2.7+ or Python 3.x;
     + required modules:
         + sys;
         + os;
@@ -78,13 +91,24 @@ Suppose you have a Fortran project composed of many Fortran modules placed into 
         + re;
     + optional modules:
         + multiprocessing;
++ [PreForM.py](https://github.com/szaghi/PreForM) (optional) for pre-process on-the-fly sources with this cool pre-processor;
 + a lot of patience with the author.
 
 FoBiS.py is developed on a GNU/Linux architecture, and it has also been tested on AIX one. For Windows architecture there is no support, however it should work out-of-the-box.
 
-## <a name="Copyrights"></a>Copyrights
-FoBiS.py is an open source project, it is distributed under the [GPL v3](http://www.gnu.org/licenses/gpl-3.0.html) license. Anyone interested to use, develop or to contribute to FoBiS.py is welcome.
+Go to [Top](#top) or [Toc](#toc)
+## <a name="install"></a>Install
+The installation is very simple: put FoBiS.py in your path or execute it using full path. See the [requirements](#requirements) section.
 
+Go to [Top](#top) or [Toc](#toc)
+## <a name="help"></a>Getting Help]
+You are reading the main documentation of FoBiS.py that should be comprehensive. For more help contact directly the [author](stefano.zaghi@gmail.com). 
+
+Go to [Top](#top) or [Toc](#toc)
+## <a name="Copyrights"></a>Copyrights
+FoBiS.py is an open source project, it is distributed under the [GPL v3](http://www.gnu.org/licenses/gpl-3.0.html) license. A copy of the license should be distributed within FoBiS.py. Anyone interested to use, develop or to contribute to FoBiS.py is welcome. Take a look at the [contributing guidelines](CONTRIBUTING.md) for starting to contribute to the project.
+
+Go to [Top](#top) or [Toc](#toc)
 ## <a name="usage"></a>Usage
 Printing the main help message:
 ```bash
@@ -171,7 +195,10 @@ optional arguments:
                         switch); usage: -mklib static or -mklib shared
   -mode MODE            Select a mode defined into a fobos file
   -lmodes               List the modes defined into a fobos file
-  -m, --makefile        Generate a GNU Makefile for building the project
+  -m MAKEFILE_name, --makefile MAKEFILE_name
+                        Generate a GNU Makefile for building the project
+  -pfm, --preform       Use PreForM.py pre-processor for pre-processing
+                        sources file
 ```
 Printing the _clean_ help message:
 ```bash
@@ -284,11 +311,23 @@ FoBiS.py offers a primitive support for building libraries, both static and shar
 
 Into _examples_ directory there is an example of a _cumbersome_ library building.
 
+### <a name="build-preform"></a>Build a project pre-processing sources files with PreForM.py
+FoBiS.py is well integrated with [PreForM.py](https://github.com/szaghi/PreForM), a powerful yet simple pre-processor mainly designed for Fortran poor-men. PreForM.py is template system (besides other things such as a `cpp-compatible` pre-processir) that is very helpful in many circumstances. Pre-process a project with PreForM.py and automatically build it with FoBiS.py is very simple, just activate the FoBiS.py CLI switch (also available as _fobos_ option):
+```bash
+FoBiS.py build --preform
+```
+or
+```bash
+FoBiS.py build -pfm
+```
+Doing so, each source file is pre-processed by PreForM.py before it is compiled. Obviously, PreForM.py must be in your path.
+
 ### <a name="clean"></a>Clean project tree
 ```bash
 FoBiS.py clean
 ```
 
+Go to [Top](#top) or [Toc](#toc)
 ## <a name="fobos"></a>fobos: the FoBiS.py makefile
 For dealing with (repetitive) buildings of complex projects, FoBiS.py execution can be driven by means of a configuration file placed into the current working directory and named _fobos_, FOrtran Building OptionS file. The options defined into _fobos_ file override or in the case of _cflags_, _lflags_ and _preproc_ overload, the CLI arguments: this file is designed to act as a makefile, but with a very simple syntax (similar to INI files). _fobos_ file has exactly the same options available for the command line, in particular the options names are identical to the extended switches names (the ones prefixed with '--') or to the abbreviated ones (prefixed with '-') in case they are the only defined. If an option is present it will overrides the default value of CLI. Options can be commented with "#" symbol. 
 
@@ -463,6 +502,32 @@ Error: the rule "makedocs" is not defined into the fobos file. Defined rules are
 ```
 The fobos files of the provided [examples](#examples) show rules usage.
 
+Go to [Top](#top) or [Toc](#toc)
+## <a name="makefile"></a>fobos: Generating a GNU Makefile for building the project
+If you absolutely need to work with GNU Make, FoBiS.py can still help you. It is possible to generate a valid GNU makefile in a fully automatic way by means of the _-m_ or _-makefile_ switch of the build execution:
+```bash
+FoBiS.py build -m my-makefile
+```
+Using the switch _-m_ the project is not actually built, instead the file _my-makefile_ is created with valid instructions for building the project by means of GNU Make. It is worth noting that this building mode can be coupled with _fobos_ file acting as a _translator_ from the very simple and friendly _fobos_ syntax to the very cumbersome one of GNU Make: 
+```bash
+FoBiS.py build -m my-makefile -f my-fobos
+```
+Note that the makefiles generated by FoBiS.py have some auxiliary rules for minor tasks, e.g. clean the project, build the directories, etc.
+
+Finally, for brave users only, it is possible to write a rule into _fobos_ for generating the makefile like the following:
+```ini
+...
+[rule-genmakefile]
+help = A crazy rule for generating a makefile from fobos by means of FoBiS.py
+rule = FoBiS.py build -m makefile
+```
+Typing
+```bash
+FoBiS.py rule -ex genmakefile
+```
+the file _makefile_ will contain the GNU Make instructions for building the project exactly as _fobos_ does.
+
+Go to [Top](#top) or [Toc](#toc)
 ## <a name="examples"></a>Examples
 Into the directory _examples_ there are some KISS examples, just read their provided _REAMDE.md_. Here is reported only the fobos file of the "cumbersome_dependency_program" example where the main features of fobos file are shown. 
 
@@ -472,6 +537,7 @@ Into the directory _examples_ there are some KISS examples, just read their prov
 modes = gnu custom
 
 [gnu]
+help      = Mode "gnu" use GNU gfortran for building the project within PreForM.py pre-processor
 compiler  = Gnu
 mpi       = False
 cflags    = -c
@@ -486,8 +552,10 @@ inc       = .h .H
 target    = cumbersome.f90
 output    = Cumbersome
 log       = True
+preform   = True
 
 [custom]
+help      = Mode "custom" use g95 for building the project
 compiler  = custom
 fc        = g95
 modsw     = -fmod=
@@ -506,15 +574,36 @@ output    = Cumbersome
 log       = True
 
 [rule-makedoc]
-rule = echo "I am making the doc... nope, this is a joke!"
+help  = Rule for building the documentation
+quiet = True
+rule  = echo "I am making the doc... nope, this is a joke!"
 
 [rule-maketar]
+help = Rule for creating a projet tar archive
 rule = tar cf cum_example.tar *
 ```
 
+Go to [Top](#top) or [Toc](#toc)
 ## <a name="tips"></a>Tips for non pythonic users
 In the examples above FoBiS.py is supposed to have the executable permissions, thus it is used without an explicit invocation of the Python interpreter. In general, if FoBiS.py is not set to have executable permissions, it must be executed as:
 
 ```bash
 python FoBiS.py ...
 ```
+Go to [Top](#top) or [Toc](#toc)
+## <a name="versions"></a>Version History
+In the following the changelog of most important releases is reported.
+### v1.2.4 
+##### Download [ZIP](https://github.com/szaghi/FoBiS/archive/v1.2.4.zip) ball or [TAR](https://github.com/szaghi/FoBiS/archive/v1.2.4.tar.gz) one
+Integrate with [PreForM.py](https://github.com/szaghi/PreForM) pre-processor. Fully backward compatible.
+### v1.1.4 
+##### Download [ZIP](https://github.com/szaghi/FoBiS/archive/v1.1.4.zip) ball or [TAR](https://github.com/szaghi/FoBiS/archive/v1.1.4.tar.gz) one
+Add support for both Python 2.7+ and Python 3.x. Fully backward compatible.
+### v1.1.3
+##### Download [ZIP](https://github.com/szaghi/FoBiS/archive/v1.1.3.zip) ball or [TAR](https://github.com/szaghi/FoBiS/archive/v1.1.3.tar.gz) one
+Implement GNU Make makefile generation. Fully backward compatible.
+### v1.0.3
+##### Download [ZIP](https://github.com/szaghi/FoBiS/archive/v1.0.3.zip) ball or [TAR](https://github.com/szaghi/FoBiS/archive/v1.0.3.tar.gz) one
+First stable release.
+
+Go to [Top](#top) or [Toc](#toc)
