@@ -66,7 +66,7 @@ Go to [Top](#top) or [Toc](#toc)
 + configuration-files-free;
 + ... but also configuration-file driven building for complex buildings;
 + parallel compiling enabled by means of concurrent multiprocesses jobs;
-+ generation of GNU Make makefile  with rules fully supporting dependency-hierarchy for _make-irriducible users_; 
++ generation of GNU Make makefile  with rules fully supporting dependency-hierarchy for _make-irriducible users_;
 + easy-extensible: FoBis.py is just a less-than 1000 lines of Python statements... no bad for a poor-make-replacement;
 + well integrate with a flexible pythonic pre-processor, [PreForM.py](https://github.com/szaghi/PreForM).
 
@@ -102,7 +102,7 @@ The installation is very simple: put FoBiS.py in your path or execute it using f
 
 Go to [Top](#top) or [Toc](#toc)
 ## <a name="help"></a>Getting Help]
-You are reading the main documentation of FoBiS.py that should be comprehensive. For more help contact directly the [author](stefano.zaghi@gmail.com). 
+You are reading the main documentation of FoBiS.py that should be comprehensive. For more help contact directly the [author](stefano.zaghi@gmail.com).
 
 Go to [Top](#top) or [Toc](#toc)
 ## <a name="Copyrights"></a>Copyrights
@@ -329,7 +329,7 @@ FoBiS.py clean
 
 Go to [Top](#top) or [Toc](#toc)
 ## <a name="fobos"></a>fobos: the FoBiS.py makefile
-For dealing with (repetitive) buildings of complex projects, FoBiS.py execution can be driven by means of a configuration file placed into the current working directory and named _fobos_, FOrtran Building OptionS file. The options defined into _fobos_ file override or in the case of _cflags_, _lflags_ and _preproc_ overload, the CLI arguments: this file is designed to act as a makefile, but with a very simple syntax (similar to INI files). _fobos_ file has exactly the same options available for the command line, in particular the options names are identical to the extended switches names (the ones prefixed with '--') or to the abbreviated ones (prefixed with '-') in case they are the only defined. If an option is present it will overrides the default value of CLI. Options can be commented with "#" symbol. 
+For dealing with (repetitive) buildings of complex projects, FoBiS.py execution can be driven by means of a configuration file placed into the current working directory and named _fobos_, FOrtran Building OptionS file. The options defined into _fobos_ file override or in the case of _cflags_, _lflags_ and _preproc_ overload, the CLI arguments: this file is designed to act as a makefile, but with a very simple syntax (similar to INI files). _fobos_ file has exactly the same options available for the command line, in particular the options names are identical to the extended switches names (the ones prefixed with '--') or to the abbreviated ones (prefixed with '-') in case they are the only defined. If an option is present it will overrides the default value of CLI. Options can be commented with "#" symbol.
 
 Note that if the fobos file is placed into the current working directory it is automatically loaded for both _build_ and _clean_ executions of FoBiS.py, however if a _fobos_ file is placed elsewhere and/or it is named differently from _fobos_ it can still be specified by means of "-f" switch
 ```bash
@@ -344,32 +344,32 @@ Using this feature it is simple to perform context-specific buildings accordingl
 In the following the two kind of fobos files are described. Note that the fobos file can be used also to define _rules_ for performing minor-tasks, see the [rules](#fobos-rules) section.
 
 ### <a name="single-mode-fobos"></a>single-building-mode fobos file
-This kind of fobos file _should_ have only one building mode defined by the section _[default]_, e.g. 
+This kind of fobos file _should_ have only one building mode defined by the section _[default]_, e.g.
 ```ini
 [default]
-help     = This is the help message...
-colors   = True
-quiet    = False
-jobs     = 1
-compiler = custom
-fc       = ifort
-modsw    = -module
-mpi      = False
-cflags   = -c -cpp -O2
-lflags   = -O2
-preproc  = -DPROFILING
-libs     = lib/bar.so lib/boo.a
-include  = other_include_path another_include_path
-inc      = .cmn .icp
-dmod     = ./mod/
-dobj     = ./obj/
-dexe     = ./
-src      = ./src/
-exclude  = pon.F cin.f90
-mklib    = static
-log      = False
-target   = foo.f90
-output   = FoO
+help      = This is the help message...
+colors    = True
+quiet     = False
+jobs      = 1
+compiler  = custom
+fc        = ifort
+modsw     = -module
+mpi       = False
+cflags    = -c -cpp -O2
+lflags    = -O2
+preproc   = -DPROFILING
+libs      = lib/bar.so lib/boo.a
+include   = other_include_path another_include_path
+inc       = .cmn .icp
+mod_dir   = ./mod/
+obj_dir   = ./obj/
+build_dir = ./
+src       = ./src/
+exclude   = pon.F cin.f90
+mklib     = static
+log       = False
+target    = foo.f90
+output    = FoO
 ```
 Note that due to the design-idea of this kind of fobos file, only one default mode should be defined, but if other modes (sections) are defined, only the one named _default_ is used, whereas the others are ignored. Moreover, the default mode can be placed everywhere into the file, it is not requested to be the first mode defined. Finally, if there is no section named default an error message is prompted, e.g.
 ```bash
@@ -388,7 +388,7 @@ help     = Compile with GNU gfortran in debug mode
 compiler = gnu
 cflags   = -c -cpp -O0 -C -g
 ...
- 
+
 [realese-gnu]
 help     = Compile with GNU gfortran in realese mode
 compiler = gnu
@@ -402,7 +402,7 @@ cflags   = -c -cpp -O0 -debug all -warn all
 ...
 
 ```
-The presence of the section and option _modes_ distinguishes a single-building-mode fobos file from a many-building-modes one, as consequence this section should be the first defined into the fobos file. However, it is possible to place the sections in any order, even with the _modes_ one placed at the end of the fobos file. When a many-building-modes fobos file is used, the switch _-mode_ must be used when invoking FoBiS.py for selecting a particular mode, e.g. 
+The presence of the section and option _modes_ distinguishes a single-building-mode fobos file from a many-building-modes one, as consequence this section should be the first defined into the fobos file. However, it is possible to place the sections in any order, even with the _modes_ one placed at the end of the fobos file. When a many-building-modes fobos file is used, the switch _-mode_ must be used when invoking FoBiS.py for selecting a particular mode, e.g.
 
 ```bash
 FoBiS.py build -mode realese-gnu
@@ -424,7 +424,7 @@ There is also a CLI switch, for both _clean_ and _build_ excutions, for listing 
 ```bash
 FoBiS.py build -lmodes
 ```
-or 
+or
 ```bash
 FoBiS.py clean -lmodes
 ```
@@ -456,7 +456,7 @@ rule_rm = rm -f project.tar
 rule_mk = tar cf project.tar *
 ...
 ```
-this defines two (auto explicative) rules. Note that three different options can be defined: _help_ contains the help message describing the aim of the rule, _quiet_ makes less verbose the output of rules execution and list (suppressing the commands printing, it overrides the -q switch of CLI) and _rule_ that actually defines the rule's commands. Note also that if more than one options have the same name, only the last command is executed. In order to use the defined rules, FoBiS.py must be invoked by means of _rule_ execution: the rules are not usable in the _build_ and _clean_ executions switches. The _rule_ execution has the following CLI: 
+this defines two (auto explicative) rules. Note that three different options can be defined: _help_ contains the help message describing the aim of the rule, _quiet_ makes less verbose the output of rules execution and list (suppressing the commands printing, it overrides the -q switch of CLI) and _rule_ that actually defines the rule's commands. Note also that if more than one options have the same name, only the last command is executed. In order to use the defined rules, FoBiS.py must be invoked by means of _rule_ execution: the rules are not usable in the _build_ and _clean_ executions switches. The _rule_ execution has the following CLI:
 ```bash
 FoBiS.py rule -h
 ```
@@ -508,7 +508,7 @@ If you absolutely need to work with GNU Make, FoBiS.py can still help you. It is
 ```bash
 FoBiS.py build -m my-makefile
 ```
-Using the switch _-m_ the project is not actually built, instead the file _my-makefile_ is created with valid instructions for building the project by means of GNU Make. It is worth noting that this building mode can be coupled with _fobos_ file acting as a _translator_ from the very simple and friendly _fobos_ syntax to the very cumbersome one of GNU Make: 
+Using the switch _-m_ the project is not actually built, instead the file _my-makefile_ is created with valid instructions for building the project by means of GNU Make. It is worth noting that this building mode can be coupled with _fobos_ file acting as a _translator_ from the very simple and friendly _fobos_ syntax to the very cumbersome one of GNU Make:
 ```bash
 FoBiS.py build -m my-makefile -f my-fobos
 ```
@@ -529,7 +529,7 @@ the file _makefile_ will contain the GNU Make instructions for building the proj
 
 Go to [Top](#top) or [Toc](#toc)
 ## <a name="examples"></a>Examples
-Into the directory _examples_ there are some KISS examples, just read their provided _REAMDE.md_. Here is reported only the fobos file of the "cumbersome_dependency_program" example where the main features of fobos file are shown. 
+Into the directory _examples_ there are some KISS examples, just read their provided _REAMDE.md_. Here is reported only the fobos file of the "cumbersome_dependency_program" example where the main features of fobos file are shown.
 
 #### Example of features-rich fobos file
 ```ini
@@ -593,10 +593,10 @@ python FoBiS.py ...
 Go to [Top](#top) or [Toc](#toc)
 ## <a name="versions"></a>Version History
 In the following the changelog of most important releases is reported.
-### v1.2.4 
+### v1.2.4
 ##### Download [ZIP](https://github.com/szaghi/FoBiS/archive/v1.2.4.zip) ball or [TAR](https://github.com/szaghi/FoBiS/archive/v1.2.4.tar.gz) one
 Integrate with [PreForM.py](https://github.com/szaghi/PreForM) pre-processor. Fully backward compatible.
-### v1.1.4 
+### v1.1.4
 ##### Download [ZIP](https://github.com/szaghi/FoBiS/archive/v1.1.4.zip) ball or [TAR](https://github.com/szaghi/FoBiS/archive/v1.1.4.tar.gz) one
 Add support for both Python 2.7+ and Python 3.x. Fully backward compatible.
 ### v1.1.3

@@ -6,6 +6,7 @@ cflags    = -c
 mod_dir   = ./mod/
 obj_dir   = ./obj/
 build_dir = ./build/
+pfm_dir   = ./pfm/
 src       = ./src/
 colors    = True
 quiet     = False
