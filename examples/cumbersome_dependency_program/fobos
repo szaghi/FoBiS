@@ -1,11 +1,14 @@
 [modes]
 modes = gnu custom
 
+[common-variables]
+$cflags = -c
+
 [gnu]
 help      = Compile with GNU gfortran
 compiler  = Gnu
 mpi       = False
-cflags    = -c
+cflags    = $cflags
 mod_dir   = ./mod/
 obj_dir   = ./obj/
 build_dir = ./build/
@@ -24,7 +27,7 @@ compiler  = custom
 fc        = g95
 modsw     = -fmod=
 mpi       = False
-cflags    = -c
+cflags    = $cflags
 mod_dir   = ./mod/
 obj_dir   = ./obj/
 build_dir = ./build/
