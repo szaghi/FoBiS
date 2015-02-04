@@ -228,8 +228,9 @@ class Builder(object):
     self.colors    = Colors()
     self.jobs      = jobs
     self.preform   = preform
-    self.pfm_dir   = build_dir+pfm_dir
     self.pfm_ext   = pfm_ext
+    self.pfm_dir   = pfm_dir
+    if self.pfm_dir: self.pfm_dir = build_dir+self.pfm_dir
     if not colors:
       self.colors.disable()
     if self.preform:
