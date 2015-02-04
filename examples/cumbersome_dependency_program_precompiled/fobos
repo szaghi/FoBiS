@@ -1,0 +1,16 @@
+[default]
+help      = Compile with GNU gfortran
+compiler  = Gnu
+cflags    = -c
+mod_dir   = ./mod/
+obj_dir   = ./obj/
+build_dir = ./build/
+src       = ./src/
+libs      = ./precompiled/obj/first_dep.o
+include   = ./precompiled/mod/
+colors    = True
+quiet     = False
+jobs      = 1
+target    = cumbersome.f90
+output    = Cumbersome
+log       = True

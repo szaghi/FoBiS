@@ -3,7 +3,7 @@
 FoBiS.py, Fortran Building System for poor men
 """
 __appname__ = 'FoBiS.py'
-__version__ ="1.1.4"
+__version__ = "1.2.5"
 __author__  = 'Stefano Zaghi'
 # modules loading
 import sys
@@ -814,8 +814,18 @@ def dependency_hiearchy(builder,pfiles):
           if not pfiles[fnum] in parsed_file.pfile_dep:
             parsed_file.pfile_dep.append(pfiles[fnum])
         else:
-          print(builder.colors.red+"Attention: the file '"+parsed_file.name+"' depends on '"+dep.name+"' that is unreachable"+builder.colors.end)
-          sys.exit(1)
+          # there is no source containg the searched module, try to find it into a precompiled mod file into eventually included paths
+          for dinc in builder.dinc:
+            for root, subFolders, files in os.walk(dinc):
+              for filename in files:
+                if os.path.splitext(os.path.basename(filename))[0].lower()==dep.name.lower() and os.path.splitext(os.path.basename(filename))[1].lower()=='.mod':
+                  fnum = 0
+                  break
+              if fnum==0: break
+            if fnum==0: break
+          if fnum!=0:
+            print(builder.colors.red+"Attention: the file '"+parsed_file.name+"' depends on '"+dep.name+"' that is unreachable"+builder.colors.end)
+            sys.exit(1)
       if dep.type=="include":
         dep.file,fnum = include_is_in(pfiles=pfiles,include=dep.name)
         if fnum>-1:
