@@ -2,11 +2,12 @@
 help      = Using PreForM.py pre-processor within FoBiS.py
 compiler  = Gnu
 mpi       = False
-cflags    = -c
+cflags    = -c -cpp
 mod_dir   = ./mod/
 obj_dir   = ./obj/
 build_dir = ./build/
 pfm_dir   = ./pfm/
+pfm_ext   = .pfm
 src       = ./src/
 colors    = True
 quiet     = False

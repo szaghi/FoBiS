@@ -48,7 +48,7 @@ __buildparser__.add_argument('-cflags',                required=False,action='st
 __buildparser__.add_argument('-lflags',                required=False,action='store',               default='',              help='Link flags')
 __buildparser__.add_argument('-libs',                  required=False,action='store',     nargs='+',default=[],              help='List of external libraries used')
 __buildparser__.add_argument('-i',       '--include',  required=False,action='store',     nargs='+',default=[],              help='List of directories for searching included files')
-__buildparser__.add_argument('-inc',                   required=False,action='store',     nargs='+',default=[],              help='Add a list of custom-defined file extensions for include files')
+__buildparser__.add_argument('-inc',                   required=False,action='store',     nargs='+',default=[],              help='List of custom-defined file extensions for include files')
 __buildparser__.add_argument('-p',       '--preproc',  required=False,action='store',               default='',              help='Preprocessor flags')
 __buildparser__.add_argument('-dobj',    '--obj_dir',  required=False,action='store',               default='./obj/',        help='Directory containing compiled objects [default: ./obj/]')
 __buildparser__.add_argument('-dmod',    '--mod_dir',  required=False,action='store',               default='./mod/',        help='Directory containing .mod files of compiled objects [default: ./mod/]')
@@ -63,6 +63,7 @@ __buildparser__.add_argument('-lmodes',                required=False,action='st
 __buildparser__.add_argument('-m',       '--makefile', required=False,action='store',               default=None,            help='Generate a GNU Makefile for building the project', metavar='MAKEFILE_name')
 __buildparser__.add_argument('-pfm',     '--preform',  required=False,action='store_true',          default=False,           help='Use PreForM.py pre-processor for pre-processing sources file')
 __buildparser__.add_argument('-dpfm',    '--pfm_dir',  required=False,action='store',               default=None,            help='Directory containing the sources processed with PreForM.py [default: none, the processed files are removed after used]')
+__buildparser__.add_argument('-epfm',    '--pfm_ext',  required=False,action='store',     nargs='+',default=[],              help='List of custom-defined file extensions to be preprocessed by PreForM.py [default: none, all files are preprocessed if PreForM.py is used]')
 __cleanparser__.add_argument('-f',       '--fobos',    required=False,action='store',               default=None,            help='Specify a "fobos" file named differently from "fobos"')
 __cleanparser__.add_argument('-colors',                required=False,action='store_true',          default=False,           help='Activate colors in shell prints [default: no colors]')
 __cleanparser__.add_argument('-dobj',    '--obj_dir',  required=False,action='store',               default='./obj/',        help='Directory containing compiled objects [default: ./obj/]')
@@ -126,7 +127,7 @@ __regex_f95_mpifh__      = re.compile(__str_f95_mpifh__)
 __extensions_old__    = [".f",".F",".for",".FOR",".fpp",".FPP",".fortran",".f77",".F77"]
 __extensions_modern__ = [".f90",".F90",".f95",".F95",".f03",".F03",".f08",".F08",".f2k",".F2K"]
 __extensions_inc__    = [".inc",".INC",".h",".H"]
-__extensions_parsed__ = __extensions_old__ + __extensions_modern__ + __extensions_inc__
+__extensions_parsed__ = __extensions_old__ + __extensions_modern__
 # system worker function
 def syswork(cmd):
   """
@@ -161,7 +162,7 @@ class Colors(object):
 
 class Builder(object):
   """Builder is an object that handles the building system, its attributes and methods."""
-  def __init__(self, compiler = "Intel", fc = "", modsw = "", mpi = False, cflags = "", lflags = "", libs = None, dinc = None, preproc = "", build_dir = "./", mod_dir = "./", obj_dir = "./", quiet = False, colors = False, jobs = 1, preform = False, pfm_dir = None):
+  def __init__(self, compiler = "Intel", fc = "", modsw = "", mpi = False, cflags = "", lflags = "", libs = None, dinc = None, preproc = "", build_dir = "./", mod_dir = "./", obj_dir = "./", quiet = False, colors = False, jobs = 1, preform = False, pfm_dir = None, pfm_ext = []):
     """
     Parameters
     ----------
@@ -199,6 +200,8 @@ class Builder(object):
       activate PreForM.py pre-processing
     pfm_dir : {None}
       directory containing sources processed by PreForm.py; by default are removed after used
+    pfm_ext : {[]}
+      list of file extensions to be processed by PreForm.py; by default all files are preprocessed if PreForM.py is used
 
     Attributes
     ----------
@@ -226,6 +229,7 @@ class Builder(object):
     self.jobs      = jobs
     self.preform   = preform
     self.pfm_dir   = build_dir+pfm_dir
+    self.pfm_ext   = pfm_ext
     if not colors:
       self.colors.disable()
     if self.preform:
@@ -283,16 +287,34 @@ class Builder(object):
       string containing the compile command
     """
     if self.preform:
-      if self.pfm_dir:
-        if len(self.dinc)>0:
-          comp_cmd = 'PreForM.py '+file_to_compile.name+' -o '+self.pfm_dir+file_to_compile.basename+'.pfm'+file_to_compile.extension+' ; '+self.cmd_comp+' '+''.join(['-I'+s+' ' for s in self.dinc])+self.pfm_dir+file_to_compile.basename+'.pfm'+file_to_compile.extension+' -o '+self.obj_dir+file_to_compile.basename+'.o'
+      if len(self.pfm_ext)>0:
+        if file_to_compile.extension in self.pfm_ext:
+          if self.pfm_dir:
+            if len(self.dinc)>0:
+              comp_cmd = 'PreForM.py '+file_to_compile.name+' -o '+self.pfm_dir+file_to_compile.basename+'.pfm.f90'+' ; '+self.cmd_comp+' '+''.join(['-I'+s+' ' for s in self.dinc])+self.pfm_dir+file_to_compile.basename+'.pfm.f90'+' -o '+self.obj_dir+file_to_compile.basename+'.o'
+            else:
+              comp_cmd = 'PreForM.py '+file_to_compile.name+' -o '+self.pfm_dir+file_to_compile.basename+'.pfm.f90'+' ; '+self.cmd_comp+' '+                                         self.pfm_dir+file_to_compile.basename+'.pfm.f90'+' -o '+self.obj_dir+file_to_compile.basename+'.o'
+          else:
+            if len(self.dinc)>0:
+              comp_cmd = 'PreForM.py '+file_to_compile.name+' -o '+file_to_compile.basename+'.pfm.f90'+' ; '+self.cmd_comp+' '+''.join(['-I'+s+' ' for s in self.dinc])+file_to_compile.basename+'.pfm.f90'+' -o '+self.obj_dir+file_to_compile.basename+'.o'+' ; rm -f '+file_to_compile.basename+'.pfm.f90'
+            else:
+              comp_cmd = 'PreForM.py '+file_to_compile.name+' -o '+file_to_compile.basename+'.pfm.f90'+' ; '+self.cmd_comp+' '+                                         file_to_compile.basename+'.pfm.f90'+' -o '+self.obj_dir+file_to_compile.basename+'.o'+' ; rm -f '+file_to_compile.basename+'.pfm.f90'
         else:
-          comp_cmd = 'PreForM.py '+file_to_compile.name+' -o '+self.pfm_dir+file_to_compile.basename+'.pfm'+file_to_compile.extension+' ; '+self.cmd_comp+' '+                                         self.pfm_dir+file_to_compile.basename+'.pfm'+file_to_compile.extension+' -o '+self.obj_dir+file_to_compile.basename+'.o'
+          if len(self.dinc)>0:
+            comp_cmd = self.cmd_comp+' '+''.join(['-I'+s+' ' for s in self.dinc])+file_to_compile.name+' -o '+self.obj_dir+file_to_compile.basename+'.o'
+          else:
+            comp_cmd = self.cmd_comp+' '                                         +file_to_compile.name+' -o '+self.obj_dir+file_to_compile.basename+'.o'
       else:
-        if len(self.dinc)>0:
-          comp_cmd = 'PreForM.py '+file_to_compile.name+' -o '+file_to_compile.basename+'.pfm'+file_to_compile.extension+' ; '+self.cmd_comp+' '+''.join(['-I'+s+' ' for s in self.dinc])+file_to_compile.basename+'.pfm'+file_to_compile.extension+' -o '+self.obj_dir+file_to_compile.basename+'.o'+' ; rm -f '+file_to_compile.basename+'.pfm'+file_to_compile.extension
+        if self.pfm_dir:
+          if len(self.dinc)>0:
+            comp_cmd = 'PreForM.py '+file_to_compile.name+' -o '+self.pfm_dir+file_to_compile.basename+'.pfm'+file_to_compile.extension+' ; '+self.cmd_comp+' '+''.join(['-I'+s+' ' for s in self.dinc])+self.pfm_dir+file_to_compile.basename+'.pfm'+file_to_compile.extension+' -o '+self.obj_dir+file_to_compile.basename+'.o'
+          else:
+            comp_cmd = 'PreForM.py '+file_to_compile.name+' -o '+self.pfm_dir+file_to_compile.basename+'.pfm'+file_to_compile.extension+' ; '+self.cmd_comp+' '+                                         self.pfm_dir+file_to_compile.basename+'.pfm'+file_to_compile.extension+' -o '+self.obj_dir+file_to_compile.basename+'.o'
         else:
-          comp_cmd = 'PreForM.py '+file_to_compile.name+' -o '+file_to_compile.basename+'.pfm'+file_to_compile.extension+' ; '+self.cmd_comp+' '+                                         file_to_compile.basename+'.pfm'+file_to_compile.extension+' -o '+self.obj_dir+file_to_compile.basename+'.o'+' ; rm -f '+file_to_compile.basename+'.pfm'+file_to_compile.extension
+          if len(self.dinc)>0:
+            comp_cmd = 'PreForM.py '+file_to_compile.name+' -o '+file_to_compile.basename+'.pfm'+file_to_compile.extension+' ; '+self.cmd_comp+' '+''.join(['-I'+s+' ' for s in self.dinc])+file_to_compile.basename+'.pfm'+file_to_compile.extension+' -o '+self.obj_dir+file_to_compile.basename+'.o'+' ; rm -f '+file_to_compile.basename+'.pfm'+file_to_compile.extension
+          else:
+            comp_cmd = 'PreForM.py '+file_to_compile.name+' -o '+file_to_compile.basename+'.pfm'+file_to_compile.extension+' ; '+self.cmd_comp+' '+                                         file_to_compile.basename+'.pfm'+file_to_compile.extension+' -o '+self.obj_dir+file_to_compile.basename+'.o'+' ; rm -f '+file_to_compile.basename+'.pfm'+file_to_compile.extension
     else:
       if len(self.dinc)>0:
         comp_cmd = self.cmd_comp+' '+''.join(['-I'+s+' ' for s in self.dinc])+file_to_compile.name+' -o '+self.obj_dir+file_to_compile.basename+'.o'
@@ -415,6 +437,7 @@ class Builder(object):
       message+= "  Preprocessing flags:             "+__builder__.preproc+"\n"
       message+= "  PreForM.py used:                 "+str(__builder__.preform)+"\n"
       message+= "  PreForM.py output directory:     "+str(__builder__.pfm_dir)+"\n"
+      message+= "  PreForM.py extensions processed: "+str(__builder__.pfm_ext)+"\n"
     return message
 
 class Cleaner(object):
@@ -990,12 +1013,15 @@ if __name__ == '__main__':
     if __cliargs__.only_target:
       __cleaner__.clean_target()
   elif __cliargs__.which=='build':
-    __cliargs__.src       = os.path.normpath(__cliargs__.src)+"/"
-    __cliargs__.build_dir = os.path.normpath(__cliargs__.build_dir)+"/"
-    __cliargs__.mod_dir   = os.path.normpath(__cliargs__.mod_dir)+"/"
-    __cliargs__.obj_dir   = os.path.normpath(__cliargs__.obj_dir)+"/"
-    __extensions_inc__   += __cliargs__.inc
-    __builder__=Builder(compiler=__cliargs__.compiler,fc=__cliargs__.fc,modsw=__cliargs__.modsw,mpi=__cliargs__.mpi,cflags=__cliargs__.cflags,lflags=__cliargs__.lflags,libs=__cliargs__.libs,dinc=__cliargs__.include,preproc=__cliargs__.preproc,build_dir=__cliargs__.build_dir,obj_dir=__cliargs__.obj_dir,mod_dir=__cliargs__.mod_dir,quiet=__cliargs__.quiet,colors=__cliargs__.colors,jobs=__cliargs__.jobs,preform=__cliargs__.preform,pfm_dir=__cliargs__.pfm_dir)
+    __cliargs__.src        = os.path.normpath(__cliargs__.src)+"/"
+    __cliargs__.build_dir  = os.path.normpath(__cliargs__.build_dir)+"/"
+    __cliargs__.mod_dir    = os.path.normpath(__cliargs__.mod_dir)+"/"
+    __cliargs__.obj_dir    = os.path.normpath(__cliargs__.obj_dir)+"/"
+    __extensions_inc__    += __cliargs__.inc
+    __extensions_parsed__ += __extensions_inc__
+    if len(__cliargs__.pfm_ext)>0:
+      __extensions_parsed__ += __cliargs__.pfm_ext
+    __builder__=Builder(compiler=__cliargs__.compiler,fc=__cliargs__.fc,modsw=__cliargs__.modsw,mpi=__cliargs__.mpi,cflags=__cliargs__.cflags,lflags=__cliargs__.lflags,libs=__cliargs__.libs,dinc=__cliargs__.include,preproc=__cliargs__.preproc,build_dir=__cliargs__.build_dir,obj_dir=__cliargs__.obj_dir,mod_dir=__cliargs__.mod_dir,quiet=__cliargs__.quiet,colors=__cliargs__.colors,jobs=__cliargs__.jobs,preform=__cliargs__.preform,pfm_dir=__cliargs__.pfm_dir,pfm_ext=__cliargs__.pfm_ext)
     __pfiles__ = [] # main parsed files list
     # parsing files loop
     for root, subFolders, files in os.walk(__cliargs__.src):
