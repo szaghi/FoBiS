@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/szaghi/FoBiS.png)](https://travis-ci.org/szaghi/FoBiS)
+[![Build Status](https://travis-ci.org/szaghi/FoBiS.svg?branch=master)](https://travis-ci.org/szaghi/FoBiS)
 [![Coverage Status](https://img.shields.io/coveralls/szaghi/FoBiS.svg)](https://coveralls.io/r/szaghi/FoBiS)
 [![Latest Version](https://pypip.in/version/FoBiS.py/badge.svg)](https://pypi.python.org/pypi/FoBiS.py/)
 [![Supported Python versions](https://pypip.in/py_versions/FoBiS.py/badge.svg)](https://pypi.python.org/pypi/FoBiS.py/)
