@@ -1,0 +1,190 @@
+************* Module fobis.fobos
+E:115,51: Instance of 'dict' has no 'iteritems' member (no-member)
+R:101, 2: Too many branches (18/12) (too-many-branches)
+************* Module fobis.Builder
+E:  7, 2: No name 'Pool' in module 'multiprocessing' (no-name-in-module)
+W: 21, 2: Dangerous default value [] as argument (dangerous-default-value)
+R: 21, 2: Too many arguments (19/7) (too-many-arguments)
+R: 21, 2: Too many local variables (21/15) (too-many-locals)
+R: 21, 2: Too many branches (24/12) (too-many-branches)
+R: 21, 2: Too many statements (66/50) (too-many-statements)
+R:151, 2: Too many branches (17/12) (too-many-branches)
+R:201, 2: Too many local variables (21/15) (too-many-locals)
+R:201, 2: Too many branches (33/12) (too-many-branches)
+R:201, 2: Too many statements (72/50) (too-many-statements)
+************* Module fobis.fobis
+W: 72,16: Unused variable 'subfolders' (unused-variable)
+R: 18, 0: Too many branches (25/12) (too-many-branches)
+R: 18, 0: Too many statements (54/50) (too-many-statements)
+E:115,51: Instance of 'dict' has no 'iteritems' member (no-member)
+R:101, 2: Too many branches (36/12) (too-many-branches)
+R:146, 2: Too many branches (14/12) (too-many-branches)
+R:172, 2: Too many branches (20/12) (too-many-branches)
+R:201, 2: Too many branches (18/12) (too-many-branches)
+E:  7, 2: No name 'Pool' in module 'multiprocessing' (no-name-in-module)
+W: 21, 2: Dangerous default value [] as argument (dangerous-default-value)
+R: 21, 2: Too many arguments (19/7) (too-many-arguments)
+R: 21, 2: Too many local variables (21/15) (too-many-locals)
+R: 21, 2: Too many branches (48/12) (too-many-branches)
+R: 21, 2: Too many statements (66/50) (too-many-statements)
+R:151, 2: Too many branches (34/12) (too-many-branches)
+R:201, 2: Too many local variables (21/15) (too-many-locals)
+R:201, 2: Too many branches (66/12) (too-many-branches)
+R:201, 2: Too many statements (72/50) (too-many-statements)
+W: 72,16: Unused variable 'subfolders' (unused-variable)
+R: 18, 0: Too many branches (50/12) (too-many-branches)
+R: 18, 0: Too many statements (54/50) (too-many-statements)
+************* Module fobis.utils
+W: 26, 0: Dangerous default value list() (builtins.list) as argument (dangerous-default-value)
+W:123,16: Unused variable 'root' (unused-variable)
+W:123,22: Unused variable 'subfolders' (unused-variable)
+R:107, 0: Too many branches (20/12) (too-many-branches)
+************* Module fobis.ParsedFile
+R: 61, 2: Too many arguments (8/7) (too-many-arguments)
+R:216, 2: Too many branches (14/12) (too-many-branches)
+W: 26, 0: Dangerous default value list() (builtins.list) as argument (dangerous-default-value)
+W:123,16: Unused variable 'root' (unused-variable)
+W:123,22: Unused variable 'subfolders' (unused-variable)
+R:107, 0: Too many branches (40/12) (too-many-branches)
+R: 61, 2: Too many arguments (8/7) (too-many-arguments)
+R:129, 2: Too many branches (20/12) (too-many-branches)
+R:175, 2: Too many branches (16/12) (too-many-branches)
+R:216, 2: Too many branches (28/12) (too-many-branches)
+************* Module fobis.Cleaner
+R: 45, 2: Too many branches (16/12) (too-many-branches)
+
+
+Report
+======
+1628 statements analysed.
+
+Statistics by type
+------------------
+
++---------+-------+-----------+-----------+------------+---------+
+|type     |number |old number |difference |%documented |%badname |
++=========+=======+===========+===========+============+=========+
+|module   |20     |20         |=          |100.00      |0.00     |
++---------+-------+-----------+-----------+------------+---------+
+|class    |14     |14         |=          |100.00      |0.00     |
++---------+-------+-----------+-----------+------------+---------+
+|method   |72     |72         |=          |100.00      |0.00     |
++---------+-------+-----------+-----------+------------+---------+
+|function |16     |16         |=          |100.00      |0.00     |
++---------+-------+-----------+-----------+------------+---------+
+
+
+
+External dependencies
+---------------------
+::
+
+    fobis 
+      \-Builder (fobis.fobis)
+      \-Cleaner (fobis.fobis)
+      \-Colors (fobis.config,fobis.Builder)
+      \-ParsedFile (fobis.fobis)
+      \-config (fobis.fobos,fobis.utils,fobis.Cleaner,fobis.fobis,fobis.ParsedFile)
+      \-fobis (FoBiS)
+      \-fobos (fobis.fobis)
+      \-utils (fobis.fobos,fobis.Builder,fobis.fobis,fobis.ParsedFile)
+
+
+
+Raw metrics
+-----------
+
++----------+-------+------+---------+-----------+
+|type      |number |%     |previous |difference |
++==========+=======+======+=========+===========+
+|code      |1863   |66.85 |1863     |=          |
++----------+-------+------+---------+-----------+
+|docstring |684    |24.54 |684      |=          |
++----------+-------+------+---------+-----------+
+|comment   |27     |0.97  |27       |=          |
++----------+-------+------+---------+-----------+
+|empty     |213    |7.64  |213      |=          |
++----------+-------+------+---------+-----------+
+
+
+
+Duplication
+-----------
+
++-------------------------+-------+---------+-----------+
+|                         |now    |previous |difference |
++=========================+=======+=========+===========+
+|nb duplicated lines      |1322   |1322     |=          |
++-------------------------+-------+---------+-----------+
+|percent duplicated lines |48.248 |48.248   |=          |
++-------------------------+-------+---------+-----------+
+
+
+
+Messages by category
+--------------------
+
++-----------+-------+---------+-----------+
+|type       |number |previous |difference |
++===========+=======+=========+===========+
+|convention |0      |0        |=          |
++-----------+-------+---------+-----------+
+|refactor   |34     |34       |=          |
++-----------+-------+---------+-----------+
+|warning    |10     |10       |=          |
++-----------+-------+---------+-----------+
+|error      |4      |4        |=          |
++-----------+-------+---------+-----------+
+
+
+
+% errors / warnings by module
+-----------------------------
+
++-----------------+------+--------+---------+-----------+
+|module           |error |warning |refactor |convention |
++=================+======+========+=========+===========+
+|fobis.Builder    |25.00 |10.00   |23.53    |0.00       |
++-----------------+------+--------+---------+-----------+
+|fobis.fobos      |25.00 |0.00    |11.76    |0.00       |
++-----------------+------+--------+---------+-----------+
+|fobis.utils      |0.00  |30.00   |2.94     |0.00       |
++-----------------+------+--------+---------+-----------+
+|fobis.fobis      |0.00  |10.00   |5.88     |0.00       |
++-----------------+------+--------+---------+-----------+
+|fobis.ParsedFile |0.00  |0.00    |11.76    |0.00       |
++-----------------+------+--------+---------+-----------+
+|fobis.Cleaner    |0.00  |0.00    |2.94     |0.00       |
++-----------------+------+--------+---------+-----------+
+
+
+
+Messages
+--------
+
++------------------------+------------+
+|message id              |occurrences |
++========================+============+
+|too-many-branches       |20          |
++------------------------+------------+
+|unused-variable         |6           |
++------------------------+------------+
+|too-many-statements     |6           |
++------------------------+------------+
+|too-many-locals         |4           |
++------------------------+------------+
+|too-many-arguments      |4           |
++------------------------+------------+
+|dangerous-default-value |4           |
++------------------------+------------+
+|no-name-in-module       |2           |
++------------------------+------------+
+|no-member               |2           |
++------------------------+------------+
+
+
+
+Global evaluation
+-----------------
+Your code has been rated at 9.61/10 (previous run: 9.61/10, +0.00)
+

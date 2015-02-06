@@ -1,0 +1,59 @@
+{
+  "modules": [
+    {
+      "name": "system path].fobis.ParsedFile.py", 
+      "warnings": [
+        {
+          "line_number": 186, 
+          "message": "Using the return value from (mk_file.writelines) which is always None"
+        }, 
+        {
+          "line_number": 193, 
+          "message": "Using the return value from (mk_file.writelines) which is always None"
+        }, 
+        {
+          "line_number": 195, 
+          "message": "Using the return value from (mk_file.writelines) which is always None"
+        }, 
+        {
+          "line_number": 264, 
+          "message": "Using the return value from (unique_seq) which is always None"
+        }
+      ]
+    }, 
+    {
+      "name": "system path].fobis.fobos.py", 
+      "warnings": [
+        {
+          "line_number": 46, 
+          "message": "__check_mode__ is not a special method"
+        }, 
+        {
+          "line_number": 68, 
+          "message": "__set_mode__ is not a special method"
+        }, 
+        {
+          "line_number": 86, 
+          "message": "__check_template__ is not a special method"
+        }, 
+        {
+          "line_number": 101, 
+          "message": "__set_cliargs__ is not a special method"
+        }
+      ]
+    }, 
+    {
+      "name": "system path].fobis.utils.py", 
+      "warnings": [
+        {
+          "line_number": 30, 
+          "message": "Modifying parameter (path) with a default value may have unexpected consequences"
+        }, 
+        {
+          "line_number": 37, 
+          "message": "Modifying parameter (path) with a default value may have unexpected consequences"
+        }
+      ]
+    }
+  ]
+}
