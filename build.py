@@ -29,7 +29,7 @@ def initialize(project):
   project.version = version
   project.build_depends_on('coverage')
   project.build_depends_on('flake8')
-  project.build_depends_on('forosted')
+  project.build_depends_on('frosted')
   project.build_depends_on('pylint')
   # project.depends_on('yattag')
 
