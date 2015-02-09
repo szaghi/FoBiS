@@ -34,15 +34,15 @@ R: 18, 0: Too many branches (50/12) (too-many-branches)
 R: 18, 0: Too many statements (54/50) (too-many-statements)
 ************* Module fobis.utils
 W: 26, 0: Dangerous default value list() (builtins.list) as argument (dangerous-default-value)
-W:123,16: Unused variable 'root' (unused-variable)
 W:123,22: Unused variable 'subfolders' (unused-variable)
+W:123,16: Unused variable 'root' (unused-variable)
 R:107, 0: Too many branches (20/12) (too-many-branches)
 ************* Module fobis.ParsedFile
 R: 61, 2: Too many arguments (8/7) (too-many-arguments)
 R:216, 2: Too many branches (14/12) (too-many-branches)
 W: 26, 0: Dangerous default value list() (builtins.list) as argument (dangerous-default-value)
-W:123,16: Unused variable 'root' (unused-variable)
 W:123,22: Unused variable 'subfolders' (unused-variable)
+W:123,16: Unused variable 'root' (unused-variable)
 R:107, 0: Too many branches (40/12) (too-many-branches)
 R: 61, 2: Too many arguments (8/7) (too-many-arguments)
 R:129, 2: Too many branches (20/12) (too-many-branches)
@@ -66,7 +66,7 @@ Statistics by type
 +---------+-------+-----------+-----------+------------+---------+
 |class    |14     |14         |=          |100.00      |0.00     |
 +---------+-------+-----------+-----------+------------+---------+
-|method   |76     |72         |+4.00      |100.00      |0.00     |
+|method   |76     |76         |=          |100.00      |0.00     |
 +---------+-------+-----------+-----------+------------+---------+
 |function |16     |16         |=          |100.00      |0.00     |
 +---------+-------+-----------+-----------+------------+---------+
@@ -80,12 +80,12 @@ External dependencies
     fobis 
       \-Builder (fobis.fobis)
       \-Cleaner (fobis.fobis)
-      \-Colors (fobis.config,fobis.Builder)
+      \-Colors (fobis.Builder,fobis.config)
       \-ParsedFile (fobis.fobis)
-      \-config (fobis.fobos,fobis.ParsedFile,fobis.fobis,fobis.utils,fobis.Cleaner)
+      \-config (fobis.utils,fobis.fobos,fobis.Cleaner,fobis.ParsedFile,fobis.fobis)
       \-fobis (FoBiS)
       \-fobos (fobis.fobis)
-      \-utils (fobis.fobos,fobis.ParsedFile,fobis.fobis,fobis.Builder)
+      \-utils (fobis.fobos,fobis.Builder,fobis.ParsedFile,fobis.fobis)
 
 
 
@@ -95,13 +95,13 @@ Raw metrics
 +----------+-------+------+---------+-----------+
 |type      |number |%     |previous |difference |
 +==========+=======+======+=========+===========+
-|code      |1935   |66.24 |1863     |+72.00     |
+|code      |1935   |66.24 |1935     |=          |
 +----------+-------+------+---------+-----------+
-|docstring |742    |25.40 |684      |+58.00     |
+|docstring |742    |25.40 |742      |=          |
 +----------+-------+------+---------+-----------+
 |comment   |27     |0.92  |27       |=          |
 +----------+-------+------+---------+-----------+
-|empty     |217    |7.43  |213      |+4.00      |
+|empty     |217    |7.43  |217      |=          |
 +----------+-------+------+---------+-----------+
 
 
@@ -112,9 +112,9 @@ Duplication
 +-------------------------+-------+---------+-----------+
 |                         |now    |previous |difference |
 +=========================+=======+=========+===========+
-|nb duplicated lines      |1390   |1322     |+68.00     |
+|nb duplicated lines      |1390   |1390     |=          |
 +-------------------------+-------+---------+-----------+
-|percent duplicated lines |48.331 |48.248   |+0.08      |
+|percent duplicated lines |48.331 |48.331   |=          |
 +-------------------------+-------+---------+-----------+
 
 
@@ -129,7 +129,7 @@ Messages by category
 +-----------+-------+---------+-----------+
 |refactor   |34     |34       |=          |
 +-----------+-------+---------+-----------+
-|warning    |8      |10       |-2.00      |
+|warning    |8      |8        |=          |
 +-----------+-------+---------+-----------+
 |error      |4      |4        |=          |
 +-----------+-------+---------+-----------+
@@ -184,5 +184,5 @@ Messages
 
 Global evaluation
 -----------------
-Your code has been rated at 9.63/10 (previous run: 9.61/10, +0.03)
+Your code has been rated at 9.63/10 (previous run: 9.63/10, +0.00)
 

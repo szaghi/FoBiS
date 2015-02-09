@@ -26,17 +26,19 @@ class Builder(object):
                cflags="",
                lflags="",
                libs=None,
+               ext_libs=None,
                dinc=None,
                preproc="",
                build_dir="./",
                mod_dir="./",
+               lib_dir=None,
                obj_dir="./",
                quiet=False,
                colors=False,
                jobs=1,
                preform=False,
                pfm_dir=None,
-               pfm_ext=[]):
+               pfm_ext=None):
     """
     Parameters
     ----------
@@ -53,7 +55,9 @@ class Builder(object):
     lflags : {""}
       linking flags
     libs : {None}
-      list of external libraries
+      list of external libraries that are not into the path: must be passed with full paths
+    ext_libs : {None}
+      list of external libraries that are into the path: are linked as '-llibrary.[a|so]' and searched into '-Ldir'
     dinc : {None}
       list of directories for searching included files
     preproc : {""}
@@ -62,6 +66,8 @@ class Builder(object):
       directory containing built files
     mod_dir : {"./"}
       directory containing .mod files
+    lib_dir : {None}
+      list of directories searched for libraries
     obj_dir : {"./"}
       directory containing compiled object files
     quiet : {False}
@@ -74,7 +80,7 @@ class Builder(object):
       activate PreForM.py pre-processing
     pfm_dir : {None}
       directory containing sources processed by PreForm.py; by default are removed after used
-    pfm_ext : {[]}
+    pfm_ext : {None}
       list of file extensions to be processed by PreForm.py; by default all files are preprocessed if PreForM.py is used
 
     Attributes
@@ -90,6 +96,10 @@ class Builder(object):
       self.libs = []
     else:
       self.libs = libs
+    if ext_libs is None:
+      self.ext_libs = []
+    else:
+      self.ext_libs = ext_libs
     if dinc is None:
       self.dinc = []
     else:
@@ -98,11 +108,18 @@ class Builder(object):
     self.build_dir = build_dir
     self.mod_dir = build_dir + mod_dir
     self.obj_dir = build_dir + obj_dir
+    if lib_dir is None:
+      self.lib_dir = []
+    else:
+      self.lib_dir = lib_dir
     self.quiet = quiet
     self.colors = Colors()
     self.jobs = jobs
     self.preform = preform
-    self.pfm_ext = pfm_ext
+    if pfm_ext is None:
+      self.pfm_ext = []
+    else:
+      self.pfm_ext = pfm_ext
     self.pfm_dir = pfm_dir
     if self.pfm_dir:
       self.pfm_dir = build_dir + self.pfm_dir
@@ -148,6 +165,61 @@ class Builder(object):
     if not os.path.exists(self.build_dir):
       os.makedirs(self.build_dir)
 
+  def __compile_preform(self, file_to_compile):
+    """
+    Method for creating compile command with PreForM.py usage.
+
+    Parameters
+    ----------
+    file_to_compile : ParsedFile object
+      file to be compiled
+
+    Returns
+    -------
+    str
+      string containing the PreForM.py command
+    str
+      string containing the output file name of PreForM.py
+    str
+      string containing the command for removing/storing PreForM.py outputs
+    """
+    preform_cmd = ''
+    preform_output = ''
+    preform_remove = ''
+    to_preform = False
+    if self.preform:
+      if len(self.pfm_ext) > 0:
+        if file_to_compile.extension in self.pfm_ext:
+          to_preform = True
+      else:
+        to_preform = True
+      if to_preform and self.pfm_dir:
+        pfm_dir = self.pfm_dir
+        preform_store = True
+      else:
+        pfm_dir = ''
+        preform_store = False
+      if to_preform:
+        preform_cmd = 'PreForM.py ' + file_to_compile.name + ' -o ' + pfm_dir + file_to_compile.basename + '.pfm.f90' + ' ; '
+        preform_output = pfm_dir + file_to_compile.basename + '.pfm.f90'
+        if not preform_store:
+          preform_remove = ' ; rm -f ' + preform_output
+    return preform_cmd, preform_output, preform_remove
+
+  def __compile_include(self):
+    """
+    Method for creating compile command with inluded paths.
+
+    Returns
+    -------
+    str
+      string containing the include command
+    """
+    include_cmd = ''
+    if len(self.dinc) > 0:
+      include_cmd = ''.join(['-I' + s + ' ' for s in self.dinc])
+    return include_cmd
+
   def compile_command(self, file_to_compile):
     """
     The method compile_command returns the OS command for compiling file_to_compile.
@@ -162,40 +234,13 @@ class Builder(object):
     str
       string containing the compile command
     """
-    if self.preform:
-      if len(self.pfm_ext) > 0:
-        if file_to_compile.extension in self.pfm_ext:
-          if self.pfm_dir:
-            if len(self.dinc) > 0:
-              comp_cmd = 'PreForM.py ' + file_to_compile.name + ' -o ' + self.pfm_dir + file_to_compile.basename + '.pfm.f90' + ' ; ' + self.cmd_comp + ' ' + ''.join(['-I' + s + ' ' for s in self.dinc]) + self.pfm_dir + file_to_compile.basename + '.pfm.f90' + ' -o ' + self.obj_dir + file_to_compile.basename + '.o'
-            else:
-              comp_cmd = 'PreForM.py ' + file_to_compile.name + ' -o ' + self.pfm_dir + file_to_compile.basename + '.pfm.f90' + ' ; ' + self.cmd_comp + ' ' + self.pfm_dir + file_to_compile.basename + '.pfm.f90' + ' -o ' + self.obj_dir + file_to_compile.basename + '.o'
-          else:
-            if len(self.dinc) > 0:
-              comp_cmd = 'PreForM.py ' + file_to_compile.name + ' -o ' + file_to_compile.basename + '.pfm.f90' + ' ; ' + self.cmd_comp + ' ' + ''.join(['-I' + s + ' ' for s in self.dinc]) + file_to_compile.basename + '.pfm.f90' + ' -o ' + self.obj_dir + file_to_compile.basename + '.o' + ' ; rm -f ' + file_to_compile.basename + '.pfm.f90'
-            else:
-              comp_cmd = 'PreForM.py ' + file_to_compile.name + ' -o ' + file_to_compile.basename + '.pfm.f90' + ' ; ' + self.cmd_comp + ' ' + file_to_compile.basename + '.pfm.f90' + ' -o ' + self.obj_dir + file_to_compile.basename + '.o' + ' ; rm -f ' + file_to_compile.basename + '.pfm.f90'
-        else:
-          if len(self.dinc) > 0:
-            comp_cmd = self.cmd_comp + ' ' + ''.join(['-I' + s + ' ' for s in self.dinc]) + file_to_compile.name + ' -o ' + self.obj_dir + file_to_compile.basename + '.o'
-          else:
-            comp_cmd = self.cmd_comp + ' ' + file_to_compile.name + ' -o ' + self.obj_dir + file_to_compile.basename + '.o'
-      else:
-        if self.pfm_dir:
-          if len(self.dinc) > 0:
-            comp_cmd = 'PreForM.py ' + file_to_compile.name + ' -o ' + self.pfm_dir + file_to_compile.basename + '.pfm' + file_to_compile.extension + ' ; ' + self.cmd_comp + ' ' + ''.join(['-I' + s + ' ' for s in self.dinc]) + self.pfm_dir + file_to_compile.basename + '.pfm' + file_to_compile.extension + ' -o ' + self.obj_dir + file_to_compile.basename + '.o'
-          else:
-            comp_cmd = 'PreForM.py ' + file_to_compile.name + ' -o ' + self.pfm_dir + file_to_compile.basename + '.pfm' + file_to_compile.extension + ' ; ' + self.cmd_comp + ' ' + self.pfm_dir + file_to_compile.basename + '.pfm' + file_to_compile.extension + ' -o ' + self.obj_dir + file_to_compile.basename + '.o'
-        else:
-          if len(self.dinc) > 0:
-            comp_cmd = 'PreForM.py ' + file_to_compile.name + ' -o ' + file_to_compile.basename + '.pfm' + file_to_compile.extension + ' ; ' + self.cmd_comp + ' ' + ''.join(['-I' + s + ' ' for s in self.dinc]) + file_to_compile.basename + '.pfm' + file_to_compile.extension + ' -o ' + self.obj_dir + file_to_compile.basename + '.o' + ' ; rm -f ' + file_to_compile.basename + '.pfm' + file_to_compile.extension
-          else:
-            comp_cmd = 'PreForM.py ' + file_to_compile.name + ' -o ' + file_to_compile.basename + '.pfm' + file_to_compile.extension + ' ; ' + self.cmd_comp + ' ' + file_to_compile.basename + '.pfm' + file_to_compile.extension + ' -o ' + self.obj_dir + file_to_compile.basename + '.o' + ' ; rm -f ' + file_to_compile.basename + '.pfm' + file_to_compile.extension
+    preform_cmd, preform_output, preform_remove = self.__compile_preform(file_to_compile)
+    include_cmd = self.__compile_include()
+
+    if preform_cmd != '':
+      comp_cmd = preform_cmd + self.cmd_comp + include_cmd + preform_output + ' -o ' + self.obj_dir + file_to_compile.basename + '.o' + preform_remove
     else:
-      if len(self.dinc) > 0:
-        comp_cmd = self.cmd_comp + ' ' + ''.join(['-I' + s + ' ' for s in self.dinc]) + file_to_compile.name + ' -o ' + self.obj_dir + file_to_compile.basename + '.o'
-      else:
-        comp_cmd = self.cmd_comp + ' ' + file_to_compile.name + ' -o ' + self.obj_dir + file_to_compile.basename + '.o'
+      comp_cmd = self.cmd_comp + include_cmd + file_to_compile.name + ' -o ' + self.obj_dir + file_to_compile.basename + '.o'
     return comp_cmd
 
   def build(self, file_to_build, output=None, nomodlibs=None, mklib=None):
@@ -267,7 +312,12 @@ class Builder(object):
         exe = self.build_dir + output
       else:
         exe = self.build_dir + file_to_build.basename
-      link_cmd = self.cmd_link + " " + "".join([self.obj_dir + s + " " for s in objs]) + "".join([s + " " for s in self.libs]) + "-o " + exe
+      link_cmd = self.cmd_link + " " + "".join([self.obj_dir + s + " " for s in objs]) + "".join([s + " " for s in self.libs])
+      if len(self.ext_libs) > 0:
+        link_cmd += " " + "".join(["-l" + s + " " for s in self.ext_libs])
+      if len(self.lib_dir) > 0:
+        link_cmd += " " + "".join(["-L" + s + " " for s in self.lib_dir])
+      link_cmd += " -o " + exe
       print(self.colors.bld + "Linking " + exe + self.colors.end)
       result = syswork(link_cmd)
       if result[0] != 0:
@@ -302,9 +352,23 @@ class Builder(object):
       message = "Builder options" + "\n"
       message += "  Compiled-objects .o   directory: " + self.obj_dir + "\n"
       message += "  Compiled-objects .mod directory: " + self.mod_dir + "\n"
+      if len(self.lib_dir) > 0:
+        message += "  External libraries directories:  " + "".join([s + " " for s in self.lib_dir]) + "\n"
+      else:
+        message += "  External libraries directories:  " + str(self.lib_dir) + "\n"
       message += "  Building directory:              " + self.build_dir + "\n"
-      message += "  Included paths:                  " + "".join([s + " " for s in self.dinc]) + "\n"
-      message += "  Linked libraries:                " + "".join([s + " " for s in self.libs]) + "\n"
+      if len(self.dinc) > 0:
+        message += "  Included paths:                  " + "".join([s + " " for s in self.dinc]) + "\n"
+      else:
+        message += "  Included paths:                  " + str(self.dinc) + "\n"
+      if len(self.libs) > 0:
+        message += "  Linked libraries with full path: " + "".join([s + " " for s in self.libs]) + "\n"
+      else:
+        message += "  Linked libraries with full path: " + str(self.libs) + "\n"
+      if len(self.ext_libs) > 0:
+        message += "  Linked libraries in path:        " + "".join([s + " " for s in self.ext_libs]) + "\n"
+      else:
+        message += "  Linked libraries in path:        " + str(self.ext_libs) + "\n"
       message += "  Compiler class:                  " + self.compiler + "\n"
       message += "  Compiler:                        " + self.fcs + "\n"
       message += "  Compiler module switch:          " + self.modsw + "\n"
