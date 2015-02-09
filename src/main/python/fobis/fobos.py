@@ -32,7 +32,8 @@ class Fobos(object):
     self.local_variables = {}
     if os.path.exists(filename):
       self.fobos = configparser.ConfigParser()
-      self.fobos.optionxform = str  # case sensitive
+      if not __config__.cliargs.fobos_case_insensitive:
+        self.fobos.optionxform = str  # case sensitive
       self.fobos.read(filename)
       # checking if local variables have been defined into fobos
       for section in self.fobos.sections():
