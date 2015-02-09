@@ -21,7 +21,9 @@ However, the support for modern Fortran project is still poor: in particular, it
 Modern Fortran programs can take great advantage of using modules (e.g. encapsulation), however their compilations can quickly become a nightmare as the number of modules grows. As  a consequence, an automatic build system able to track (on the fly) any changes on the inter-module-dependency hierarchy can save the life of a _poor-fortran-man_.
 
 ### Why not use an auto-make-like tool?
-There are a lot of alternatives for deal with inter-module-dependency hierarchy, but they can be viewed as a pre-processor for the actual building system (such as auto-make tools or even the Fortran compiler itself that, in most cases, can generate a dependency list of a processed file), thus they introduce another level of complexity... but a _poor-fortran-man_ always loves the KISS (Keep It Simple, Stupid) things! FoBiS.py is designed to do just one thing: build a modern Fortran program without boring you to specify a particular compilation hierarchy.
+There are a lot of alternatives for deal with inter-module-dependency hierarchy, but they can be viewed as a pre-processor for the actual building system (such as auto-make tools or even the Fortran compiler itself that, in most cases, can generate a dependency list of a processed file), thus they introduce another level of complexity... but a _poor-fortran-man_ always loves the KISS (Keep It Simple, Stupid) things!
+
+##### FoBiS.py is designed to do just one thing: build a modern Fortran program without boring you to specify a particular compilation hierarchy.
 
 ### OK, what can FoBiS.py do? I am a _poor-fortran-man_, I do not understand you...
 Let us consider the following project tree
@@ -33,9 +35,17 @@ Let us consider the following project tree
         └── nested-2
             └── second_dep.inc
 ```
-The main program contained into `cumbersome.f90` depends on `first_dep.f90` via the use statement `use NesteD_1`, thus it actually depends on the module `nested_1`. This module depends on `second_dep.inc` via the include statement `include  'second_dep.inc'`. Note that the dependency files are stored in a *cumbersome* nested tree. Write a makefile for this very simple example wast many minutes... when the modules number increases the time wasted blows up! It would be very nice to have a tool that automatically track the actual dependency-hierarchy a build the project on the fly, without the necessity to track the dependency-hierarchy changes. FoBiS.py just make this takes and few more things!
+The main program contained into `cumbersome.f90` depends on `first_dep.f90` via the use statement `use NesteD_1`, thus it actually depends on the module `nested_1`. This module depends on `second_dep.inc` via the include statement `include  'second_dep.inc'`. Note that the dependency files are stored in a *cumbersome* nested tree. Write a makefile for this very simple example could waste many minutes... when the modules number increases the time wasted blows up!
 
-Suppose your goal is to build some (all) of the main programs contained into the project tree. In this case FoBiS.py can save your life: just type _python FoBiS.py build_ in the root of your project and FoBis.py will (try to) build all the main programs nested into the current root directory. Obviously, FoBiS.py will not (re-)compile unnecessary objects if they are up-to-date (like the "magic" of a makefile). FoBiS.py have many (ok... some) others interesting features: if I have convinced you, please read the following.
+It would be very nice to have a tool that automatically track the actual dependency-hierarchy and build the project on the fly, without the necessity to track the dependency-hierarchy changes. FoBiS.py just makes this... and few more things!
+
+Suppose your goal is to build some (all) of the main programs contained into the project tree. In this case FoBiS.py can save your life: just type
+```bash
+FoBiS.py build
+```
+in the root of your project and FoBis.py will build all the main programs nested into the current root directory. Obviously, FoBiS.py will not (re-)compile unnecessary objects if they are up-to-date (like the "magic" of a makefile).
+
+FoBiS.py has many (ok... some) others interesting features: if I have convinced you, please read the following.
 
 Go to [Top](#top)
 
@@ -57,7 +67,9 @@ Go to [Top](#top)
 Go to [Top](#top)
 
 ## Documentation
-FoBiS.py documentations is hosted on GitHub. The [wiki](https://github.com/szaghi/FoBiS/wiki) and the [README](https://github.com/szaghi/FoBiS) are the main documentation resources. Other sources of documentation are the examples.
+FoBiS.py documentations are hosted on GitHub. The [wiki](https://github.com/szaghi/FoBiS/wiki) and the [README](https://github.com/szaghi/FoBiS) are the main documentation resources. Other sources of documentation are the examples.
+
+Here is a non-comprehensive list of the main topics
 
 | [Install](https://github.com/szaghi/FoBiS/wiki/Install)                                            | [Usage](https://github.com/szaghi/FoBiS/wiki/Usage)                             |
 |----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
