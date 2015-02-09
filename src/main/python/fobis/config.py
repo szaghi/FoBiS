@@ -6,7 +6,7 @@ import argparse
 import os
 from .Colors import Colors
 __appname__ = "FoBiS.py"
-__version__ = "v1.2.7"
+__version__ = "v1.2.8"
 __author__ = "Stefano Zaghi"
 __author_email__ = "stefano.zaghi@gmail.com"
 __license__ = "GNU General Public License v3 (GPLv3)"
@@ -56,6 +56,7 @@ __buildparser__.add_argument('-pfm', '--preform', required=False, action='store_
 __buildparser__.add_argument('-dpfm', '--pfm_dir', required=False, action='store', default=None, help='Directory containing the sources processed with PreForM.py [default: none, the processed files are removed after used]')
 __buildparser__.add_argument('-epfm', '--pfm_ext', required=False, action='store', nargs='+', default=[], help='List of custom-defined file extensions to be preprocessed by PreForM.py [default: none, all files are preprocessed if PreForM.py is used]')
 __cleanparser__.add_argument('-f', '--fobos', required=False, action='store', default=None, help='Specify a "fobos" file named differently from "fobos"')
+__cleanparser__.add_argument('-fci', '--fobos_case_insensitive', required=False, action='store_true', default=False, help='Assume fobos inputs as case insensitive [defaul: False, case sensitive]')
 __cleanparser__.add_argument('-colors', required=False, action='store_true', default=False, help='Activate colors in shell prints [default: no colors]')
 __cleanparser__.add_argument('-dobj', '--obj_dir', required=False, action='store', default='./obj/', help='Directory containing compiled objects [default: ./obj/]')
 __cleanparser__.add_argument('-dmod', '--mod_dir', required=False, action='store', default='./mod/', help='Directory containing .mod files of compiled objects [default: ./mod/]')

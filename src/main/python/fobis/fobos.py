@@ -113,7 +113,7 @@ class Fobos(object):
           item_value = item[1]
           if len(self.local_variables) > 0:
             # the fobos defines some local variables: parsing the opstions for local variables expansion
-            for key, value in self.local_variables.iteritems():
+            for key, value in self.local_variables.items():
               if key in item_value:
                 item_value = item_value.replace(key, value)
           # if type(cliargs_dict[item[0]]) == type(False):
