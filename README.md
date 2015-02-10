@@ -3,7 +3,7 @@
 [![Coverage Status](https://img.shields.io/coveralls/szaghi/FoBiS.svg)](https://coveralls.io/r/szaghi/FoBiS)
 [![Latest Version](https://pypip.in/version/FoBiS.py/badge.svg)](https://pypi.python.org/pypi/FoBiS.py/)
 [![Supported Python versions](https://pypip.in/py_versions/FoBiS.py/badge.svg)](https://pypi.python.org/pypi/FoBiS.py/)
-[![License](https://pypip.in/license/FoBiS.py/badge.svg)](https://pypi.python.org/pypi/FoBiS.py/)
+[![License](https://img.shields.io/pypi/l/FoBiS.svg)](https://img.shields.io/pypi/l/FoBiS.svg)
 [![Development Status](https://pypip.in/status/FoBiS.py/badge.svg)](https://pypi.python.org/pypi/FoBiS.py/)
 [![Ready in backlog](https://badge.waffle.io/szaghi/fobis.png?label=ready&title=Ready)](https://waffle.io/szaghi/fobis)
 [![In Progress](https://badge.waffle.io/szaghi/fobis.png?label=in%20progress&title=In%20Progress)](https://waffle.io/szaghi/fobis)
