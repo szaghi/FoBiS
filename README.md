@@ -52,6 +52,7 @@ Go to [Top](#top)
 ## Main features
 + Automatic parsing of files for dependency-hierarchy creation in case of _use_ and _include_ statements;
 + automatic building of all _programs_ found into the root directory parsed or only a specific selected target;
++ automatic (re-)building when compiling flags change;
 + avoid unnecessary re-compilation (algorithm based on file-timestamp value);
 + simple command line interface (CLI);
 + friendly support for external libraries linking;
