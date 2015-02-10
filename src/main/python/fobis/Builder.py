@@ -325,6 +325,10 @@ class Builder(object):
         sys.exit(1)
       print(self.colors.bld + 'Target ' + file_to_build.name + ' has been successfully built' + self.colors.end)
     elif mklib:
+      if nomodlibs is not None:
+        objs = nomodlibs + file_to_build.obj_dependencies(exclude_programs=True)
+      else:
+        objs = file_to_build.obj_dependencies(exclude_programs=True)
       if output:
         lib = self.build_dir + output
       else:
@@ -333,9 +337,9 @@ class Builder(object):
         elif mklib.lower() == 'static':
           lib = self.build_dir + file_to_build.basename + '.a'
       if mklib.lower() == 'shared':
-        link_cmd = self.cmd_link + " " + "".join([s + " " for s in self.libs]) + self.obj_dir + file_to_build.basename + ".o -o " + lib
+        link_cmd = self.cmd_link + " " + "".join([self.obj_dir + s + " " for s in objs]) + "".join([s + " " for s in self.libs]) + " -o " + lib
       elif mklib.lower() == 'static':
-        link_cmd = "ar -rcs " + lib + " " + self.obj_dir + file_to_build.basename + ".o ; ranlib " + lib
+        link_cmd = "ar -rcs " + lib + " " + "".join([self.obj_dir + s + " " for s in objs]) + "".join([s + " " for s in self.libs]) + " ; ranlib " + lib
       print(self.colors.bld + "Linking " + lib + self.colors.end)
       result = syswork(link_cmd)
       if result[0] != 0:

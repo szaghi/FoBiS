@@ -207,11 +207,19 @@ class ParsedFile(object):
       str_dep = str_dep + pref + dep.name + "\n"
     return str_dep
 
-  def obj_dependencies(self):
+  def obj_dependencies(self, exclude_programs=False):
     """
     The method obj_dependencies create a list containing the dependencies object files list.
+
+    Parameters
+    ----------
+    exclude_programs : {False}
+      flag for excluding programs obj from the list
     """
-    return [p.basename + ".o" for p in self.pfile_dep_all if not p.include]
+    if exclude_programs:
+      return [p.basename + ".o" for p in self.pfile_dep_all if not p.include and not p.program]
+    else:
+      return [p.basename + ".o" for p in self.pfile_dep_all if not p.include]
 
   def check_compile(self, obj_dir):
     """
