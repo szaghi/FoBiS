@@ -128,8 +128,7 @@ class Builder(object):
     if self.preform:
       pfm_exist = False
       for path in os.environ["PATH"].split(os.pathsep):
-        # pfm_exist = os.path.exists(os.path.join(path, 'PreForM.py'))
-        pfm_exist = True  # forcing for Travis CI test: to remove!
+        pfm_exist = os.path.exists(os.path.join(path, 'PreForM.py'))
         if pfm_exist:
           if self.pfm_dir:
             if not os.path.exists(self.pfm_dir):
@@ -137,7 +136,7 @@ class Builder(object):
           break
       if not pfm_exist:
         print(self.colors.red + 'Error: PreForM.py is not in your PATH! You cannot use --preform or -pfm switches.' + self.colors.end)
-        sys.exit(1)
+        # sys.exit(1)
     if mpi:
       self.fcs = 'mpif90'
     if compiler.lower() == 'gnu':
