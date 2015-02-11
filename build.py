@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Build script for MaTiSSe.py"""
+"""Build script for FoBiS.py"""
 import os
 from pybuilder.core import Author, init, task, use_plugin
 from shutil import copyfile
@@ -31,7 +31,6 @@ def initialize(project):
   project.build_depends_on('flake8')
   project.build_depends_on('frosted')
   project.build_depends_on('pylint')
-  # project.depends_on('yattag')
 
   project.set_property('flake8_max_line_length', 500)
   project.set_property('verbose', True)

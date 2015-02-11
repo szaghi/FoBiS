@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Testing columns environment"""
+"""Testing FoBiS.py"""
 # import doctest
 import os
 import unittest
