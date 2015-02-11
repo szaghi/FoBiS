@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Setup script for install MaTiSSe.py"""
+"""Setup script for install FoBiS.py"""
 import re
 from setuptools import setup
 __source__ = open('fobis/config.py').read()

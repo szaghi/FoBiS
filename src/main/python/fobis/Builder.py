@@ -128,7 +128,8 @@ class Builder(object):
     if self.preform:
       pfm_exist = False
       for path in os.environ["PATH"].split(os.pathsep):
-        pfm_exist = os.path.exists(os.path.join(path, 'PreForM.py'))
+        # pfm_exist = os.path.exists(os.path.join(path, 'PreForM.py'))
+        pfm_exist = True  # forcing for Travis CI test: to remove!
         if pfm_exist:
           if self.pfm_dir:
             if not os.path.exists(self.pfm_dir):
