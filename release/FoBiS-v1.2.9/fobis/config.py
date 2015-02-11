@@ -138,9 +138,19 @@ class FoBiSConfig(object):
       print(self)
     return
 
-  def get_cli(self):
-    """Method for parsing CLI arguments."""
-    self.cliargs = __cliparser__.parse_args()
+  def get_cli(self, fake_args=None):
+    """
+    Method for parsing CLI arguments.
+
+    Parameters
+    ----------
+    fake_args : {None}
+      list containing fake CLAs for using without CLI
+    """
+    if fake_args:
+      self.cliargs = __cliparser__.parse_args(fake_args)
+    else:
+      self.cliargs = __cliparser__.parse_args()
     if not self.cliargs.colors:
       self.colors.disable()
     if self.cliargs.which == 'clean' or self.cliargs.which == 'build':

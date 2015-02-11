@@ -11,7 +11,7 @@ use_plugin('python.flake8')
 use_plugin('python.frosted')
 use_plugin('python.install_dependencies')
 use_plugin('python.pylint')
-# use_plugin('python.unittest')
+use_plugin('python.unittest')
 
 __source__ = open('src/main/python/fobis/config.py').read()
 

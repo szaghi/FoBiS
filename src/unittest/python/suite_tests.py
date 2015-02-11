@@ -3,45 +3,55 @@
 # import doctest
 import os
 import unittest
-import subprocess
-
-
-def syswork(cmd):
-  """
-  Function for executing system command 'cmd'.
-
-  Paramters
-  ---------
-  cmd : str
-    command to be extecuted
-  """
-  error = 0
-  try:
-    output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
-  except subprocess.CalledProcessError as err:
-    error = err.returncode
-    output = err.output
-  return [error, output]
+from fobis.config import __config__
+from fobis.fobis import build
+from fobis.fobis import clean
+from fobis.fobos import Fobos
 
 
 class SuiteTest(unittest.TestCase):
   """Testing suite for FoBiS.py."""
 
+  @staticmethod
+  def run_build(directory):
+    """
+    Method for running the build into a selected directory.
+
+    Parameters
+    ----------
+    directory : str
+      relative path to tested directory
+    """
+    print("Testing " + directory)
+    old_pwd = os.getcwd()
+    os.chdir(os.path.dirname(os.path.abspath(__file__)) + '/' + directory)
+    __config__.get_cli(['clean', '-f', 'fobos'])
+    Fobos(filename=__config__.cliargs.fobos)
+    clean()
+    __config__.get_cli(['build', '-f', 'fobos'])
+    Fobos(filename=__config__.cliargs.fobos)
+    build()
+    build_ok = os.path.exists(directory)
+    __config__.get_cli(['clean', '-f', 'fobos'])
+    Fobos(filename=__config__.cliargs.fobos)
+    clean()
+    os.chdir(old_pwd)
+    return build_ok
+
   def test_buildings(self):
     """Testing buildings."""
     num_failures = 0
     failed = []
-    err, out = syswork('../../main/python/FoBiS.py clean -f test1/fobos')
-    err, out = syswork('../../main/python/FoBiS.py build -f test1/fobos')
-    build_ok = os.path.exists('build/Cumbersome')
-    if not build_ok:
-      failed.append(['test1', err, out])
-      num_failures += 1
+
+    for test in range(5):
+      build_ok = self.run_build('test' + str(test + 1))
+      if not build_ok:
+        failed.append('test' + str(test + 1))
+        num_failures += 1
+
     if len(failed) > 0:
       for fail in failed:
-        print(fail[0])
-        print(fail[1])
-        print(fail[2])
+        print(fail)
     self.assertEquals(num_failures, 0)
     return
 

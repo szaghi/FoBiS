@@ -27,4 +27,5 @@ if __name__ == '__main__':
                                  'Programming Language :: Python :: 3.4',
                                  'Topic :: Text Processing'],
         entry_points          = { 'console_scripts': [] },
-        install_requires      = [ "multiprocessing" ])
+        extras_require        = { 'PreForM.py':  ["PreForM.py>=v1.1.1"]})
+        # install_requires      = [ "multiprocessing" ])

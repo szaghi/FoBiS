@@ -2,18 +2,22 @@
 $cflags = -c
 
 [default]
-help      = Compile with GNU gfortran
-compiler  = Gnu
-mpi       = False
-cflags    = $cflags
-mod_dir   = ./mod/
-obj_dir   = ./obj/
-build_dir = ./build/
-src       = ./
-colors    = False
-quiet     = False
-jobs      = 1
-inc       = .h .H
-target    = cumbersome.f90
-output    = Cumbersome
-log       = False
+help            = Compile with GNU gfortran
+template        = template-test
+
+[template-test]
+compiler        = Gnu
+mpi             = False
+cflags          = $cflags
+mod_dir         = ./mod/
+obj_dir         = ./obj/
+build_dir       = ./
+src             = ./
+colors          = True
+quiet           = False
+jobs            = 1
+inc             = .h .H
+target          = cumbersome.f90
+output          = test1
+log             = True
+cflags_heritage = True

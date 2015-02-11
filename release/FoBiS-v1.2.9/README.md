@@ -1,10 +1,11 @@
 <a name="top"></a>
 [![Build Status](https://travis-ci.org/szaghi/FoBiS.svg?branch=master)](https://travis-ci.org/szaghi/FoBiS)
 [![Coverage Status](https://img.shields.io/coveralls/szaghi/FoBiS.svg)](https://coveralls.io/r/szaghi/FoBiS)
-[![Latest Version](https://pypip.in/version/FoBiS.py/badge.svg)](https://pypi.python.org/pypi/FoBiS.py/)
-[![Supported Python versions](https://pypip.in/py_versions/FoBiS.py/badge.svg)](https://pypi.python.org/pypi/FoBiS.py/)
-[![License](https://pypip.in/license/FoBiS.py/badge.svg)](https://pypi.python.org/pypi/FoBiS.py/)
-[![Development Status](https://pypip.in/status/FoBiS.py/badge.svg)](https://pypi.python.org/pypi/FoBiS.py/)
+[![Latest Version](https://pypip.in/version/FoBiS.py/badge.svg?style=flat)](https://pypi.python.org/pypi/FoBiS.py/)
+[![Supported Python versions](https://pypip.in/py_versions/FoBiS.py/badge.svg?style=flat)](https://pypi.python.org/pypi/FoBiS.py/)
+[![License](https://pypip.in/license/FoBiS.py/badge.svg?style=flat)](https://pypi.python.org/pypi/FoBiS.py/)
+[![Development Status](https://pypip.in/status/FoBiS.py/badge.svg?style=flat)](https://pypi.python.org/pypi/FoBiS.py/)
+[![Download format](https://pypip.in/format/FoBiS.py/badge.svg?style=flat)](https://pypi.python.org/pypi/FoBiS.py/)
 [![Ready in backlog](https://badge.waffle.io/szaghi/fobis.png?label=ready&title=Ready)](https://waffle.io/szaghi/fobis)
 [![In Progress](https://badge.waffle.io/szaghi/fobis.png?label=in%20progress&title=In%20Progress)](https://waffle.io/szaghi/fobis)
 [![Open bugs](https://badge.waffle.io/szaghi/fobis.png?label=bug&title=Open%20Bugs)](https://waffle.io/szaghi/fobis)
@@ -52,6 +53,7 @@ Go to [Top](#top)
 ## Main features
 + Automatic parsing of files for dependency-hierarchy creation in case of _use_ and _include_ statements;
 + automatic building of all _programs_ found into the root directory parsed or only a specific selected target;
++ automatic (re-)building when compiling flags change;
 + avoid unnecessary re-compilation (algorithm based on file-timestamp value);
 + simple command line interface (CLI);
 + friendly support for external libraries linking;
