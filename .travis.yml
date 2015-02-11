@@ -6,6 +6,7 @@ python:
 
 before_install:
   - sudo apt-get install gfortran
+  - pip install PreForM.py
 
 install:
   - pip install pybuilder
