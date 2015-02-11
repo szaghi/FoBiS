@@ -30,3 +30,8 @@ target    = library.f90
 output    = test4
 mklib     = static
 log       = True
+
+[rule-finalize]
+help  = Rule for preparing the next test
+quiet = True
+rule  = echo ""

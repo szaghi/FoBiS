@@ -15,3 +15,8 @@ jobs      = 1
 target    = cumbersome.f90
 output    = test3
 log       = True
+
+[rule-finalize]
+help  = Rule for preparing the next test
+quiet = True
+rule  = echo ""

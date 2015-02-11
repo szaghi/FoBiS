@@ -88,6 +88,7 @@ __rulexparser__.add_argument('-fci', '--fobos_case_insensitive', required=False,
 __rulexparser__.add_argument('-ex', '--execute', required=False, action='store', default=None, help='Specify a rule (defined into fobos file) to be executed', metavar='RULE')
 __rulexparser__.add_argument('-ls', '--list', required=False, action='store_true', default=False, help='List the rules defined into a fobos file')
 __rulexparser__.add_argument('-q', '--quiet', required=False, action='store_true', default=False, help='Less verbose than default')
+__rulexparser__.add_argument('-colors', required=False, action='store_true', default=False, help='Activate colors in shell prints [default: no colors]')
 
 
 class FoBiSConfig(object):

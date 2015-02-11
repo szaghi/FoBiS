@@ -105,28 +105,27 @@ class Fobos(object):
     """
     if self.fobos:
       cliargs_dict = deepcopy(__config__.cliargs.__dict__)
-      self.__set_mode__()
+      if __config__.cliargs.which != 'rule':
+        self.__set_mode__()
       self.__check_template__()
 
-      for item in self.fobos.items(self.mode):
-        if item[0] in cliargs_dict:
-          item_value = item[1]
-          if len(self.local_variables) > 0:
-            # the fobos defines some local variables: parsing the opstions for local variables expansion
-            for key, value in self.local_variables.items():
-              if key in item_value:
-                item_value = item_value.replace(key, value)
-          # if type(cliargs_dict[item[0]]) == type(False):
-          if isinstance(cliargs_dict[item[0]], bool):
-            setattr(__config__.cliargs, item[0], self.fobos.getboolean(self.mode, item[0]))
-          # elif type(cliargs_dict[item[0]]) == type(1):
-          elif isinstance(cliargs_dict[item[0]], int):
-            setattr(__config__.cliargs, item[0], int(item[1]))
-          # elif type(cliargs_dict[item[0]]) == type([]):
-          elif isinstance(cliargs_dict[item[0]], list):
-            setattr(__config__.cliargs, item[0], item[1].split())
-          else:
-            setattr(__config__.cliargs, item[0], item_value)
+      if self.mode:
+        for item in self.fobos.items(self.mode):
+          if item[0] in cliargs_dict:
+            item_value = item[1]
+            if len(self.local_variables) > 0:
+              # the fobos defines some local variables: parsing the opstions for local variables expansion
+              for key, value in self.local_variables.items():
+                if key in item_value:
+                  item_value = item_value.replace(key, value)
+            if isinstance(cliargs_dict[item[0]], bool):
+              setattr(__config__.cliargs, item[0], self.fobos.getboolean(self.mode, item[0]))
+            elif isinstance(cliargs_dict[item[0]], int):
+              setattr(__config__.cliargs, item[0], int(item[1]))
+            elif isinstance(cliargs_dict[item[0]], list):
+              setattr(__config__.cliargs, item[0], item[1].split())
+            else:
+              setattr(__config__.cliargs, item[0], item_value)
       for item in cliargs_dict:
         if item in ['cflags', 'lflags', 'preproc']:
           val_cli = cliargs_dict[item]
@@ -224,7 +223,7 @@ class Fobos(object):
             if result[0] != 0:
               print(__config__.colors.red + result[1] + __config__.colors.end)
               sys.exit(1)
-        sys.exit(0)
+        # sys.exit(0)
       else:
         print(__config__.colors.red + 'Error: the rule "' + rule + '" is not defined into the fobos file. Defined rules are:' + __config__.colors.end)
         self.rules_list(color=__config__.colors.red)

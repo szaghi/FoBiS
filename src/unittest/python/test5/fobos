@@ -27,3 +27,8 @@ help  = Rule for building project archive
 quiet = True
 rule  = FoBiS.py rule -ex deltar
 rule-1= tar cf PreForM-Integration.tar *
+
+[rule-finalize]
+help  = Rule for preparing the next test
+quiet = True
+rule  = echo ""
