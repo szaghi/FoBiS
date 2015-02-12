@@ -1,6 +1,8 @@
 <a name="top"></a>
 [![Build Status](https://travis-ci.org/szaghi/FoBiS.svg?branch=master)](https://travis-ci.org/szaghi/FoBiS)
 [![Coverage Status](https://img.shields.io/coveralls/szaghi/FoBiS.svg)](https://coveralls.io/r/szaghi/FoBiS)
+[![GitHub tag](https://img.shields.io/github/tag/szaghi/FoBiS.svg)]()
+[![GitHub issues](https://img.shields.io/github/issues/szaghi/FoBiS.svg)]()
 [![Latest Version](https://pypip.in/version/FoBiS.py/badge.svg?style=flat)](https://pypi.python.org/pypi/FoBiS.py/)
 [![Supported Python versions](https://pypip.in/py_versions/FoBiS.py/badge.svg?style=flat)](https://pypi.python.org/pypi/FoBiS.py/)
 [![License](https://pypip.in/license/FoBiS.py/badge.svg?style=flat)](https://pypi.python.org/pypi/FoBiS.py/)
