@@ -1,20 +1,23 @@
 <a name="top"></a>
+# FoBiS.py [![Latest Version](https://pypip.in/version/FoBiS.py/badge.svg?style=flat)](https://pypi.python.org/pypi/FoBiS.py/) [![GitHub tag](https://img.shields.io/github/tag/szaghi/FoBiS.svg)]()
+
+#### License [![License](https://pypip.in/license/FoBiS.py/badge.svg?style=flat)](https://pypi.python.org/pypi/FoBiS.py/)
+
+### FoBiS.py, Fortran Building System for poor men
+A KISS tool for automatic building modern Fortran projects.
+
+### Status
+[![Development Status](https://pypip.in/status/FoBiS.py/badge.svg?style=flat)](https://pypi.python.org/pypi/FoBiS.py/)
 [![Build Status](https://travis-ci.org/szaghi/FoBiS.svg?branch=master)](https://travis-ci.org/szaghi/FoBiS)
 [![Coverage Status](https://img.shields.io/coveralls/szaghi/FoBiS.svg)](https://coveralls.io/r/szaghi/FoBiS)
-[![GitHub tag](https://img.shields.io/github/tag/szaghi/FoBiS.svg)]()
+
+#### Issues
 [![GitHub issues](https://img.shields.io/github/issues/szaghi/FoBiS.svg)]()
-[![Latest Version](https://pypip.in/version/FoBiS.py/badge.svg?style=flat)](https://pypi.python.org/pypi/FoBiS.py/)
-[![Supported Python versions](https://pypip.in/py_versions/FoBiS.py/badge.svg?style=flat)](https://pypi.python.org/pypi/FoBiS.py/)
-[![License](https://pypip.in/license/FoBiS.py/badge.svg?style=flat)](https://pypi.python.org/pypi/FoBiS.py/)
-[![Development Status](https://pypip.in/status/FoBiS.py/badge.svg?style=flat)](https://pypi.python.org/pypi/FoBiS.py/)
-[![Download format](https://pypip.in/format/FoBiS.py/badge.svg?style=flat)](https://pypi.python.org/pypi/FoBiS.py/)
 [![Ready in backlog](https://badge.waffle.io/szaghi/fobis.png?label=ready&title=Ready)](https://waffle.io/szaghi/fobis)
 [![In Progress](https://badge.waffle.io/szaghi/fobis.png?label=in%20progress&title=In%20Progress)](https://waffle.io/szaghi/fobis)
 [![Open bugs](https://badge.waffle.io/szaghi/fobis.png?label=bug&title=Open%20Bugs)](https://waffle.io/szaghi/fobis)
 
-# FoBiS.py
-### FoBiS.py, Fortran Building System for poor men
-A KISS tool for automatic building modern Fortran projects.
+#### Python support [![Supported Python versions](https://pypip.in/py_versions/FoBiS.py/badge.svg?style=flat)](https://pypi.python.org/pypi/FoBiS.py/) [![Download format](https://pypip.in/format/FoBiS.py/badge.svg?style=flat)](https://pypi.python.org/pypi/FoBiS.py/)
 
 ## Why?
 GNU Make, CMake, SCons & Co. are fantastic tools, even too much for a _poor-fortran-man_.

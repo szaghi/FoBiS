@@ -13,34 +13,93 @@ class Cleaner(object):
   Cleaner is an object for cleaning current project.
   """
   def __init__(self,
-               build_dir="./",    # directory containing built files
-               mod_dir="./",    # directory containing .mod files
-               obj_dir="./",    # directory containing compiled object files
-               target=None,    # target files
-               output=None,    # names of compiled tragets
-               mklib=None):   # create library
-    self.build_dir = build_dir
-    self.mod_dir = build_dir + mod_dir
-    self.obj_dir = build_dir + obj_dir
-    self.target = target
-    self.output = output
+               build_dir="." + os.sep,
+               obj_dir="." + os.sep,
+               mod_dir="." + os.sep,
+               target=None,
+               output=None,
+               mklib=None):
+    """
+    Parameters
+    ----------
+    build_dir : {"./"}
+      directory containing built files
+    obj_dir : {"./"}
+      directory containing compiled object files
+    mod_dir : {"./"}
+      directory containing .mod files
+    target : {None}
+      target source to be built
+    output : {None}
+      name of the building output
+    mklib : {None}
+      flag for building a library instead of a program
+    """
+    self.__sanitize_dirs(build_dir=build_dir, obj_dir=obj_dir, mod_dir=mod_dir)
+    self.__sanitize_files(target=target, output=output)
     self.mklib = mklib
+    return
+
+  def __sanitize_dirs(self, build_dir, obj_dir, mod_dir):
+    """
+    Method for sanitizing directory paths.
+
+    Parameters
+    ----------
+    build_dir : str
+      directory containing built files
+    obj_dir : str
+      directory containing compiled object files
+    mod_dir : str
+      directory containing .mod files
+    """
+    self.build_dir = os.path.normpath(build_dir) + os.sep
+    self.obj_dir = os.path.normpath(build_dir + obj_dir) + os.sep
+    self.mod_dir = os.path.normpath(build_dir + mod_dir) + os.sep
+    return
+
+  def __sanitize_files(self, target, output):
+    """
+    Method for sanitizing files paths.
+
+    Parameters
+    target : {None}
+      target source to be built
+    output : {None}
+      name of the building output
+    ----------
+    """
+    if target:
+      self.target = os.path.normpath(target)
+    else:
+      self.target = target
+    if output:
+      self.output = os.path.normpath(output)
+    else:
+      self.output = output
+    return
 
   def clean_mod(self):
     """
-    Function clean_mod clean compiled MODs directory.
+    Method for cleaning compiled mod files.
     """
     if os.path.exists(self.mod_dir):
-      print(__config__.colors.red + 'Removing ' + self.mod_dir + __config__.colors.end)
-      shutil.rmtree(self.mod_dir)
+      print(__config__.colors.red + 'Removing all *.mod files into "' + self.mod_dir + '"' + __config__.colors.end)
+      for root, subfolders, files in os.walk(self.mod_dir):
+        for filename in files:
+          if os.path.splitext(os.path.basename(filename))[1] == '.mod':
+            os.remove(os.path.join(root, filename))
 
   def clean_obj(self):
     """
-    Function clean_obj clean compiled OBJs directory.
+    Method for cleaning compiled objects files.
     """
     if os.path.exists(self.obj_dir):
-      print(__config__.colors.red + 'Removing ' + self.obj_dir + __config__.colors.end)
-      shutil.rmtree(self.obj_dir)
+      print(__config__.colors.red + 'Removing all *.o files into "' + self.obj_dir + '"' + __config__.colors.end)
+      for root, subfolders, files in os.walk(self.obj_dir):
+        for filename in files:
+          if os.path.splitext(os.path.basename(filename))[1] == '.o':
+            os.remove(os.path.join(root, filename))
 
   def clean_target(self):
     """
