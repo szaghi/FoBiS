@@ -6,13 +6,14 @@ mod_dir   = ./mod/
 obj_dir   = ./obj/
 build_dir = ./
 src       = ./src/
-libs      = ./precompiled/obj/first_dep.o
-include   = ./precompiled/mod/
+ext_libs  = first_dep
+lib_dir   = ./lib/
+include   = ./lib/
 colors    = True
 quiet     = False
 jobs      = 1
 target    = cumbersome.f90
-output    = test2
+output    = build-test3
 log       = True
 
 [rule-finalize]

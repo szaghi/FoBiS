@@ -1,0 +1,15 @@
+[default]
+compiler  = Gnu
+cflags    = -c
+build_dir = ./
+obj_dir   = ./obj/
+mod_dir   = ./mod/
+src       = ./
+target    = wrong.f90
+output    = build-test6
+log       = True
+
+[rule-finalize]
+help  = Rule for preparing the next test
+quiet = True
+rule  = echo ""

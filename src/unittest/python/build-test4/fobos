@@ -15,7 +15,7 @@ target          = library.f90
 mklib           = shared
 log             = True
 cflags_heritage = True
-output          = test4
+output          = build-test4
 
 [static]
 compiler  = Gnu

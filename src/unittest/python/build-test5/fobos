@@ -14,7 +14,7 @@ colors    = True
 quiet     = False
 jobs      = 1
 target    = simple-for-loop.f90
-output    = test5
+output    = build-test5
 log       = True
 
 [rule-deltar]
