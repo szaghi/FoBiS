@@ -1,0 +1,23 @@
+[default]
+help      = Compile with GNU gfortran
+compiler  = Gnu
+cflags    = -c
+mod_dir   = ./mod/
+obj_dir   = ./obj/
+build_dir = ./build/
+src       = ./src/
+vlibs     = ./lib/first_dep.a
+include   = ./lib/
+colors    = True
+quiet     = False
+target    = cumbersome.f90
+output    = Cumbersome
+
+[rule-triggering]
+quiet  = False
+rule-1 = rm -f ./lib/first_dep.a
+rule-2 = cp ./lib/first_dep.a.1 ./lib/first_dep.a
+rule-3 = FoBiS.py build > /dev/null
+rule-4 = rm -f ./lib/first_dep.a
+rule-5 = cp ./lib/first_dep.a.2 ./lib/first_dep.a
+rule-6 = FoBiS.py build
