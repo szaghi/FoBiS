@@ -36,3 +36,5 @@ rule-8  = cp ./mod/nested_1.mod ../build-test3/lib
 rule-9  = ar -rcs libfirst_dep.a ./obj/first_dep.o
 rule-10 = ranlib libfirst_dep.a
 rule-11 = mv libfirst_dep.a ../build-test3/lib
+rule-12 = rm -f ../build-test7/lib/first_dep.a
+rule-13 = cp ../build-test3/lib/libfirst_dep.a ../build-test7/lib/first_dep.a
