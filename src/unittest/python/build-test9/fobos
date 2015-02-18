@@ -1,0 +1,19 @@
+[default]
+help      = Compile with GNU gfortran
+compiler  = Gnu
+cflags    = -c
+mod_dir   = ./mod/
+obj_dir   = ./obj/
+build_dir = ./
+src       = ./src/
+lib_dir   = ./lib/
+ext_vlibs = first_dep
+include   = ./lib/
+target    = cumbersome.f90
+output    = build-test9
+
+[rule-finalize]
+help   = Rule for preparing the next test
+quiet  = True
+rule-1 = rm -rf ./lib
+rule-2 = rm -f .libfirst_dep.a.md5
