@@ -1,0 +1,17 @@
+[default]
+compiler  = Gnu
+cflags    = -c
+mod_dir   = ./mod/
+obj_dir   = ./obj/
+src       = ./src/
+ext_libs  = dep
+lib_dir   = ./dependency_lib/build/
+include   = ./dependency_lib/build/mod/
+dependon  = ./dependency_lib/fobos_lib:static
+target    = cumbersome.f90
+output    = build-test10
+
+[rule-finalize]
+help  = Rule for preparing the next test
+quiet = True
+rule  = rm -rf mod obj dependency_lib/build
