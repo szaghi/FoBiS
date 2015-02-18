@@ -716,7 +716,7 @@
       "sum_lines_not_covered": 0
     }, 
     {
-      "coverage": 64, 
+      "coverage": 67, 
       "lines": [
         2, 
         6, 
@@ -799,8 +799,6 @@
         143
       ], 
       "lines_not_covered": [
-        73, 
-        74, 
         86, 
         87, 
         88, 
@@ -830,7 +828,7 @@
       ], 
       "module": "fobis.fobis", 
       "sum_lines": 79, 
-      "sum_lines_not_covered": 28
+      "sum_lines_not_covered": 26
     }, 
     {
       "coverage": 100, 
@@ -1034,7 +1032,7 @@
       "sum_lines_not_covered": 0
     }, 
     {
-      "coverage": 77, 
+      "coverage": 78, 
       "lines": [
         2, 
         6, 
@@ -1183,7 +1181,6 @@
         283
       ], 
       "lines_not_covered": [
-        158, 
         179, 
         180, 
         181, 
@@ -1218,7 +1215,7 @@
       ], 
       "module": "fobis.ParsedFile", 
       "sum_lines": 145, 
-      "sum_lines_not_covered": 32
+      "sum_lines_not_covered": 31
     }, 
     {
       "coverage": 85, 
@@ -1330,5 +1327,5 @@
       "sum_lines_not_covered": 8
     }
   ], 
-  "overall_coverage": 77
+  "overall_coverage": 78
 }
