@@ -133,7 +133,7 @@ class FoBiSConfig(object):
           if not os.path.exists(lib):
             print(self.colors.red + "The volatile library " + lib + " is not found!" + self.colors.end)
             sys.exit(1)
-          md5sum = hashlib.md5(open(lib).read()).hexdigest()
+          md5sum = hashlib.md5(open(lib, 'rb').read()).hexdigest()
           bname = os.path.basename(lib)
           md5file = self.cliargs.build_dir + '.' + bname + '.md5'
           if os.path.exists(md5file):
