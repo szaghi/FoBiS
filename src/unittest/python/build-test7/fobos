@@ -12,6 +12,7 @@ target    = cumbersome.f90
 output    = build-test7
 
 [rule-finalize]
-help  = Rule for preparing the next test
-quiet = True
-rule  = echo ""
+help   = Rule for preparing the next test
+quiet  = True
+rule-1 = rm -rf ./lib
+rule-2 = rm -f .first_dep.a.md5
