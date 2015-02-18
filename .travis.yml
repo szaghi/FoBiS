@@ -13,6 +13,10 @@ install:
   - pyb install_dependencies --verbose
   - pip install python-coveralls
 
+before_script:
+  - ln -fs src/main/python/FoBiS.py .
+  - export PATH=".:$PATH"
+
 script:
   - pyb --verbose
 
