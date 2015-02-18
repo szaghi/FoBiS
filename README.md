@@ -58,7 +58,6 @@ Go to [Top](#top)
 ## Main features
 + Automatic parsing of files for dependency-hierarchy creation in case of _use_ and _include_ statements;
 + automatic building of all _programs_ found into the root directory parsed or only a specific selected target;
-+ automatic (re-)building when compiling flags change;
 + avoid unnecessary re-compilation (algorithm based on file-timestamp value);
 + simple command line interface (CLI);
 + friendly support for external libraries linking;
@@ -67,6 +66,10 @@ Go to [Top](#top)
 + configuration-files-free;
 + ... but also configuration-file driven building for complex buildings;
 + parallel compiling enabled by means of concurrent `multiprocessing` jobs;
++ advanced automatic (re-)building algorithms:
+  - automatic (re-)building when compiling flags change with respect the previous building;
+  - automatic (re-)building when linked library change;
+  - automatic building of projects upon which the actual project depends;
 + generation of GNU Make makefile  with rules fully supporting dependency-hierarchy for _make-irreducible users_;
 + easy-extensible;
 + well integrate with a flexible pythonic pre-processor, [PreForM.py](https://github.com/szaghi/PreForM).
