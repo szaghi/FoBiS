@@ -248,6 +248,7 @@ class Fobos(object):
               print(__config__.colors.red + result[1] + __config__.colors.end)
               sys.exit(1)
             elif not quiet and result[1] != '':
+              print(result[1])
               print(__config__.colors.bld + result[1] + __config__.colors.end)
         # sys.exit(0)
       else:

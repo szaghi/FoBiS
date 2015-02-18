@@ -23,6 +23,7 @@ class SuiteTest(unittest.TestCase):
       relative path to tested directory
     """
     print("Testing " + directory)
+    build_ok = False
     old_pwd = os.getcwd()
     os.chdir(os.path.dirname(os.path.abspath(__file__)) + '/' + directory)
     __config__.reset()

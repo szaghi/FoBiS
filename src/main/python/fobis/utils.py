@@ -15,12 +15,10 @@ def syswork(cmd):
   error = 0
   try:
     output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
-    # if output:
-    #   print(output)
   except subprocess.CalledProcessError as err:
     error = err.returncode
-    output = err.output.decode("utf-8")
-  return [error, output]
+    output = err.output
+  return [error, str(output.decode("utf-8"))]
 
 
 def traverse_recursive(parsed_file, path=list()):
