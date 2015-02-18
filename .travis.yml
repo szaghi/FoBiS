@@ -7,15 +7,12 @@ python:
 before_install:
   - sudo apt-get install gfortran
   - pip install PreForM.py
+  - pip install FoBiS.py
 
 install:
   - pip install pybuilder
   - pyb install_dependencies --verbose
   - pip install python-coveralls
-
-before_script:
-  - cp /home/travis/build/szaghi/FoBiS/src/main/python/FoBiS.py .
-  - export PATH=".:$PATH"
 
 script:
   - pyb --verbose
