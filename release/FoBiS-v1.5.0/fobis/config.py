@@ -206,31 +206,32 @@ class FoBiSConfig(object):
     Method for checking interdependency project by its fobos.
     """
     if self.cliargs.which == 'build':
-      if self.cliargs.dependon:
-        fobos_path = os.path.dirname(self.cliargs.dependon)
-        fobos_file = os.path.basename(self.cliargs.dependon)
-        mode = ''
-        if ":" in fobos_file:
-          fobos_file = os.path.basename(self.cliargs.dependon).split(":")[0]
-          mode = os.path.basename(self.cliargs.dependon).split(":")[1]
-        if mode != '':
-          print(self.colors.bld + "Building dependency " + fobos_file + " into " + fobos_path + " with mode " + mode + self.colors.end)
-          old_pwd = os.getcwd()
-          os.chdir(old_pwd + '/' + fobos_path)
-          result = syswork("FoBiS.py build -f " + fobos_file + " -mode " + mode)
-          print(result[1])
-          os.chdir(old_pwd)
-          if result[0] != 0:
-            sys.exit(result[0])
-        else:
-          print(self.colors.bld + "Building dependency " + fobos_file + " into " + fobos_path + " with default mode" + self.colors.end)
-          old_pwd = os.getcwd()
-          os.chdir(old_pwd + '/' + fobos_path)
-          result = syswork("FoBiS.py build -f " + fobos_file)
-          print(result[1])
-          os.chdir(old_pwd)
-          if result[0] != 0:
-            sys.exit(result[0])
+      if len(self.cliargs.dependon) > 0:
+        for dependon in self.cliargs.dependon:
+          fobos_path = os.path.dirname(dependon)
+          fobos_file = os.path.basename(dependon)
+          mode = ''
+          if ":" in fobos_file:
+            fobos_file = os.path.basename(dependon).split(":")[0]
+            mode = os.path.basename(dependon).split(":")[1]
+          if mode != '':
+            print(self.colors.bld + "Building dependency " + fobos_file + " into " + fobos_path + " with mode " + mode + self.colors.end)
+            old_pwd = os.getcwd()
+            os.chdir(old_pwd + '/' + fobos_path)
+            result = syswork("FoBiS.py build -f " + fobos_file + " -mode " + mode)
+            print(result[1])
+            os.chdir(old_pwd)
+            if result[0] != 0:
+              sys.exit(result[0])
+          else:
+            print(self.colors.bld + "Building dependency " + fobos_file + " into " + fobos_path + " with default mode" + self.colors.end)
+            old_pwd = os.getcwd()
+            os.chdir(old_pwd + '/' + fobos_path)
+            result = syswork("FoBiS.py build -f " + fobos_file)
+            print(result[1])
+            os.chdir(old_pwd)
+            if result[0] != 0:
+              sys.exit(result[0])
     return
 
 # global variables

@@ -244,9 +244,10 @@ class Builder(object):
       pfm_exist = False
       for path in os.environ["PATH"].split(os.pathsep):
         pfm_exist = os.path.exists(os.path.join(path, 'PreForM.py'))
+        if pfm_exist:
+          break
       if not pfm_exist:
         print(self.colors.red + 'Error: PreForM.py is not in your PATH! You cannot use --preform or -pfm switches.' + self.colors.end)
-        # sys.exit(1)
     return
 
   def __compile_preform(self, file_to_compile):

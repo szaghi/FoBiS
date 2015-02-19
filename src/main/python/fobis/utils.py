@@ -138,7 +138,7 @@ def dependency_hiearchy(builder, pfiles, colors, force_compile=False):
               break
           if fnum != 0:
             print(colors.red + "Attention: the file '" + parsed_file.name + "' depends on '" + dep.name + "' that is unreachable" + colors.end)
-            sys.exit(1)
+            # sys.exit(1)
       if dep.type == "include":
         dep.file, fnum = include_is_in(pfiles=pfiles, include=dep.name)
         if fnum > -1:
@@ -152,7 +152,7 @@ def dependency_hiearchy(builder, pfiles, colors, force_compile=False):
               builder.dinc.append(os.path.dirname(pfiles[fnum].name))
         else:
           print(colors.red + "Attention: the file '" + parsed_file.name + "' depends on '" + dep.name + "' that is unreachable" + colors.end)
-          sys.exit(1)
+          # sys.exit(1)
   # indirect dependency list
   for parsed_file in pfiles:
     parsed_file.create_pfile_dep_all()

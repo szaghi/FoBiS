@@ -11,49 +11,89 @@ from .Dependency import Dependency
 from .utils import traverse_recursive
 from .utils import unique_seq
 # definition of regular expressions
-__str_f95_apex__ = r"('|" + r'")'
-__str_f95_kw_include__ = r"[Ii][Nn][Cc][Ll][Uu][Dd][Ee]"
-__str_f95_kw_intrinsic__ = r"[Ii][Nn][Tt][Rr][Ii][Nn][Ss][Ii][Cc]"
-__str_f95_kw_module__ = r"[Mm][Oo][Dd][Uu][Ll][Ee]"
-__str_f95_kw_program__ = r"[Pp][Rr][Oo][Gg][Rr][Aa][Mm]"
-__str_f95_kw_use__ = r"[Uu][Ss][Ee]"
-__str_f95_kw_mpifh__ = r"[Mm][Pp][Ii][Ff]\.[Hh]"
-__str_f95_name__ = r"(?P<name>[a-zA-Z][a-zA-Z0-9_]*)"
-__str_f95_eol__ = r"(?P<eol>\s*!.*|\s*)?$"
-__str_f95_mod_rename__ = r"(\s*,\s*[a-zA-Z][a-zA-Z0-9_]*\s*=>\s*[a-zA-Z][a-zA-Z0-9_]*)*"
-__str_f95_mod_only__ = r"(\s*,\s*[Oo][Nn][Ll][Yy]\s*:\s*([a-zA-Z][a-zA-Z0-9_]*\s*=>\s*[a-zA-Z][a-zA-Z0-9_]*|[a-zA-Z][a-zA-Z0-9_]*))*"
-__str_f95_use_mod__ = (r"^(\s*)" +  # eventual initial white spaces
-                       __str_f95_kw_use__ +  # f95 keyword "use"
-                       r"(\s+)" +  # 1 or more white spaces
-                       __str_f95_name__ +  # f95 construct name
-                       r"(?P<mod_eol>(.*))")
-__str_f95_include__ = (r"^(\s*|\#)" +  # eventual initial white spaces or "#" character
-                       __str_f95_kw_include__ +  # f95 keyword "include"
-                       r"(\s+)" +  # 1 or more white spaces
-                       __str_f95_apex__ +  # character "'" or '"'
-                       r"(\s*)" +  # eventaul white spaces
-                       r"(?P<name>.*)" +  # name of included file
-                       r"(\s*)" +  # eventaul white spaces
-                       __str_f95_apex__ +  # character "'" or '"'
-                       __str_f95_eol__)  # eventual eol white space and or comment
-__str_f95_module__ = (r"^(\s*)" +  # eventual initial white spaces
-                      r"(?P<scplevel>" + __str_f95_kw_module__ + r")" +  # f95 keyword "module"
-                      r"(\s+)" +  # 1 or more white spaces
-                      __str_f95_name__ +  # f95 construct name
-                      __str_f95_eol__)  # eventual eol white space and or comment
-__str_f95_program__ = (r"^(\s*)" +  # eventual initial white spaces
-                       r"(?P<scplevel>" + __str_f95_kw_program__ + r")" +  # f95 keyword "program"
-                       r"(\s+)" +  # 1 or more white spaces
-                       __str_f95_name__ +  # f95 construct name
-                       __str_f95_eol__)  # eventual eol white space and or comment
-__str_f95_intrinsic__ = (r"(,\s*)" + __str_f95_kw_intrinsic__ + r"(\s+)")
-__str_f95_mpifh__ = (r"(.*)" + __str_f95_kw_mpifh__ + r"(.*)")
-__regex_f95_use_mod__ = re.compile(__str_f95_use_mod__)
-__regex_f95_include__ = re.compile(__str_f95_include__)
-__regex_f95_program__ = re.compile(__str_f95_program__)
-__regex_f95_module__ = re.compile(__str_f95_module__)
-__regex_f95_intrinsic__ = re.compile(__str_f95_intrinsic__)
-__regex_f95_mpifh__ = re.compile(__str_f95_mpifh__)
+__str_apex__ = r"('|" + r'")'
+__str_kw_include__ = r"[Ii][Nn][Cc][Ll][Uu][Dd][Ee]"
+__str_kw_intrinsic__ = r"[Ii][Nn][Tt][Rr][Ii][Nn][Ss][Ii][Cc]"
+__str_kw_iso_fortran_env__ = r"[Ii][Ss][Oo]_[Ff][Oo][Rr][Tt][Rr][Aa][Nn]_[Ee][Nn][Vv]"
+__str_kw_iso_c_binding__ = r"[Ii][Ss][Oo]_[Cc]_[Bb][Ii][Nn][Dd][Ii][Nn][Gg]"
+__str_kw_ieee_exceptions__ = r"[Ii][Ee][Ee][Ee]_[Ee][Xx][Cc][Ee][Pp][Tt][Ii][Oo][Nn][Ss]"
+__str_kw_ieee_arithmetic__ = r"[Ii][Ee][Ee][Ee]_[Aa][Rr][Ii][Tt][Hh][Mm][Ee][Tt][Ii][Cc]"
+__str_kw_ieee_features__ = r"[Ii][Ee][Ee][Ee]_[Ff][Ee][Aa][Tt][Uu][Rr][Ee][Ss]"
+__str_kw_module__ = r"[Mm][Oo][Dd][Uu][Ll][Ee]"
+__str_kw_program__ = r"[Pp][Rr][Oo][Gg][Rr][Aa][Mm]"
+__str_kw_use__ = r"[Uu][Ss][Ee]"
+__str_kw_mpifh__ = r"[Mm][Pp][Ii][Ff]\.[Hh]"
+__str_name__ = r"(?P<name>[a-zA-Z][a-zA-Z0-9_]*)"
+__str_eol__ = r"(?P<eol>\s*!.*|\s*)?$"
+# __str_f95_mod_rename__ = r"(\s*,\s*[a-zA-Z][a-zA-Z0-9_]*\s*=>\s*[a-zA-Z][a-zA-Z0-9_]*)*"
+# __str_f95_mod_only__ = r"(\s*,\s*[Oo][Nn][Ll][Yy]\s*:\s*([a-zA-Z][a-zA-Z0-9_]*\s*=>\s*[a-zA-Z][a-zA-Z0-9_]*|[a-zA-Z][a-zA-Z0-9_]*))*"
+__str_use_mod__ = (r"^(\s*)" +  # eventual initial white spaces
+                   __str_kw_use__ +  # keyword "use"
+                   r"(\s*,\s*.*\s*::)*" +  # eventual module nature
+                   r"(\s+)" +  # 1 or more white spaces
+                   __str_name__ +  # construct name
+                   r"(?P<mod_eol>(.*))")
+__str_use_mod_intrinsic__ = (r"^(\s*)" +  # eventual initial white spaces
+                             __str_kw_use__ +  # keyword "use"
+                             r"\s*,\s*" + __str_kw_intrinsic__ + "\s*::.*" +  # keyword intrinsic
+                             r"(?P<mod_eol>(.*))")
+__str_use_mod_iso_fortran_env__ = (r"^(\s*)" +  # eventual initial white spaces
+                                   __str_kw_use__ +  # keyword "use"
+                                   r"\s+" + __str_kw_iso_fortran_env__ +  # keyword intrinsic module iso_fortran_env
+                                   r"(?P<mod_eol>(.*))")
+__str_use_mod_iso_c_binding__ = (r"^(\s*)" +  # eventual initial white spaces
+                                 __str_kw_use__ +  # keyword "use"
+                                 r"\s+" + __str_kw_iso_c_binding__ +  # keyword intrinsic module iso_c_binding
+                                 r"(?P<mod_eol>(.*))")
+__str_use_mod_ieee_exceptions__ = (r"^(\s*)" +  # eventual initial white spaces
+                                   __str_kw_use__ +  # keyword "use"
+                                   r"\s+" + __str_kw_ieee_exceptions__ +  # keyword intrinsic module ieee_exceptions
+                                   r"(?P<mod_eol>(.*))")
+__str_use_mod_ieee_arithmetic__ = (r"^(\s*)" +  # eventual initial white spaces
+                                   __str_kw_use__ +  # keyword "use"
+                                   r"\s+" + __str_kw_ieee_arithmetic__ +  # keyword intrinsic module ieee_arithmetic
+                                   r"(?P<mod_eol>(.*))")
+__str_use_mod_ieee_features__ = (r"^(\s*)" +  # eventual initial white spaces
+                                 __str_kw_use__ +  # keyword "use"
+                                 r"\s+" + __str_kw_ieee_features__ +  # keyword intrinsic module ieee_features
+                                 r"(?P<mod_eol>(.*))")
+__str_include__ = (r"^(\s*|\#)" +  # eventual initial white spaces or "#" character
+                   __str_kw_include__ +  # keyword "include"
+                   r"(\s+)" +  # 1 or more white spaces
+                   __str_apex__ +  # character "'" or '"'
+                   r"(\s*)" +  # eventaul white spaces
+                   r"(?P<name>.*)" +  # name of included file
+                   r"(\s*)" +  # eventaul white spaces
+                   __str_apex__ +  # character "'" or '"'
+                   __str_eol__)  # eventual eol white space and or comment
+__str_module__ = (r"^(\s*)" +  # eventual initial white spaces
+                  r"(?P<scplevel>" + __str_kw_module__ + r")" +  # keyword "module"
+                  r"(\s+)" +  # 1 or more white spaces
+                  __str_name__ +  # construct name
+                  __str_eol__)  # eventual eol white space and or comment
+__str_program__ = (r"^(\s*)" +  # eventual initial white spaces
+                   r"(?P<scplevel>" + __str_kw_program__ + r")" +  # keyword "program"
+                   r"(\s+)" +  # 1 or more white spaces
+                   __str_name__ +  # construct name
+                   __str_eol__)  # eventual eol white space and or comment
+__str_mpifh__ = (r"(.*)" + __str_kw_mpifh__ + r"(.*)")
+__regex_use_mod__ = re.compile(__str_use_mod__)
+__regex_include__ = re.compile(__str_include__)
+__regex_program__ = re.compile(__str_program__)
+__regex_module__ = re.compile(__str_module__)
+__regex_use_mod_intrinsic__ = re.compile(__str_use_mod_intrinsic__)
+__regex_use_mod_iso_fortran_env__ = re.compile(__str_use_mod_iso_fortran_env__)
+__regex_use_mod_iso_c_binding__ = re.compile(__str_use_mod_iso_c_binding__)
+__regex_use_mod_ieee_exceptions__ = re.compile(__str_use_mod_ieee_exceptions__)
+__regex_use_mod_ieee_arithmetic__ = re.compile(__str_use_mod_ieee_arithmetic__)
+__regex_use_mod_ieee_features__ = re.compile(__str_use_mod_ieee_features__)
+__regex_use_intrinsic_modules__ = [__regex_use_mod_intrinsic__,
+                                   __regex_use_mod_iso_fortran_env__,
+                                   __regex_use_mod_iso_c_binding__,
+                                   __regex_use_mod_ieee_exceptions__,
+                                   __regex_use_mod_ieee_arithmetic__,
+                                   __regex_use_mod_ieee_features__]
+__regex_mpifh__ = re.compile(__str_mpifh__)
 
 
 class ParsedFile(object):
@@ -134,22 +174,22 @@ class ParsedFile(object):
     self.dependencies = []
     ffile = open(self.name, "r")
     for line in ffile:
-      matching = re.match(__regex_f95_program__, line)
+      matching = re.match(__regex_program__, line)
       if matching:
         self.program = True
-      matching = re.match(__regex_f95_module__, line)
+      matching = re.match(__regex_module__, line)
       if matching:
         self.module = True
         self.module_names.append(matching.group('name'))
-      matching = re.match(__regex_f95_use_mod__, line)
+      matching = re.match(__regex_use_mod__, line)
       if matching:
-        if not re.match(__regex_f95_intrinsic__, line):
+        if not any(re.match(regex, line) for regex in __regex_use_intrinsic_modules__):
           if matching.group('name').lower() != 'mpi' and matching.group('name').lower() != 'omp_lib':
             dep = Dependency(dtype="module", name=matching.group('name'))
             self.dependencies.append(dep)
-      matching = re.match(__regex_f95_include__, line)
+      matching = re.match(__regex_include__, line)
       if matching:
-        if not re.match(__regex_f95_mpifh__, line):
+        if not re.match(__regex_mpifh__, line):
           dep = Dependency(dtype="include", name=matching.group('name'))
           self.dependencies.append(dep)
     ffile.close()

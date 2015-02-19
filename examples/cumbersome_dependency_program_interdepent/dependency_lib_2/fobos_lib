@@ -1,0 +1,16 @@
+[modes]
+modes = static
+
+[static]
+compiler  = Gnu
+cflags    = -c
+mod_dir   = ./mod/
+obj_dir   = ./obj/
+build_dir = ./build/
+src       = ./src/
+colors    = True
+quiet     = False
+target    = library.f90
+output    = libdep2.a
+mklib     = static
+log       = True

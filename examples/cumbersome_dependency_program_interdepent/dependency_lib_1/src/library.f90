@@ -1,4 +1,4 @@
-module library
+module library_1
 use NesteD_1
 implicit none
 contains
@@ -6,4 +6,4 @@ contains
   implicit none
   print '(A)',hello_world
   endsubroutine print_hello_world
-endmodule library
+endmodule library_1

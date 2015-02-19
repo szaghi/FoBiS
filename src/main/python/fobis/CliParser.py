@@ -38,7 +38,7 @@ def CliParser(appname, description, version):
     buildparser_g_files.add_argument('-vlibs', required=False, action='store', nargs='+', default=[], help='List of external libraries used that are not into the path and that are volatile (can change thus triggering re-building): specify with full paths [default: None]')
     buildparser_g_files.add_argument('-ext_libs', required=False, action='store', nargs='+', default=[], help='List of external libraries used that are into compiler path [default: None]')
     buildparser_g_files.add_argument('-ext_vlibs', required=False, action='store', nargs='+', default=[], help='List of external libraries used that are into compiler path and that are volatile (can change thus triggering re-building) [default: None]')
-    buildparser_g_files.add_argument('-dependon', required=False, action='store', default=None, help='Interdependent external fobos file (and mode) for interdependent building [default: None]')
+    buildparser_g_files.add_argument('-dependon', required=False, action='store', nargs='+', default=[], help='List of interdependent external fobos file (and mode) for interdependent building [default: None]')
     buildparser_g_fobos = buildparser.add_argument_group('fobos')
     buildparser_g_fobos.add_argument('-f', '--fobos', required=False, action='store', default=None, help='Specify a "fobos" file named differently from "fobos"')
     buildparser_g_fobos.add_argument('-fci', '--fobos_case_insensitive', required=False, action='store_true', default=False, help='Assume fobos inputs as case insensitive [defaul: False, case sensitive]')
