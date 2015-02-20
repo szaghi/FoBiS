@@ -94,3 +94,7 @@ Go to [Top](#top)
 FoBiS.py is an open source project, it is distributed under the [GPL v3](http://www.gnu.org/licenses/gpl-3.0.html) license. A copy of the license should be distributed within FoBiS.py. Anyone interested to use, develop or to contribute to FoBiS.py is welcome. Take a look at the [contributing guidelines](CONTRIBUTING.md) for starting to contribute to the project.
 
 Go to [Top](#top)
+
+## A screencast of a very cumbersome example
+
+![Screencast](examples/cumbersome_dependency_program_interdepent/cumbersome-cast.gif)
