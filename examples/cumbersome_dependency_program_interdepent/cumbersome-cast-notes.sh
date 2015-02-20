@@ -37,13 +37,14 @@ echo -e "\033[1m       dependencies hierarchy! \033[0m" ; sleep 4
 echo -e "\033[1m   - secondly build dependency_lib_2 \033[0m" ; sleep 4
 echo -e "\033[1m   - finally Cumbersome is built \033[0m" ; sleep 4
 echo
-echo -e "\033[1m Well, you are thinking that for doing such a complex building the FoBiS.py configuration file (fobos) should \033[0m" ; sleep 1
-echo -e "\033[1m be complex, more and more (and more) complex than a corresponding working makefile ... \033[0m" ; sleep 4
-echo -e "\033[1m Definitely not! Let us see the fobos file \033[0m" ; sleep 4
+echo -e "\033[1m Well, you are thinking that for doing such a complex building the FoBiS.py configuration \033[0m" ; sleep 1
+echo -e "\033[1m file (fobos) should be complex, more and more (and more) complex than a corresponding \033[0m" ; sleep 4
+echo -e "\033[1m working makefile. Definitely not! Let us see the fobos file \033[0m" ; sleep 4
 echo
 echo -e "\033[1;31m cat fobos \033[0m" ; sleep 2
 cat fobos
 echo
 echo -e "\033[1m Is it simple enough? \033[0m" ; sleep 4
-echo -e "\033[1m Note that is a very cumbersome scenario... In most cases, FoBiS.py can do similar stuff even without a fobos file, directly from the command line! \033[0m" ; sleep 4
+echo -e "\033[1m Note that is a very cumbersome scenario... In most cases, FoBiS.py can do \033[0m" ; sleep 4
+echo -e "\033[1m similar stuff even without a fobos file, directly from the command line! \033[0m" ; sleep 4
 echo -e "\033[1;31m Bye bye Fortran poor men \033[0m"
