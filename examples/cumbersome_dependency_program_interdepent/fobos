@@ -15,3 +15,7 @@ quiet     = False
 target    = cumbersome.f90
 output    = Cumbersome
 log       = True
+
+[rule-clean]
+rule-1 = FoBiS.py clean
+rule-2 = rm -rf build dependency_lib_1/build dependency_lib_2/build

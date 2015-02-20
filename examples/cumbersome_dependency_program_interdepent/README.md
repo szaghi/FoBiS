@@ -34,3 +34,7 @@ dependon = ./dependency_lib_1/fobos_lib:static ./dependency_lib_2/fobos_lib:stat
 Note that the buildings of dependencies are done in sequence of their definition. For more details on the `dependon` syntax see the [wiki](https://github.com/szaghi/FoBiS/wiki/Autorebuild-with-interdependent-projects).
 
 It is worth noting that both the above option can be directly passed as Command Line Arguments to FoBiS.py using the corresponding switch.
+
+### Screencast
+
+![Screencast](cumbersome-cast.gif)
