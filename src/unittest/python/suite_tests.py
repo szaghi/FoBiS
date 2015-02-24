@@ -4,9 +4,6 @@
 import os
 import unittest
 from fobis.config import __config__
-from fobis.fobis import build
-from fobis.fobis import clean
-from fobis.fobos import Fobos
 
 
 class SuiteTest(unittest.TestCase):
@@ -26,28 +23,22 @@ class SuiteTest(unittest.TestCase):
     build_ok = False
     old_pwd = os.getcwd()
     os.chdir(os.path.dirname(os.path.abspath(__file__)) + '/' + directory)
-    __config__.reset()
-    __config__.get_cli(['clean', '-f', 'fobos'])
-    Fobos(filename=__config__.cliargs.fobos)
-    clean()
-    __config__.reset()
-    __config__.get_cli(['build', '-f', 'fobos'])
-    Fobos(filename=__config__.cliargs.fobos)
+
+    __config__.run_fobis(fake_args=['clean', '-f', 'fobos'])
+
     try:
-      build()
+      __config__.run_fobis(fake_args=['build', '-f', 'fobos'])
       build_ok = os.path.exists(directory)
     except:
       if directory == 'build-test6':
         with open('building-errors.log') as logerror:
           build_ok = 'Unclassifiable statement' in list(logerror)[-1]
         os.remove('building-errors.log')
-    __config__.reset()
-    __config__.get_cli(['rule', '-f', 'fobos', '-ex', 'finalize'])
-    fobos = Fobos(filename=__config__.cliargs.fobos)
-    fobos.rule_execute(rule=__config__.cliargs.execute)
-    __config__.get_cli(['clean', '-f', 'fobos'])
-    Fobos(filename=__config__.cliargs.fobos)
-    clean()
+
+    __config__.run_fobis(fake_args=['rule', '-f', 'fobos', '-ex', 'finalize'])
+
+    __config__.run_fobis(fake_args=['clean', '-f', 'fobos'])
+
     os.chdir(old_pwd)
     return build_ok
 
@@ -64,14 +55,11 @@ class SuiteTest(unittest.TestCase):
     print("Testing " + directory)
     old_pwd = os.getcwd()
     os.chdir(os.path.dirname(os.path.abspath(__file__)) + '/' + directory)
-    __config__.reset()
-    __config__.get_cli(['build', '-f', 'fobos'])
-    Fobos(filename=__config__.cliargs.fobos)
-    build()
-    __config__.reset()
-    __config__.get_cli(['clean', '-f', 'fobos'])
-    Fobos(filename=__config__.cliargs.fobos)
-    clean()
+
+    __config__.run_fobis(fake_args=['build', '-f', 'fobos'])
+
+    __config__.run_fobis(fake_args=['clean', '-f', 'fobos'])
+
     clean_ok = not os.path.exists(directory)
     os.chdir(old_pwd)
     return clean_ok

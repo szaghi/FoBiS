@@ -17,17 +17,6 @@ target    = simple-for-loop.f90
 output    = build-test5
 log       = True
 
-[rule-deltar]
-help  = Rule for deleting project archive
-quiet = True
-rule  = rm -f PreForM-Integration.tar
-
-[rule-maketar]
-help  = Rule for building project archive
-quiet = True
-rule  = FoBiS.py rule -ex deltar
-rule-1= tar cf PreForM-Integration.tar *
-
 [rule-finalize]
 help  = Rule for preparing the next test
 quiet = True

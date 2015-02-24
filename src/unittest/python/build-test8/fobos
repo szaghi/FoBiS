@@ -7,6 +7,7 @@ build_dir = ./
 src       = ./src/
 colors    = True
 quiet     = False
+verbose   = True
 target    = cumbersome.f90
 output    = build-test8
 
