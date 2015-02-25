@@ -9,10 +9,11 @@ R:417, 2: Too many branches (18/12) (too-many-branches)
 R:459, 2: Too many branches (20/12) (too-many-branches)
 R:509, 2: Too many branches (14/12) (too-many-branches)
 ************* Module fobis.config
-R:178, 2: Too many branches (24/12) (too-many-branches)
-R:238, 2: Too many branches (16/12) (too-many-branches)
-R:300, 2: Too many branches (18/12) (too-many-branches)
-R:384, 2: Too many branches (16/12) (too-many-branches)
+R:179, 2: Too many branches (24/12) (too-many-branches)
+R:250, 2: Too many branches (14/12) (too-many-branches)
+R:293, 2: Too many branches (16/12) (too-many-branches)
+R:357, 2: Too many branches (18/12) (too-many-branches)
+R:441, 2: Too many branches (18/12) (too-many-branches)
 ************* Module fobis.utils
 W: 29, 0: Dangerous default value list() (__builtin__.list) as argument (dangerous-default-value)
 R:110, 0: Too many branches (22/12) (too-many-branches)
@@ -41,7 +42,7 @@ R:111, 2: Too many branches (18/12) (too-many-branches)
 
 Report
 ======
-2406 statements analysed.
+2464 statements analysed.
 
 Statistics by type
 ------------------
@@ -53,7 +54,7 @@ Statistics by type
 +---------+-------+-----------+-----------+------------+---------+
 |class    |14     |14         |=          |100.00      |0.00     |
 +---------+-------+-----------+-----------+------------+---------+
-|method   |146    |144        |+2.00      |100.00      |0.00     |
+|method   |152    |146        |+6.00      |100.00      |0.00     |
 +---------+-------+-----------+-----------+------------+---------+
 |function |28     |28         |=          |100.00      |0.00     |
 +---------+-------+-----------+-----------+------------+---------+
@@ -84,13 +85,13 @@ Raw metrics
 +----------+-------+------+---------+-----------+
 |type      |number |%     |previous |difference |
 +==========+=======+======+=========+===========+
-|code      |2557   |55.57 |2509     |+48.00     |
+|code      |2623   |55.54 |2607     |+16.00     |
 +----------+-------+------+---------+-----------+
-|docstring |1620   |35.21 |1596     |+24.00     |
+|docstring |1666   |35.27 |1618     |+48.00     |
 +----------+-------+------+---------+-----------+
-|comment   |35     |0.76  |33       |+2.00      |
+|comment   |35     |0.74  |35       |=          |
 +----------+-------+------+---------+-----------+
-|empty     |389    |8.45  |385      |+4.00      |
+|empty     |399    |8.45  |389      |+10.00     |
 +----------+-------+------+---------+-----------+
 
 
@@ -101,9 +102,9 @@ Duplication
 +-------------------------+-------+---------+-----------+
 |                         |now    |previous |difference |
 +=========================+=======+=========+===========+
-|nb duplicated lines      |2256   |2216     |+40.00     |
+|nb duplicated lines      |2316   |2282     |+34.00     |
 +-------------------------+-------+---------+-----------+
-|percent duplicated lines |49.517 |49.508   |+0.01      |
+|percent duplicated lines |49.530 |49.523   |+0.01      |
 +-------------------------+-------+---------+-----------+
 
 
@@ -116,7 +117,7 @@ Messages by category
 +===========+=======+=========+===========+
 |convention |0      |0        |=          |
 +-----------+-------+---------+-----------+
-|refactor   |29     |28       |+1.00      |
+|refactor   |30     |31       |-1.00      |
 +-----------+-------+---------+-----------+
 |warning    |2      |2        |=          |
 +-----------+-------+---------+-----------+
@@ -131,17 +132,17 @@ Messages by category
 +-----------------+------+--------+---------+-----------+
 |module           |error |warning |refactor |convention |
 +=================+======+========+=========+===========+
-|fobis.utils      |0.00  |50.00   |6.90     |0.00       |
+|fobis.utils      |0.00  |50.00   |6.67     |0.00       |
 +-----------------+------+--------+---------+-----------+
-|fobis.Builder    |0.00  |0.00    |31.03    |0.00       |
+|fobis.Builder    |0.00  |0.00    |30.00    |0.00       |
 +-----------------+------+--------+---------+-----------+
-|fobis.Fobos      |0.00  |0.00    |20.69    |0.00       |
+|fobis.Fobos      |0.00  |0.00    |20.00    |0.00       |
 +-----------------+------+--------+---------+-----------+
-|fobis.config     |0.00  |0.00    |13.79    |0.00       |
+|fobis.config     |0.00  |0.00    |16.67    |0.00       |
 +-----------------+------+--------+---------+-----------+
-|fobis.ParsedFile |0.00  |0.00    |13.79    |0.00       |
+|fobis.ParsedFile |0.00  |0.00    |13.33    |0.00       |
 +-----------------+------+--------+---------+-----------+
-|fobis.Cleaner    |0.00  |0.00    |3.45     |0.00       |
+|fobis.Cleaner    |0.00  |0.00    |3.33     |0.00       |
 +-----------------+------+--------+---------+-----------+
 
 
@@ -152,7 +153,7 @@ Messages
 +------------------------+------------+
 |message id              |occurrences |
 +========================+============+
-|too-many-branches       |27          |
+|too-many-branches       |28          |
 +------------------------+------------+
 |too-many-arguments      |2           |
 +------------------------+------------+
@@ -165,5 +166,5 @@ Messages
 
 Global evaluation
 -----------------
-Your code has been rated at 9.87/10 (previous run: 9.87/10, -0.00)
+Your code has been rated at 9.87/10 (previous run: 9.87/10, +0.01)
 

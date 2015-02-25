@@ -210,7 +210,7 @@ class Fobos(object):
       self._check_cliargs_cflags(cliargs=cliargs, cliargs_dict=cliargs_dict)
     return
 
-  def get(self, option, mode=None):
+  def get(self, option, mode=None, toprint=True):
     """
     Method for getting options defined into the fobos file.
 
@@ -220,14 +220,54 @@ class Fobos(object):
       option name
     mode : {None}
       eventual mode name
+    toprint : {True}
+      return of the value: if toprint==False the value is return otherwise is printed to stdout
     """
     value = ''
     if self.fobos:
       self._set_mode(mode=mode)
       if self.fobos.has_option(self.mode, option):
         value = self.fobos.get(self.mode, option)
-    self.print_w(value)
-    return
+    if toprint:
+      self.print_w(value)
+      return
+    else:
+      return value
+
+  def get_output_name(self, mode=None, toprint=True):
+    """
+    Method for building the output name accordingly to the fobos options.
+
+    Parameters
+    ----------
+    mode : {None}
+      eventual mode name
+    toprint : {True}
+      return of the value: if toprint==False the value is return otherwise is printed to stdout
+    """
+    output = ''
+    build_dir = self.get(option='build_dir', mode=mode, toprint=False)
+    mklib = self.get(option='mklib', mode=mode, toprint=False)
+    if self.fobos:
+      self._set_mode(mode=mode)
+      if self.fobos.has_option(self.mode, 'output'):
+        output = self.fobos.get(self.mode, 'output')
+        output = os.path.normpath(build_dir + os.sep + output)
+      elif self.fobos.has_option(self.mode, 'target'):
+        output = self.fobos.get(self.mode, 'target')
+        output = os.path.splitext(os.path.basename(output))[0]
+        if mklib.lower() == 'shared':
+          output = output + '.so'
+        elif mklib.lower() == 'static':
+          output = output + '.a'
+        output = os.path.normpath(build_dir + os.sep + output)
+      # else:
+      #   self.print_w('Error: fobos does not define neither an output not a target, output name cannot be inferred!')
+    if toprint:
+      self.print_w(output)
+      return
+    else:
+      return output
 
   def modes_list(self):
     """

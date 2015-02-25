@@ -6,8 +6,9 @@ mod_dir   = ./mod/
 obj_dir   = ./obj/
 build_dir = ./build/
 src       = ./src/
-ext_libs  = dep1 dep2
-dependon  = ./dependency_lib_1/fobos_lib:static ./dependency_lib_2/fobos_lib:static
+dependon  = ./dependency_lib_1/fobos_lib:static((direct))
+            ./dependency_lib_2/fobos_lib:((Indirect))static
+            ./dependency_lib_3/fobos_lib
 colors    = True
 quiet     = False
 target    = cumbersome.f90
@@ -16,4 +17,4 @@ log       = True
 
 [rule-clean]
 rule-1 = FoBiS.py clean
-rule-2 = rm -rf build dependency_lib_1/build dependency_lib_2/build
+rule-2 = rm -rf build dependency_lib_1/build dependency_lib_2/build dependency_lib_3/build
