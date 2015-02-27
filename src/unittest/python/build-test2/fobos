@@ -18,4 +18,4 @@ log       = True
 [rule-finalize]
 help  = Rule for preparing the next test
 quiet = True
-rule  = echo ""
+rule  = rm -f precompiled/obj/first_dep.o

@@ -14,6 +14,7 @@ quiet     = False
 target    = cumbersome.f90
 output    = Cumbersome
 log       = True
+coverage  = True
 
 [rule-clean]
 rule-1 = FoBiS.py clean
