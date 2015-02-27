@@ -7,3 +7,4 @@ ignore-paths:
     - examples
     - src/unittest
     - wiki
+    - release

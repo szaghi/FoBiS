@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 """
 Dependency.py, module definition of Dependency class.
+
 This is a class designed for handling file dependency.
 """
 import os
 
 
 class Dependency(object):
-  """
-  Dependency is an object that handles a single file dependency, its attributes and methods.
-  """
+
+  """Dependency is an object that handles a single file dependency, its attributes and methods."""
+
   def __init__(self, dtype="", name="", dfile=""):
     """
     Parameters
