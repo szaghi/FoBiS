@@ -21,6 +21,7 @@ target          = cumbersome.f90
 output          = build-test1
 log             = True
 cflags_heritage = True
+verbose         = True
 
 [rule-finalize]
 help    = Rule for preparing the next test
