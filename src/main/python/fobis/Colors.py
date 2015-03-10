@@ -37,7 +37,7 @@ class Colors(object):
     string : str
       string to be printed
     """
-    print(self.bld + string.decode("ascii", errors='ignore') + self.end)
+    print(self.bld + string + self.end)
     return
 
   def print_r(self, string):
@@ -49,5 +49,5 @@ class Colors(object):
     string : str
       string to be printed
     """
-    print(self.red + string.decode("ascii", errors='ignore') + self.end)
+    print(self.red + string + self.end)
     return

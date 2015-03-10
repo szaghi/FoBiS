@@ -23,7 +23,7 @@ def syswork(cmd):
   except subprocess.CalledProcessError as err:
     error = err.returncode
     output = err.output.encode("ascii", errors='ignore')
-  return [error, output]
+  return [error, str(output).decode("ascii", errors='ignore')]
 
 
 def traverse_recursive(parsed_file, path=list()):
