@@ -1,0 +1,30 @@
+[default]
+compiler        = gnu
+fc              = gfortran
+cflags          = -c
+preproc         = -Dtest
+mpi             = False
+openmp          = True
+coverage        = True
+profile         = True
+mklib           = False
+cflags_heritage = True
+src             = ./src/
+build_dir       = ./
+obj_dir         = ./obj/
+mod_dir         = ./mod/
+target          = cumbersome.f90
+output          = build-test13
+exclude         = foo.f
+inc             = .include
+extensions      = .fff
+colors          = True
+log             = True
+quiet           = False
+verbose         = True
+jobs            = 1
+
+[rule-finalize]
+help  = Rule for preparing the next test
+quiet = True
+rule  = echo ""

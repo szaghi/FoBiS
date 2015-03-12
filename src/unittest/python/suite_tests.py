@@ -69,7 +69,7 @@ class SuiteTest(unittest.TestCase):
     num_failures = 0
     failed = []
 
-    for test in range(12):
+    for test in range(13):
       build_ok = self.run_build('build-test' + str(test + 1))
       if not build_ok:
         failed.append('build-test' + str(test + 1))
