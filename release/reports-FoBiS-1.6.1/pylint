@@ -1,0 +1,212 @@
+************* Module fobis.Gcov
+R:203, 2: Too many branches (14/12) (too-many-branches)
+************* Module fobis.cli_parser
+R: 13, 0: Too many statements (52/50) (too-many-statements)
+************* Module fobis.Builder
+E:143,11: Unexpected keyword argument 'modsw' in constructor call (unexpected-keyword-arg)
+E:143,11: Unexpected keyword argument 'compiler' in constructor call (unexpected-keyword-arg)
+E:143,11: No value for argument 'cliargs' in constructor call (no-value-for-parameter)
+************* Module fobis.config
+R:398, 2: Too many statements (64/50) (too-many-statements)
+R:568, 2: Too many branches (13/12) (too-many-branches)
+R: 46, 2: Too many branches (20/12) (too-many-branches)
+R:145, 4: Too many branches (20/12) (too-many-branches)
+R:141, 2: Too many branches (14/12) (too-many-branches)
+R:203, 2: Too many branches (28/12) (too-many-branches)
+************* Module fobis.Compiler
+R: 20, 2: Too many branches (22/12) (too-many-branches)
+R:137, 2: Too many branches (16/12) (too-many-branches)
+R: 13, 0: Too many statements (52/50) (too-many-statements)
+E:143,11: Unexpected keyword argument 'modsw' in constructor call (unexpected-keyword-arg)
+E:143,11: Unexpected keyword argument 'compiler' in constructor call (unexpected-keyword-arg)
+E:143,11: No value for argument 'cliargs' in constructor call (no-value-for-parameter)
+R:145, 2: Too many branches (18/12) (too-many-branches)
+R:185, 2: Too many branches (24/12) (too-many-branches)
+R:226, 2: Too many branches (16/12) (too-many-branches)
+R:260, 2: Too many branches (16/12) (too-many-branches)
+R:338, 2: Too many branches (14/12) (too-many-branches)
+R:374, 2: Too many branches (14/12) (too-many-branches)
+R:428, 2: Too many branches (18/12) (too-many-branches)
+R:470, 2: Too many branches (20/12) (too-many-branches)
+R:520, 2: Too many branches (14/12) (too-many-branches)
+R:106, 2: Too many branches (14/12) (too-many-branches)
+R:186, 2: Too many branches (24/12) (too-many-branches)
+R:257, 2: Too many branches (14/12) (too-many-branches)
+R:300, 2: Too many branches (16/12) (too-many-branches)
+R:398, 2: Too many statements (64/50) (too-many-statements)
+R:478, 2: Too many branches (24/12) (too-many-branches)
+R:568, 2: Too many branches (26/12) (too-many-branches)
+************* Module fobis.utils
+W: 31, 0: Dangerous default value list() (__builtin__.list) as argument (dangerous-default-value)
+R:112, 0: Too many branches (22/12) (too-many-branches)
+************* Module fobis.Fobos
+F:  9, 2: Unable to import 'configparser' (import-error)
+************* Module fobis.ParsedFile
+W: 58, 8: Used * or ** magic (star-args)
+R:170, 2: Too many arguments (8/7) (too-many-arguments)
+R:370, 2: Too many branches (16/12) (too-many-branches)
+W: 31, 0: Dangerous default value list() (__builtin__.list) as argument (dangerous-default-value)
+R:112, 0: Too many branches (44/12) (too-many-branches)
+R:187, 0: Too many branches (18/12) (too-many-branches)
+F:  9, 2: Unable to import 'configparser' (import-error)
+R: 21, 2: Too many branches (16/12) (too-many-branches)
+R:150, 2: Too many branches (14/12) (too-many-branches)
+R:237, 2: Too many branches (14/12) (too-many-branches)
+R:272, 2: Too many branches (14/12) (too-many-branches)
+R:297, 2: Too many branches (18/12) (too-many-branches)
+R:324, 2: Too many branches (20/12) (too-many-branches)
+W: 58, 8: Used * or ** magic (star-args)
+R:170, 2: Too many arguments (8/7) (too-many-arguments)
+R:244, 2: Too many branches (20/12) (too-many-branches)
+R:321, 2: Too many branches (16/12) (too-many-branches)
+R:370, 2: Too many branches (32/12) (too-many-branches)
+************* Module fobis.Cleaner
+R:111, 2: Too many branches (22/12) (too-many-branches)
+
+
+Report
+======
+3346 statements analysed.
+
+Statistics by type
+------------------
+
++---------+-------+-----------+-----------+------------+---------+
+|type     |number |old number |difference |%documented |%badname |
++=========+=======+===========+===========+============+=========+
+|module   |26     |26         |=          |100.00      |0.00     |
++---------+-------+-----------+-----------+------------+---------+
+|class    |18     |18         |=          |100.00      |0.00     |
++---------+-------+-----------+-----------+------------+---------+
+|method   |198    |196        |+2.00      |100.00      |0.00     |
++---------+-------+-----------+-----------+------------+---------+
+|function |38     |38         |=          |100.00      |0.00     |
++---------+-------+-----------+-----------+------------+---------+
+
+
+
+External dependencies
+---------------------
+::
+
+    argparse (fobis.cli_parser)
+    fobis 
+      \-Builder (fobis.config)
+      \-Cleaner (fobis.config)
+      \-Colors (fobis.config)
+      \-Compiler (fobis.Builder)
+      \-Fobos (fobis.config)
+      \-Gcov (fobis.config)
+      \-ParsedFile (fobis.config)
+      \-cli_parser (fobis.config)
+      \-config (fobis.fobis)
+      \-fobis (FoBiS)
+      \-utils (fobis.Fobos,fobis.Cleaner,fobis.config,fobis.ParsedFile,fobis.Builder)
+    graphviz (fobis.ParsedFile)
+    pygooglechart (fobis.Gcov)
+
+
+
+Raw metrics
+-----------
+
++----------+-------+------+---------+-----------+
+|type      |number |%     |previous |difference |
++==========+=======+======+=========+===========+
+|code      |3545   |57.56 |3409     |+136.00    |
++----------+-------+------+---------+-----------+
+|docstring |2070   |33.61 |2052     |+18.00     |
++----------+-------+------+---------+-----------+
+|comment   |51     |0.83  |51       |=          |
++----------+-------+------+---------+-----------+
+|empty     |493    |8.00  |481      |+12.00     |
++----------+-------+------+---------+-----------+
+
+
+
+Duplication
+-----------
+
++-------------------------+-------+---------+-----------+
+|                         |now    |previous |difference |
++=========================+=======+=========+===========+
+|nb duplicated lines      |3018   |2936     |+82.00     |
++-------------------------+-------+---------+-----------+
+|percent duplicated lines |49.411 |49.394   |+0.02      |
++-------------------------+-------+---------+-----------+
+
+
+
+Messages by category
+--------------------
+
++-----------+-------+---------+-----------+
+|type       |number |previous |difference |
++===========+=======+=========+===========+
+|convention |0      |0        |=          |
++-----------+-------+---------+-----------+
+|refactor   |43     |41       |+2.00      |
++-----------+-------+---------+-----------+
+|warning    |4      |4        |=          |
++-----------+-------+---------+-----------+
+|error      |6      |6        |=          |
++-----------+-------+---------+-----------+
+
+
+
+% errors / warnings by module
+-----------------------------
+
++-----------------+------+--------+---------+-----------+
+|module           |error |warning |refactor |convention |
++=================+======+========+=========+===========+
+|fobis.Builder    |50.00 |0.00    |20.93    |0.00       |
++-----------------+------+--------+---------+-----------+
+|fobis.ParsedFile |0.00  |25.00   |9.30     |0.00       |
++-----------------+------+--------+---------+-----------+
+|fobis.utils      |0.00  |25.00   |4.65     |0.00       |
++-----------------+------+--------+---------+-----------+
+|fobis.config     |0.00  |0.00    |16.28    |0.00       |
++-----------------+------+--------+---------+-----------+
+|fobis.Fobos      |0.00  |0.00    |13.95    |0.00       |
++-----------------+------+--------+---------+-----------+
+|fobis.Gcov       |0.00  |0.00    |9.30     |0.00       |
++-----------------+------+--------+---------+-----------+
+|fobis.Compiler   |0.00  |0.00    |4.65     |0.00       |
++-----------------+------+--------+---------+-----------+
+|fobis.cli_parser |0.00  |0.00    |2.33     |0.00       |
++-----------------+------+--------+---------+-----------+
+|fobis.Cleaner    |0.00  |0.00    |2.33     |0.00       |
++-----------------+------+--------+---------+-----------+
+
+
+
+Messages
+--------
+
++------------------------+------------+
+|message id              |occurrences |
++========================+============+
+|too-many-branches       |37          |
++------------------------+------------+
+|unexpected-keyword-arg  |4           |
++------------------------+------------+
+|too-many-statements     |4           |
++------------------------+------------+
+|too-many-arguments      |2           |
++------------------------+------------+
+|star-args               |2           |
++------------------------+------------+
+|no-value-for-parameter  |2           |
++------------------------+------------+
+|import-error            |2           |
++------------------------+------------+
+|dangerous-default-value |2           |
++------------------------+------------+
+
+
+
+Global evaluation
+-----------------
+Your code has been rated at 9.77/10 (previous run: 9.77/10, +0.00)
+
