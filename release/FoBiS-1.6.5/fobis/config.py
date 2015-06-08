@@ -351,8 +351,8 @@ class FoBiSConfig(object):
           print(result[1])
           if result[0] != 0:
             sys.exit(result[0])
-          add_paths.append([os.path.normpath(os.path.join(fobos_path, dbld[1].strip('\n'))), # + os.sep,
-                            os.path.normpath(os.path.join(fobos_path, dbld[1].strip('\n'), dmod[1].strip('\n'))), # + os.sep,
+          add_paths.append([os.path.normpath(os.path.join(fobos_path, dbld[1].strip('\n'))),
+                            os.path.normpath(os.path.join(fobos_path, dbld[1].strip('\n'), dmod[1].strip('\n'))),
                             [os.path.normpath(os.path.join(fobos_path, output[1].strip('\n'))), linking]])
         self._add_auxiliary_paths(add_paths)
     return

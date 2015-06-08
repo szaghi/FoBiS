@@ -307,8 +307,8 @@ class Builder(object):
         pfm_dir = ''
         preform_store = False
       if to_preform:
-        preform_cmd = 'PreForM.py ' + file_to_compile.name + ' -o ' + pfm_dir + file_to_compile.basename + '.pfm.f90' + ' ; '
-        preform_output = pfm_dir + file_to_compile.basename + '.pfm.f90'
+        preform_cmd = 'PreForM.py ' + file_to_compile.name + ' -o ' + os.path.join(pfm_dir, file_to_compile.basename + '.pfm.f90') + ' ; '
+        preform_output = os.path.join(pfm_dir, file_to_compile.basename + '.pfm.f90')
         if not preform_store:
           preform_remove = ' ; rm -f ' + preform_output
     return preform_cmd, preform_output, preform_remove
