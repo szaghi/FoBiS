@@ -75,9 +75,9 @@ class Cleaner(object):
     mod_dir : str
       directory containing .mod files
     """
-    self.build_dir = os.path.normpath(build_dir)
-    self.obj_dir = os.path.normpath(os.path.join(build_dir, obj_dir))
-    self.mod_dir = os.path.normpath(os.path.join(build_dir, mod_dir))
+    self.build_dir = os.path.normpath(build_dir) # + os.sep
+    self.obj_dir = os.path.normpath(os.path.join(build_dir, obj_dir)) # + os.sep
+    self.mod_dir = os.path.normpath(os.path.join(build_dir, mod_dir)) # + os.sep
     return
 
   def _sanitize_files(self, target, output):

@@ -189,12 +189,14 @@ class Builder(object):
     else:
       self.lib_dir = lib_dir
       for directory in self.lib_dir:
+        # directory = os.path.normpath(directory) + os.sep
         directory = os.path.normpath(directory)
     if dinc is None:
       self.dinc = []
     else:
       self.dinc = dinc
       for directory in self.dinc:
+        # directory = os.path.normpath(directory) + os.sep
         directory = os.path.normpath(directory)
     return
 
