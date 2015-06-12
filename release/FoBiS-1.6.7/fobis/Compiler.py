@@ -158,8 +158,6 @@ class Compiler(object):
         # disabling optimizations for correct coverage results
         if re.search(r"-O[1-9]", self.cflags):
           self.cflags = re.sub(r"-O[1-9]", r"-O0", self.cflags)
-        else:
-          self.cflags += ' -O0'
     if self.profile:
       if self._profile[0] != '':
         self.cflags += ' ' + self._profile[0]
@@ -180,8 +178,6 @@ class Compiler(object):
         # disabling optimizations for correct coverage results
         if re.search(r"-O[1-9]", self.lflags):
           self.lflags = re.sub(r"-O[1-9]", r"-O0", self.lflags)
-        else:
-          self.lflags += ' -O0'
     if self.profile:
       if self._profile[1] != '':
         self.lflags += ' ' + self._profile[1]

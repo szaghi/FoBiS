@@ -1,0 +1,66 @@
+************* Module fobis.Compiler
+R: 24, 0: Too many instance attributes (14/7) (too-many-instance-attributes)
+************* Module fobis.cli_parser
+R: 28, 0: Too many statements (52/50) (too-many-statements)
+************* Module fobis.Colors
+C: 55, 0: Unnecessary parens after 'print' keyword (superfluous-parens)
+C: 67, 0: Unnecessary parens after 'print' keyword (superfluous-parens)
+************* Module fobis.Gcov
+C: 26, 0: Unnecessary parens after 'print' keyword (superfluous-parens)
+R:218, 2: Too many branches (18/12) (too-many-branches)
+************* Module fobis.Builder
+C: 25, 0: Unnecessary parens after 'print' keyword (superfluous-parens)
+R: 34, 0: Too many instance attributes (18/7) (too-many-instance-attributes)
+E:159,11: Unexpected keyword argument 'modsw' in constructor call (unexpected-keyword-arg)
+E:159,11: Unexpected keyword argument 'compiler' in constructor call (unexpected-keyword-arg)
+E:159,11: No value for argument 'cliargs' in constructor call (no-value-for-parameter)
+W: 29, 0: Unused import sys (unused-import)
+************* Module fobis.utils
+C: 27, 0: Unnecessary parens after 'print' keyword (superfluous-parens)
+W: 46, 0: Dangerous default value list() (__builtin__.list) as argument (dangerous-default-value)
+R:127, 0: Too many branches (22/12) (too-many-branches)
+************* Module fobis.ParsedFile
+C:333, 0: Unnecessary parens after 'print' keyword (superfluous-parens)
+C:423, 0: Unnecessary parens after 'print' keyword (superfluous-parens)
+R:183, 0: Too many instance attributes (15/7) (too-many-instance-attributes)
+R:393, 2: Too many branches (16/12) (too-many-branches)
+************* Module fobis.Dependency
+C: 56, 0: Unnecessary parens after 'print' keyword (superfluous-parens)
+************* Module fobis.config
+C:351, 0: Unnecessary parens after 'print' keyword (superfluous-parens)
+R:617, 2: Too many branches (13/12) (too-many-branches)
+C: 26, 0: Unnecessary parens after 'print' keyword (superfluous-parens)
+R:218, 2: Too many branches (18/12) (too-many-branches)
+R: 24, 0: Too many instance attributes (14/7) (too-many-instance-attributes)
+R: 28, 0: Too many statements (52/50) (too-many-statements)
+C: 25, 0: Unnecessary parens after 'print' keyword (superfluous-parens)
+R: 34, 0: Too many instance attributes (18/7) (too-many-instance-attributes)
+E:159,11: Unexpected keyword argument 'modsw' in constructor call (unexpected-keyword-arg)
+E:159,11: Unexpected keyword argument 'compiler' in constructor call (unexpected-keyword-arg)
+E:159,11: No value for argument 'cliargs' in constructor call (no-value-for-parameter)
+W: 29, 0: Unused import sys (unused-import)
+C:351, 0: Unnecessary parens after 'print' keyword (superfluous-parens)
+R:617, 2: Too many branches (13/12) (too-many-branches)
+C: 55, 0: Unnecessary parens after 'print' keyword (superfluous-parens)
+C: 67, 0: Unnecessary parens after 'print' keyword (superfluous-parens)
+C: 27, 0: Unnecessary parens after 'print' keyword (superfluous-parens)
+W: 46, 0: Dangerous default value list() (__builtin__.list) as argument (dangerous-default-value)
+R:127, 0: Too many branches (22/12) (too-many-branches)
+C:333, 0: Unnecessary parens after 'print' keyword (superfluous-parens)
+C:423, 0: Unnecessary parens after 'print' keyword (superfluous-parens)
+R:183, 0: Too many instance attributes (15/7) (too-many-instance-attributes)
+R:393, 2: Too many branches (16/12) (too-many-branches)
+C: 56, 0: Unnecessary parens after 'print' keyword (superfluous-parens)
+R:  1, 0: Similar lines in 2 files
+==fobis.Builder:91
+==fobis.Fobos:45
+    if print_n is None:
+      self.print_n = print_fake
+    else:
+      self.print_n = print_n
+
+    if print_w is None:
+      self.print_w = print_fake
+    else:
+      self.print_w = print_w
+ (duplicate-code)

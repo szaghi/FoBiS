@@ -1,0 +1,20 @@
+Metadata-Version: 1.1
+Name: FoBiS.py
+Version: 1.6.8
+Summary: a Fortran Building System for poor men
+Home-page: https://github.com/szaghi/FoBiS
+Author: Stefano Zaghi
+Author-email: stefano.zaghi@gmail.com
+License: UNKNOWN
+Description: FoBiS.py, a Fortran Building System for poor men, is a KISS tool for automatic building modern Fortran projects, it being able to automatically resolve inter-modules dependancy hierarchy.
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
+Classifier: Environment :: Console
+Classifier: Intended Audience :: End Users/Desktop
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Topic :: Text Processing
