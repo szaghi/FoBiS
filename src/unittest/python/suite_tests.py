@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Testing FoBiS.py"""
 # import doctest
+import filecmp
 import os
 import unittest
 from fobis.config import __config__
@@ -64,8 +65,28 @@ class SuiteTest(unittest.TestCase):
     os.chdir(old_pwd)
     return clean_ok
 
+  @staticmethod
+  def make_makefile(directory):
+    """
+    Make makefile into a selected directory.
+
+    Parameters
+    ----------
+    directory : str
+      relative path to tested directory
+    """
+    print("Testing " + directory)
+    make_ok = False
+    old_pwd = os.getcwd()
+    os.chdir(os.path.dirname(os.path.abspath(__file__)) + '/' + directory)
+    __config__.run_fobis(fake_args=['build', '-f', 'fobos', '-m', 'makefile_check'])
+    make_ok = filecmp.cmp('makefile_check', 'makefile_ok')
+    __config__.run_fobis(fake_args=['clean', '-f', 'fobos'])
+    os.chdir(old_pwd)
+    return make_ok
+
   def test_buildings(self):
-    """Testing buildings."""
+    """Test buildings."""
     num_failures = 0
     failed = []
 
@@ -75,10 +96,38 @@ class SuiteTest(unittest.TestCase):
         failed.append('build-test' + str(test + 1))
         num_failures += 1
 
+    if len(failed) > 0:
+      for fail in failed:
+        print(fail)
+    self.assertEquals(num_failures, 0)
+    return
+
+  def test_cleanings(self):
+    """Test cleanings."""
+    num_failures = 0
+    failed = []
+
     for test in range(1):
       clean_ok = self.run_clean('clean-test' + str(test + 1))
       if not clean_ok:
         failed.append('clean-test' + str(test + 1))
+        num_failures += 1
+
+    if len(failed) > 0:
+      for fail in failed:
+        print(fail)
+    self.assertEquals(num_failures, 0)
+    return
+
+  def test_makefile(self):
+    """Test makefile generation."""
+    num_failures = 0
+    failed = []
+
+    for test in range(1):
+      make_ok = self.make_makefile('makefile-test' + str(test + 1))
+      if not make_ok:
+        failed.append('makefile-test' + str(test + 1))
         num_failures += 1
 
     if len(failed) > 0:
