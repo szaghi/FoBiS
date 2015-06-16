@@ -124,7 +124,7 @@ class SuiteTest(unittest.TestCase):
     num_failures = 0
     failed = []
 
-    for test in range(1):
+    for test in range(2):
       make_ok = self.make_makefile('makefile-test' + str(test + 1))
       if not make_ok:
         failed.append('makefile-test' + str(test + 1))
