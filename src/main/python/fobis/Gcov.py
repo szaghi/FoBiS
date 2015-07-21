@@ -33,9 +33,9 @@ __str_kw_pure__ = r"[Pp][Uu][Rr][Ee]"
 __str_kw_subroutine__ = r"[Ss][Uu][Bb][Rr][Oo][Uu][Tt][Ii][Nn][Ee]"
 __str_kw_function__ = r"[Ff][Uu][Nn][Cc][Tt][Ii][Oo][Nn]"
 __str_name__ = r"(?P<name>[a-zA-Z][a-zA-Z0-9_]*)"
-__str_procedure__ = (r"^(\s*)" +  # eventual initial white spaces
-                     r"(" + __str_kw_elemental__ + r"|" + __str_kw_pure__ + r"\s+)*" +  # eventual "elemental" or "pure" attribute
-                     r"(?P<ptype>" + __str_kw_function__ + r"|" + __str_kw_subroutine__ + r"\s+)" +  # type of procedure
+__str_procedure__ = (r"^(\s*)" +  # initial white spaces
+                     r"(" + __str_kw_elemental__ + r"|" + __str_kw_pure__ + r")?\s+" +  # "elemental" or "pure" attribute
+                     r"(?P<ptype>" + __str_kw_function__ + r"|" + __str_kw_subroutine__ + r")\s+" +  # type of procedure
                      r"(?P<pname>" + __str_name__ + r"\s*).*")  # name of procedure
 __regex_procedure__ = re.compile(__str_procedure__)
 
