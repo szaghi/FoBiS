@@ -209,7 +209,8 @@ class Gcov(object):
                 pcov = int(cov_num)
               else:
                 pcov = 0
-              self.procedures.append([ptype, pname, pcov, line_num])
+              if cov_num != '-': # needed due to abstract iterfaces
+                self.procedures.append([ptype, pname, pcov, line_num])
             ignoring = _coverage_update(ignoring=ignoring, cov_num=cov_num, line_num=line_num, text=text, coverage=self.coverage)
     self._metrics()
     self._get_graphs_url()
