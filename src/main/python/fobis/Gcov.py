@@ -28,6 +28,7 @@ except ImportError:
 import os
 import re
 import sys
+from operator import itemgetter
 __str_kw_elemental__ = r"[Ee][Ll][Ee][Mm][Ee][Nn][Tt][Aa][Ll]"
 __str_kw_pure__ = r"[Pp][Uu][Rr][Ee]"
 __str_kw_subroutine__ = r"[Ss][Uu][Bb][Rr][Oo][Uu][Tt][Ii][Nn][Ee]"
@@ -256,7 +257,7 @@ class Gcov(object):
         string.append('\n#### Unexecuted procedures\n')
         string.append('\n')
         if any(proc[2] == 0 for proc in self.procedures):
-          for proc in self.procedures:
+          for proc in sorted(self.procedures, key=itemgetter(0,1)):
             if proc[2] == 0:
               string.append(' + *' + proc[0] + '* **' + proc[1] + '**, line ' + str(proc[3]) + '\n')
         else:
@@ -264,7 +265,7 @@ class Gcov(object):
         string.append('\n#### Executed procedures\n')
         string.append('\n')
         if any(proc[2] > 0 for proc in self.procedures):
-          for proc in self.procedures:
+          for proc in sorted(self.procedures, key=itemgetter(2), reverse=True):
             if proc[2] > 0:
               string.append(' + *' + proc[0] + '* **' + proc[1] + '**: tested **' + str(proc[2]) + '** times\n')
         else:
