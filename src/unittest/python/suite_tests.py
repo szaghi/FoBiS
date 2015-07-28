@@ -132,7 +132,7 @@ class SuiteTest(unittest.TestCase):
 
     if len(failed) > 0:
       for fail in failed:
-        print(fail)
+        print("Error: Test " + fail + " failed!")
     self.assertEquals(num_failures, 0)
     return
 
