@@ -36,7 +36,7 @@ def _build_parser(clisubparsers):
   buildparser = clisubparsers.add_parser('build', help='Build all programs found or specific target(s)')
   buildparser.set_defaults(which='build')
   buildparser_g_compiler = buildparser.add_argument_group('compiler')
-  buildparser_g_compiler.add_argument('-compiler', required=False, action='store', default='intel', type=str.lower, choices=('gnu', 'intel', 'g95', 'custom'), help='Compiler used (value is case insensitive, default intel)')
+  buildparser_g_compiler.add_argument('-compiler', required=False, action='store', default='intel', type=str.lower, choices=('gnu', 'intel', 'g95', 'opencoarrays-gnu', 'custom'), help='Compiler used (value is case insensitive, default intel)')
   buildparser_g_compiler.add_argument('-fc', required=False, action='store', default=None, help='Specify the Fortran compiler statement, necessary for custom compiler specification (-compiler Custom)')
   buildparser_g_compiler.add_argument('-cflags', required=False, action='store', default=None, help='Compile flags')
   buildparser_g_compiler.add_argument('-lflags', required=False, action='store', default=None, help='Link flags')

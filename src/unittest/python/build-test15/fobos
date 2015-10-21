@@ -1,0 +1,14 @@
+[default]
+help     = Compile with OpenCoarray-GNU gfortran
+compiler = OpenCoarrays-Gnu
+src      = ./src/
+colors   = True
+quiet    = False
+jobs     = 1
+output   = build-test15
+verbose  = True
+
+[rule-finalize]
+help  = Rule for preparing the next test
+quiet = True
+rule  = echo ""

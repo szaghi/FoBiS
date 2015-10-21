@@ -29,11 +29,11 @@ class Compiler(object):
 
   Attributes
   ----------
-  supported : {['gnu', 'intel', 'g95']}
+  supported : {['gnu', 'intel', 'g95', 'opencoarrays-gnu']}
     list of supported compilers
   """
 
-  supported = ['gnu', 'intel', 'g95']
+  supported = ['gnu', 'intel', 'g95', 'opencoarrays-gnu']
 
   def __init__(self, cliargs, print_w=None):
     """
@@ -85,6 +85,8 @@ class Compiler(object):
         self._intel()
       elif self.compiler.lower() == 'g95':
         self._g95()
+      elif self.compiler.lower() == 'opencoarrays-gnu':
+        self._opencoarrays_gnu()
       elif self.compiler.lower() == 'custom':
         pass  # set by user options
       else:
@@ -152,6 +154,20 @@ class Compiler(object):
     self._openmp = ['', '']
     self._coverage = ['', '']
     self._profile = ['', '']
+    return
+
+  def _opencoarrays_gnu(self):
+    """Set compiler defaults to the OpenCoarrays-Aware GNU gfortran compiler options."""
+    self.compiler = 'opencoarrays-gnu'
+    self.fcs = 'caf'
+    self.cflags = '-c'
+    self.lflags = ''
+    self.preproc = ''
+    self.modsw = '-J '
+    self._mpi = 'mpif90'
+    self._openmp = ['-fopenmp', '-fopenmp']
+    self._coverage = ['-ftest-coverage -fprofile-arcs', '-fprofile-arcs']
+    self._profile = ['-pg', '-pg']
     return
 
   def _set_fcs(self):
