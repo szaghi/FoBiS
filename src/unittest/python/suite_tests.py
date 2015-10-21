@@ -3,9 +3,16 @@
 # import doctest
 import filecmp
 import os
+import subprocess
 import unittest
 from fobis.config import __config__
 
+
+try:
+  subprocess.call(["caf -v"])
+  opencoarrays = True
+except OSError as e:
+  opencoarrays = False
 
 class SuiteTest(unittest.TestCase):
   """Testing suite for FoBiS.py."""
@@ -90,7 +97,9 @@ class SuiteTest(unittest.TestCase):
     num_failures = 0
     failed = []
 
-    for test in range(14):
+    for test in range(15):
+      if test + 1 == 15 and not opencoarrays:
+        continue
       build_ok = self.run_build('build-test' + str(test + 1))
       if not build_ok:
         failed.append('build-test' + str(test + 1))
