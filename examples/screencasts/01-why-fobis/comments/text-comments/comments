@@ -1,0 +1,29 @@
+Hi all Fortran Poor men!
+Let us play with FoBiS.py
+Let us assume our aim is build this cumbersome hello world program
+It is very cumbersome... The main program is into src/cumbersome.f90
+It depends on both the libraries into dependency_lib_1 and dependency_lib_2
+If we try to build cumbersome directly we obtain...
+Obviously this does not work...
+We must firstly build dependency_lib_1
+Oh no! This library is even more cumbersome than the program!
+This library has nested include/use statements
+Ok, We need to write a makefile...
+Wait! It is 2015... Do we still complain with tabs, rules, modules inter-dependencies?
+Do you ever write a makefile with many cumbersome Fortran 95+ module-usage-statements?
+It can become quickly a nightmare
+Give FoBiS.py a chance
+Wow... What happens?
++ FoBiS.py builds src/cumbersome.f90, but before
+  - firstly build dependency_lib_1 \033[0m"
+    * this library is even more cumbersome, but FoBiS.py automatically resolves the
+      dependencies hierarchy!
+  - secondly build dependency_lib_2
+  - finally Cumbersome is built
+Well, you are thinking that for doing such a complex building the FoBiS.py configuration
+file (fobos) should be complex, more and more (and more) complex than a corresponding
+working makefile. Definitely not! Let us see the fobos file
+Is it simple enough?
+Note that is a very cumbersome scenario... In most cases, FoBiS.py can do
+similar stuff even without a fobos file, directly from the command line!
+Bye bye Fortran poor men
