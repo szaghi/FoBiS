@@ -61,6 +61,8 @@ class Compiler(object):
       activate the MPI compiler
     openmp : {False}
       activate the OpenMP pragmas
+    coarray : {False}
+      activate the coarray compilation
     coverage : {False}
       activate the coverage instruments
     profile : {False}
@@ -75,6 +77,7 @@ class Compiler(object):
 
     self._mpi = None
     self._openmp = None
+    self._coarray = None
     self._coverage = None
     self._profile = None
     self.compiler = cliargs.compiler
@@ -104,6 +107,7 @@ class Compiler(object):
       self.modsw = cliargs.modsw
     self.mpi = cliargs.mpi
     self.openmp = cliargs.openmp
+    self.coarray = cliargs.coarray
     self.coverage = cliargs.coverage
     self.profile = cliargs.profile
     self._set_fcs()
@@ -124,6 +128,7 @@ class Compiler(object):
     self.modsw = '-J '
     self._mpi = 'mpif90'
     self._openmp = ['-fopenmp', '-fopenmp']
+    self._coarray = ['-fcoarray=lib', '-fcoarray=lib -lcaf_mpi']
     self._coverage = ['-ftest-coverage -fprofile-arcs', '-fprofile-arcs']
     self._profile = ['-pg', '-pg']
     return
@@ -138,6 +143,7 @@ class Compiler(object):
     self.modsw = '-module '
     self._mpi = 'mpif90'
     self._openmp = ['-openmp', '-openmp']
+    self._coarray = ['-coarray', '-coarray']
     self._coverage = ['-prof-gen=srcpos', '']
     self._profile = ['', '']
     return
@@ -152,6 +158,7 @@ class Compiler(object):
     self.modsw = '-fmod='
     self._mpi = 'mpif90'
     self._openmp = ['', '']
+    self._coarray = ['', '']
     self._coverage = ['', '']
     self._profile = ['', '']
     return
@@ -166,6 +173,7 @@ class Compiler(object):
     self.modsw = '-J '
     self._mpi = 'mpif90'
     self._openmp = ['-fopenmp', '-fopenmp']
+    self._coarray = ['', '']
     self._coverage = ['-ftest-coverage -fprofile-arcs', '-fprofile-arcs']
     self._profile = ['-pg', '-pg']
     return
@@ -190,6 +198,9 @@ class Compiler(object):
     if self.openmp:
       if self._openmp[0] != '':
         self.cflags += ' ' + self._openmp[0]
+    if self.coarray:
+      if self._coarray[0] != '':
+        self.cflags += ' ' + self._coarray[0]
     if self.preproc is not None:
       if self.preproc != '':
         self.cflags += ' ' + self.preproc
@@ -209,6 +220,9 @@ class Compiler(object):
     if self.openmp:
       if self._openmp[1] != '':
         self.lflags += ' ' + self._openmp[1]
+    if self.coarray:
+      if self._coarray[1] != '':
+        self.lflags += ' ' + self._coarray[1]
     self.lflags = re.sub(r" +", r" ", self.lflags)
     return
 

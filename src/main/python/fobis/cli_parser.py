@@ -44,6 +44,7 @@ def _build_parser(clisubparsers):
   buildparser_g_compiler.add_argument('-modsw', required=False, action='store', default=None, help='Specify the switch for setting the module searching path, necessary for custom compiler specification (-compiler Custom)')
   buildparser_g_compiler.add_argument('-mpi', required=False, action='store_true', default=False, help='Use MPI enabled version of compiler')
   buildparser_g_compiler.add_argument('-openmp', required=False, action='store_true', default=False, help='Use OpenMP pragmas')
+  buildparser_g_compiler.add_argument('-coarray', required=False, action='store_true', default=False, help='Use coarrays')
   buildparser_g_compiler.add_argument('-coverage', required=False, action='store_true', default=False, help='Instrument the built code with coverage analysis tools [default False]')
   buildparser_g_compiler.add_argument('-profile', required=False, action='store_true', default=False, help='Instrument the built code with profiling analysis tools [default False]')
   buildparser_g_compiler.add_argument('-mklib', required=False, action='store', default=None, choices=('static', 'shared'), help='Build library instead of program (use with -target switch)')
