@@ -1,0 +1,80 @@
+[modes]
+modes = gnu intel custom
+
+[common-variables]
+$cflags = -c
+
+[gnu]
+help      = Compile with GNU gfortran
+compiler  = Gnu
+mpi       = False
+cflags    = $cflags
+mod_dir   = ./mod/
+obj_dir   = ./obj/
+build_dir = ./build/
+src       = ./src/
+colors    = True
+quiet     = False
+verbose   = True
+jobs      = 1
+inc       = .h .H
+target    = cumbersome.f90
+output    = Cumbersome
+log       = True
+coverage  = True
+
+[intel]
+help      = Compile with Intel ifort
+compiler  = Intel
+mpi       = False
+cflags    = $cflags
+mod_dir   = ./mod/
+obj_dir   = ./obj/
+build_dir = ./build/
+src       = ./src/
+colors    = True
+quiet     = False
+jobs      = 1
+inc       = .h .H
+target    = cumbersome.f90
+output    = Cumbersome
+log       = True
+
+[custom]
+help      = Compile with custom g95 compiler
+compiler  = custom
+fc        = g95
+modsw     = -fmod=
+mpi       = False
+cflags    = $cflags
+mod_dir   = ./mod/
+obj_dir   = ./obj/
+build_dir = ./build/
+src       = ./src/
+colors    = True
+quiet     = False
+jobs      = 1
+inc       = .h .H
+target    = cumbersome.f90
+output    = Cumbersome
+log       = True
+
+[rule-makedoc]
+help = Rule for building the documentation from source files
+rule = echo "I am making the doc... nope, this is a joke!"
+
+[rule-deltar]
+help  = Rule for deleting project archive
+quiet = True
+rule  = rm -f cum_example.tar
+
+[rule-maketar]
+help  = Rule for building project archive
+quiet = True
+rule  = rm -f cum_example.tar
+rule-1= tar cf cum_example.tar *
+
+[rule-genmakefile]
+help  = Rule for generating a GNU Make makefile for building the example
+quiet = True
+rule  = FoBiS.py build -m makefile

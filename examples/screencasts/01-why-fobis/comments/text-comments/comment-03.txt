@@ -1,0 +1,11 @@
+You are thinking "Why yet another Make-clone tool?"
+
+Because Make is limited and FoBiS is not a simple Make-clone!
+
++ Make has one of the worst syntax ever designed (these are spaces or tab?!?);
++ Make is not intuitive, it has so many implicit rules;
++ Make cannot automatically build modern Fortran projects using interdependent modules!
+
+From Fortran90 we have a great feature: modules! Modules are great, but they introduce a compiling-cascade-hierarchy.
+
+FoBiS has been developed essentially to automatically resolve the compiling-cascade-hierarchy arising from (ab)use of modules, but FoBiS can do many cool things!
