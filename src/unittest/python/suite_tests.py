@@ -92,6 +92,32 @@ class SuiteTest(unittest.TestCase):
     os.chdir(old_pwd)
     return make_ok
 
+  @staticmethod
+  def run_doctest(directory):
+    """
+    Method for running the doctest function into a selected directory.
+
+    Parameters
+    ----------
+    directory : str
+      relative path to tested directory
+    """
+    print("Testing " + directory)
+    doctest_ok = True
+    old_pwd = os.getcwd()
+    os.chdir(os.path.dirname(os.path.abspath(__file__)) + '/' + directory)
+
+    __config__.run_fobis(fake_args=['clean', '-f', 'fobos'])
+
+    __config__.run_fobis(fake_args=['doctests', '-f', 'fobos'])
+
+    __config__.run_fobis(fake_args=['rule', '-f', 'fobos', '-ex', 'finalize'])
+
+    __config__.run_fobis(fake_args=['clean', '-f', 'fobos'])
+
+    os.chdir(old_pwd)
+    return doctest_ok
+
   def test_buildings(self):
     """Test buildings."""
     num_failures = 0
@@ -142,6 +168,23 @@ class SuiteTest(unittest.TestCase):
     if len(failed) > 0:
       for fail in failed:
         print("Error: Test " + fail + " failed!")
+    self.assertEquals(num_failures, 0)
+    return
+
+  def test_doctests(self):
+    """Test doctests."""
+    num_failures = 0
+    failed = []
+
+    for test in range(1):
+      build_ok = self.run_doctest('doctest-test' + str(test + 1))
+      if not build_ok:
+        failed.append('doctest-test' + str(test + 1))
+        num_failures += 1
+
+    if len(failed) > 0:
+      for fail in failed:
+        print(fail)
     self.assertEquals(num_failures, 0)
     return
 
