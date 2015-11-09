@@ -1,0 +1,58 @@
+#!/usr/bin/make
+
+#main building variables
+DSRC    = .
+DOBJ    = obj/
+DMOD    = mod/
+DEXE    = ./
+LIBS    =
+FC      = gfortran
+OPTSC   =  -c  -J mod
+OPTSL   =  -J mod
+VPATH   = $(DSRC) $(DOBJ) $(DMOD)
+MKDIRS  = $(DOBJ) $(DMOD) $(DEXE)
+LCEXES  = $(shell echo $(EXES) | tr '[:upper:]' '[:lower:]')
+EXESPO  = $(addsuffix .o,$(LCEXES))
+EXESOBJ = $(addprefix $(DOBJ),$(EXESPO))
+
+#auxiliary variables
+COTEXT  = "Compiling $(<F)"
+LITEXT  = "Assembling $@"
+
+#building rules
+$(DEXE)MYPROG: $(MKDIRS) $(DOBJ)myprog.o
+	@rm -f $(filter-out $(DOBJ)myprog.o,$(EXESOBJ))
+	@echo $(LITEXT)
+	@$(FC) $(OPTSL) $(DOBJ)*.o $(LIBS) -o $@
+EXES := $(EXES) MYPROG
+
+#compiling rules
+$(DOBJ)mymod.o: ./src/mymod.f90
+	@echo $(COTEXT)
+	@$(FC) $(OPTSC)  $< -o $@
+
+$(DOBJ)myprog.o: ./src/myprog.f90 \
+	$(DOBJ)mymod.o
+	@echo $(COTEXT)
+	@$(FC) $(OPTSC)  $< -o $@
+
+#phony auxiliary rules
+.PHONY : $(MKDIRS)
+$(MKDIRS):
+	@mkdir -p $@
+.PHONY : cleanobj
+cleanobj:
+	@echo deleting objects
+	@rm -fr $(DOBJ)
+.PHONY : cleanmod
+cleanmod:
+	@echo deleting mods
+	@rm -fr $(DMOD)
+.PHONY : cleanexe
+cleanexe:
+	@echo deleting exes
+	@rm -f $(addprefix $(DEXE),$(EXES))
+.PHONY : clean
+clean: cleanobj cleanmod
+.PHONY : cleanall
+cleanall: clean cleanexe
