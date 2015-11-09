@@ -5,6 +5,7 @@ obj_dir   = ./obj/
 build_dir = ./
 src       = ./src/
 target    = test.f90
+jobs      = 1
 
 [rule-finalize]
 help  = Rule for preparing the next test
