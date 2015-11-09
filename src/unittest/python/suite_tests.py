@@ -88,6 +88,13 @@ class SuiteTest(unittest.TestCase):
     os.chdir(os.path.dirname(os.path.abspath(__file__)) + '/' + directory)
     __config__.run_fobis(fake_args=['build', '-f', 'fobos', '-m', 'makefile_check'])
     make_ok = filecmp.cmp('makefile_check', 'makefile_ok')
+    if not make_ok:
+      print('makefile generated')
+      with open(makefile_check, 'r') as mk_check:
+        print(mk_check.read())
+      print('makefile expected')
+      with open(makefile_ok, 'r') as mk_ok:
+        print(mk_ok.read())
     __config__.run_fobis(fake_args=['clean', '-f', 'fobos'])
     os.chdir(old_pwd)
     return make_ok

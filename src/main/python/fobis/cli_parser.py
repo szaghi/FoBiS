@@ -235,7 +235,8 @@ def cli_parser(appname, description, version):
                                       epilog="For more detailed commands help use" +
                                       "\n  " + appname + " build -h,--help" +
                                       "\n  " + appname + " clean -h,--help" +
-                                      "\n  " + appname + " rule -h,--help")
+                                      "\n  " + appname + " rule -h,--help"  +
+                                      "\n  " + appname + " doctests -h,--help")
   cliparser.add_argument('-v', '--version', action='version', help='Show version', version='%(prog)s ' + version)
   clisubparsers = cliparser.add_subparsers(title='Commands', description='Valid commands')
 
