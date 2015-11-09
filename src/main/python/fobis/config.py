@@ -34,7 +34,7 @@ from .utils import dependency_hiearchy
 from .utils import remove_other_main
 
 __appname__ = "FoBiS.py"
-__version__ = "1.8.1"
+__version__ = "1.8.2"
 __author__ = "Stefano Zaghi"
 __author_email__ = "stefano.zaghi@gmail.com"
 __license__ = "GNU General Public License v3 (GPLv3)"
