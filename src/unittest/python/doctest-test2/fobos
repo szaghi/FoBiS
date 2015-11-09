@@ -1,0 +1,29 @@
+[common-variables]
+$cflags = -c
+
+[default]
+help            = Compile with GNU gfortran
+template        = template-test
+
+[template-test]
+compiler        = Gnu
+mpi             = False
+cflags          = $cflags
+mod_dir         = ./mod/
+obj_dir         = ./obj/
+build_dir       = ./build/
+src             = ./
+colors          = True
+quiet           = True
+jobs            = 1
+inc             = .h .H
+target          = doctest.f90
+output          = doctest1
+log             = False
+cflags_heritage = True
+verbose         = False
+
+[rule-finalize]
+help  = Rule for preparing the next test
+quiet = False
+rule  = rm -rf build
