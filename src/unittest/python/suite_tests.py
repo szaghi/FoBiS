@@ -90,10 +90,10 @@ class SuiteTest(unittest.TestCase):
     make_ok = filecmp.cmp('makefile_check', 'makefile_ok')
     if not make_ok:
       print('makefile generated')
-      with open(makefile_check, 'r') as mk_check:
+      with open('makefile_check', 'r') as mk_check:
         print(mk_check.read())
       print('makefile expected')
-      with open(makefile_ok, 'r') as mk_ok:
+      with open('makefile_ok', 'r') as mk_ok:
         print(mk_ok.read())
     __config__.run_fobis(fake_args=['clean', '-f', 'fobos'])
     os.chdir(old_pwd)
