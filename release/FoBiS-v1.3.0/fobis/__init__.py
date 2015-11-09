@@ -1,1 +1,0 @@
-"""FoBiS.py main package"""
