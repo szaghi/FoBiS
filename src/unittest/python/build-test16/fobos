@@ -1,0 +1,16 @@
+[default]
+compiler                 = Gnu
+cflags                   = -c
+mod_dir                  = ./mod/
+obj_dir                  = ./obj/
+build_dir                = ./
+src                      = ./src/
+colors                   = True
+quiet                    = False
+log                      = True
+disable_recursive_search = True
+
+[rule-finalize]
+help  = Rule for preparing the next test
+quiet = True
+rule  = rm -f build-test16*
