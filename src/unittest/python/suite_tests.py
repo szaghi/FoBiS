@@ -5,7 +5,7 @@ import filecmp
 import os
 import subprocess
 import unittest
-from fobis.config import __config__
+from fobis.fobis import run_fobis
 
 
 try:
@@ -32,10 +32,10 @@ class SuiteTest(unittest.TestCase):
     old_pwd = os.getcwd()
     os.chdir(os.path.dirname(os.path.abspath(__file__)) + '/' + directory)
 
-    __config__.run_fobis(fake_args=['clean', '-f', 'fobos'])
+    run_fobis(fake_args=['clean', '-f', 'fobos'])
 
     try:
-      __config__.run_fobis(fake_args=['build', '-f', 'fobos'])
+      run_fobis(fake_args=['build', '-f', 'fobos'])
       build_ok = os.path.exists(directory)
     except:
       if directory == 'build-test6':
@@ -43,9 +43,9 @@ class SuiteTest(unittest.TestCase):
           build_ok = 'Unclassifiable statement' in list(logerror)[-1]
         os.remove('building-errors.log')
 
-    __config__.run_fobis(fake_args=['rule', '-f', 'fobos', '-ex', 'finalize'])
+    run_fobis(fake_args=['rule', '-f', 'fobos', '-ex', 'finalize'])
 
-    __config__.run_fobis(fake_args=['clean', '-f', 'fobos'])
+    run_fobis(fake_args=['clean', '-f', 'fobos'])
 
     os.chdir(old_pwd)
     return build_ok
@@ -64,9 +64,9 @@ class SuiteTest(unittest.TestCase):
     old_pwd = os.getcwd()
     os.chdir(os.path.dirname(os.path.abspath(__file__)) + '/' + directory)
 
-    __config__.run_fobis(fake_args=['build', '-f', 'fobos'])
+    run_fobis(fake_args=['build', '-f', 'fobos'])
 
-    __config__.run_fobis(fake_args=['clean', '-f', 'fobos'])
+    run_fobis(fake_args=['clean', '-f', 'fobos'])
 
     clean_ok = not os.path.exists(directory)
     os.chdir(old_pwd)
@@ -86,7 +86,7 @@ class SuiteTest(unittest.TestCase):
     make_ok = False
     old_pwd = os.getcwd()
     os.chdir(os.path.dirname(os.path.abspath(__file__)) + '/' + directory)
-    __config__.run_fobis(fake_args=['build', '-f', 'fobos', '-m', 'makefile_check'])
+    run_fobis(fake_args=['build', '-f', 'fobos', '-m', 'makefile_check'])
     make_ok = filecmp.cmp('makefile_check', 'makefile_ok')
     if not make_ok:
       if os.path.exists('makefile_ok2'):
@@ -95,7 +95,7 @@ class SuiteTest(unittest.TestCase):
         print('makefile generated')
         with open('makefile_check', 'r') as mk_check:
           print(mk_check.read())
-    __config__.run_fobis(fake_args=['clean', '-f', 'fobos'])
+    run_fobis(fake_args=['clean', '-f', 'fobos'])
     os.chdir(old_pwd)
     return make_ok
 
@@ -114,13 +114,13 @@ class SuiteTest(unittest.TestCase):
     old_pwd = os.getcwd()
     os.chdir(os.path.dirname(os.path.abspath(__file__)) + '/' + directory)
 
-    __config__.run_fobis(fake_args=['clean', '-f', 'fobos'])
+    run_fobis(fake_args=['clean', '-f', 'fobos'])
 
-    __config__.run_fobis(fake_args=['doctests', '-f', 'fobos'])
+    run_fobis(fake_args=['doctests', '-f', 'fobos'])
 
-    __config__.run_fobis(fake_args=['rule', '-f', 'fobos', '-ex', 'finalize'])
+    run_fobis(fake_args=['rule', '-f', 'fobos', '-ex', 'finalize'])
 
-    __config__.run_fobis(fake_args=['clean', '-f', 'fobos'])
+    run_fobis(fake_args=['clean', '-f', 'fobos'])
 
     os.chdir(old_pwd)
     return doctest_ok
@@ -130,7 +130,7 @@ class SuiteTest(unittest.TestCase):
     num_failures = 0
     failed = []
 
-    for test in range(15):
+    for test in range(16):
       if test + 1 == 15 and not opencoarrays:
         continue
       build_ok = self.run_build('build-test' + str(test + 1))

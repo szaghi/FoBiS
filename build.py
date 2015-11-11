@@ -13,7 +13,7 @@ use_plugin('python.install_dependencies')
 use_plugin('python.pylint')
 use_plugin('python.unittest')
 
-__source__ = open('src/main/python/fobis/config.py').read()
+__source__ = open('src/main/python/fobis/FoBiSConfig.py').read()
 
 authors = [Author(re.search(r'^__author__\s*=\s*"(.*)"', __source__, re.M).group(1),
                   re.search(r'^__author_email__\s*=\s*"(.*)"', __source__, re.M).group(1))]
