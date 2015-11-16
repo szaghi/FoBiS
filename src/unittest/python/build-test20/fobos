@@ -1,0 +1,17 @@
+[default]
+compiler     = Gnu
+cflags       = -c
+build_dir    = ./
+obj_dir      = ./obj/
+mod_dir      = ./mod/
+src          = ./src1 ./src2
+exclude_dirs = foo
+log          = True
+mklib        = static
+build_all    = True
+output       = build-test20
+
+[rule-finalize]
+help  = Rule for preparing the next test
+quiet = True
+rule  = echo ""

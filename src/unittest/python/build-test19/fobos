@@ -1,0 +1,15 @@
+[default]
+compiler     = Gnu
+cflags       = -c
+build_dir    = ./
+obj_dir      = ./obj/
+mod_dir      = ./mod/
+src          = ./
+exclude_dirs = foo
+output       = build-test19
+log          = True
+
+[rule-finalize]
+help  = Rule for preparing the next test
+quiet = True
+rule  = echo ""
