@@ -352,6 +352,8 @@ class Fobos(object):
       rule_name = 'rule-' + rule
       if self.fobos.has_section(rule_name):
         results = []
+        quiet = False
+        log = False
         if self.fobos.has_option(rule_name, 'quiet'):
           quiet = self.fobos.getboolean(rule_name, 'quiet')
         if self.fobos.has_option(rule_name, 'log'):

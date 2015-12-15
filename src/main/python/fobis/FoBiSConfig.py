@@ -54,8 +54,9 @@ class FoBiSConfig(object):
     """
     cliparser = cli_parser(appname=__appname__, description=__description__, version=__version__)
     self.cliargs = cliparser.parse_args(fake_args)
+    self.colors = Colors()
     self.fobos = Fobos(cliargs=self.cliargs, print_n=self.print_b, print_w=self.print_r)
-    self.colors = Colors(enabled=self.cliargs.colors)
+    self.colors = Colors(enabled=self.cliargs.colors)  # reset colors accordingly fobos options
     self._postinit()
 
   def _update_extensions(self):

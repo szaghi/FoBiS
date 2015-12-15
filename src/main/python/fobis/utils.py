@@ -17,15 +17,15 @@ utils.py, module definition of FoBiS.py util functions.
 #
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
+from __future__ import print_function
 import os
 import subprocess
 import sys
 
 
 def print_fake(input_obj):
-  """Renaming print."""
+  """Rename print."""
   print(input_obj)
-  return
 
 
 def syswork(cmd):
@@ -219,6 +219,10 @@ def check_results(results, log=None, print_w=None):
   else:
     print_wm = print_w
 
+  if not all(v[1] == '' for v in results):
+    for result in results:
+      if result[1] != '':
+        print_wm(result[1])
   if not all(v[0] == 0 for v in results):
     for result in results:
       if result[0] != 0:
@@ -227,11 +231,6 @@ def check_results(results, log=None, print_w=None):
           with open(log, 'a') as logerror:
             logerror.writelines(result[1])
     sys.exit(1)
-  if not all(v[1] == '' for v in results):
-    for result in results:
-      if result[1] != '':
-        print_wm(result[1])
-  return
 
 
 def safe_mkdir(directory, print_w=None):
