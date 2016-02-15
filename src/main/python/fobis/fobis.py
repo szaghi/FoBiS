@@ -187,7 +187,7 @@ def parse_files(configuration, src_dir=None, is_doctest=False):
       for filename in os.listdir(src_dir):
         if any(os.path.splitext(os.path.basename(filename))[1] == ext for ext in configuration.cliargs.extensions):
           if (os.path.basename(filename) not in [os.path.basename(exc) for exc in configuration.cliargs.exclude] and
-             all(exc not in os.path.dirname(filename) for exc in configuration.cliargs.exclude_dirs)):
+              all(exc not in os.path.dirname(filename) for exc in configuration.cliargs.exclude_dirs)):
             pfile = ParsedFile(name=os.path.join(src_dir, filename), is_doctest=is_doctest)
             pfile.parse(inc=configuration.cliargs.inc)
             pfiles.append(pfile)
@@ -196,7 +196,7 @@ def parse_files(configuration, src_dir=None, is_doctest=False):
         for filename in files:
           if any(os.path.splitext(os.path.basename(filename))[1] == ext for ext in configuration.cliargs.extensions):
             if (os.path.basename(filename) not in [os.path.basename(exc) for exc in configuration.cliargs.exclude] and
-               all(exc not in root for exc in configuration.cliargs.exclude_dirs)):
+                all(exc not in root for exc in configuration.cliargs.exclude_dirs)):
               filen = os.path.join(root, filename)
               pfile = ParsedFile(name=filen, is_doctest=is_doctest)
               pfile.parse(inc=configuration.cliargs.inc)

@@ -77,8 +77,12 @@ class FoBiSConfig(object):
       self.cliargs.mod_dir = os.path.normpath(self.cliargs.mod_dir)
       self.cliargs.obj_dir = os.path.normpath(self.cliargs.obj_dir)
     if self.cliargs.which == 'build':
-      for src in self.cliargs.src:
-        src = os.path.normpath(src)
+      for n, src in enumerate(self.cliargs.src):
+        self.cliargs.src[n] = os.path.normpath(src)
+      for n, inc in enumerate(self.cliargs.include):
+        self.cliargs.include[n] = os.path.normpath(inc)
+      for n, exc in enumerate(self.cliargs.exclude_dirs):
+        self.cliargs.exclude_dirs[n] = os.path.normpath(exc)
 
   def _check_cflags_heritage(self):
     """
