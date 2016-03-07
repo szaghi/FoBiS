@@ -1,7 +1,7 @@
 #!/usr/bin/make
 
 #main building variables
-DSRC    = ./
+DSRC    = .
 DOBJ    = obj/
 DMOD    = mod/
 DEXE    = ./
