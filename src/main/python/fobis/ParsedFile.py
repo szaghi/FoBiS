@@ -295,7 +295,7 @@ class ParsedFile(object):
     ffile.close()
     if self.module:
       self.doctest = Doctest()
-      self.doctest.parse(source=file(self.name, 'r').read())
+      self.doctest.parse(source=open(self.name, 'r').read())
       self.doctest.make_volatile_programs()
     if not self.program and not self.module:
       if os.path.splitext(os.path.basename(self.name))[1] not in inc:
