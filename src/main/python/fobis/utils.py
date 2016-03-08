@@ -39,7 +39,7 @@ def syswork(cmd):
     error = err.returncode
     output = err.output
   if sys.version_info[0] > 2:
-    output = output.decode("ascii")
+    output = str(output, encoding='UTF-8')
   return [error, str(output)]
 
 
