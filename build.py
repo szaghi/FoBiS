@@ -15,9 +15,14 @@ use_plugin('python.pylint')
 use_plugin('python.unittest')
 
 __source__ = open('src/main/python/fobis/FoBiSConfig.py').read()
-__branch__ = re.sub(r'feature/', '', subprocess.check_output(['git', 'symbolic-ref', '--quiet', '--short', 'HEAD']).strip('\n'))
 __version__ = re.search(r'^__version__\s*=\s*"(.*)"', __source__, re.M).group(1)
+try:
+  __branch__ = subprocess.check_output(['git', 'symbolic-ref', '--quiet', '--short', 'HEAD']).strip('\n')
+except subprocess.CalledProcessError as e:
+  __branch__ = 'unknown'
 
+__branch__ = re.sub(r'feature/', '', __branch__)
+__branch__ = re.sub(r'hotfix/', '', __branch__)
 
 @init
 def initialize(project):
