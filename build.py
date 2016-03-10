@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """Build script for FoBiS.py"""
 import os
-from pybuilder.core import Author, init, task, use_plugin
+from pybuilder.core import init, task, use_plugin
 from shutil import copyfile
+import subprocess
 import re
 
 use_plugin('python.core')
@@ -14,19 +15,14 @@ use_plugin('python.pylint')
 use_plugin('python.unittest')
 
 __source__ = open('src/main/python/fobis/FoBiSConfig.py').read()
-
-authors = [Author(re.search(r'^__author__\s*=\s*"(.*)"', __source__, re.M).group(1),
-                  re.search(r'^__author_email__\s*=\s*"(.*)"', __source__, re.M).group(1))]
-version = re.search(r'^__version__\s*=\s*"(.*)"', __source__, re.M).group(1)
-license = re.search(r'^__license__\s*=\s*"(.*)"', __source__, re.M).group(1)
-description = re.search(r'^__description__\s*=\s*"(.*)"', __source__, re.M).group(1)
-url = re.search(r'^__url__\s*=\s*"(.*)"', __source__, re.M).group(1)
+__branch__ = re.sub(r'feature/', '', subprocess.check_output(['git', 'symbolic-ref', '--quiet', '--short', 'HEAD']).strip('\n'))
+__version__ = re.search(r'^__version__\s*=\s*"(.*)"', __source__, re.M).group(1)
 
 
 @init
 def initialize(project):
-  """Initializing the building class."""
-  project.version = version
+  """Initiale the building class."""
+  project.version = __version__
   project.build_depends_on('coverage')
   project.build_depends_on('flake8')
   project.build_depends_on('frosted')
@@ -39,8 +35,8 @@ def initialize(project):
   project.set_property('coverage_threshold_warn', 90)
 
   project.set_property('dir_target', 'release')
-  project.set_property('dir_dist', 'release/' + project.name + '-' + project.version)
-  project.set_property('dir_reports', 'release/reports-' + project.name + '-' + project.version)
+  project.set_property('dir_dist', 'release/' + project.name + '-' + __branch__)
+  project.set_property('dir_reports', 'release/reports-' + project.name + '-' + __branch__)
 
   project.default_task = ['analyze', 'publish', 'copy_resources']
   return
@@ -49,8 +45,9 @@ def initialize(project):
 @task
 def copy_resources(project):
   """Copy non source resource files."""
-  copyfile('MANIFEST.in', 'release/' + project.name + '-' + project.version + '/MANIFEST.in')
+  copyfile('MANIFEST.in', 'release/' + project.name + '-' + __branch__ + '/MANIFEST.in')
+  copyfile('src/main/scripts/setup.py', 'release/' + project.name + '-' + __branch__ + '/setup.py')
   for mdf in os.listdir('.'):
     if mdf.endswith('.md'):
-      copyfile(mdf, 'release/' + project.name + '-' + project.version + '/' + mdf)
+      copyfile(mdf, 'release/' + project.name + '-' + __branch__ + '/' + mdf)
   return
