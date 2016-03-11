@@ -18,6 +18,7 @@ This is a class aimed at fobos file handling.
 #
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
+from __future__ import print_function
 try:
   import ConfigParser as configparser
 except ImportError:
@@ -164,7 +165,7 @@ class Fobos(object):
 
   def _set_cliargs_attributes(self, cliargs, cliargs_dict):
     """
-    Method for setting attribute of cliargs.
+    Set attributes of cliargs from fobos options.
 
     Parameters
     ----------
@@ -209,7 +210,7 @@ class Fobos(object):
 
   def _set_cliargs(self, cliargs):
     """
-    Function for setting cliargs from fobos settings.
+    Set cliargs from fobos options.
 
     Parameters
     ----------
@@ -283,13 +284,7 @@ class Fobos(object):
       return output
 
   def modes_list(self):
-    """
-    Function for listing defined modes.
-
-    Parameters
-    ----------
-    cliargs : argparse object
-    """
+    """List defined modes."""
     if self.fobos:
       self.print_n('The fobos file defines the following modes:')
       if self.fobos.has_option('modes', 'modes'):
@@ -306,6 +301,21 @@ class Fobos(object):
         sys.exit(1)
     sys.exit(0)
     return
+
+  def print_template(self, cliargs):
+    """
+    Print fobos template.
+
+    Parameters
+    ----------
+    cliargs : argparse object
+    """
+    print("[default]")
+    for argument in vars(cliargs):
+      attribute = getattr(cliargs, argument)
+      if isinstance(attribute, list):
+        attribute = ' '.join(attribute)
+      print(str(argument) + " = " + str(attribute))
 
   def rules_list(self, quiet=False):
     """

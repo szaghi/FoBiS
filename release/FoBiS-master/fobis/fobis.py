@@ -56,6 +56,9 @@ def run_fobis(fake_args=None):
     if configuration.cliargs.lmodes:
       configuration.fobos.modes_list()
       sys.exit(0)
+    if configuration.cliargs.print_fobos_template:
+      configuration.fobos.print_template(configuration.cliargs)
+      sys.exit(0)
     if configuration.cliargs.which == 'clean':
       run_fobis_clean(configuration)
     if configuration.cliargs.which == 'build':
