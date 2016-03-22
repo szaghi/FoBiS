@@ -126,6 +126,7 @@ def _subparser_fobos():
   parser_group.add_argument('-fci', '--fobos_case_insensitive', required=False, action='store_true', default=False, help='Assume fobos inputs as case insensitive [defaul: False, case sensitive]')
   parser_group.add_argument('-mode', required=False, action='store', default=None, help='Select a mode defined into a fobos file')
   parser_group.add_argument('-lmodes', required=False, action='store_true', default=False, help='List the modes defined into a fobos file')
+  parser_group.add_argument('--print_fobos_template', required=False, action='store_true', default=False, help='Print a comprehensive fobos template')
   return parser
 
 
