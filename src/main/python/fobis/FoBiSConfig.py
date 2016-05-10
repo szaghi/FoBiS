@@ -308,7 +308,7 @@ class FoBiSConfig(object):
                             [os.path.normpath(os.path.join(fobos_path, output[1].strip('\n'))), linking]])
         self._add_auxiliary_paths(add_paths)
 
-  def print_b(self, string):
+  def print_b(self, string, end='\n'):
     """
     Print string with bold color.
 
@@ -317,9 +317,9 @@ class FoBiSConfig(object):
     string : str
       string to be printed
     """
-    self.colors.print_b(string)
+    self.colors.print_b(string, end=end)
 
-  def print_r(self, string):
+  def print_r(self, string, end='\n'):
     """
     Print string with red color.
 
@@ -328,7 +328,7 @@ class FoBiSConfig(object):
     string : str
       string to be printed
     """
-    self.colors.print_r(string)
+    self.colors.print_r(string, end=end)
 
   def printf(self):
     """

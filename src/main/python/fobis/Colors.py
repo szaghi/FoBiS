@@ -18,7 +18,7 @@ This is a class aimed at coloring prints.
 #
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
-
+from __future__ import print_function
 
 class Colors(object):
   """
@@ -46,7 +46,7 @@ class Colors(object):
     self.bld = ''
     self.end = ''
 
-  def print_b(self, string):
+  def print_b(self, string, end="\n"):
     """
     Method for printing string with bold color.
 
@@ -55,10 +55,10 @@ class Colors(object):
     string : str
       string to be printed
     """
-    print(self.bld + string + self.end)
+    print(self.bld + string + self.end, end=end)
     return
 
-  def print_r(self, string):
+  def print_r(self, string, end='\n'):
     """
     Method for printing string with red color.
 
@@ -67,5 +67,5 @@ class Colors(object):
     string : str
       string to be printed
     """
-    print(self.red + string + self.end)
+    print(self.red + string + self.end, end=end)
     return

@@ -23,9 +23,9 @@ import subprocess
 import sys
 
 
-def print_fake(input_obj):
+def print_fake(input_obj, end='\n'):
   """Rename print."""
-  print(input_obj)
+  print(input_obj, end=end)
 
 
 def syswork(cmd):
