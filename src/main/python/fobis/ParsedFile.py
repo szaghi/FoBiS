@@ -310,7 +310,7 @@ class ParsedFile(object):
     builder : Builder object
       builder used for building self
     """
-    with open("build_" + self.basename + ".log", "w") as log_file:
+    with open(os.path.join(builder.build_dir, "build_" + self.basename + ".log"), "w") as log_file:
       log_file.writelines("Hierarchical dependencies list of: " + self.name + "\n")
       for dep in self.pfile_dep:
         log_file.writelines("  " + dep.name + "\n")
