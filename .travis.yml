@@ -35,13 +35,13 @@ install:
   - ln -fs /usr/bin/gfortran-6 "$HOME/.local/bin/gfortran" && gfortran --version
   - ls -l /usr/bin/gfortran-6
   - ln -fs /usr/bin/gcov-6 "$HOME/.local/bin/gcov" && gcov --version
-  - pip install --user --upgrade pygooglechart
-  - pip install --user --upgrade graphviz
-  - pip install --user --upgrade FoBiS.py
-  - pip install --user --upgrade markdown-checklist 
-  - pip install --user --upgrade ford
-  - pip install --user --upgrade pybuilder
-  - pip install --user --upgrade python-coveralls
+  - pip install --upgrade pygooglechart
+  - pip install --upgrade graphviz
+  - pip install --upgrade FoBiS.py
+  - pip install --upgrade markdown-checklist 
+  - pip install --upgrade ford
+  - pip install --upgrade pybuilder
+  - pip install --upgrade python-coveralls
   - pyb install_dependencies --verbose
 
 script:
