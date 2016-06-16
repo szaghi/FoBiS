@@ -341,9 +341,9 @@ class Builder(object):
       comp_cmd = self.cmd_comp + ' ' + include_cmd + file_to_compile.name + ' -o ' + os.path.join(self.obj_dir, file_to_compile.basename + '.o')
     return comp_cmd
 
-  def _link_command(self, file_to_build, output=None, nomodlibs=None):
+  def _link_command(self, file_to_build, output=None, nomodlibs=None, submodules=None):
     """
-    Method for returning the OS command for linkng file_to_build.
+    Return the OS command for linkng file_to_build.
 
     Parameters
     ----------
@@ -353,16 +353,20 @@ class Builder(object):
       output name
     nomodlibs : {None}
       list of old-Fortran style libraries objects
+    submodules : {None}
+      list of submodules objects
 
     Returns
     -------
     str
       string containing the link command
     """
+    objs = []
     if nomodlibs is not None:
-      objs = nomodlibs + file_to_build.obj_dependencies()
-    else:
-      objs = file_to_build.obj_dependencies()
+      objs = objs + nomodlibs
+    if submodules is not None:
+      objs = objs + submodules
+    objs = objs + file_to_build.obj_dependencies()
     if output:
       exe = os.path.join(self.build_dir, output)
     else:
@@ -377,9 +381,9 @@ class Builder(object):
     link_cmd += " -o " + exe
     return link_cmd, exe
 
-  def _mklib_command(self, file_to_build, output=None, nomodlibs=None, mklib=None):
+  def _mklib_command(self, file_to_build, output=None, nomodlibs=None, submodules=None, mklib=None):
     """
-    Method for returning the OS command for linkng file_to_build as a library.
+    Return the OS command for linkng file_to_build as a library.
 
     Parameters
     ----------
@@ -389,6 +393,8 @@ class Builder(object):
       output name
     nomodlibs : {None}
       list of old-Fortran style libraries objects
+    submodules : {None}
+      list of submodules objects
     mklib : {None}
       bool for activate building library mode
 
@@ -397,10 +403,12 @@ class Builder(object):
     str
       string containing the link command
     """
+    objs = []
     if nomodlibs is not None:
-      objs = nomodlibs + file_to_build.obj_dependencies(exclude_programs=True)
-    else:
-      objs = file_to_build.obj_dependencies(exclude_programs=True)
+      objs = objs + nomodlibs
+    if submodules is not None:
+      objs = objs + submodules
+    objs = objs + file_to_build.obj_dependencies(exclude_programs=True)
     if output:
       lib = os.path.join(self.build_dir, output)
     else:
@@ -416,7 +424,7 @@ class Builder(object):
 
   def _get_hierarchy(self, file_to_build):
     """
-    Method for creating a hierarchy of compiling commands accordingly to the dependencies order.
+    Create a hierarchy of compiling commands accordingly to the dependencies order.
 
     Parameters
     ----------
@@ -522,9 +530,9 @@ class Builder(object):
     string.append("OPTSL   = " + self.compiler.lflags + " " + self.compiler.modsw + self.mod_dir + "\n")
     return "".join(string)
 
-  def build(self, file_to_build, output=None, nomodlibs=None, mklib=None, verbose=False, log=False, quiet=False):
+  def build(self, file_to_build, output=None, nomodlibs=None, submodules=None, mklib=None, verbose=False, log=False, quiet=False):
     """
-    Method for building file.
+    Build a file.
 
     Parameters
     ----------
@@ -533,6 +541,8 @@ class Builder(object):
       output name
     nomodlibs : {None}
       list of old-Fortran style libraries objects
+    submodules : {None}
+      list of submodules objects
     mklib : {None}
       bool for activate building library mode
     verbose : {False}
@@ -558,7 +568,7 @@ class Builder(object):
       if not quiet:
         self.print_n('Nothing to compile, all objects are up-to-date')
     if file_to_build.program:
-      link_cmd, exe = self._link_command(file_to_build=file_to_build, output=output, nomodlibs=nomodlibs)
+      link_cmd, exe = self._link_command(file_to_build=file_to_build, output=output, nomodlibs=nomodlibs, submodules=submodules)
       if not quiet:
         self.print_n("Linking " + exe)
         if verbose:
@@ -571,7 +581,7 @@ class Builder(object):
       if not quiet:
         self.print_n('Target ' + file_to_build.name + ' has been successfully built')
     elif mklib:
-      link_cmd, lib = self._mklib_command(file_to_build=file_to_build, output=output, nomodlibs=nomodlibs, mklib=mklib)
+      link_cmd, lib = self._mklib_command(file_to_build=file_to_build, output=output, nomodlibs=nomodlibs, submodules=submodules, mklib=mklib)
       if not quiet:
         self.print_n("Linking " + lib)
         if verbose:
