@@ -84,17 +84,18 @@ def run_fobis_build(configuration):
     save_makefile(configuration=configuration, pfiles=pfiles, builder=builder)
     return
   nomodlibs = build_nomodlibs(configuration=configuration, pfiles=pfiles, builder=builder)
+  submodules = build_submodules(configuration=configuration, pfiles=pfiles, builder=builder)
   # building target or all programs found
   for pfile in pfiles:
     if configuration.cliargs.build_all:
-      build_pfile(configuration=configuration, pfile=pfile, pfiles=pfiles, nomodlibs=nomodlibs, builder=builder)
+      build_pfile(configuration=configuration, pfile=pfile, pfiles=pfiles, nomodlibs=nomodlibs, submodules=submodules, builder=builder)
     else:
       if configuration.cliargs.target:
         if os.path.basename(configuration.cliargs.target) == os.path.basename(pfile.name):
-          build_pfile(configuration=configuration, pfile=pfile, pfiles=pfiles, nomodlibs=nomodlibs, builder=builder)
+          build_pfile(configuration=configuration, pfile=pfile, pfiles=pfiles, nomodlibs=nomodlibs, submodules=submodules, builder=builder)
       else:
         if pfile.program:
-          build_pfile(configuration=configuration, pfile=pfile, pfiles=pfiles, nomodlibs=nomodlibs, builder=builder)
+          build_pfile(configuration=configuration, pfile=pfile, pfiles=pfiles, nomodlibs=nomodlibs, submodules=submodules, builder=builder)
 
 
 def run_fobis_clean(configuration):
@@ -233,7 +234,7 @@ def parse_doctests(configuration, pfiles, builder):
   return doctests, doctests_dirs
 
 
-def build_pfile(configuration, pfile, pfiles, nomodlibs, builder):
+def build_pfile(configuration, pfile, pfiles, nomodlibs, submodules, builder):
   """Build a parsed file.
 
   Parameters
@@ -244,12 +245,14 @@ def build_pfile(configuration, pfile, pfiles, nomodlibs, builder):
     list of ParsedFile() objects
   nomodlibs : list
     list of built non module libraries object names
+  submodules : list
+    list of built submodules object names
   builder : Builder()
   """
   configuration.print_b(builder.verbose(quiet=configuration.cliargs.quiet))
   if pfile.program:
     remove_other_main(builder=builder, pfiles=pfiles, mysefl=pfile)
-  builder.build(file_to_build=pfile, output=configuration.cliargs.output, nomodlibs=nomodlibs, mklib=configuration.cliargs.mklib, verbose=configuration.cliargs.verbose, log=configuration.cliargs.log)
+  builder.build(file_to_build=pfile, output=configuration.cliargs.output, nomodlibs=nomodlibs, submodules=submodules, mklib=configuration.cliargs.mklib, verbose=configuration.cliargs.verbose, log=configuration.cliargs.log)
   if configuration.cliargs.log:
     pfile.save_build_log(builder=builder)
   if configuration.cliargs.graph:
@@ -278,6 +281,30 @@ def build_nomodlibs(configuration, pfiles, builder):
       if build_ok:
         nomodlibs.append(pfile.basename + ".o")
   return nomodlibs
+
+
+def build_submodules(configuration, pfiles, builder):
+  """Build all submodule files.
+
+  Parameters
+  ----------
+  configuration : FoBiSConfig()
+  pfiles : list
+    list of ParsedFile() objects
+  builder : Builder()
+
+  Returns
+  -------
+  list
+    list of built submodules object names
+  """
+  submodules = []
+  for pfile in pfiles:
+    if pfile.submodule:
+      build_ok = builder.build(file_to_build=pfile, verbose=configuration.cliargs.verbose, log=configuration.cliargs.log)
+      if build_ok:
+        submodules.append(pfile.basename + ".o")
+  return submodules
 
 
 def test_doctests(configuration, doctests, pfiles, nomodlibs, builder):

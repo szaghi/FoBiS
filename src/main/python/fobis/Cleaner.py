@@ -103,13 +103,15 @@ class Cleaner(object):
 
   def clean_mod(self):
     """
-    Method for cleaning compiled mod files.
+    Clean compiled (s)mod files.
     """
     if os.path.exists(self.mod_dir):
-      self.print_w('Removing all *.mod files into "' + self.mod_dir + '"')
+      self.print_w('Removing all *.(s)mod files into "' + self.mod_dir + '"')
       for root, _, files in os.walk(self.mod_dir):
         for filename in files:
           if os.path.splitext(os.path.basename(filename))[1] == '.mod':
+            os.remove(os.path.join(root, filename))
+          if os.path.splitext(os.path.basename(filename))[1] == '.smod':
             os.remove(os.path.join(root, filename))
 
   def clean_obj(self):
