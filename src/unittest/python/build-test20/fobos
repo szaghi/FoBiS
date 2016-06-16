@@ -14,4 +14,4 @@ output       = build-test20
 [rule-finalize]
 help  = Rule for preparing the next test
 quiet = True
-rule  = echo ""
+rule  = rm -f build-test20
