@@ -105,10 +105,12 @@ __str_kw_ieee_exceptions__ = r"[Ii][Ee][Ee][Ee]_[Ee][Xx][Cc][Ee][Pp][Tt][Ii][Oo]
 __str_kw_ieee_arithmetic__ = r"[Ii][Ee][Ee][Ee]_[Aa][Rr][Ii][Tt][Hh][Mm][Ee][Tt][Ii][Cc]"
 __str_kw_ieee_features__ = r"[Ii][Ee][Ee][Ee]_[Ff][Ee][Aa][Tt][Uu][Rr][Ee][Ss]"
 __str_kw_module__ = r"[Mm][Oo][Dd][Uu][Ll][Ee]"
+__str_kw_submodule__ = r"[Ss][Uu][Bb][Mm][Oo][Dd][Uu][Ll][Ee]"
 __str_kw_program__ = r"[Pp][Rr][Oo][Gg][Rr][Aa][Mm]"
 __str_kw_use__ = r"[Uu][Ss][Ee]"
 __str_kw_mpifh__ = r"[Mm][Pp][Ii][Ff]\.[Hh]"
 __str_name__ = r"(?P<name>[a-zA-Z][a-zA-Z0-9_]*)"
+__str_submodule_ancestor__ = r"(\((?P<submancestor>[a-zA-Z][a-zA-Z0-9_]*)\))"
 __str_eol__ = r"(?P<eol>\s*!.*|\s*)?$"
 # __str_f95_mod_rename__ = r"(\s*,\s*[a-zA-Z][a-zA-Z0-9_]*\s*=>\s*[a-zA-Z][a-zA-Z0-9_]*)*"
 # __str_f95_mod_only__ = r"(\s*,\s*[Oo][Nn][Ll][Yy]\s*:\s*([a-zA-Z][a-zA-Z0-9_]*\s*=>\s*[a-zA-Z][a-zA-Z0-9_]*|[a-zA-Z][a-zA-Z0-9_]*))*"
@@ -156,6 +158,14 @@ __str_module__ = (r"^(\s*)" +  # eventual initial white spaces
                   r"(\s+)" +  # 1 or more white spaces
                   __str_name__ +  # construct name
                   __str_eol__)  # eventual eol white space and or comment
+__str_submodule__ = (r"^(\s*)" +  # eventual initial white spaces
+                     r"(?P<scplevel>" + __str_kw_submodule__ + r")" +  # keyword "submodule"
+                     r"(\s+)" +  # 1 or more white spaces
+                     # r"(\(.*\))" +
+                     __str_submodule_ancestor__ +  # (ancestor-module-name [:parent-submodule-name])
+                     r"(\s+)" +  # 1 or more white spaces
+                     __str_name__ +  # construct name
+                     __str_eol__)  # eventual eol white space and or comment
 __str_program__ = (r"^(\s*)" +  # eventual initial white spaces
                    r"(?P<scplevel>" + __str_kw_program__ + r")" +  # keyword "program"
                    r"(\s+)" +  # 1 or more white spaces
@@ -166,6 +176,7 @@ __regex_use_mod__ = re.compile(__str_use_mod__)
 __regex_include__ = re.compile(__str_include__)
 __regex_program__ = re.compile(__str_program__)
 __regex_module__ = re.compile(__str_module__)
+__regex_submodule__ = re.compile(__str_submodule__)
 __regex_use_mod_intrinsic__ = re.compile(__str_use_mod_intrinsic__)
 __regex_use_mod_iso_fortran_env__ = re.compile(__str_use_mod_iso_fortran_env__)
 __regex_use_mod_iso_c_binding__ = re.compile(__str_use_mod_iso_c_binding__)
@@ -183,7 +194,7 @@ __regex_mpifh__ = re.compile(__str_mpifh__)
 
 class ParsedFile(object):
   """ParsedFile is an object that handles a single parsed file, its attributes and methods."""
-  def __init__(self, name, program=False, module=False, include=False, nomodlib=False, to_compile=False, output=None, is_doctest=False):
+  def __init__(self, name, program=False, module=False, submodule=False, include=False, nomodlib=False, to_compile=False, output=None, is_doctest=False):
     """
     Parameters
     ----------
@@ -193,6 +204,8 @@ class ParsedFile(object):
       flag for tagging program file
     module : {False}
       flag for tagging module file
+    submodule : {False}
+      flag for tagging submodule file
     include : {False}
       flag for tagging include file
     nomodlib : {False}
@@ -210,6 +223,8 @@ class ParsedFile(object):
       flag for tagging program file
     module : bool
       flag for tagging module file
+    submodule : bool
+      flag for tagging submodule file
     include : bool
       flag for tagging include file
     nomodlib : bool
@@ -233,6 +248,7 @@ class ParsedFile(object):
     self.name = name
     self.program = program
     self.module = module
+    self.submodule = submodule
     self.include = include
     self.nomodlib = nomodlib
     self.to_compile = to_compile
@@ -245,13 +261,14 @@ class ParsedFile(object):
     self.pfile_dep = None
     self.pfile_dep_all = None
     self.module_names = None
+    self.submodule_names = None
     self.dependencies = None
     self.doctest = None
     return
 
   def sort_dependencies(self):
     """
-    Method for sorting dependencies.
+    Sort dependencies.
     """
     for dep in self.pfile_dep_all:
       for other_dep in self.pfile_dep_all:
@@ -263,7 +280,7 @@ class ParsedFile(object):
 
   def parse(self, inc):
     """
-    The method parse parses the file creating its the dependencies list and the list of modules names that self eventually contains.
+    Parse the file creating its the dependencies list and the list of modules names that self eventually contains.
 
     Parameters
     ----------
@@ -271,6 +288,7 @@ class ParsedFile(object):
       list of extensions of included files
     """
     self.module_names = []
+    self.submodule_names = []
     self.dependencies = []
     ffile = open(self.name, "r")
     for line in ffile:
@@ -281,6 +299,12 @@ class ParsedFile(object):
       if matching:
         self.module = True
         self.module_names.append(matching.group('name'))
+      matching = re.match(__regex_submodule__, line)
+      if matching:
+        self.submodule = True
+        self.submodule_names.append(matching.group('name'))
+        dep = Dependency(dtype="module", name=matching.group('submancestor'))
+        self.dependencies.append(dep)
       matching = re.match(__regex_use_mod__, line)
       if matching:
         if not any(re.match(regex, line) for regex in __regex_use_intrinsic_modules__):
@@ -297,20 +321,20 @@ class ParsedFile(object):
       self.doctest = Doctest()
       self.doctest.parse(source=open(self.name, 'r').read())
       self.doctest.make_volatile_programs()
-    if not self.program and not self.module:
+    if not self.program and not self.module and not self.submodule:
       if os.path.splitext(os.path.basename(self.name))[1] not in inc:
         self.nomodlib = True
 
   def save_build_log(self, builder):
     """
-    The method save_build_log save a log file containing information about the building options used.
+    Save a log file containing information about the building options used.
 
     Parameters
     ----------
     builder : Builder object
       builder used for building self
     """
-    with open("build_" + self.basename + ".log", "w") as log_file:
+    with open(os.path.join(builder.build_dir, "build_" + self.basename + ".log"), "w") as log_file:
       log_file.writelines("Hierarchical dependencies list of: " + self.name + "\n")
       for dep in self.pfile_dep:
         log_file.writelines("  " + dep.name + "\n")
@@ -323,7 +347,7 @@ class ParsedFile(object):
 
   def save_dep_graph(self):
     """
-    Method for saving dependency graph.
+    Save dependency graph.
     """
     if __graphviz__:
       depgraph = __digraph__()
@@ -378,10 +402,14 @@ class ParsedFile(object):
       string.append("\n")
     return "".join(string)
 
-  def str_dependencies(self,
-                       pref=""):  # prefixing string
+  def str_dependencies(self, pref=""):
     """
-    The method str_dependencies create a string containing the depencies files list.
+    Create a string containing the depencies files list.
+
+    Parameters
+    ----------
+    pref : {""}
+      prefixing string
     """
     str_dep = ""
     for dep in self.pfile_dep:
@@ -390,7 +418,7 @@ class ParsedFile(object):
 
   def obj_dependencies(self, exclude_programs=False):
     """
-    The method obj_dependencies create a list containing the dependencies object files list.
+    Create a list containing the dependencies object files list.
 
     Parameters
     ----------
@@ -404,7 +432,7 @@ class ParsedFile(object):
 
   def check_compile(self, obj_dir, force_compile=False):
     """
-    The method check_compile checks if self must be compiled.
+    Check if self must be compiled.
 
     Parameters
     ----------
@@ -455,7 +483,7 @@ class ParsedFile(object):
 
   def create_pfile_dep_all(self):
     """
-    The method create_pfile_dep_all create a complete list of all dependencies direct and indirect.
+    Create a complete list of all dependencies direct and indirect.
     """
     self.pfile_dep_all = []
     for path in traverse_recursive(self):
