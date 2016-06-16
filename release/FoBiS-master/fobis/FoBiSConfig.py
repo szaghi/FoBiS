@@ -28,7 +28,7 @@ from .cli_parser import cli_parser
 from .utils import syswork
 
 __appname__ = "FoBiS.py"
-__version__ = "1.9.6"
+__version__ = "2.0.0"
 __author__ = "Stefano Zaghi"
 __author_email__ = "stefano.zaghi@gmail.com"
 __license__ = "GNU General Public License v3 (GPLv3)"
@@ -308,7 +308,7 @@ class FoBiSConfig(object):
                             [os.path.normpath(os.path.join(fobos_path, output[1].strip('\n'))), linking]])
         self._add_auxiliary_paths(add_paths)
 
-  def print_b(self, string):
+  def print_b(self, string, end='\n'):
     """
     Print string with bold color.
 
@@ -317,9 +317,9 @@ class FoBiSConfig(object):
     string : str
       string to be printed
     """
-    self.colors.print_b(string)
+    self.colors.print_b(string, end=end)
 
-  def print_r(self, string):
+  def print_r(self, string, end='\n'):
     """
     Print string with red color.
 
@@ -328,7 +328,7 @@ class FoBiSConfig(object):
     string : str
       string to be printed
     """
-    self.colors.print_r(string)
+    self.colors.print_r(string, end=end)
 
   def printf(self):
     """

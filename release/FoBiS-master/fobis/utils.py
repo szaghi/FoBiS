@@ -23,9 +23,9 @@ import subprocess
 import sys
 
 
-def print_fake(input_obj):
+def print_fake(input_obj, end='\n'):
   """Rename print."""
-  print(input_obj)
+  print(input_obj, end=end)
 
 
 def syswork(cmd):
@@ -70,7 +70,7 @@ def unique_seq(seq):
 
 def module_is_in(pfiles, module):
   """
-  Function finding the parsed file containing the desidered module.
+  Find the parsed file containing the desidered module.
 
   Parameters
   ----------
@@ -128,7 +128,7 @@ def include_is_in(pfiles, include):
 
 def dependency_hiearchy(builder, pfiles, print_w=None, force_compile=False):
   """
-  The function dependency_hiearchy builds parsed files hierarchy.
+  Build parsed files hierarchy.
 
   Paramters
   ---------
@@ -203,7 +203,7 @@ def remove_other_main(builder, pfiles, mysefl):
 
 def check_results(results, log=None, print_w=None):
   """
-  Method for checking the result of system commands exectution.
+  Check the result of system commands exectution.
 
   Parameters
   ----------

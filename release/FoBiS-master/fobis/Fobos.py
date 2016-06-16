@@ -302,7 +302,8 @@ class Fobos(object):
     sys.exit(0)
     return
 
-  def print_template(self, cliargs):
+  @staticmethod
+  def print_template(cliargs):
     """
     Print fobos template.
 
