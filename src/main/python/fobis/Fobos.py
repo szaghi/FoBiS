@@ -140,17 +140,26 @@ class Fobos(object):
             self.local_variables[item[0]] = item[1]
     return
 
-  def _substitute_local_variables(self):
+  def _substitute_local_variables_mode(self):
     """
-    Method for substituting the definition of local variables defined into any sections (modes).
+    Substitute the definition of local variables defined into the mode (section) selected.
     """
     if self.fobos:
       if self.mode:
-        for item in self.fobos.items(self.mode):
+        self._substitute_local_variables_section(section=self.mode)
+    return
+
+  def _substitute_local_variables_section(self, section):
+    """
+    Substitute the definition of local variables defined into a section.
+    """
+    if self.fobos:
+      if self.fobos.has_section(section):
+        for item in self.fobos.items(section):
           item_val = item[1]
           for key, value in self.local_variables.items():
             item_val = re.sub(r"(?!" + re.escape(key) + r"[aZ_-])\s*" + re.escape(key) + r"\s*", " " + value + " ", item_val)
-          self.fobos.set(self.mode, item[0], item_val)
+          self.fobos.set(section, item[0], item_val)
     return
 
   def _check_local_variables(self):
@@ -160,7 +169,7 @@ class Fobos(object):
     if self.fobos:
       self._get_local_variables()
       if len(self.local_variables) > 0:
-        self._substitute_local_variables()
+        self._substitute_local_variables_mode()
     return
 
   def _set_cliargs_attributes(self, cliargs, cliargs_dict):
@@ -362,6 +371,8 @@ class Fobos(object):
       self.print_n('Executing rule "' + rule + '"')
       rule_name = 'rule-' + rule
       if self.fobos.has_section(rule_name):
+        self._get_local_variables()
+        self._substitute_local_variables_section(section=rule_name)
         results = []
         quiet = False
         log = False

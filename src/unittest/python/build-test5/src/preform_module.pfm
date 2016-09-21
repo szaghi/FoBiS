@@ -16,19 +16,13 @@ type:: type_3
 endtype type_3
 ! generic interface
 interface less_than
-#ifdef LOOPLIST
-  #PFM for i in [0,1,2]:
+  #PFM for i in [1,2,3]:
   module procedure less_than_type_$i
   #PFM endfor
-#else
-  #PFM for i in range(3):
-  module procedure less_than_type_$i
-  #PFM endfor
-#endif
 endinterface
 
 contains
-  #PFM for i in range(3):
+  #PFM for i in [1,2,3]:
   elemental function less_than_type_$i(self,to_compare) result(compare)
   type(type_$i),intent(IN):: self
   integer(I4P),intent(IN):: to_compare

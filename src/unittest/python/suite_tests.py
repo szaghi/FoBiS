@@ -125,12 +125,33 @@ class SuiteTest(unittest.TestCase):
     os.chdir(old_pwd)
     return doctest_ok
 
+  @staticmethod
+  def run_rule(directory):
+    """
+    Run the rule function into a selected directory.
+
+    Parameters
+    ----------
+    directory : str
+      relative path to tested directory
+    """
+    print("Testing " + directory)
+    rule_ok = False
+    old_pwd = os.getcwd()
+    os.chdir(os.path.dirname(os.path.abspath(__file__)) + '/' + directory)
+
+    run_fobis(fake_args=['rule', '-ex', 'test'])
+    rule_ok = True
+
+    os.chdir(old_pwd)
+    return rule_ok
+
   def test_buildings(self):
     """Test buildings."""
     num_failures = 0
     failed = []
 
-    for test in range(21):
+    for test in range(22):
       if test + 1 == 15 and not opencoarrays:
         continue
       build_ok = self.run_build('build-test' + str(test + 1))
@@ -187,6 +208,23 @@ class SuiteTest(unittest.TestCase):
       build_ok = self.run_doctest('doctest-test' + str(test + 1))
       if not build_ok:
         failed.append('doctest-test' + str(test + 1))
+        num_failures += 1
+
+    if len(failed) > 0:
+      for fail in failed:
+        print(fail)
+    self.assertEquals(num_failures, 0)
+    return
+
+  def test_rules(self):
+    """Test rules."""
+    num_failures = 0
+    failed = []
+
+    for test in range(1):
+      rule_ok = self.run_rule('rule-test' + str(test + 1))
+      if not rule_ok:
+        failed.append('rule-test' + str(test + 1))
         num_failures += 1
 
     if len(failed) > 0:

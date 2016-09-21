@@ -1,0 +1,32 @@
+[modes]
+modes = default intel
+
+[default]
+compiler  = Gnu
+cflags    = -c
+mod_dir   = ./mod/
+obj_dir   = ./obj/
+build_dir = ./
+src       = ./src/
+colors    = True
+quiet     = False
+verbose   = True
+target    = cumbersome.f90
+output    = build-test22
+
+[intel]
+compiler  = intel
+mod_dir   = ./mod/
+obj_dir   = ./obj/
+build_dir = ./
+src       = ./src/
+colors    = True
+quiet     = False
+verbose   = True
+target    = cumbersome.f90
+output    = build-test22
+
+[rule-finalize]
+help  = Rule for preparing the next test
+quiet = True
+rule  = echo ""
