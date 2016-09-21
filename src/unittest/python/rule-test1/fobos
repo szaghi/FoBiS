@@ -1,0 +1,8 @@
+[common-variables]
+$first = echo "first"
+$SECOND = echo "second"
+
+[rule-test]
+quiet = true
+rule_1 = $first
+rule_2 = $SECOND
