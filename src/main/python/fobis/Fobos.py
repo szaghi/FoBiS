@@ -144,9 +144,8 @@ class Fobos(object):
     """
     Substitute the definition of local variables defined into the mode (section) selected.
     """
-    if self.fobos:
-      if self.mode:
-        self._substitute_local_variables_section(section=self.mode)
+    if self.fobos and self.mode:
+      self._substitute_local_variables_section(section=self.mode)
     return
 
   def _substitute_local_variables_section(self, section):
