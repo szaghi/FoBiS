@@ -191,7 +191,7 @@ class Compiler(object):
       if self._coverage[0] != '':
         if re.search(__regex_opts__, self.cflags):
           self.print_w('Warning: found optimizations cflags within coverage ones: coverage results can be alterated!')
-        self.cflags += ' -O0 ' + self._coverage[0]
+        self.cflags += ' -Og ' + self._coverage[0]
     if self.profile:
       if self._profile[0] != '':
         self.cflags += ' ' + self._profile[0]
@@ -213,7 +213,7 @@ class Compiler(object):
       if self._coverage[1] != '':
         if re.search(__regex_opts__, self.lflags):
           self.print_w('Warning: found optimizations lflags within coverage ones: coverage results can be alterated!')
-        self.lflags += ' -O0 ' + self._coverage[1]
+        self.lflags += ' -Og ' + self._coverage[1]
     if self.profile:
       if self._profile[1] != '':
         self.lflags += ' ' + self._profile[1]
