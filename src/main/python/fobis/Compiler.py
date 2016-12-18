@@ -91,7 +91,7 @@ class Compiler(object):
       elif self.compiler.lower() == 'opencoarrays-gnu':
         self._opencoarrays_gnu()
       elif self.compiler.lower() == 'custom':
-        pass  # set by user options
+        self._custom()
       else:
         self._gnu()
     # overriding default values if passed
@@ -176,6 +176,21 @@ class Compiler(object):
     self._coarray = ['', '']
     self._coverage = ['-ftest-coverage -fprofile-arcs', '-fprofile-arcs']
     self._profile = ['-pg', '-pg']
+    return
+
+  def _custom(self):
+    """Set compiler defaults to be empty."""
+    self.compiler = ''
+    self.fcs = ''
+    self.cflags = ''
+    self.lflags = ''
+    self.preproc = ''
+    self.modsw = ''
+    self._mpi = ''
+    self._openmp = ''
+    self._coarray = ''
+    self._coverage = ''
+    self._profile = ''
     return
 
   def _set_fcs(self):
