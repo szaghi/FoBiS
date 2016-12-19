@@ -210,7 +210,7 @@ class Gcov(object):
                 pcov = int(cov_num)
               else:
                 pcov = 0
-              if cov_num != '-': # needed due to abstract iterfaces
+              if cov_num != '-':  # needed due to abstract iterfaces
                 self.procedures.append([ptype, pname, pcov, line_num])
             ignoring = _coverage_update(ignoring=ignoring, cov_num=cov_num, line_num=line_num, text=text, coverage=self.coverage)
     self._metrics()
@@ -219,7 +219,7 @@ class Gcov(object):
 
   def save(self, report_format='markdown', output=None, graphs=False):
     """
-    Method for saving gcov report analysis.
+    Save gcov report analysis.
 
     Parameters
     ----------
@@ -257,7 +257,7 @@ class Gcov(object):
         string.append('\n#### Unexecuted procedures\n')
         string.append('\n')
         if any(proc[2] == 0 for proc in self.procedures):
-          for proc in sorted(self.procedures, key=itemgetter(0,1)):
+          for proc in sorted(self.procedures, key=itemgetter(0, 1)):
             if proc[2] == 0:
               string.append(' + *' + proc[0] + '* **' + proc[1] + '**, line ' + str(proc[3]) + '\n')
         else:

@@ -20,6 +20,7 @@ This is a class aimed at coloring prints.
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
 from __future__ import print_function
 
+
 class Colors(object):
   """
   Colors is an object that handles colors of shell prints, its attributes and methods.

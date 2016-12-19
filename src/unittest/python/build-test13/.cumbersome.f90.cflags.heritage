@@ -1,1 +1,1 @@
--c -O0 -ftest-coverage -fprofile-arcs -pg -fopenmp -Dtest
+-c -Og -ftest-coverage -fprofile-arcs -pg -fopenmp -Dtest

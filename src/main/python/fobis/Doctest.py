@@ -68,19 +68,19 @@ class Doctest(object):
       match = re.match(__remodule__, line)
       if match:
         modules.append(match)
-    if len(modules)>0:
+    if len(modules) > 0:
       for match in re.finditer(__redoctest__, source):
         lines = match.group('test').split('\n')
         lines = [line.strip()[2:] for line in lines if not line.strip() == '']
         module_name = None
         for module in modules:
-          if module.start()<match.start():
+          if module.start() < match.start():
             module_name = module.group('name')
         self.tests.append({'module': module_name, 'source': lines, 'result': match.group('result').strip()})
 
   def make_volatile_programs(self):
     """Make a 'volatile' program test for each of the parsed doctests."""
-    if len(self.tests)>0:
+    if len(self.tests) > 0:
       self.to_test = True
       for test in self.tests:
         program_source = ["program volatile_doctest"]
@@ -103,16 +103,16 @@ class Doctest(object):
     doctest_root_dir : str
       directory where doctests are saved
     """
-    if len(self.tests)>0:
+    if len(self.tests) > 0:
       doctest_root_dir = os.path.join(build_dir, 'doctests-src')
       for t, test in enumerate(self.tests):
         doctest_dir = os.path.join(doctest_root_dir, test['module'])
         if not os.path.exists(doctest_dir):
           os.makedirs(doctest_dir)
-        doctest_file = os.path.join(doctest_dir, test['module'] + '-doctest-' + str(t+1) + '.f90')
+        doctest_file = os.path.join(doctest_dir, test['module'] + '-doctest-' + str(t + 1) + '.f90')
         with open(doctest_file, 'w') as doc:
           doc.writelines(test['program_source'])
-        doctest_file = os.path.join(doctest_dir, test['module'] + '-doctest-' + str(t+1) + '.result')
+        doctest_file = os.path.join(doctest_dir, test['module'] + '-doctest-' + str(t + 1) + '.result')
         with open(doctest_file, 'w') as doc:
           doc.writelines(test['result'])
       return doctest_root_dir
