@@ -16,10 +16,10 @@ two%v = 2._R4P
 three%v = 3_I4P
 
 
+if (less_than(one, 2)) print*,' Ok, generic inteface correct for type_1!'
+if (less_than(two, 3)) print*,' Ok, generic inteface correct for type_2!'
+if (less_than(three,4)) print*,' Ok, generic inteface correct for type_3!'
 
 
-
-
-print*,' Ko, PFM directives face with cpp ones!'
 
 endprogram simple_for_loop
