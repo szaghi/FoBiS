@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Testing FoBiS.py"""
 # import doctest
+from __future__ import print_function
 import filecmp
 import os
 import subprocess
@@ -151,7 +152,7 @@ class SuiteTest(unittest.TestCase):
     num_failures = 0
     failed = []
 
-    for test in range(22):
+    for test in range(23):
       if test + 1 == 15 and not opencoarrays:
         continue
       build_ok = self.run_build('build-test' + str(test + 1))
