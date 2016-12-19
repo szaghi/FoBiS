@@ -65,12 +65,12 @@ class Builder(object):
       list of external libraries that are into the path: are linked as '-llibrary.[a|so]' and searched into '-Ldir'
     ext_vlibs : {None}
       list of external libraries that are into the path and that are volatile (can changed thus triggering re-building): are linked as '-llibrary.[a|so]' and searched into '-Ldir'
-    preform : {False}
-      activate PreForM.py pre-processing
-    pfm_dir : {None}
-      directory containing sources processed by PreForm.py; by default are removed after used
-    pfm_ext : {None}
-      list of file extensions to be processed by PreForm.py; by default all files are preprocessed if PreForM.py is used
+    preprocessor : {None}
+      activate preprocessor
+    preprocessor_dir : {None}
+      directory containing sources processed by preprocessor (if any); by default are removed after used
+    preprocessor_ext : {None}
+      list of file extensions to be processed by preprocessor; by default all files are preprocessed if preprocessor is used
     print_n : {None}
       function for printing normal message
     print_w : {None}
@@ -94,7 +94,7 @@ class Builder(object):
     self.jobs = cliargs.jobs
     self._sanitize_dirs(build_dir=cliargs.build_dir, obj_dir=cliargs.obj_dir, mod_dir=cliargs.mod_dir, lib_dir=cliargs.lib_dir, dinc=cliargs.include)
     self._sanitize_files(libs=cliargs.libs, vlibs=cliargs.vlibs, ext_libs=cliargs.ext_libs, ext_vlibs=cliargs.ext_vlibs)
-    self._set_preform(preform=cliargs.preform, pfm_dir=cliargs.pfm_dir, pfm_ext=cliargs.pfm_ext)
+    self._set_preprocessor(preprocessor=cliargs.preprocessor, preprocessor_dir=cliargs.preprocessor_dir, preprocessor_ext=cliargs.preprocessor_ext)
 
     self.cmd_comp = self.compiler.compile_cmd(mod_dir=self.mod_dir)
     self.cmd_link = self.compiler.link_cmd(mod_dir=self.mod_dir)
@@ -229,42 +229,42 @@ class Builder(object):
         lib = os.path.normpath(lib)
     return
 
-  def _set_preform(self, preform, pfm_dir, pfm_ext):
+  def _set_preprocessor(self, preprocessor, preprocessor_dir, preprocessor_ext):
     """
-    Method for safetely setting PreForM.py data.
+    Set preprocessor data.
 
     Parameters
     ----------
-    preform : bool
-      activate PreForM.py pre-processing
-    pfm_dir : str
-      directory containing sources processed by PreForm.py; by default are removed after used
-    pfm_ext : list
-      list of file extensions to be processed by PreForm.py; by default all files are preprocessed if PreForM.py is used
+    preprocessor : bool
+      activate preprocessor
+    preprocessor_dir : str
+      directory containing sources processed by preprocessor; by default are removed after used
+    preprocessor_ext : list
+      list of file extensions to be processed by preprocessor; by default all files are preprocessed if preprocessor is used
     """
-    self.preform = preform
-    if pfm_ext is None:
-      self.pfm_ext = []
+    self.preprocessor = preprocessor
+    if preprocessor_ext is None:
+      self.preprocessor_ext = []
     else:
-      self.pfm_ext = pfm_ext
-    self.pfm_dir = pfm_dir
-    if self.pfm_dir:
-      self.pfm_dir = os.path.normpath(os.path.join(self.build_dir, self.pfm_dir))
-      if not os.path.exists(self.pfm_dir):
-        os.makedirs(self.pfm_dir)
-    if self.preform:
-      pfm_exist = False
+      self.preprocessor_ext = preprocessor_ext
+    self.preprocessor_dir = preprocessor_dir
+    if self.preprocessor_dir:
+      self.preprocessor_dir = os.path.normpath(os.path.join(self.build_dir, self.preprocessor_dir))
+      if not os.path.exists(self.preprocessor_dir):
+        os.makedirs(self.preprocessor_dir)
+    if self.preprocessor:
+      preprocessor_exist = False
       for path in os.environ["PATH"].split(os.pathsep):
-        pfm_exist = os.path.exists(os.path.join(path, 'PreForM.py'))
-        if pfm_exist:
+        preprocessor_exist = os.path.exists(os.path.join(path, self.preprocessor))
+        if preprocessor_exist:
           break
-      if not pfm_exist:
-        self.print_w('Error: PreForM.py is not in your PATH! You cannot use --preform or -pfm switches.')
+      if not preprocessor_exist:
+        self.print_w('Error: ' + self.preprocessor + ' is not in your PATH! You cannot use -preprocessor switch.')
     return
 
-  def _compile_preform(self, file_to_compile):
+  def _compile_preprocessor(self, file_to_compile):
     """
-    Method for creating compile command with PreForM.py usage.
+    Create compile command with preprocessor usage.
 
     Parameters
     ----------
@@ -274,34 +274,34 @@ class Builder(object):
     Returns
     -------
     str
-      string containing the PreForM.py command
+      string containing the preprocessor command
     str
-      string containing the output file name of PreForM.py
+      string containing the output file name of preprocessor
     str
-      string containing the command for removing/storing PreForM.py outputs
+      string containing the command for removing/storing preprocessor outputs
     """
-    preform_cmd = ''
-    preform_output = ''
-    preform_remove = ''
-    to_preform = False
-    if self.preform:
-      if len(self.pfm_ext) > 0:
-        if file_to_compile.extension in self.pfm_ext:
-          to_preform = True
+    preprocessor_cmd = ''
+    preprocessor_output = ''
+    preprocessor_remove = ''
+    to_preprocess = False
+    if self.preprocessor:
+      if len(self.preprocessor_ext) > 0:
+        if file_to_compile.extension in self.preprocessor_ext:
+          to_preprocess = True
       else:
-        to_preform = True
-      if to_preform and self.pfm_dir:
-        pfm_dir = self.pfm_dir
-        preform_store = True
+        to_preprocess = True
+      if to_preprocess and self.preprocessor_dir:
+        preprocessor_dir = self.preprocessor_dir
+        preprocessor_store = True
       else:
-        pfm_dir = ''
-        preform_store = False
-      if to_preform:
-        preform_cmd = 'PreForM.py ' + file_to_compile.name + ' -o ' + os.path.join(pfm_dir, file_to_compile.basename + '.pfm.f90') + ' ; '
-        preform_output = os.path.join(pfm_dir, file_to_compile.basename + '.pfm.f90')
-        if not preform_store:
-          preform_remove = ' ; rm -f ' + preform_output
-    return preform_cmd, preform_output, preform_remove
+        preprocessor_dir = ''
+        preprocessor_store = False
+      if to_preprocess:
+        preprocessor_cmd = self.preprocessor + ' ' + file_to_compile.name + ' -o ' + os.path.join(preprocessor_dir, file_to_compile.basename + '.pp.f90') + ' ; '
+        preprocessor_output = os.path.join(preprocessor_dir, file_to_compile.basename + '.pp.f90')
+        if not preprocessor_store:
+          preprocessor_remove = ' ; rm -f ' + preprocessor_output
+    return preprocessor_cmd, preprocessor_output, preprocessor_remove
 
   def _compile_include(self):
     """
@@ -331,11 +331,11 @@ class Builder(object):
     str
       string containing the compile command
     """
-    preform_cmd, preform_output, preform_remove = self._compile_preform(file_to_compile)
+    preprocessor_cmd, preprocessor_output, preprocessor_remove = self._compile_preprocessor(file_to_compile)
     include_cmd = self._compile_include()
 
-    if preform_cmd != '':
-      comp_cmd = preform_cmd + self.cmd_comp + ' ' + include_cmd + preform_output + ' -o ' + os.path.join(self.obj_dir, file_to_compile.basename + '.o') + preform_remove
+    if preprocessor_cmd != '':
+      comp_cmd = preprocessor_cmd + self.cmd_comp + ' ' + include_cmd + preprocessor_output + ' -o ' + os.path.join(self.obj_dir, file_to_compile.basename + '.o') + preprocessor_remove
     else:
       comp_cmd = self.cmd_comp + ' ' + include_cmd + file_to_compile.name + ' -o ' + os.path.join(self.obj_dir, file_to_compile.basename + '.o')
     return comp_cmd
@@ -623,7 +623,7 @@ class Builder(object):
       if len(self.ext_vlibs) > 0:
         message += "  Linked volatile libraries in path: " + "".join([s + " " for s in self.ext_vlibs]) + "\n"
       message += self.compiler.pprint(prefix='  ')
-      message += "  PreForM.py used: " + str(self.preform) + "\n"
-      message += "  PreForM.py output directory: " + str(self.pfm_dir) + "\n"
-      message += "  PreForM.py extensions processed: " + str(self.pfm_ext) + "\n"
+      message += "  Preprocessor used: " + str(self.preprocessor) + "\n"
+      message += "  Preprocessor output directory: " + str(self.preprocessor_dir) + "\n"
+      message += "  Preprocessor extensions processed: " + str(self.preprocessor_ext) + "\n"
     return message

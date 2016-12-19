@@ -65,8 +65,8 @@ class FoBiSConfig(object):
       for inc in self.cliargs.inc:
         if inc not in self.cliargs.extensions:
           self.cliargs.extensions.append(inc)
-      if len(self.cliargs.pfm_ext) > 0:
-        self.cliargs.extensions += self.cliargs.pfm_ext
+      if len(self.cliargs.preprocessor_ext) > 0:
+        self.cliargs.extensions += self.cliargs.preprocessor_ext
 
   def _sanitize_paths(self):
     """
