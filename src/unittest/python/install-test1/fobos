@@ -1,0 +1,24 @@
+[common-variables]
+$cflags = -c
+
+[default]
+help            = Compile with GNU gfortran
+template        = template-test
+
+[template-test]
+compiler        = Test install command on all programs found
+mod_dir         = ./mod/
+obj_dir         = ./obj/
+build_dir       = ./build/
+src             = ./
+colors          = True
+quiet           = False
+jobs            = 1
+log             = True
+track_build     = True
+verbose         = True
+
+[rule-finalize]
+help  = Rule for preparing the next test
+quiet = True
+rule  = rm -rf build prefix

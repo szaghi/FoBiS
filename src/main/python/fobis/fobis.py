@@ -19,6 +19,11 @@ FoBiS.py, Fortran Building System for poor men
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
 # modules loading
+from __future__ import print_function
+try:
+  import ConfigParser as configparser
+except ImportError:
+  import configparser
 import os
 import shutil
 import sys
@@ -30,6 +35,7 @@ from .ParsedFile import ParsedFile
 from .utils import dependency_hiearchy
 from .utils import remove_other_main
 from .utils import syswork
+from .utils import safe_mkdir
 
 
 def main():
@@ -63,6 +69,8 @@ def run_fobis(fake_args=None):
       run_fobis_clean(configuration)
     if configuration.cliargs.which == 'build':
       run_fobis_build(configuration)
+    if configuration.cliargs.which == 'install':
+      run_fobis_install(configuration)
     if configuration.cliargs.which == 'doctests':
       run_fobis_doctests(configuration)
   return
@@ -142,6 +150,41 @@ def run_fobis_rule(configuration):
       configuration.print_b(result[1])
   elif configuration.cliargs.gcov_analyzer:
     gcov_analyzer(configuration=configuration)
+
+
+def run_fobis_install(configuration):
+  """
+  Run FoBiS in install mode.
+
+  Parameters
+  ----------
+  configuration : FoBiSConfig()
+  """
+
+  if not os.path.exists(configuration.cliargs.build_dir):
+    configuration.fobos.print_w('Error: build directory not found! Maybe you have to run "FoBiS.py build" before.')
+    sys.exit(1)
+  safe_mkdir(directory=configuration.cliargs.prefix)
+  for filename in os.listdir(configuration.cliargs.build_dir):
+    if filename.endswith('.track_build'):
+      is_program = False
+      is_library = False
+      track_file = configparser.ConfigParser()
+      track_file.read(os.path.join(configuration.cliargs.build_dir, filename))
+      if track_file.has_option(section='build', option='output'):
+        output = track_file.get(section='build', option='output')
+        if track_file.has_option(section='build', option='program'):
+          is_program = track_file.get(section='build', option='program')
+        if track_file.has_option(section='build', option='library'):
+          is_library = track_file.get(section='build', option='library')
+        if is_program or is_library:
+          configuration.fobos.print_n('Install "' + output + '" in "' + configuration.cliargs.prefix + '"')
+          shutil.copy(output, configuration.cliargs.prefix)
+        if is_library:
+          if track_file.has_option(section='build', option='mod_file'):
+            mod_file = track_file.get(section='build', option='mod_file')
+            configuration.fobos.print_n('Install "' + mod_file + '" in "' + configuration.cliargs.prefix + '"')
+            shutil.copy(mod_file, configuration.cliargs.prefix)
 
 
 def run_fobis_doctests(configuration):
@@ -252,7 +295,7 @@ def build_pfile(configuration, pfile, pfiles, nomodlibs, submodules, builder):
   configuration.print_b(builder.verbose(quiet=configuration.cliargs.quiet))
   if pfile.program:
     remove_other_main(builder=builder, pfiles=pfiles, mysefl=pfile)
-  builder.build(file_to_build=pfile, output=configuration.cliargs.output, nomodlibs=nomodlibs, submodules=submodules, mklib=configuration.cliargs.mklib, verbose=configuration.cliargs.verbose, log=configuration.cliargs.log)
+  builder.build(file_to_build=pfile, output=configuration.cliargs.output, nomodlibs=nomodlibs, submodules=submodules, mklib=configuration.cliargs.mklib, verbose=configuration.cliargs.verbose, log=configuration.cliargs.log, track=configuration.cliargs.track_build)
   if configuration.cliargs.log:
     pfile.save_build_log(builder=builder)
   if configuration.cliargs.graph:

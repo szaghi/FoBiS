@@ -101,6 +101,37 @@ class SuiteTest(unittest.TestCase):
     return make_ok
 
   @staticmethod
+  def run_install(directory):
+    """
+    Run the install function into a selected directory.
+
+    Parameters
+    ----------
+    directory : str
+      relative path to tested directory
+    """
+    print("Testing " + directory)
+    install_ok = False
+    old_pwd = os.getcwd()
+    os.chdir(os.path.dirname(os.path.abspath(__file__)) + '/' + directory)
+
+    run_fobis(fake_args=['clean', '-f', 'fobos'])
+
+    run_fobis(fake_args=['build', '-f', 'fobos'])
+    run_fobis(fake_args=['install', '-f', 'fobos', '--prefix', 'prefix'])
+    install_ok = True
+    for _, __, files in os.walk('./prefix/'):
+      if not files:
+        install_ok = False
+
+    run_fobis(fake_args=['rule', '-f', 'fobos', '-ex', 'finalize'])
+
+    run_fobis(fake_args=['clean', '-f', 'fobos'])
+
+    os.chdir(old_pwd)
+    return install_ok
+
+  @staticmethod
   def run_doctest(directory):
     """
     Method for running the doctest function into a selected directory.
@@ -197,6 +228,23 @@ class SuiteTest(unittest.TestCase):
     if len(failed) > 0:
       for fail in failed:
         print("Error: Test " + fail + " failed!")
+    self.assertEquals(num_failures, 0)
+    return
+
+  def test_installs(self):
+    """Test installs."""
+    num_failures = 0
+    failed = []
+
+    for test in range(2):
+      install_ok = self.run_install('install-test' + str(test + 1))
+      if not install_ok:
+        failed.append('install-test' + str(test + 1))
+        num_failures += 1
+
+    if len(failed) > 0:
+      for fail in failed:
+        print(fail)
     self.assertEquals(num_failures, 0)
     return
 

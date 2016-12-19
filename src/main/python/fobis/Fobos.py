@@ -236,7 +236,7 @@ class Fobos(object):
 
   def get(self, option, mode=None, toprint=True):
     """
-    Method for getting options defined into the fobos file.
+    Get options defined into the fobos file.
 
     Parameters
     ----------

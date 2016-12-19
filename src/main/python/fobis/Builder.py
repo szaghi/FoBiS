@@ -366,10 +366,7 @@ class Builder(object):
     if submodules is not None:
       objs = objs + submodules
     objs = objs + file_to_build.obj_dependencies()
-    if output:
-      exe = os.path.join(self.build_dir, output)
-    else:
-      exe = os.path.join(self.build_dir, file_to_build.basename)
+    exe = self.get_output_name(file_to_build=file_to_build, output=output)
     link_cmd = self.cmd_link + " " + "".join([os.path.join(self.obj_dir, s + " ") for s in objs]) + "".join([s + " " for s in self.libs]) + "".join([s + " " for s in self.vlibs])
     if len(self.ext_libs) > 0:
       link_cmd += " " + "".join(["-l" + s + " " for s in self.ext_libs])
@@ -529,7 +526,7 @@ class Builder(object):
     string.append("OPTSL   = " + self.compiler.lflags + " " + self.compiler.modsw + self.mod_dir + "\n")
     return "".join(string)
 
-  def build(self, file_to_build, output=None, nomodlibs=None, submodules=None, mklib=None, verbose=False, log=False, quiet=False):
+  def build(self, file_to_build, output=None, nomodlibs=None, submodules=None, mklib=None, verbose=False, log=False, quiet=False, track=False):
     """
     Build a file.
 
@@ -548,6 +545,10 @@ class Builder(object):
       bool for activate extreme verbose outputs
     log : {False}
       bool for activate errors log saving
+    quiet : {False}
+      bool for activate quiet mode
+    track : {False}
+      bool for activate build traking mode for subsequent install command
 
     Returns
     -------
@@ -592,7 +593,54 @@ class Builder(object):
         check_results(results=[result], print_w=self.print_w)
       if not quiet:
         self.print_n('Target ' + file_to_build.name + ' has been successfully built')
+    if track:
+      print('Track building of ' + file_to_build.name)
+      track_file_name = self.get_track_build_file(file_to_build)
+      with open(track_file_name, 'w') as track_file:
+        track_file.writelines('[build]\n')
+        track_file.writelines('output = ' + self.get_output_name(file_to_build=file_to_build, output=output) + '\n')
+        if file_to_build.program:
+          track_file.writelines('program = True\n')
+        elif mklib:
+          track_file.writelines('library = True\n')
+          track_file.writelines('mod_file = ' + os.path.join(self.mod_dir, file_to_build.basename + '.mod') + '\n')
     return build_ok
+
+  def get_output_name(self, file_to_build, output=None):
+    """
+    Return the output build file name.
+
+    Parameters
+    ----------
+    file_to_build : ParsedFile
+    output : str
+      output build file name
+
+    Returns
+    -------
+    output : str
+      output build file name
+    """
+    if output:
+      build_name = os.path.join(self.build_dir, output)
+    else:
+      build_name = os.path.join(self.build_dir, file_to_build.basename)
+    return build_name
+
+  def get_track_build_file(self, file_to_build):
+    """
+    Return the file name of the 'track build' file.
+
+    Parameters
+    ----------
+    file_to_build : ParsedFile
+
+    Returns
+    -------
+    track_file_name : str
+      file name of 'track build' file
+    """
+    return os.path.join(self.build_dir, '.' + os.path.basename(file_to_build.name) + '.track_build')
 
   def verbose(self, quiet=False):
     """

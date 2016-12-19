@@ -56,10 +56,11 @@ def _subparser_compiler(clean=False):
   parser_group.add_argument('-profile', required=False, action='store_true', default=False, help='Instrument the built code with profiling analysis tools [default False]')
   parser_group.add_argument('-mklib', required=False, action='store', default=None, choices=('static', 'shared'), help='Target library instead of program (use with -target switch)')
   parser_group.add_argument('-ch', '--cflags_heritage', required=False, action='store_true', default=False, help='Store cflags as a heritage for the next build: if cflags change re-compile all')
+  parser_group.add_argument('-tb', '--track_build', required=False, action='store_true', default=False, help='Store build infos for the next install command')
   return parser
 
 
-def _subparser_directories():
+def _subparser_directories(install=False):
   """
   Construct a cli subparser with the directories group of arguments.
 
@@ -69,14 +70,18 @@ def _subparser_directories():
   """
   parser = argparse.ArgumentParser(add_help=False)
   parser_group = parser.add_argument_group('directories')
-  parser_group.add_argument('-s', '--src', required=False, action='store', nargs='+', default=['./'], help='Root-directory of source files [default: ./]')
-  parser_group.add_argument('-dbld', '--build_dir', required=False, action='store', default='./', help='Directory containing executable objects [default: ./]')
-  parser_group.add_argument('-dobj', '--obj_dir', required=False, action='store', default='./obj/', help='Directory containing compiled objects [default: ./obj/]')
-  parser_group.add_argument('-dmod', '--mod_dir', required=False, action='store', default='./mod/', help='Directory containing .mod files of compiled objects [default: ./mod/]')
-  parser_group.add_argument('-dlib', '--lib_dir', required=False, action='store', nargs='+', default=[], help='List of directories searched for libraries [default: None]')
-  parser_group.add_argument('-i', '--include', required=False, action='store', nargs='+', default=[], help='List of directories for searching included files')
-  parser_group.add_argument('-ed', '--exclude_dirs', required=False, action='store', nargs='+', default=[], help='Exclude a list of directories from the building process')
-  parser_group.add_argument('-drs', '--disable_recursive_search', required=False, action='store_true', default=False, help='Disable recursive search inside directories [default False]')
+  if install:
+    parser_group.add_argument('-dbld', '--build_dir', required=False, action='store', default='./', help='Directory containing executable objects [default: ./]')
+    parser_group.add_argument('-p', '--prefix', required=True, action='store', help='Prefix path where built objects are installed')
+  else:
+    parser_group.add_argument('-s', '--src', required=False, action='store', nargs='+', default=['./'], help='Root-directory of source files [default: ./]')
+    parser_group.add_argument('-dbld', '--build_dir', required=False, action='store', default='./', help='Directory containing executable objects [default: ./]')
+    parser_group.add_argument('-dobj', '--obj_dir', required=False, action='store', default='./obj/', help='Directory containing compiled objects [default: ./obj/]')
+    parser_group.add_argument('-dmod', '--mod_dir', required=False, action='store', default='./mod/', help='Directory containing .mod files of compiled objects [default: ./mod/]')
+    parser_group.add_argument('-dlib', '--lib_dir', required=False, action='store', nargs='+', default=[], help='List of directories searched for libraries [default: None]')
+    parser_group.add_argument('-i', '--include', required=False, action='store', nargs='+', default=[], help='List of directories for searching included files')
+    parser_group.add_argument('-ed', '--exclude_dirs', required=False, action='store', nargs='+', default=[], help='Exclude a list of directories from the building process')
+    parser_group.add_argument('-drs', '--disable_recursive_search', required=False, action='store_true', default=False, help='Disable recursive search inside directories [default False]')
   return parser
 
 
@@ -253,6 +258,24 @@ def _parser_rule(clisubparsers):
   return
 
 
+def _parser_install(clisubparsers):
+  """
+  Construct the install cli parser.
+
+  Parameters
+  ----------
+  clisubparsers : argparse subparser object
+  """
+  # compiler = _subparser_compiler()
+  directories = _subparser_directories(install=True)
+  # files = _subparser_files()
+  fobos = _subparser_fobos()
+  fancy = _subparser_fancy()
+  installparser = clisubparsers.add_parser('install', help='Install project files: install previously built files', parents=[directories, fobos, fancy])
+  installparser.set_defaults(which='install')
+  return
+
+
 def _parser_doctests(clisubparsers):
   """
   Construct the doctests cli parser.
@@ -298,5 +321,6 @@ def cli_parser(appname, description, version):
   _parser_build(clisubparsers)
   _parser_clean(clisubparsers)
   _parser_rule(clisubparsers)
+  _parser_install(clisubparsers)
   _parser_doctests(clisubparsers)
   return cliparser

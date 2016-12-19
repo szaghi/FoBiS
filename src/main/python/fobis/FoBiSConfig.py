@@ -83,6 +83,8 @@ class FoBiSConfig(object):
         self.cliargs.include[n] = os.path.normpath(inc)
       for n, exc in enumerate(self.cliargs.exclude_dirs):
         self.cliargs.exclude_dirs[n] = os.path.normpath(exc)
+    if self.cliargs.which == 'install':
+      self.cliargs.prefix = os.path.normpath(self.cliargs.prefix)
 
   def _check_cflags_heritage(self):
     """
@@ -109,7 +111,7 @@ class FoBiSConfig(object):
 
   def _postinit(self):
     """
-    Method for post-initialization update of config attributes, after CLI and fobos parsing.
+    Post-initialization update of config attributes, after CLI and fobos parsing.
     """
     self._update_extensions()
     self._sanitize_paths()
