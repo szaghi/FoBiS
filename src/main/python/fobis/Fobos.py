@@ -131,7 +131,7 @@ class Fobos(object):
 
   def _get_local_variables(self):
     """
-    Method for getting the definition of local variables defined into any sections (modes).
+    Get the definition of local variables defined into any sections (modes).
     """
     if self.fobos:
       for section in self.fobos.sections():
@@ -157,13 +157,13 @@ class Fobos(object):
         for item in self.fobos.items(section):
           item_val = item[1]
           for key, value in self.local_variables.items():
-            item_val = re.sub(r"(?!" + re.escape(key) + r"[aZ_-])\s*" + re.escape(key) + r"\s*", " " + value + " ", item_val)
+            item_val = re.sub(r"(?!" + re.escape(key) + r"[aZ_-])\s*" + re.escape(key) + r"\s*", value, item_val)
           self.fobos.set(section, item[0], item_val)
     return
 
   def _check_local_variables(self):
     """
-    Method for getting and substituting the definition of local variables defined into any sections (modes).
+    Get and substitute the definition of local variables defined into any sections (modes).
     """
     if self.fobos:
       self._get_local_variables()

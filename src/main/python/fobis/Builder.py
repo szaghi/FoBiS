@@ -26,7 +26,6 @@ except ImportError:
   __parallel__ = False
 import operator
 import os
-import sys
 from .Compiler import Compiler
 from .utils import check_results, print_fake, syswork, safe_mkdir
 
