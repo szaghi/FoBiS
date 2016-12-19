@@ -130,19 +130,19 @@ def _subparser_fobos():
   return parser
 
 
-def _subparser_preform():
+def _subparser_preprocessor():
   """
-  Construct a cli subparser with the PreForM.py group of arguments.
+  Construct a cli subparser with the preprocessor group of arguments.
 
   Returns
   -------
   parser : argparse.ArgumentParser()
   """
   parser = argparse.ArgumentParser(add_help=False)
-  parser_group = parser.add_argument_group('PreForM.py')
-  parser_group.add_argument('-pfm', '--preform', required=False, action='store_true', default=False, help='Use PreForM.py pre-processor for pre-processing sources file')
-  parser_group.add_argument('-dpfm', '--pfm_dir', required=False, action='store', default=None, help='Directory containing the sources processed with PreForM.py [default: none, the processed files are removed after used]')
-  parser_group.add_argument('-epfm', '--pfm_ext', required=False, action='store', nargs='+', default=[], help='List of custom-defined file extensions to be preprocessed by PreForM.py [default: none, all files are preprocessed if PreForM.py is used]')
+  parser_group = parser.add_argument_group('preprocessor')
+  parser_group.add_argument('-preprocessor', required=False, action='store', const='PreForM.py', default=None, nargs='?', help='Use the pre-processor for pre-processing sources file; if no preprocessor is specified, PreForM.py is used')
+  parser_group.add_argument('-dpp', '--preprocessor_dir', required=False, action='store', default=None, help='Directory containing the sources processed by preprocessor [default: none, the processed files are removed after used]')
+  parser_group.add_argument('-epp', '--preprocessor_ext', required=False, action='store', nargs='+', default=[], help='List of custom-defined file extensions to be preprocessed by preprocessor [default: none, all files are preprocessed if preprocessor is used]')
   return parser
 
 
@@ -211,9 +211,9 @@ def _parser_build(clisubparsers):
   directories = _subparser_directories()
   files = _subparser_files()
   fobos = _subparser_fobos()
-  preform = _subparser_preform()
+  preprocessor = _subparser_preprocessor()
   fancy = _subparser_fancy()
-  buildparser = clisubparsers.add_parser('build', help='Build all programs found or specific target(s)', parents=[compiler, directories, files, fobos, preform, fancy])
+  buildparser = clisubparsers.add_parser('build', help='Build all programs found or specific target(s)', parents=[compiler, directories, files, fobos, preprocessor, fancy])
   buildparser.set_defaults(which='build')
   return
 
@@ -265,9 +265,9 @@ def _parser_doctests(clisubparsers):
   directories = _subparser_directories()
   files = _subparser_files(doctests=True)
   fobos = _subparser_fobos()
-  preform = _subparser_preform()
+  preprocessor = _subparser_preprocessor()
   fancy = _subparser_fancy()
-  doctestsparser = clisubparsers.add_parser('doctests', help='Test all valid doctests snippets found', parents=[compiler, directories, files, fobos, preform, fancy])
+  doctestsparser = clisubparsers.add_parser('doctests', help='Test all valid doctests snippets found', parents=[compiler, directories, files, fobos, preprocessor, fancy])
   doctestsparser.set_defaults(which='doctests')
   return
 

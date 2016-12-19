@@ -28,7 +28,7 @@ from .cli_parser import cli_parser
 from .utils import syswork
 
 __appname__ = "FoBiS.py"
-__version__ = "2.1.0"
+__version__ = "2.2.0"
 __author__ = "Stefano Zaghi"
 __author_email__ = "stefano.zaghi@gmail.com"
 __license__ = "GNU General Public License v3 (GPLv3)"
@@ -65,8 +65,8 @@ class FoBiSConfig(object):
       for inc in self.cliargs.inc:
         if inc not in self.cliargs.extensions:
           self.cliargs.extensions.append(inc)
-      if len(self.cliargs.pfm_ext) > 0:
-        self.cliargs.extensions += self.cliargs.pfm_ext
+      if len(self.cliargs.preprocessor_ext) > 0:
+        self.cliargs.extensions += self.cliargs.preprocessor_ext
 
   def _sanitize_paths(self):
     """

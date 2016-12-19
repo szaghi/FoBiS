@@ -91,7 +91,7 @@ class Compiler(object):
       elif self.compiler.lower() == 'opencoarrays-gnu':
         self._opencoarrays_gnu()
       elif self.compiler.lower() == 'custom':
-        pass  # set by user options
+        self._custom()
       else:
         self._gnu()
     # overriding default values if passed
@@ -178,6 +178,21 @@ class Compiler(object):
     self._profile = ['-pg', '-pg']
     return
 
+  def _custom(self):
+    """Set compiler defaults to be empty."""
+    self.compiler = ''
+    self.fcs = ''
+    self.cflags = ''
+    self.lflags = ''
+    self.preproc = ''
+    self.modsw = ''
+    self._mpi = ''
+    self._openmp = ''
+    self._coarray = ''
+    self._coverage = ''
+    self._profile = ''
+    return
+
   def _set_fcs(self):
     """Method for setting the compiler command statement directly depending on the compiler."""
     if self.compiler.lower() in Compiler.supported:
@@ -191,7 +206,7 @@ class Compiler(object):
       if self._coverage[0] != '':
         if re.search(__regex_opts__, self.cflags):
           self.print_w('Warning: found optimizations cflags within coverage ones: coverage results can be alterated!')
-        self.cflags += ' -O0 ' + self._coverage[0]
+        self.cflags += ' -Og ' + self._coverage[0]
     if self.profile:
       if self._profile[0] != '':
         self.cflags += ' ' + self._profile[0]
@@ -213,7 +228,7 @@ class Compiler(object):
       if self._coverage[1] != '':
         if re.search(__regex_opts__, self.lflags):
           self.print_w('Warning: found optimizations lflags within coverage ones: coverage results can be alterated!')
-        self.lflags += ' -O0 ' + self._coverage[1]
+        self.lflags += ' -Og ' + self._coverage[1]
     if self.profile:
       if self._profile[1] != '':
         self.lflags += ' ' + self._profile[1]
