@@ -112,7 +112,7 @@ class Compiler(object):
     self.profile = cliargs.profile
     self._set_fcs()
     self._set_cflags()
-    self._set_lflags()
+    self._set_lflags(mklib=cliargs.mklib)
     return
 
   def __str__(self):
@@ -201,7 +201,7 @@ class Compiler(object):
     return
 
   def _set_cflags(self):
-    """Method for setting the compiling flags directly depending on the compiler."""
+    """Set the compiling flags directly depending on the compiler."""
     if self.coverage:
       if self._coverage[0] != '':
         if re.search(__regex_opts__, self.cflags):
@@ -222,8 +222,12 @@ class Compiler(object):
     self.cflags = re.sub(r" +", r" ", self.cflags)
     return
 
-  def _set_lflags(self):
-    """Method for setting the linking flags directly depending on the compiler."""
+  def _set_lflags(self, mklib=None):
+    """Set the linking flags directly depending on the compiler."""
+    if mklib is not None:
+      if mklib.lower() == 'shared':
+        if '-shared' not in self.lflags:
+          self.lflags += ' -shared'
     if self.coverage:
       if self._coverage[1] != '':
         if re.search(__regex_opts__, self.lflags):

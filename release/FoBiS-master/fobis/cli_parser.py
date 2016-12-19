@@ -48,7 +48,6 @@ def _subparser_compiler(clean=False):
   parser_group.add_argument('-fc', required=False, action='store', default=None, help='Specify the Fortran compiler statement, necessary for custom compiler specification (-compiler Custom)')
   parser_group.add_argument('-cflags', required=False, action='store', default=None, help='Compile flags')
   parser_group.add_argument('-lflags', required=False, action='store', default=None, help='Link flags')
-  parser_group.add_argument('-p', '--preproc', required=False, action='store', default=None, help='Preprocessor flags')
   parser_group.add_argument('-modsw', required=False, action='store', default=None, help='Specify the switch for setting the module searching path, necessary for custom compiler specification (-compiler Custom)')
   parser_group.add_argument('-mpi', required=False, action='store_true', default=False, help='Use MPI enabled version of compiler')
   parser_group.add_argument('-openmp', required=False, action='store_true', default=False, help='Use OpenMP pragmas')
@@ -141,6 +140,7 @@ def _subparser_preprocessor():
   parser = argparse.ArgumentParser(add_help=False)
   parser_group = parser.add_argument_group('preprocessor')
   parser_group.add_argument('-preprocessor', required=False, action='store', const='PreForM.py', default=None, nargs='?', help='Use the pre-processor for pre-processing sources file; if no preprocessor is specified, PreForM.py is used')
+  parser_group.add_argument('-p', '--preproc', required=False, action='store', default=None, help='Preprocessor flags')
   parser_group.add_argument('-dpp', '--preprocessor_dir', required=False, action='store', default=None, help='Directory containing the sources processed by preprocessor [default: none, the processed files are removed after used]')
   parser_group.add_argument('-epp', '--preprocessor_ext', required=False, action='store', nargs='+', default=[], help='List of custom-defined file extensions to be preprocessed by preprocessor [default: none, all files are preprocessed if preprocessor is used]')
   return parser
