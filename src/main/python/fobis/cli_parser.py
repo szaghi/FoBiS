@@ -72,7 +72,7 @@ def _subparser_directories(install=False):
   parser_group = parser.add_argument_group('directories')
   if install:
     parser_group.add_argument('-dbld', '--build_dir', required=False, action='store', default='./', help='Directory containing executable objects [default: ./]')
-    parser_group.add_argument('-p', '--prefix', required=True, action='store', help='Prefix path where built objects are installed')
+    parser_group.add_argument('-p', '--prefix', required=False, action='store', default='./', help='Prefix path where built objects are installed')
   else:
     parser_group.add_argument('-s', '--src', required=False, action='store', nargs='+', default=['./'], help='Root-directory of source files [default: ./]')
     parser_group.add_argument('-dbld', '--build_dir', required=False, action='store', default='./', help='Directory containing executable objects [default: ./]')

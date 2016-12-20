@@ -1,11 +1,5 @@
-[common-variables]
-$cflags = -c
-
 [default]
-help     = Test install command on target library
-template = template-test
-
-[template-test]
+help        = Test install command on all programs found using "prefix" defined into fobos
 compiler    = gnu
 mod_dir     = ./mod/
 obj_dir     = ./obj/
@@ -17,9 +11,7 @@ jobs        = 1
 log         = True
 track_build = True
 verbose     = True
-target      = library.f90
-output      = liblibrary.so
-mklib       = shared
+prefix      = prefix
 
 [rule-finalize]
 help  = Rule for preparing the next test
