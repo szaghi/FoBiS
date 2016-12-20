@@ -183,7 +183,7 @@ class SuiteTest(unittest.TestCase):
     num_failures = 0
     failed = []
 
-    for test in range(24):
+    for test in range(25):
       if test + 1 == 15 and not opencoarrays:
         continue
       build_ok = self.run_build('build-test' + str(test + 1))
