@@ -1,0 +1,27 @@
+[modes]
+modes = static
+
+[common-variables]
+$STATIC_LIB = build-test26
+$CGLAGS_GNU = -c
+$OPTIMIZE_GNU = -O2
+
+[static]
+compiler  = Gnu
+cflags    = $CGLAGS_GNU $OPTIMIZE_GNU
+mod_dir   = ./mod/
+obj_dir   = ./obj/
+build_dir = ./
+src       = ./src/
+colors    = True
+quiet     = False
+target    = library.f90
+output    = $STATIC_LIB
+mklib     = static
+log       = True
+verbose   = True
+
+[rule-finalize]
+help  = Rule for preparing the next test
+quiet = True
+rule  = echo ""

@@ -157,7 +157,8 @@ class Fobos(object):
         for item in self.fobos.items(section):
           item_val = item[1]
           for key, value in self.local_variables.items():
-            item_val = re.sub(r"(?!" + re.escape(key) + r"[aZ_-])\s*" + re.escape(key) + r"\s*", value, item_val)
+            item_val = re.sub(re.escape(key), value, item_val)
+            # item_val = re.sub(r"(?!" + re.escape(key) + r"[aZ_-])\s*" + re.escape(key) + r"\s*", value, item_val)
           self.fobos.set(section, item[0], item_val)
     return
 
