@@ -71,11 +71,14 @@ def _subparser_directories(install=False):
   parser = argparse.ArgumentParser(add_help=False)
   parser_group = parser.add_argument_group('directories')
   if install:
-    parser_group.add_argument('-dbld', '--build_dir', required=False, action='store', default='./', help='Directory containing executable objects [default: ./]')
+    parser_group.add_argument('-dbld', '--build_dir', required=False, action='store', default='./', help='Directory containing built objects [default: ./]')
     parser_group.add_argument('-p', '--prefix', required=False, action='store', default='./', help='Prefix path where built objects are installed')
+    parser_group.add_argument('--bin', required=False, action='store', default='bin/', help='Prefix sub-directory where executable files are installed')
+    parser_group.add_argument('--lib', required=False, action='store', default='lib/', help='Prefix sub-directory where library files are installed')
+    parser_group.add_argument('--include', required=False, action='store', default='include/', help='Prefix sub-directory where include files are installed')
   else:
     parser_group.add_argument('-s', '--src', required=False, action='store', nargs='+', default=['./'], help='Root-directory of source files [default: ./]')
-    parser_group.add_argument('-dbld', '--build_dir', required=False, action='store', default='./', help='Directory containing executable objects [default: ./]')
+    parser_group.add_argument('-dbld', '--build_dir', required=False, action='store', default='./', help='Directory containing built objects [default: ./]')
     parser_group.add_argument('-dobj', '--obj_dir', required=False, action='store', default='./obj/', help='Directory containing compiled objects [default: ./obj/]')
     parser_group.add_argument('-dmod', '--mod_dir', required=False, action='store', default='./mod/', help='Directory containing .mod files of compiled objects [default: ./mod/]')
     parser_group.add_argument('-dlib', '--lib_dir', required=False, action='store', nargs='+', default=[], help='List of directories searched for libraries [default: None]')

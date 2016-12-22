@@ -236,7 +236,7 @@ class SuiteTest(unittest.TestCase):
     num_failures = 0
     failed = []
 
-    for test in range(3):
+    for test in range(4):
       install_ok = self.run_install('install-test' + str(test + 1))
       if not install_ok:
         failed.append('install-test' + str(test + 1))

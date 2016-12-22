@@ -84,7 +84,11 @@ class FoBiSConfig(object):
       for n, exc in enumerate(self.cliargs.exclude_dirs):
         self.cliargs.exclude_dirs[n] = os.path.normpath(exc)
     if self.cliargs.which == 'install':
+      self.cliargs.build_dir = os.path.normpath(self.cliargs.build_dir)
       self.cliargs.prefix = os.path.normpath(self.cliargs.prefix)
+      self.cliargs.bin = os.path.normpath(self.cliargs.bin)
+      self.cliargs.lib = os.path.normpath(self.cliargs.lib)
+      self.cliargs.include = os.path.normpath(self.cliargs.include)
 
   def _check_cflags_heritage(self):
     """
