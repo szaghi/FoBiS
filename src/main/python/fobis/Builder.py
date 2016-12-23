@@ -360,21 +360,8 @@ class Builder(object):
     str
       string containing the link command
     """
-    objs = []
-    if nomodlibs is not None:
-      objs = objs + nomodlibs
-    if submodules is not None:
-      objs = objs + submodules
-    objs = objs + file_to_build.obj_dependencies()
     exe = self.get_output_name(file_to_build=file_to_build, output=output)
-    link_cmd = self.cmd_link + " " + "".join([os.path.join(self.obj_dir, s + " ") for s in objs]) + "".join([s + " " for s in self.libs]) + "".join([s + " " for s in self.vlibs])
-    if len(self.ext_libs) > 0:
-      link_cmd += " " + "".join(["-l" + s + " " for s in self.ext_libs])
-    if len(self.ext_vlibs) > 0:
-      link_cmd += " " + "".join(["-l" + s + " " for s in self.ext_vlibs])
-    if len(self.lib_dir) > 0:
-      link_cmd += " " + "".join(["-L" + s + " " for s in self.lib_dir])
-    link_cmd += " -o " + exe
+    link_cmd = self.cmd_link + " " + self._get_libs_link_command(file_to_build=file_to_build, nomodlibs=nomodlibs, submodules=submodules) + " -o " + exe
     return link_cmd, exe
 
   def _mklib_command(self, file_to_build, output=None, nomodlibs=None, submodules=None, mklib=None):
@@ -392,7 +379,35 @@ class Builder(object):
     submodules : {None}
       list of submodules objects
     mklib : {None}
-      bool for activate building library mode
+      activate building library mode
+
+    Returns
+    -------
+    str
+      string containing the link command
+    """
+    lib = self.get_output_name(file_to_build=file_to_build, output=output, mklib=mklib)
+    link_cmd = self._get_libs_link_command(file_to_build=file_to_build, exclude_programs=True, nomodlibs=nomodlibs, submodules=submodules)
+    if mklib.lower() == 'shared':
+      link_cmd = self.cmd_link + " " + link_cmd + " -o " + lib
+    elif mklib.lower() == 'static':
+      link_cmd = "ar -rcs " + lib + " " + link_cmd + " ; ranlib " + lib
+    return link_cmd, lib
+
+  def _get_libs_link_command(self, file_to_build, exclude_programs=False, nomodlibs=None, submodules=None):
+    """
+    Return the libraries link command
+
+    Parameters
+    ----------
+    file_to_build : ParsedFile object
+      file to be built
+    exclude_programs : {False}
+      flag for excluding programs obj from the list
+    nomodlibs : {None}
+      list of old-Fortran style libraries objects
+    submodules : {None}
+      list of submodules objects
 
     Returns
     -------
@@ -404,19 +419,15 @@ class Builder(object):
       objs = objs + nomodlibs
     if submodules is not None:
       objs = objs + submodules
-    objs = objs + file_to_build.obj_dependencies(exclude_programs=True)
-    if output:
-      lib = os.path.join(self.build_dir, output)
-    else:
-      if mklib.lower() == 'shared':
-        lib = os.path.join(self.build_dir, file_to_build.basename + '.so')
-      elif mklib.lower() == 'static':
-        lib = os.path.join(self.build_dir, file_to_build.basename + '.a')
-    if mklib.lower() == 'shared':
-      link_cmd = self.cmd_link + " " + "".join([os.path.join(self.obj_dir, s + " ") for s in objs]) + "".join([s + " " for s in self.libs]) + "".join([s + " " for s in self.vlibs]) + " -o " + lib
-    elif mklib.lower() == 'static':
-      link_cmd = "ar -rcs " + lib + " " + "".join([os.path.join(self.obj_dir, s + " ") for s in objs]) + "".join([s + " " for s in self.libs]) + "".join([s + " " for s in self.vlibs]) + " ; ranlib " + lib
-    return link_cmd, lib
+    objs = objs + file_to_build.obj_dependencies(exclude_programs=exclude_programs)
+    link_cmd = "".join([os.path.join(self.obj_dir, s + " ") for s in objs]) + "".join([s + " " for s in self.libs]) + "".join([s + " " for s in self.vlibs])
+    if len(self.ext_libs) > 0:
+      link_cmd += " " + "".join(["-l" + s + " " for s in self.ext_libs])
+    if len(self.ext_vlibs) > 0:
+      link_cmd += " " + "".join(["-l" + s + " " for s in self.ext_vlibs])
+    if len(self.lib_dir) > 0:
+      link_cmd += " " + "".join(["-L" + s + " " for s in self.lib_dir])
+    return link_cmd
 
   def _get_hierarchy(self, file_to_build):
     """
@@ -606,7 +617,7 @@ class Builder(object):
           track_file.writelines('mod_file = ' + os.path.join(self.mod_dir, file_to_build.basename + '.mod') + '\n')
     return build_ok
 
-  def get_output_name(self, file_to_build, output=None):
+  def get_output_name(self, file_to_build, output=None, mklib=None):
     """
     Return the output build file name.
 
@@ -615,6 +626,8 @@ class Builder(object):
     file_to_build : ParsedFile
     output : str
       output build file name
+    mklib : {None}
+      activate building library mode
 
     Returns
     -------
@@ -624,7 +637,13 @@ class Builder(object):
     if output:
       build_name = os.path.join(self.build_dir, output)
     else:
-      build_name = os.path.join(self.build_dir, file_to_build.basename)
+      if mklib is not None:
+        if mklib.lower() == 'shared':
+          build_name = os.path.join(self.build_dir, file_to_build.basename + '.so')
+        elif mklib.lower() == 'static':
+          build_name = os.path.join(self.build_dir, file_to_build.basename + '.a')
+      else:
+        build_name = os.path.join(self.build_dir, file_to_build.basename)
     return build_name
 
   def get_track_build_file(self, file_to_build):
