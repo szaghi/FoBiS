@@ -10,6 +10,7 @@ log          = True
 mklib        = static
 build_all    = True
 output       = build-test20
+verbose      = True
 
 [rule-finalize]
 help  = Rule for preparing the next test
