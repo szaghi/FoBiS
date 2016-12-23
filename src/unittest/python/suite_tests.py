@@ -119,10 +119,8 @@ class SuiteTest(unittest.TestCase):
 
     run_fobis(fake_args=['build', '-f', 'fobos'])
     run_fobis(fake_args=['install', '-f', 'fobos', '--prefix', 'prefix'])
-    install_ok = True
-    for _, __, files in os.walk('./prefix/'):
-      if not files:
-        install_ok = False
+    files = [os.path.join(dp, f) for dp, _, filenames in os.walk('./prefix/') for f in filenames]
+    install_ok = len(files) > 0
 
     run_fobis(fake_args=['rule', '-f', 'fobos', '-ex', 'finalize'])
 

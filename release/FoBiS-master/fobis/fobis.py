@@ -177,14 +177,22 @@ def run_fobis_install(configuration):
           is_program = track_file.get(section='build', option='program')
         if track_file.has_option(section='build', option='library'):
           is_library = track_file.get(section='build', option='library')
-        if is_program or is_library:
-          configuration.fobos.print_n('Install "' + output + '" in "' + configuration.cliargs.prefix + '"')
-          shutil.copy(output, configuration.cliargs.prefix)
+        if is_program:
+          bin_path = os.path.join(configuration.cliargs.prefix, configuration.cliargs.bin)
+          safe_mkdir(directory=bin_path)
+          configuration.fobos.print_n('Install "' + output + '" in "' + bin_path + '"')
+          shutil.copy(output, bin_path)
         if is_library:
+          lib_path = os.path.join(configuration.cliargs.prefix, configuration.cliargs.lib)
+          safe_mkdir(directory=lib_path)
+          configuration.fobos.print_n('Install "' + output + '" in "' + lib_path + '"')
+          shutil.copy(output, lib_path)
           if track_file.has_option(section='build', option='mod_file'):
             mod_file = track_file.get(section='build', option='mod_file')
-            configuration.fobos.print_n('Install "' + mod_file + '" in "' + configuration.cliargs.prefix + '"')
-            shutil.copy(mod_file, configuration.cliargs.prefix)
+            inc_path = os.path.join(configuration.cliargs.prefix, configuration.cliargs.include)
+            safe_mkdir(directory=inc_path)
+            configuration.fobos.print_n('Install "' + mod_file + '" in "' + inc_path + '"')
+            shutil.copy(mod_file, inc_path)
 
 
 def run_fobis_doctests(configuration):
