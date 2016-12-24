@@ -388,13 +388,14 @@ class Builder(object):
     """
     lib = self.get_output_name(file_to_build=file_to_build, output=output, mklib=mklib)
     link_cmd = self._get_libs_link_command(file_to_build=file_to_build, exclude_programs=True, nomodlibs=nomodlibs, submodules=submodules)
-    if mklib.lower() == 'shared':
-      link_cmd = self.cmd_link + " " + link_cmd + " -o " + lib
-    elif mklib.lower() == 'static':
-      link_cmd = "ar -rcs " + lib + " " + link_cmd + " ; ranlib " + lib
+    if mklib is not None:
+      if mklib.lower() == 'shared':
+        link_cmd = self.cmd_link + " " + link_cmd + " -o " + lib
+      elif mklib.lower() == 'static':
+        link_cmd = "ar -rcs " + lib + " " + link_cmd + " ; ranlib " + lib
     return link_cmd, lib
 
-  def _get_libs_link_command(self, file_to_build, exclude_programs=False, nomodlibs=None, submodules=None):
+  def _get_libs_link_command(self, file_to_build, exclude_programs=False, nomodlibs=None, submodules=None, mklib=None):
     """
     Return the libraries link command
 
@@ -408,6 +409,8 @@ class Builder(object):
       list of old-Fortran style libraries objects
     submodules : {None}
       list of submodules objects
+    mklib : {None}
+      activate building library mode
 
     Returns
     -------
@@ -421,12 +424,14 @@ class Builder(object):
       objs = objs + submodules
     objs = objs + file_to_build.obj_dependencies(exclude_programs=exclude_programs)
     link_cmd = "".join([os.path.join(self.obj_dir, s + " ") for s in objs]) + "".join([s + " " for s in self.libs]) + "".join([s + " " for s in self.vlibs])
-    if len(self.ext_libs) > 0:
-      link_cmd += " " + "".join(["-l" + s + " " for s in self.ext_libs])
-    if len(self.ext_vlibs) > 0:
-      link_cmd += " " + "".join(["-l" + s + " " for s in self.ext_vlibs])
-    if len(self.lib_dir) > 0:
-      link_cmd += " " + "".join(["-L" + s + " " for s in self.lib_dir])
+    if mklib is not None:
+      if mklib.lower() == 'shared':
+        if len(self.ext_libs) > 0:
+          link_cmd += " " + "".join(["-l" + s + " " for s in self.ext_libs])
+        if len(self.ext_vlibs) > 0:
+          link_cmd += " " + "".join(["-l" + s + " " for s in self.ext_vlibs])
+        if len(self.lib_dir) > 0:
+          link_cmd += " " + "".join(["-L" + s + " " for s in self.lib_dir])
     return link_cmd
 
   def _get_hierarchy(self, file_to_build):

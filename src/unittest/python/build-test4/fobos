@@ -1,23 +1,8 @@
 [modes]
-modes = shared static
-
-[shared]
-compiler        = Gnu
-cflags          = -c -fPIC
-lflags          = -shared
-mod_dir         = ./mod/
-obj_dir         = ./obj/
-build_dir       = ./
-src             = ./src/
-colors          = True
-quiet           = False
-target          = library.f90
-mklib           = shared
-log             = True
-cflags_heritage = True
-output          = build-test4
+modes = static
 
 [static]
+help      = Test static library building with libfoo.a that must not be linked
 compiler  = Gnu
 cflags    = -c
 mod_dir   = ./mod/
@@ -27,9 +12,12 @@ src       = ./src/
 colors    = True
 quiet     = False
 target    = library.f90
-output    = test4
+output    = build-test4
 mklib     = static
 log       = True
+verbose   = True
+ext_libs  = foo
+lib_dir   = foo
 
 [rule-finalize]
 help  = Rule for preparing the next test
