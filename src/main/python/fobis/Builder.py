@@ -340,7 +340,7 @@ class Builder(object):
       comp_cmd = self.cmd_comp + ' ' + include_cmd + file_to_compile.name + ' -o ' + os.path.join(self.obj_dir, file_to_compile.basename + '.o')
     return comp_cmd
 
-  def _link_command(self, file_to_build, output=None, nomodlibs=None, submodules=None):
+  def _link_command(self, file_to_build, output=None, nomodlibs=None, submodules=None, mklib=None):
     """
     Return the OS command for linkng file_to_build.
 
@@ -354,6 +354,8 @@ class Builder(object):
       list of old-Fortran style libraries objects
     submodules : {None}
       list of submodules objects
+    mklib : {None}
+      activate building library mode
 
     Returns
     -------
@@ -361,7 +363,7 @@ class Builder(object):
       string containing the link command
     """
     exe = self.get_output_name(file_to_build=file_to_build, output=output)
-    link_cmd = self.cmd_link + " " + self._get_libs_link_command(file_to_build=file_to_build, nomodlibs=nomodlibs, submodules=submodules) + " -o " + exe
+    link_cmd = self.cmd_link + " " + self._get_libs_link_command(file_to_build=file_to_build, nomodlibs=nomodlibs, submodules=submodules, mklib=mklib) + " -o " + exe
     return link_cmd, exe
 
   def _mklib_command(self, file_to_build, output=None, nomodlibs=None, submodules=None, mklib=None):
@@ -387,7 +389,7 @@ class Builder(object):
       string containing the link command
     """
     lib = self.get_output_name(file_to_build=file_to_build, output=output, mklib=mklib)
-    link_cmd = self._get_libs_link_command(file_to_build=file_to_build, exclude_programs=True, nomodlibs=nomodlibs, submodules=submodules)
+    link_cmd = self._get_libs_link_command(file_to_build=file_to_build, exclude_programs=True, nomodlibs=nomodlibs, submodules=submodules, mklib=mklib)
     if mklib is not None:
       if mklib.lower() == 'shared':
         link_cmd = self.cmd_link + " " + link_cmd + " -o " + lib
@@ -424,14 +426,13 @@ class Builder(object):
       objs = objs + submodules
     objs = objs + file_to_build.obj_dependencies(exclude_programs=exclude_programs)
     link_cmd = "".join([os.path.join(self.obj_dir, s + " ") for s in objs]) + "".join([s + " " for s in self.libs]) + "".join([s + " " for s in self.vlibs])
-    if mklib is not None:
-      if mklib.lower() == 'shared':
-        if len(self.ext_libs) > 0:
-          link_cmd += " " + "".join(["-l" + s + " " for s in self.ext_libs])
-        if len(self.ext_vlibs) > 0:
-          link_cmd += " " + "".join(["-l" + s + " " for s in self.ext_vlibs])
-        if len(self.lib_dir) > 0:
-          link_cmd += " " + "".join(["-L" + s + " " for s in self.lib_dir])
+    if mklib is None or mklib.lower() == 'shared':
+      if len(self.ext_libs) > 0:
+        link_cmd += " " + "".join(["-l" + s + " " for s in self.ext_libs])
+      if len(self.ext_vlibs) > 0:
+        link_cmd += " " + "".join(["-l" + s + " " for s in self.ext_vlibs])
+      if len(self.lib_dir) > 0:
+        link_cmd += " " + "".join(["-L" + s + " " for s in self.lib_dir])
     return link_cmd
 
   def _get_hierarchy(self, file_to_build):
@@ -584,7 +585,7 @@ class Builder(object):
       if not quiet:
         self.print_n('Nothing to compile, all objects are up-to-date')
     if file_to_build.program:
-      link_cmd, exe = self._link_command(file_to_build=file_to_build, output=output, nomodlibs=nomodlibs, submodules=submodules)
+      link_cmd, exe = self._link_command(file_to_build=file_to_build, output=output, nomodlibs=nomodlibs, submodules=submodules, mklib=mklib)
       if not quiet:
         self.print_n("Linking " + exe)
         if verbose:
