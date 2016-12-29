@@ -15,6 +15,7 @@ jobs      = 1
 target    = cumbersome.f90
 output    = build-test3
 log       = True
+verbose   = True
 
 [rule-finalize]
 help  = Rule for preparing the next test
