@@ -137,7 +137,7 @@ class Fobos(object):
       for section in self.fobos.sections():
         for item in self.fobos.items(section):
           if item[0].startswith('$'):
-            self.local_variables[item[0]] = item[1]
+            self.local_variables[item[0]] = item[1].replace('\n', ' ')
     return
 
   def _substitute_local_variables_mode(self):
