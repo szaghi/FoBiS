@@ -394,7 +394,7 @@ class Builder(object):
       if mklib.lower() == 'shared':
         link_cmd = self.cmd_link + " " + link_cmd + " -o " + lib
       elif mklib.lower() == 'static':
-        link_cmd = "ar -rcs " + lib + " " + link_cmd + " ; ranlib " + lib
+        link_cmd = "ar -rcs " + lib + " " + link_cmd + " \n ranlib " + lib
     return link_cmd, lib
 
   def _get_libs_link_command(self, file_to_build, exclude_programs=False, nomodlibs=None, submodules=None, mklib=None):
