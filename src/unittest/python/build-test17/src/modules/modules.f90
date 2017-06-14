@@ -10,5 +10,5 @@ endmodule module1
 
 module module2
   implicit none
-  character(len=:), parameter :: hello = 'We love Paris!'
+  character(len=*), parameter :: hello = 'We love Paris!'
 endmodule module2
