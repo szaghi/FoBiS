@@ -214,7 +214,8 @@ def run_fobis_doctests(configuration):
   test_doctests(configuration=configuration, doctests=doctests, pfiles=pfiles, nomodlibs=nomodlibs, builder=builder)
   if not configuration.cliargs.keep_volatile_doctests:
     for doc_dir in doctests_dirs:
-      shutil.rmtree(doc_dir)
+      if os.path.isdir(doc_dir):
+        shutil.rmtree(doc_dir)
 
 
 def parse_files(configuration, src_dir=None, is_doctest=False):
@@ -281,7 +282,10 @@ def parse_doctests(configuration, pfiles, builder):
       if pfile.doctest.to_test:
         doc_dir = pfile.doctest.save_volatile_programs(build_dir=builder.build_dir)
         doctests_dirs.append(doc_dir)
-        doctests += parse_files(configuration=configuration, src_dir=doc_dir, is_doctest=True)
+  if len(doctests_dirs) > 0:
+    doctests_dirs = list(set(doctests_dirs))
+  for doc_dir in doctests_dirs:
+    doctests += parse_files(configuration=configuration, src_dir=doc_dir, is_doctest=True)
   return doctests, doctests_dirs
 
 
