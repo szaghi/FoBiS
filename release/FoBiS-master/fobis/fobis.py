@@ -150,6 +150,12 @@ def run_fobis_rule(configuration):
       configuration.print_b(result[1])
   elif configuration.cliargs.gcov_analyzer:
     gcov_analyzer(configuration=configuration)
+  elif configuration.cliargs.is_ascii_kind_supported:
+    is_ascii_kind_supported(configuration=configuration)
+  elif configuration.cliargs.is_ucs4_kind_supported:
+    is_ucs4_kind_supported(configuration=configuration)
+  elif configuration.cliargs.is_float128_kind_supported:
+    is_float128_kind_supported(configuration=configuration)
 
 
 def run_fobis_install(configuration):
@@ -214,7 +220,8 @@ def run_fobis_doctests(configuration):
   test_doctests(configuration=configuration, doctests=doctests, pfiles=pfiles, nomodlibs=nomodlibs, builder=builder)
   if not configuration.cliargs.keep_volatile_doctests:
     for doc_dir in doctests_dirs:
-      shutil.rmtree(doc_dir)
+      if os.path.isdir(doc_dir):
+        shutil.rmtree(doc_dir)
 
 
 def parse_files(configuration, src_dir=None, is_doctest=False):
@@ -281,7 +288,10 @@ def parse_doctests(configuration, pfiles, builder):
       if pfile.doctest.to_test:
         doc_dir = pfile.doctest.save_volatile_programs(build_dir=builder.build_dir)
         doctests_dirs.append(doc_dir)
-        doctests += parse_files(configuration=configuration, src_dir=doc_dir, is_doctest=True)
+  if len(doctests_dirs) > 0:
+    doctests_dirs = list(set(doctests_dirs))
+  for doc_dir in doctests_dirs:
+    doctests += parse_files(configuration=configuration, src_dir=doc_dir, is_doctest=True)
   return doctests, doctests_dirs
 
 
@@ -371,11 +381,6 @@ def test_doctests(configuration, doctests, pfiles, nomodlibs, builder):
   nomodlibs : list
     list of built non module libraries object names
   builder : Builder()
-
-  Returns
-  -------
-  list
-    list of built non module libraries object names
   """
   for test in doctests:
     if test.is_doctest:
@@ -546,6 +551,110 @@ def gcov_analyzer(configuration):
     with open(os.path.join(configuration.cliargs.gcov_analyzer[0], configuration.cliargs.gcov_analyzer[1] + '.md'), 'w') as summary:
       summary.writelines(string)
 
+
+def is_ascii_kind_supported(configuration):
+  """Check is the compiler support ASCII character kind.
+
+  Parameters
+  ----------
+  configuration : FoBiSConfig()
+
+
+  Returns
+  -------
+  bool
+    true if ASCII kind is supported, false otherwise
+  """
+  builder = Builder(cliargs=configuration.cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
+  test_file_name = os.path.join(builder.build_dir, 'ascii_kind_introspection.f90')
+  test = open(test_file_name, 'w')
+  test.write("program test\nprint*, selected_char_kind('ascii')\nendprogram")
+  test.close()
+  test = ParsedFile(name=test_file_name)
+  test.parse(inc=configuration.cliargs.inc)
+  pfiles = [test]
+  dependency_hiearchy(builder=builder, pfiles=pfiles, print_w=configuration.print_r)
+  builder.build(file_to_build=pfiles[0], verbose=configuration.cliargs.verbose, log=configuration.cliargs.log)
+  os.remove(test_file_name)
+  test_exe = os.path.join(builder.build_dir, os.path.splitext(os.path.basename(test.name))[0])
+  result = syswork(test_exe)
+  os.remove(test_exe)
+  is_supported = False
+  if result[0] == 0:
+    if int(result[1]) > 0:
+      is_supported = True
+  print("Compiler '" + builder.compiler.compiler + "' support ASCII kind:", is_supported)
+  return is_supported
+
+
+def is_ucs4_kind_supported(configuration):
+  """Check is the compiler support UCS4 character kind.
+
+  Parameters
+  ----------
+  configuration : FoBiSConfig()
+
+
+  Returns
+  -------
+  bool
+    true if UCS4 kind is supported, false otherwise
+  """
+  builder = Builder(cliargs=configuration.cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
+  test_file_name = os.path.join(builder.build_dir, 'ucs4_kind_introspection.f90')
+  test = open(test_file_name, 'w')
+  test.write("program test\nprint*, selected_char_kind('iso_10646')\nendprogram")
+  test.close()
+  test = ParsedFile(name=test_file_name)
+  test.parse(inc=configuration.cliargs.inc)
+  pfiles = [test]
+  dependency_hiearchy(builder=builder, pfiles=pfiles, print_w=configuration.print_r)
+  builder.build(file_to_build=pfiles[0], verbose=configuration.cliargs.verbose, log=configuration.cliargs.log)
+  os.remove(test_file_name)
+  test_exe = os.path.join(builder.build_dir, os.path.splitext(os.path.basename(test.name))[0])
+  result = syswork(test_exe)
+  os.remove(test_exe)
+  is_supported = False
+  if result[0] == 0:
+    if int(result[1]) > 0:
+      is_supported = True
+  print("Compiler '" + builder.compiler.compiler + "' support UCS4 kind:", is_supported)
+  return is_supported
+
+
+def is_float128_kind_supported(configuration):
+  """Check is the compiler support float128 real kind.
+
+  Parameters
+  ----------
+  configuration : FoBiSConfig()
+
+
+  Returns
+  -------
+  bool
+    true if UCS4 kind is supported, false otherwise
+  """
+  builder = Builder(cliargs=configuration.cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
+  test_file_name = os.path.join(builder.build_dir, 'float128_kind_introspection.f90')
+  test = open(test_file_name, 'w')
+  test.write("program test\nprint*, selected_real_kind(33,4931)\nendprogram")
+  test.close()
+  test = ParsedFile(name=test_file_name)
+  test.parse(inc=configuration.cliargs.inc)
+  pfiles = [test]
+  dependency_hiearchy(builder=builder, pfiles=pfiles, print_w=configuration.print_r)
+  builder.build(file_to_build=pfiles[0], verbose=configuration.cliargs.verbose, log=configuration.cliargs.log)
+  os.remove(test_file_name)
+  test_exe = os.path.join(builder.build_dir, os.path.splitext(os.path.basename(test.name))[0])
+  result = syswork(test_exe)
+  os.remove(test_exe)
+  is_supported = False
+  if result[0] == 0:
+    if int(result[1]) > 0:
+      is_supported = True
+  print("Compiler '" + builder.compiler.compiler + "' support float128 kind:", is_supported)
+  return is_supported
 
 if __name__ == '__main__':
   main()
