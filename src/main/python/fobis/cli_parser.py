@@ -205,6 +205,8 @@ def _subparser_rules_intrinsic():
   parser_group.add_argument('-ford', required=False, action='store', default=None, help='Intrinsic rule for building documentation by means of Ford tool', metavar='project-file.md')
   parser_group.add_argument('-gcov_analyzer', required=False, action='store', default=None, nargs='+', help='Analyze .gcov coverage files saving a report for each file found', metavar='GCOV_REPORTS_DIR [REPORT_SUMMARY_FILE_NAME]')
   parser_group.add_argument('-is_ascii_kind_supported', required=False, action='store_true', default=False, help='Check is compiler support ASCII kind')
+  parser_group.add_argument('-is_ucs4_kind_supported', required=False, action='store_true', default=False, help='Check is compiler support UCS4 kind')
+  parser_group.add_argument('-is_float128_kind_supported', required=False, action='store_true', default=False, help='Check is compiler support flat128 kind')
   return parser
 
 

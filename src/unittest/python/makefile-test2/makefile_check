@@ -28,11 +28,11 @@ $(DEXE)TEST: $(MKDIRS) $(DOBJ)test.o \
 EXES := $(EXES) TEST
 
 #compiling rules
-$(DOBJ)test.o: src/test.f90
+$(DOBJ)non_module_library.o: src/non_module_library.f90
 	@echo $(COTEXT)
 	@$(FC) $(OPTSC)  $< -o $@
 
-$(DOBJ)non_module_library.o: src/non_module_library.f90
+$(DOBJ)test.o: src/test.f90
 	@echo $(COTEXT)
 	@$(FC) $(OPTSC)  $< -o $@
 

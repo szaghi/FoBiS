@@ -152,6 +152,10 @@ def run_fobis_rule(configuration):
     gcov_analyzer(configuration=configuration)
   elif configuration.cliargs.is_ascii_kind_supported:
     is_ascii_kind_supported(configuration=configuration)
+  elif configuration.cliargs.is_ucs4_kind_supported:
+    is_ucs4_kind_supported(configuration=configuration)
+  elif configuration.cliargs.is_float128_kind_supported:
+    is_float128_kind_supported(configuration=configuration)
 
 
 def run_fobis_install(configuration):
@@ -562,7 +566,6 @@ def is_ascii_kind_supported(configuration):
     true if ASCII kind is supported, false otherwise
   """
   builder = Builder(cliargs=configuration.cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
-  print('cazzo', builder.build_dir)
   test_file_name = os.path.join(builder.build_dir, 'ascii_kind_introspection.f90')
   test = open(test_file_name, 'w')
   test.write("program test\nprint*, selected_char_kind('ascii')\nendprogram")
@@ -573,7 +576,85 @@ def is_ascii_kind_supported(configuration):
   dependency_hiearchy(builder=builder, pfiles=pfiles, print_w=configuration.print_r)
   builder.build(file_to_build=pfiles[0], verbose=configuration.cliargs.verbose, log=configuration.cliargs.log)
   os.remove(test_file_name)
-  return True
+  test_exe = os.path.join(builder.build_dir, os.path.splitext(os.path.basename(test.name))[0])
+  result = syswork(test_exe)
+  os.remove(test_exe)
+  is_supported = False
+  if result[0] == 0:
+    if int(result[1]) > 0:
+      is_supported = True
+  print("Compiler '" + builder.compiler.compiler + "' support ASCII kind:", is_supported)
+  return is_supported
+
+
+def is_ucs4_kind_supported(configuration):
+  """Check is the compiler support UCS4 character kind.
+
+  Parameters
+  ----------
+  configuration : FoBiSConfig()
+
+
+  Returns
+  -------
+  bool
+    true if UCS4 kind is supported, false otherwise
+  """
+  builder = Builder(cliargs=configuration.cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
+  test_file_name = os.path.join(builder.build_dir, 'ucs4_kind_introspection.f90')
+  test = open(test_file_name, 'w')
+  test.write("program test\nprint*, selected_char_kind('iso_10646')\nendprogram")
+  test.close()
+  test = ParsedFile(name=test_file_name)
+  test.parse(inc=configuration.cliargs.inc)
+  pfiles = [test]
+  dependency_hiearchy(builder=builder, pfiles=pfiles, print_w=configuration.print_r)
+  builder.build(file_to_build=pfiles[0], verbose=configuration.cliargs.verbose, log=configuration.cliargs.log)
+  os.remove(test_file_name)
+  test_exe = os.path.join(builder.build_dir, os.path.splitext(os.path.basename(test.name))[0])
+  result = syswork(test_exe)
+  os.remove(test_exe)
+  is_supported = False
+  if result[0] == 0:
+    if int(result[1]) > 0:
+      is_supported = True
+  print("Compiler '" + builder.compiler.compiler + "' support UCS4 kind:", is_supported)
+  return is_supported
+
+
+def is_float128_kind_supported(configuration):
+  """Check is the compiler support float128 real kind.
+
+  Parameters
+  ----------
+  configuration : FoBiSConfig()
+
+
+  Returns
+  -------
+  bool
+    true if UCS4 kind is supported, false otherwise
+  """
+  builder = Builder(cliargs=configuration.cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
+  test_file_name = os.path.join(builder.build_dir, 'float128_kind_introspection.f90')
+  test = open(test_file_name, 'w')
+  test.write("program test\nprint*, selected_real_kind(33,4931)\nendprogram")
+  test.close()
+  test = ParsedFile(name=test_file_name)
+  test.parse(inc=configuration.cliargs.inc)
+  pfiles = [test]
+  dependency_hiearchy(builder=builder, pfiles=pfiles, print_w=configuration.print_r)
+  builder.build(file_to_build=pfiles[0], verbose=configuration.cliargs.verbose, log=configuration.cliargs.log)
+  os.remove(test_file_name)
+  test_exe = os.path.join(builder.build_dir, os.path.splitext(os.path.basename(test.name))[0])
+  result = syswork(test_exe)
+  os.remove(test_exe)
+  is_supported = False
+  if result[0] == 0:
+    if int(result[1]) > 0:
+      is_supported = True
+  print("Compiler '" + builder.compiler.compiler + "' support float128 kind:", is_supported)
+  return is_supported
 
 if __name__ == '__main__':
   main()
