@@ -110,8 +110,7 @@ class Fobos(object):
           if self.fobos.has_section('default'):
             self.mode = 'default'
           else:
-            self.print_w('Error: fobos file has not "modes" section neither "default" one')
-            sys.exit(1)
+            self.print_w('Warning: fobos file has not "modes" section neither "default" one')
     return
 
   def _check_template(self):
@@ -227,8 +226,7 @@ class Fobos(object):
     """
     if self.fobos:
       cliargs_dict = deepcopy(cliargs.__dict__)
-      if cliargs.which != 'rule':
-        self._set_mode(mode=cliargs.mode)
+      self._set_mode(mode=cliargs.mode)
       self._check_template()
       self._check_local_variables()
       self._set_cliargs_attributes(cliargs=cliargs, cliargs_dict=cliargs_dict)

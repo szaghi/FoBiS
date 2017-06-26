@@ -28,7 +28,7 @@ from .cli_parser import cli_parser
 from .utils import syswork
 
 __appname__ = "FoBiS.py"
-__version__ = "2.2.3"
+__version__ = "2.2.4"
 __author__ = "Stefano Zaghi"
 __author_email__ = "stefano.zaghi@gmail.com"
 __license__ = "GNU General Public License v3 (GPLv3)"
@@ -61,7 +61,7 @@ class FoBiSConfig(object):
 
   def _update_extensions(self):
     """Update files extensions"""
-    if self.cliargs.which == 'build':
+    if self.cliargs.which == 'build' or self.cliargs.which == 'rule':
       for inc in self.cliargs.inc:
         if inc not in self.cliargs.extensions:
           self.cliargs.extensions.append(inc)
@@ -72,11 +72,11 @@ class FoBiSConfig(object):
     """
     Sanitize paths.
     """
-    if self.cliargs.which == 'clean' or self.cliargs.which == 'build':
+    if self.cliargs.which == 'clean' or self.cliargs.which == 'build' or self.cliargs.which == 'rule':
       self.cliargs.build_dir = os.path.normpath(self.cliargs.build_dir)
       self.cliargs.mod_dir = os.path.normpath(self.cliargs.mod_dir)
       self.cliargs.obj_dir = os.path.normpath(self.cliargs.obj_dir)
-    if self.cliargs.which == 'build':
+    if self.cliargs.which == 'build' or self.cliargs.which == 'rule':
       for n, src in enumerate(self.cliargs.src):
         self.cliargs.src[n] = os.path.normpath(src)
       for n, inc in enumerate(self.cliargs.include):
@@ -96,7 +96,7 @@ class FoBiSConfig(object):
     is sourced and compared with the actual cflags and in case they differ the project is forced to be recompiled. The actual cflags are saved,
     in any case, into that file.
     """
-    if self.cliargs.which == 'build':
+    if self.cliargs.which == 'build' or self.cliargs.which == 'rule':
       if self.cliargs.cflags_heritage:
         cflags = Builder.get_cflags(cliargs=self.cliargs)
         if self.cliargs.target:
@@ -120,7 +120,7 @@ class FoBiSConfig(object):
     self._update_extensions()
     self._sanitize_paths()
     self._check_cflags_heritage()
-    if self.cliargs.which == 'build':
+    if self.cliargs.which == 'build' or self.cliargs.which == 'rule':
       if len(self.cliargs.vlibs) > 0:
         self._check_vlibs_md5sum()
       if len(self.cliargs.ext_vlibs) > 0:
