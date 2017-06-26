@@ -27,12 +27,12 @@ $(DEXE)MYPROG: $(MKDIRS) $(DOBJ)myprog.o
 EXES := $(EXES) MYPROG
 
 #compiling rules
-$(DOBJ)myprog.o: ./src/myprog.f90 \
-	$(DOBJ)mymod.o
+$(DOBJ)mymod.o: ./src/mymod.f90
 	@echo $(COTEXT)
 	@$(FC) $(OPTSC)  $< -o $@
 
-$(DOBJ)mymod.o: ./src/mymod.f90
+$(DOBJ)myprog.o: ./src/myprog.f90 \
+	$(DOBJ)mymod.o
 	@echo $(COTEXT)
 	@$(FC) $(OPTSC)  $< -o $@
 

@@ -150,6 +150,8 @@ def run_fobis_rule(configuration):
       configuration.print_b(result[1])
   elif configuration.cliargs.gcov_analyzer:
     gcov_analyzer(configuration=configuration)
+  elif configuration.cliargs.is_ascii_kind_supported:
+    is_ascii_kind_supported(configuration=configuration)
 
 
 def run_fobis_install(configuration):
@@ -375,11 +377,6 @@ def test_doctests(configuration, doctests, pfiles, nomodlibs, builder):
   nomodlibs : list
     list of built non module libraries object names
   builder : Builder()
-
-  Returns
-  -------
-  list
-    list of built non module libraries object names
   """
   for test in doctests:
     if test.is_doctest:
@@ -550,6 +547,33 @@ def gcov_analyzer(configuration):
     with open(os.path.join(configuration.cliargs.gcov_analyzer[0], configuration.cliargs.gcov_analyzer[1] + '.md'), 'w') as summary:
       summary.writelines(string)
 
+
+def is_ascii_kind_supported(configuration):
+  """Check is the compiler support ASCII character kind.
+
+  Parameters
+  ----------
+  configuration : FoBiSConfig()
+
+
+  Returns
+  -------
+  bool
+    true if ASCII kind is supported, false otherwise
+  """
+  builder = Builder(cliargs=configuration.cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
+  print('cazzo', builder.build_dir)
+  test_file_name = os.path.join(builder.build_dir, 'ascii_kind_introspection.f90')
+  test = open(test_file_name, 'w')
+  test.write("program test\nprint*, selected_char_kind('ascii')\nendprogram")
+  test.close()
+  test = ParsedFile(name=test_file_name)
+  test.parse(inc=configuration.cliargs.inc)
+  pfiles = [test]
+  dependency_hiearchy(builder=builder, pfiles=pfiles, print_w=configuration.print_r)
+  builder.build(file_to_build=pfiles[0], verbose=configuration.cliargs.verbose, log=configuration.cliargs.log)
+  os.remove(test_file_name)
+  return True
 
 if __name__ == '__main__':
   main()
