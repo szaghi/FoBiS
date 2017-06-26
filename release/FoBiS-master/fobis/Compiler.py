@@ -33,7 +33,7 @@ class Compiler(object):
     list of supported compilers
   """
 
-  supported = ['gnu', 'intel', 'g95', 'opencoarrays-gnu']
+  supported = ['gnu', 'intel', 'g95', 'opencoarrays-gnu', 'pgi']
 
   def __init__(self, cliargs, print_w=None):
     """
@@ -90,6 +90,8 @@ class Compiler(object):
         self._g95()
       elif self.compiler.lower() == 'opencoarrays-gnu':
         self._opencoarrays_gnu()
+      elif self.compiler.lower() == 'pgi':
+        self._pgi()
       elif self.compiler.lower() == 'custom':
         self._custom()
       else:
@@ -119,7 +121,7 @@ class Compiler(object):
     return self.pprint()
 
   def _gnu(self):
-    """Method for setting compiler defaults to the GNU gfortran compiler options."""
+    """Set compiler defaults to the GNU gfortran compiler options."""
     self.compiler = 'gnu'
     self.fcs = 'gfortran'
     self.cflags = '-c'
@@ -134,7 +136,7 @@ class Compiler(object):
     return
 
   def _intel(self):
-    """Method for setting compiler defaults to the Intel Fortran compiler options."""
+    """Set compiler defaults to the Intel Fortran compiler options."""
     self.compiler = 'intel'
     self.fcs = 'ifort'
     self.cflags = '-c'
@@ -149,7 +151,7 @@ class Compiler(object):
     return
 
   def _g95(self):
-    """Method for setting compiler defaults to the g95 compiler options."""
+    """Set compiler defaults to the g95 compiler options."""
     self.compiler = 'g95'
     self.fcs = 'g95'
     self.cflags = '-c'
@@ -178,6 +180,21 @@ class Compiler(object):
     self._profile = ['-pg', '-pg']
     return
 
+  def _pgi(self):
+    """Set compiler defaults to the PGI compiler options."""
+    self.compiler = 'pgi'
+    self.fcs = 'pgfortran'
+    self.cflags = '-c'
+    self.lflags = ''
+    self.preproc = ''
+    self.modsw = '-module '
+    self._mpi = 'mpif90'
+    self._openmp = ['-mp', '-mp']
+    self._coarray = ['', '']
+    self._coverage = ['', '']
+    self._profile = ['-pg', '-pg']
+    return
+
   def _custom(self):
     """Set compiler defaults to be empty."""
     self.compiler = ''
@@ -194,7 +211,7 @@ class Compiler(object):
     return
 
   def _set_fcs(self):
-    """Method for setting the compiler command statement directly depending on the compiler."""
+    """Set the compiler command statement directly depending on the compiler."""
     if self.compiler.lower() in Compiler.supported:
       if self.mpi:
         self.fcs = self._mpi

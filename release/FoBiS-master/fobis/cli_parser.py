@@ -44,7 +44,7 @@ def _subparser_compiler(clean=False):
   if clean:
     parser_group.add_argument('-only_obj', required=False, action='store_true', default=False, help='Clean only compiled objects and not also built targets')
     parser_group.add_argument('-only_target', required=False, action='store_true', default=False, help='Clean only built targets and not also compiled objects')
-  parser_group.add_argument('-compiler', required=False, action='store', default='intel', type=str.lower, choices=__compiler_supported__, help='Compiler used (value is case insensitive, default intel)')
+  parser_group.add_argument('-compiler', required=False, action='store', default='gnu', type=str.lower, choices=__compiler_supported__, help='Compiler used (value is case insensitive, default gnu)')
   parser_group.add_argument('-fc', required=False, action='store', default=None, help='Specify the Fortran compiler statement, necessary for custom compiler specification (-compiler Custom)')
   parser_group.add_argument('-cflags', required=False, action='store', default=None, help='Compile flags')
   parser_group.add_argument('-lflags', required=False, action='store', default=None, help='Link flags')

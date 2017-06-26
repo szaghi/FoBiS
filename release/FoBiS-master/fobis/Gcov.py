@@ -236,18 +236,18 @@ class Gcov(object):
         string.append('### Coverage analysis of *' + os.path.splitext(os.path.basename(self.filename))[0] + '*\n')
         string.append('\n')
         if self.metrics['coverage'] or self.metrics['procedures']:
-          string.append('|Metrics|||\n')
+          string.append('|Metrics| | |\n')
           string.append('| --- | --- | --- |\n')
         if self.metrics['coverage']:
-          string.append('|Number of executable lines          |' + self.metrics['coverage'][0] + '||\n')
+          string.append('|Number of executable lines          |' + self.metrics['coverage'][0] + '| |\n')
           string.append('|Number of executed lines            |' + self.metrics['coverage'][1] + '|' + self.metrics['coverage'][3] + '%|\n')
           string.append('|Number of unexecuted lines          |' + self.metrics['coverage'][2] + '|' + self.metrics['coverage'][4] + '%|\n')
-          string.append('|Average hits per executed line      |' + self.metrics['coverage'][5] + '||\n')
+          string.append('|Average hits per executed line      |' + self.metrics['coverage'][5] + '| |\n')
         if self.metrics['procedures']:
-          string.append('|Number of procedures                |' + self.metrics['procedures'][0] + '||\n')
+          string.append('|Number of procedures                |' + self.metrics['procedures'][0] + '| |\n')
           string.append('|Number of executed procedures       |' + self.metrics['procedures'][1] + '|' + self.metrics['procedures'][3] + '%|\n')
           string.append('|Number of unexecuted procedures     |' + self.metrics['procedures'][2] + '|' + self.metrics['procedures'][4] + '%|\n')
-          string.append('|Average hits per executed procedure |' + self.metrics['procedures'][5] + '||\n')
+          string.append('|Average hits per executed procedure |' + self.metrics['procedures'][5] + '| |\n')
         if graphs and __graph__ and (self.metrics['coverage'] or self.metrics['procedures']):
           string.append('\n --- \n')
           if self.metrics['coverage']:
