@@ -116,6 +116,7 @@ def _subparser_files(doctests=False):
   parser_group.add_argument('-build_all', required=False, action='store_true', default=False, help='Build all sources parsed [default False]')
   if doctests:
     parser_group.add_argument('-keep_volatile_doctests', required=False, action='store_true', default=False, help='Keep the volatile doctests programs [default False]')
+    parser_group.add_argument('--exclude_from_doctests', required=False, action='store', nargs='+', default=[], help='Exclude a list of files from the doctests process', metavar='FILE#...')
   return parser
 
 
