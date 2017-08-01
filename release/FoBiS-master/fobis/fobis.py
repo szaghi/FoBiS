@@ -383,7 +383,7 @@ def test_doctests(configuration, doctests, pfiles, nomodlibs, builder):
   builder : Builder()
   """
   for test in doctests:
-    if test.is_doctest:
+    if test.is_doctest and os.path.basename(test.name).split("-doctest")[0] not in [os.path.basename(os.path.splitext(exc)[0]) for exc in configuration.cliargs.exclude_from_doctests]:
       remove_other_main(builder=builder, pfiles=pfiles, mysefl=test)
       builder.build(file_to_build=test, nomodlibs=nomodlibs, verbose=False, log=False, quiet=True)
       test_exe = os.path.join(builder.build_dir, os.path.splitext(os.path.basename(test.name))[0])
