@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# File: src/main/python/fobis/Compiler.py
+# Author: Stefano Zaghi <stefano.zaghi@gmail.com>
+# Date: 01.08.2017
+# Last Modified Date: 01.08.2017
+# Last Modified By: Stefano Zaghi <stefano.zaghi@gmail.com>
 """
 Compiler.py, module definition of Compiler class.
 This is a class designed for handling compilers default support.
@@ -29,11 +36,11 @@ class Compiler(object):
 
   Attributes
   ----------
-  supported : {['gnu', 'intel', 'g95', 'opencoarrays-gnu']}
+  supported : {['gnu', 'intel', 'g95', 'opencoarrays-gnu', 'pgi', ibm']}
     list of supported compilers
   """
 
-  supported = ['gnu', 'intel', 'g95', 'opencoarrays-gnu', 'pgi']
+  supported = ['gnu', 'intel', 'g95', 'opencoarrays-gnu', 'pgi', 'ibm']
 
   def __init__(self, cliargs, print_w=None):
     """
@@ -92,6 +99,8 @@ class Compiler(object):
         self._opencoarrays_gnu()
       elif self.compiler.lower() == 'pgi':
         self._pgi()
+      elif self.compiler.lower() == 'ibm':
+        self._ibm()
       elif self.compiler.lower() == 'custom':
         self._custom()
       else:
@@ -195,6 +204,21 @@ class Compiler(object):
     self._profile = ['-pg', '-pg']
     return
 
+  def _ibm(self):
+    """Set compiler defaults to the IBM XL Fortran compiler options."""
+    self.compiler = 'ibm'
+    self.fcs = 'xlf2008_r'
+    self.cflags = '-c'
+    self.lflags = ''
+    self.preproc = ''
+    self.modsw = '-qmoddir='
+    self._mpi = 'mpif90'
+    self._openmp = ['-qsmp=omp', '-qsmp=omp']
+    self._coarray = ['', '']
+    self._coverage = ['', '']
+    self._profile = ['-pg', '-pg']
+    return
+
   def _custom(self):
     """Set compiler defaults to be empty."""
     self.compiler = ''
@@ -271,7 +295,7 @@ class Compiler(object):
     mod_dir : str
       path of the modules directory
     """
-    return self.fcs + ' ' + self.cflags + ' ' + self.modsw + mod_dir
+    return self.fcs + ' ' + self.cflags + ' ' + self.modsw + mod_dir + ' -I' + mod_dir
 
   def link_cmd(self, mod_dir):
     """
