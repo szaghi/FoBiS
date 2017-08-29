@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# File: src/main/python/fobis/FoBiSConfig.py
+# File: /home/stefano/python/FoBiS/src/main/python/fobis/FoBiSConfig.py
 # Author: Stefano Zaghi <stefano.zaghi@gmail.com>
 # Date: 01.08.2017
-# Last Modified Date: 01.08.2017
+# Last Modified Date: 28.08.2017
 # Last Modified By: Stefano Zaghi <stefano.zaghi@gmail.com>
 """
 FoBiSConfig.py, module definition of FoBiS.py configuration.
