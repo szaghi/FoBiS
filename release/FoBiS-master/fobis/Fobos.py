@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# File: /home/stefano/python/FoBiS/src/main/python/fobis/Fobos.py
+# Author: Stefano Zaghi <stefano.zaghi@gmail.com>
+# Date: 28.08.2017
+# Last Modified Date: 28.08.2017
+# Last Modified By: Stefano Zaghi <stefano.zaghi@gmail.com>
 """
 fobos.py, module definition of fobos class.
 This is a class aimed at fobos file handling.
@@ -252,7 +259,8 @@ class Fobos(object):
       if self.fobos.has_option(self.mode, option):
         value = self.fobos.get(self.mode, option)
     if toprint:
-      self.print_w(value)
+      # self.print_w(value)
+      print(value)
       return
     else:
       return value
@@ -285,7 +293,8 @@ class Fobos(object):
           output = output + '.a'
         output = os.path.normpath(os.path.join(build_dir, output))
     if toprint:
-      self.print_w(output)
+      # self.print_w(output)
+      print(output)
       return
     else:
       return output
