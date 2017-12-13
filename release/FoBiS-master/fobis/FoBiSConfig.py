@@ -3,7 +3,7 @@
 # File: src/main/python/fobis/FoBiSConfig.py
 # Author: Stefano Zaghi <stefano.zaghi@gmail.com>
 # Date: 01.08.2017
-# Last Modified Date: 01.08.2017
+# Last Modified Date: 29.08.2017
 # Last Modified By: Stefano Zaghi <stefano.zaghi@gmail.com>
 """
 FoBiSConfig.py, module definition of FoBiS.py configuration.
@@ -35,7 +35,7 @@ from .cli_parser import cli_parser
 from .utils import syswork
 
 __appname__ = "FoBiS.py"
-__version__ = "2.2.6"
+__version__ = "2.2.7"
 __author__ = "Stefano Zaghi"
 __author_email__ = "stefano.zaghi@gmail.com"
 __license__ = "GNU General Public License v3 (GPLv3)"
