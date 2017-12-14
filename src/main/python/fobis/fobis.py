@@ -340,7 +340,7 @@ def build_nomodlibs(configuration, pfiles, builder):
     if pfile.nomodlib:
       build_ok = builder.build(file_to_build=pfile, verbose=configuration.cliargs.verbose, log=configuration.cliargs.log)
       if build_ok:
-        nomodlibs.append(pfile.basename + ".o")
+        nomodlibs = nomodlibs + pfile.obj_dependencies(exclude_programs=True)
   return nomodlibs
 
 
