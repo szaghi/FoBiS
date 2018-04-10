@@ -425,6 +425,7 @@ class Builder(object):
     if submodules is not None:
       objs = objs + submodules
     objs = objs + file_to_build.obj_dependencies(exclude_programs=exclude_programs)
+    objs = list(set(objs)) # remove duplicated objs
     link_cmd = "".join([os.path.join(self.obj_dir, s + " ") for s in objs]) + "".join([s + " " for s in self.libs]) + "".join([s + " " for s in self.vlibs])
     if mklib is None or mklib.lower() == 'shared':
       if len(self.ext_libs) > 0:
