@@ -90,6 +90,7 @@ except ImportError:
 import operator
 import os
 import re
+import subprocess
 import sys
 from .Dependency import Dependency
 from .Doctest import Doctest
@@ -319,7 +320,8 @@ class ParsedFile(object):
     ffile.close()
     if self.module:
       self.doctest = Doctest()
-      self.doctest.parse(source=open(self.name, 'r').read())
+      source = subprocess.check_output('cpp ' + self.name, shell=True, stderr=subprocess.STDOUT)
+      self.doctest.parse(source=source)
       self.doctest.make_volatile_programs()
     if not self.program and not self.module and not self.submodule:
       if os.path.splitext(os.path.basename(self.name))[1] not in inc:
