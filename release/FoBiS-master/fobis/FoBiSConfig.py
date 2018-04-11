@@ -35,7 +35,7 @@ from .cli_parser import cli_parser
 from .utils import syswork
 
 __appname__ = "FoBiS.py"
-__version__ = "2.2.8"
+__version__ = "2.2.9.1"
 __author__ = "Stefano Zaghi"
 __author_email__ = "stefano.zaghi@gmail.com"
 __license__ = "GNU General Public License v3 (GPLv3)"
