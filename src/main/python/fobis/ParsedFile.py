@@ -320,7 +320,10 @@ class ParsedFile(object):
     ffile.close()
     if self.module:
       self.doctest = Doctest()
-      source = subprocess.check_output('cpp ' + self.name, shell=True, stderr=subprocess.STDOUT)
+      if self.extension in ['.INC', '.F', '.FOR', '.FPP', '.F77', '.F90', '.F95', '.F03', '.F08']:
+        source = subprocess.check_output('cpp ' + self.name, shell=True, stderr=subprocess.STDOUT)
+      else:
+        source = open(self.name, 'r').read()
       self.doctest.parse(source=source)
       self.doctest.make_volatile_programs()
     if not self.program and not self.module and not self.submodule:
