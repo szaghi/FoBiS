@@ -17,7 +17,7 @@ use_plugin('python.unittest')
 __source__ = open('src/main/python/fobis/FoBiSConfig.py').read()
 __version__ = re.search(r'^__version__\s*=\s*"(.*)"', __source__, re.M).group(1)
 try:
-  __branch__ = subprocess.check_output(['git', 'symbolic-ref', '--quiet', '--short', 'HEAD']).strip('\n')
+  __branch__ = str(subprocess.check_output(['git', 'symbolic-ref', '--quiet', '--short', 'HEAD'])).strip('\n')
 except subprocess.CalledProcessError as e:
   __branch__ = 'unknown'
 
