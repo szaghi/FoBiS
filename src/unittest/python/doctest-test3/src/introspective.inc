@@ -1,21 +1,3 @@
-module introspective
-!< Intropsective module main tests: testing doctests into the main module comments.
-!<### Sum test
-!<```fortran
-!< print*, add(a=1, b=1)
-!<```
-!=> 2 <<<
-!<### Multiply test
-!<```fortran
-!< integer :: c
-!< call multiply(a=1, b=0, c=c)
-!< print*, c
-!<```
-!=> 0 <<<
-implicit none
-private
-public :: add, multiply
-contains
   function add(a, b) result(c)
   !< Add two integers.
   !<
@@ -57,4 +39,3 @@ contains
   integer, intent(OUT) :: c
   c = a * b
   endsubroutine multiply
-endmodule introspective
