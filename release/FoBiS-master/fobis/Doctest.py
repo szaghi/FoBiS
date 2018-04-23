@@ -64,7 +64,7 @@ class Doctest(object):
       source string with eventual doctests
     """
     modules = []
-    for line in str(source.split('\n')):
+    for line in source.split('\n'):
       match = re.match(__remodule__, line)
       if match:
         modules.append(match)
