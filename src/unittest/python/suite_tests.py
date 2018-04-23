@@ -251,7 +251,7 @@ class SuiteTest(unittest.TestCase):
     num_failures = 0
     failed = []
 
-    for test in range(2):
+    for test in range(3):
       build_ok = self.run_doctest('doctest-test' + str(test + 1))
       if not build_ok:
         failed.append('doctest-test' + str(test + 1))

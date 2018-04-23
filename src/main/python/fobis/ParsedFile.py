@@ -90,8 +90,8 @@ except ImportError:
 import operator
 import os
 import re
-import subprocess
 import sys
+from subprocess import check_output, STDOUT
 from .Dependency import Dependency
 from .Doctest import Doctest
 from .utils import traverse_recursive
@@ -327,11 +327,12 @@ class ParsedFile(object):
           if cpp_exist:
             break
         if cpp_exist:
-          source = subprocess.check_output('cpp ' + self.name, shell=True, stderr=subprocess.STDOUT)
+          source = str(check_output('cpp ' + self.name, shell=True, stderr=STDOUT))
+          source = source.replace('\\n', '\n')
         else:
-          source = open(self.name, 'r').read()
+          source = str(open(self.name, 'r').read())
       else:
-        source = open(self.name, 'r').read()
+        source = str(open(self.name, 'r').read())
       self.doctest.parse(source=source)
       self.doctest.make_volatile_programs()
     if not self.program and not self.module and not self.submodule:

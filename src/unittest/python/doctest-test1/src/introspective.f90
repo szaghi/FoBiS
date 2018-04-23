@@ -15,7 +15,7 @@ contains
   !<```fortran
   !< print*, add(a=-120, b=20)
   !<```
-  !=> -101 <<<
+  !=> -100 <<<
   integer, intent(IN) :: a
   integer, intent(IN) :: b
   integer             :: c
