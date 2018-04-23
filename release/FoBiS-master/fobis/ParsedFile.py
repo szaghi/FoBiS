@@ -321,7 +321,15 @@ class ParsedFile(object):
     if self.module:
       self.doctest = Doctest()
       if self.extension in ['.INC', '.F', '.FOR', '.FPP', '.F77', '.F90', '.F95', '.F03', '.F08']:
-        source = subprocess.check_output('cpp ' + self.name, shell=True, stderr=subprocess.STDOUT)
+        cpp_exist = False
+        for path in os.environ["PATH"].split(os.pathsep):
+          cpp_exist = os.path.exists(os.path.join(path, 'cpp'))
+          if cpp_exist:
+            break
+        if cpp_exist:
+          source = subprocess.check_output('cpp ' + self.name, shell=True, stderr=subprocess.STDOUT)
+        else:
+          source = open(self.name, 'r').read()
       else:
         source = open(self.name, 'r').read()
       self.doctest.parse(source=source)
