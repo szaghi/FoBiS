@@ -36,7 +36,7 @@ class Compiler(object):
 
   Attributes
   ----------
-  supported : {['gnu', 'intel', 'g95', 'opencoarrays-gnu', 'pgi', ibm']}
+  supported : {['gnu', 'intel', 'g95', 'opencoarrays-gnu', 'pgi', ibm', 'nag']}
     list of supported compilers
   """
 
