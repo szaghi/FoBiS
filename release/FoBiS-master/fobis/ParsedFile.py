@@ -327,7 +327,7 @@ class ParsedFile(object):
           if cpp_exist:
             break
         if cpp_exist:
-          source = str(check_output('cpp -C ' + self.name, shell=True, stderr=STDOUT))
+          source = str(check_output('cpp -C -w ' + self.name, shell=True, stderr=STDOUT))
           source = source.replace('\\n', '\n')
         else:
           source = str(open(self.name, 'r').read())
