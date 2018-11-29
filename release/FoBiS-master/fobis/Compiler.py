@@ -40,7 +40,7 @@ class Compiler(object):
     list of supported compilers
   """
 
-  supported = ['gnu', 'intel', 'g95', 'opencoarrays-gnu', 'pgi', 'ibm']
+  supported = ['gnu', 'intel', 'g95', 'opencoarrays-gnu', 'pgi', 'ibm', 'nag']
 
   def __init__(self, cliargs, print_w=None):
     """
@@ -101,6 +101,8 @@ class Compiler(object):
         self._pgi()
       elif self.compiler.lower() == 'ibm':
         self._ibm()
+      elif self.compiler.lower() == 'nag':
+        self._nag()
       elif self.compiler.lower() == 'custom':
         self._custom()
       else:
@@ -215,6 +217,21 @@ class Compiler(object):
     self._mpi = 'mpif90'
     self._openmp = ['-qsmp=omp', '-qsmp=omp']
     self._coarray = ['', '']
+    self._coverage = ['', '']
+    self._profile = ['-pg', '-pg']
+    return
+
+  def _nag(self):
+    """Set compiler defaults to the NAG fortran compiler options."""
+    self.compiler = 'gnu'
+    self.fcs = 'nagfor'
+    self.cflags = '-c'
+    self.lflags = ''
+    self.preproc = ''
+    self.modsw = '-mdir '
+    self._mpi = 'mpif90'
+    self._openmp = ['-openmp', '-openmp']
+    self._coarray = ['-num_images=1', '']
     self._coverage = ['', '']
     self._profile = ['-pg', '-pg']
     return
