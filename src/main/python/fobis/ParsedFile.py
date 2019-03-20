@@ -291,7 +291,7 @@ class ParsedFile(object):
     self.module_names = []
     self.submodule_names = []
     self.dependencies = []
-    ffile = open(self.name, "r")
+    ffile = open(self.name, "r", encoding="utf8")
     for line in ffile:
       matching = re.match(__regex_program__, line)
       if matching:
@@ -330,9 +330,9 @@ class ParsedFile(object):
           source = str(check_output('cpp -C -w ' + self.name, shell=True, stderr=STDOUT))
           source = source.replace('\\n', '\n')
         else:
-          source = str(open(self.name, 'r').read())
+          source = str(open(self.name, 'r', encoding="utf8").read())
       else:
-        source = str(open(self.name, 'r').read())
+        source = str(open(self.name, 'r', encoding="utf8").read())
       self.doctest.parse(source=source)
       self.doctest.make_volatile_programs()
     if not self.program and not self.module and not self.submodule:
