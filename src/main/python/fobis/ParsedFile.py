@@ -193,6 +193,12 @@ __regex_use_intrinsic_modules__ = [__regex_use_mod_intrinsic__,
 __regex_mpifh__ = re.compile(__str_mpifh__)
 
 
+def openFile(filename):
+	if sys.version_info[0] < 3: 
+		return open(filename, 'r')
+	else:
+  		return open(filename, 'r', newline='', encoding='utf8')
+
 class ParsedFile(object):
   """ParsedFile is an object that handles a single parsed file, its attributes and methods."""
   def __init__(self, name, program=False, module=False, submodule=False, include=False, nomodlib=False, to_compile=False, output=None, is_doctest=False):
@@ -291,7 +297,7 @@ class ParsedFile(object):
     self.module_names = []
     self.submodule_names = []
     self.dependencies = []
-    ffile = open(self.name, "r", encoding="utf8")
+    ffile = openFile(self.name)
     for line in ffile:
       matching = re.match(__regex_program__, line)
       if matching:
@@ -330,9 +336,9 @@ class ParsedFile(object):
           source = str(check_output('cpp -C -w ' + self.name, shell=True, stderr=STDOUT))
           source = source.replace('\\n', '\n')
         else:
-          source = str(open(self.name, 'r', encoding="utf8").read())
+          source = str(openFile(self.name).read())
       else:
-        source = str(open(self.name, 'r', encoding="utf8").read())
+        source = str(openFile(self.name).read())
       self.doctest.parse(source=source)
       self.doctest.make_volatile_programs()
     if not self.program and not self.module and not self.submodule:
