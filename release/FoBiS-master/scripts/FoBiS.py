@@ -17,5 +17,13 @@
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
 from fobis.fobis import main
+import sys
+
+
+if sys.platform == 'win32':
+  import colorama
+  colorama.init(convert=True)
+
+
 if __name__ == '__main__':
   main()
