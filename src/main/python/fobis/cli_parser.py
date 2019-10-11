@@ -138,9 +138,14 @@ def _subparser_fobos():
   return parser
 
 
-def _subparser_preprocessor():
+def _subparser_preprocessor(doctests=False):
   """
   Construct a cli subparser with the preprocessor group of arguments.
+
+  Parameters
+  ----------
+  doctests : bool
+    activate the doctests parser-specific options
 
   Returns
   -------
@@ -152,6 +157,8 @@ def _subparser_preprocessor():
   parser_group.add_argument('-p', '--preproc', required=False, action='store', default=None, help='Preprocessor flags')
   parser_group.add_argument('-dpp', '--preprocessor_dir', required=False, action='store', default=None, help='Directory containing the sources processed by preprocessor [default: none, the processed files are removed after used]')
   parser_group.add_argument('-epp', '--preprocessor_ext', required=False, action='store', nargs='+', default=[], help='List of custom-defined file extensions to be preprocessed by preprocessor [default: none, all files are preprocessed if preprocessor is used]')
+  if doctests:
+    parser_group.add_argument('-doctests_preprocessor', required=False, action='store', default='cpp', choices=['cpp', 'fpp'], help='preprocessor used during doctests parsing')
   return parser
 
 
@@ -299,7 +306,7 @@ def _parser_doctests(clisubparsers):
   directories = _subparser_directories()
   files = _subparser_files(doctests=True)
   fobos = _subparser_fobos()
-  preprocessor = _subparser_preprocessor()
+  preprocessor = _subparser_preprocessor(doctests=True)
   fancy = _subparser_fancy()
   doctestsparser = clisubparsers.add_parser('doctests', help='Test all valid doctests snippets found', parents=[compiler, directories, files, fobos, preprocessor, fancy])
   doctestsparser.set_defaults(which='doctests')
