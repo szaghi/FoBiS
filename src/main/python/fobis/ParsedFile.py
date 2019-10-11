@@ -279,7 +279,7 @@ class ParsedFile(object):
     self.pfile_dep_all.sort(key=operator.attrgetter('order'), reverse=True)
     return
 
-  def parse(self, inc):
+  def parse(self, inc, preprocessor='cpp'):
     """
     Parse the file creating its the dependencies list and the list of modules names that self eventually contains.
 
@@ -318,23 +318,32 @@ class ParsedFile(object):
           dep = Dependency(dtype="include", name=matching.group('name'))
           self.dependencies.append(dep)
     ffile.close()
+
     if self.module:
       self.doctest = Doctest()
+
       if self.extension in ['.INC', '.F', '.FOR', '.FPP', '.F77', '.F90', '.F95', '.F03', '.F08']:
-        cpp_exist = False
+        preprocessor_exist = False
         for path in os.environ["PATH"].split(os.pathsep):
-          cpp_exist = os.path.exists(os.path.join(path, 'cpp'))
-          if cpp_exist:
+          preprocessor_exist = os.path.exists(os.path.join(path, preprocessor))
+          if preprocessor_exist:
             break
-        if cpp_exist:
-          source = str(check_output('cpp -C -w ' + self.name, shell=True, stderr=STDOUT))
+        if preprocessor_exist:
+          if preprocessor == 'cpp':
+            preprocessor += ' -C -w '
+          elif preprocessor == 'fpp':
+            preprocessor += ' -w '
+          source = str(check_output(preprocessor + self.name, shell=True, stderr=STDOUT))
           source = source.replace('\\n', '\n')
         else:
           source = str(open(self.name, 'r').read())
+
       else:
         source = str(open(self.name, 'r').read())
+
       self.doctest.parse(source=source)
       self.doctest.make_volatile_programs()
+
     if not self.program and not self.module and not self.submodule:
       if os.path.splitext(os.path.basename(self.name))[1] not in inc:
         self.nomodlib = True

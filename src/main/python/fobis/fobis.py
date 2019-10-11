@@ -251,7 +251,7 @@ def parse_files(configuration, src_dir=None, is_doctest=False):
           if (os.path.basename(filename) not in [os.path.basename(exc) for exc in configuration.cliargs.exclude] and
               all(exc not in os.path.dirname(filename) for exc in configuration.cliargs.exclude_dirs)):
              pfile = ParsedFile(name=os.path.join(src_dir, filename), is_doctest=is_doctest)
-             pfile.parse(inc=configuration.cliargs.inc)
+             pfile.parse(inc=configuration.cliargs.inc, preprocessor=configuration.cliargs.doctests_preprocessor)
              pfiles.append(pfile)
     else:
       for root, _, files in os.walk(src_dir):
@@ -261,7 +261,7 @@ def parse_files(configuration, src_dir=None, is_doctest=False):
                 all(exc not in root for exc in configuration.cliargs.exclude_dirs)):
               filen = os.path.join(root, filename)
               pfile = ParsedFile(name=filen, is_doctest=is_doctest)
-              pfile.parse(inc=configuration.cliargs.inc)
+              pfile.parse(inc=configuration.cliargs.inc, preprocessor=configuration.cliargs.doctests_preprocessor)
               pfiles.append(pfile)
   return pfiles
 
