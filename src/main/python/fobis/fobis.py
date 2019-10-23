@@ -251,7 +251,10 @@ def parse_files(configuration, src_dir=None, is_doctest=False):
           if (os.path.basename(filename) not in [os.path.basename(exc) for exc in configuration.cliargs.exclude] and
               all(exc not in os.path.dirname(filename) for exc in configuration.cliargs.exclude_dirs)):
              pfile = ParsedFile(name=os.path.join(src_dir, filename), is_doctest=is_doctest)
-             pfile.parse(inc=configuration.cliargs.inc, preprocessor=configuration.cliargs.doctests_preprocessor)
+             if is_doctest:
+               pfile.parse(inc=configuration.cliargs.inc, preprocessor=configuration.cliargs.doctests_preprocessor)
+             else:
+               pfile.parse(inc=configuration.cliargs.inc)
              pfiles.append(pfile)
     else:
       for root, _, files in os.walk(src_dir):
@@ -315,7 +318,7 @@ def build_pfile(configuration, pfile, pfiles, nomodlibs, submodules, builder):
   """
   configuration.print_b(builder.verbose(quiet=configuration.cliargs.quiet))
   if pfile.program:
-    remove_other_main(builder=builder, pfiles=pfiles, mysefl=pfile)
+    remove_other_main(builder=builder, pfiles=pfiles, myself=pfile)
   builder.build(file_to_build=pfile, output=configuration.cliargs.output, nomodlibs=nomodlibs, submodules=submodules, mklib=configuration.cliargs.mklib, verbose=configuration.cliargs.verbose, log=configuration.cliargs.log, track=configuration.cliargs.track_build)
   if configuration.cliargs.log:
     pfile.save_build_log(builder=builder)
@@ -387,7 +390,7 @@ def test_doctests(configuration, doctests, pfiles, nomodlibs, builder):
   """
   for test in doctests:
     if test.is_doctest and os.path.basename(test.name).split("-doctest")[0] not in [os.path.basename(os.path.splitext(exc)[0]) for exc in configuration.cliargs.exclude_from_doctests]:
-      remove_other_main(builder=builder, pfiles=pfiles, mysefl=test)
+      remove_other_main(builder=builder, pfiles=pfiles, myself=test)
       builder.build(file_to_build=test, nomodlibs=nomodlibs, verbose=False, log=False, quiet=True)
       test_exe = os.path.join(builder.build_dir, os.path.splitext(os.path.basename(test.name))[0])
       configuration.print_b('executing doctest ' + os.path.basename(test_exe))
