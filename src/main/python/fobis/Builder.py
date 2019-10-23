@@ -94,7 +94,11 @@ class Builder(object):
     self.jobs = cliargs.jobs
     self._sanitize_dirs(build_dir=cliargs.build_dir, obj_dir=cliargs.obj_dir, mod_dir=cliargs.mod_dir, lib_dir=cliargs.lib_dir, dinc=cliargs.include)
     self._sanitize_files(libs=cliargs.libs, vlibs=cliargs.vlibs, ext_libs=cliargs.ext_libs, ext_vlibs=cliargs.ext_vlibs)
-    self._set_preprocessor(preprocessor=cliargs.preprocessor, preprocessor_dir=cliargs.preprocessor_dir, preprocessor_ext=cliargs.preprocessor_ext)
+    self._set_preprocessor(preprocessor=cliargs.preprocessor,
+                           preprocessor_dir=cliargs.preprocessor_dir,
+                           preprocessor_ext=cliargs.preprocessor_ext,
+                           preprocessor_no_o=cliargs.preprocessor_no_o,
+                           preprocessor_args=cliargs.preprocessor_args)
 
     self.cmd_comp = self.compiler.compile_cmd(mod_dir=self.mod_dir)
     self.cmd_link = self.compiler.link_cmd(mod_dir=self.mod_dir)
@@ -229,7 +233,8 @@ class Builder(object):
         lib = os.path.normpath(lib)
     return
 
-  def _set_preprocessor(self, preprocessor, preprocessor_dir, preprocessor_ext):
+  def _set_preprocessor(self, preprocessor, preprocessor_dir, preprocessor_ext,
+                        preprocessor_no_o, preprocessor_args):
     """
     Set preprocessor data.
 
@@ -252,6 +257,8 @@ class Builder(object):
       self.preprocessor_dir = os.path.normpath(os.path.join(self.build_dir, self.preprocessor_dir))
       if not os.path.exists(self.preprocessor_dir):
         os.makedirs(self.preprocessor_dir)
+    self.preprocessor_no_o = preprocessor_no_o
+    self.preprocessor_args = preprocessor_args
     if self.preprocessor:
       preprocessor_exist = False
       for path in os.environ["PATH"].split(os.pathsep):
@@ -297,7 +304,10 @@ class Builder(object):
         preprocessor_dir = ''
         preprocessor_store = False
       if to_preprocess:
-        preprocessor_cmd = self.preprocessor + ' ' + file_to_compile.name + ' -o ' + os.path.join(preprocessor_dir, file_to_compile.basename + '.pp.f90') + ' ; '
+        output_prepend = ' -o '
+        if self.preprocessor_no_o:
+          output_prepend = ' '
+        preprocessor_cmd = self.preprocessor + ' ' + self.preprocessor_args + ' ' + file_to_compile.name + output_prepend + os.path.join(preprocessor_dir, file_to_compile.basename + '.pp.f90') + ' ; '
         preprocessor_output = os.path.join(preprocessor_dir, file_to_compile.basename + '.pp.f90')
         if not preprocessor_store:
           preprocessor_remove = ' ; rm -f ' + preprocessor_output

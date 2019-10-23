@@ -154,7 +154,9 @@ def _subparser_preprocessor(doctests=False):
   parser = argparse.ArgumentParser(add_help=False)
   parser_group = parser.add_argument_group('preprocessor')
   parser_group.add_argument('-preprocessor', required=False, action='store', const='PreForM.py', default=None, nargs='?', help='Use the pre-processor for pre-processing sources file; if no preprocessor is specified, PreForM.py is used')
-  parser_group.add_argument('-p', '--preproc', required=False, action='store', default=None, help='Preprocessor flags')
+  parser_group.add_argument('-p', '--preproc', required=False, action='store', default=None, help='Preprocessor flags for the main compiler')
+  parser_group.add_argument('-app', '--preprocessor_args', required=False, action='store', default=None, help='Preprocessor flags for the preprocessor')
+  parser_group.add_argument('-npp', '--preprocessor_no_o', required=False, action='store_true', default=False, help='Do not add -o in front of the output file in the preprocessor command line')
   parser_group.add_argument('-dpp', '--preprocessor_dir', required=False, action='store', default=None, help='Directory containing the sources processed by preprocessor [default: none, the processed files are removed after used]')
   parser_group.add_argument('-epp', '--preprocessor_ext', required=False, action='store', nargs='+', default=[], help='List of custom-defined file extensions to be preprocessed by preprocessor [default: none, all files are preprocessed if preprocessor is used]')
   if doctests:
