@@ -191,12 +191,12 @@ def dependency_hiearchy(builder, pfiles, print_w=None, force_compile=False):
     parsed_file.check_compile(obj_dir=builder.obj_dir, force_compile=force_compile)
 
 
-def remove_other_main(builder, pfiles, mysefl):
+def remove_other_main(builder, pfiles, myself):
   """
   The function remove_other_main removes all compiled objects of other program than the current target under building.
   """
   for parsed_file in pfiles:
-    if parsed_file.program and parsed_file.name != mysefl.name:
+    if parsed_file.program and parsed_file.name != myself.name:
       if os.path.exists(builder.obj_dir + parsed_file.basename + ".o"):
         os.remove(builder.obj_dir + parsed_file.basename + ".o")
 
