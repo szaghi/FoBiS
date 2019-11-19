@@ -299,7 +299,7 @@ class ParsedFile(object):
     self.module_names = []
     self.submodule_names = []
     self.dependencies = []
-    ffile = openReader(self.name, "r")
+    ffile = openReader(self.name)
     for line in ffile:
       matching = re.match(__regex_program__, line)
       if matching:
@@ -344,10 +344,10 @@ class ParsedFile(object):
           source = str(check_output(preprocessor + self.name, shell=True, stderr=STDOUT))
           source = source.replace('\\n', '\n')
         else:
-          source = str(openReader(self.name, 'r').read())
+          source = str(openReader(self.name).read())
 
       else:
-        source = str(openReader(self.name, 'r').read())
+        source = str(openReader(self.name).read())
 
       self.doctest.parse(source=source)
       self.doctest.make_volatile_programs()
