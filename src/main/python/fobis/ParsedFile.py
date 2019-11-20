@@ -18,6 +18,9 @@ This is a class designed for handling a single parsed file.
 #
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
+
+import sys
+
 try:
   import graphviz as gvz
   import functools
@@ -90,7 +93,6 @@ except ImportError:
 import operator
 import os
 import re
-import sys
 from subprocess import check_output, STDOUT
 from .Dependency import Dependency
 from .Doctest import Doctest
@@ -192,6 +194,12 @@ __regex_use_intrinsic_modules__ = [__regex_use_mod_intrinsic__,
                                    __regex_use_mod_ieee_features__]
 __regex_mpifh__ = re.compile(__str_mpifh__)
 
+# alternative "open and read"... it should avoid encoding issues with python 2.X vs 3.X
+def openReader(filename):
+  if sys.version_info[0] < 3:
+    return open(filename, 'r')
+  else:
+      return open(filename, 'r', newline='', encoding='utf8')
 
 class ParsedFile(object):
   """ParsedFile is an object that handles a single parsed file, its attributes and methods."""
@@ -291,7 +299,7 @@ class ParsedFile(object):
     self.module_names = []
     self.submodule_names = []
     self.dependencies = []
-    ffile = open(self.name, "r")
+    ffile = openReader(self.name)
     for line in ffile:
       matching = re.match(__regex_program__, line)
       if matching:
@@ -336,10 +344,10 @@ class ParsedFile(object):
           source = str(check_output(preprocessor + self.name, shell=True, stderr=STDOUT))
           source = source.replace('\\n', '\n')
         else:
-          source = str(open(self.name, 'r').read())
+          source = str(openReader(self.name).read())
 
       else:
-        source = str(open(self.name, 'r').read())
+        source = str(openReader(self.name).read())
 
       self.doctest.parse(source=source)
       self.doctest.make_volatile_programs()
