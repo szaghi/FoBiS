@@ -20,8 +20,14 @@ FoBiS.py, Fortran Building System for poor men
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
 # modules loading
 from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from future import standard_library
+standard_library.install_aliases()
+from builtins import *
 try:
-  import ConfigParser as configparser
+  import configparser as configparser
 except ImportError:
   import configparser
 import os

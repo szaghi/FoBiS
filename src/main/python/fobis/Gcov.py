@@ -3,6 +3,10 @@ Gcov.py, module definition of Gcov class.
 
 This is a class designed for analyzing gcov files.
 """
+from __future__ import division
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import unicode_literals
 # Copyright (C) 2015  Stefano Zaghi
 #
 # This file is part of FoBiS.py.
@@ -19,6 +23,12 @@ This is a class designed for analyzing gcov files.
 #
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import *
+from builtins import object
+from past.utils import old_div
 try:
   from pygooglechart import PieChart2D
   __graph__ = True
@@ -74,7 +84,7 @@ class Gcov(object):
         elnumber_per = 0
         unelnumber_per = 0
       if elnumber > 0:
-        ahits = sum(cov for cov in self.coverage if isinstance(cov, int)) / elnumber
+        ahits = old_div(sum(cov for cov in self.coverage if isinstance(cov, int)), elnumber)
       else:
         ahits = 0
       self.metrics['coverage'] = [str(lnumber), str(elnumber), str(unelnumber), str(elnumber_per), str(unelnumber_per), str(ahits)]
@@ -89,7 +99,7 @@ class Gcov(object):
         epnumber_per = 0
         unepnumber_per = 0
       if epnumber > 0:
-        ahits = sum(proc[2] for proc in self.procedures) / epnumber
+        ahits = old_div(sum(proc[2] for proc in self.procedures), epnumber)
       else:
         ahits = 0
       self.metrics['procedures'] = [str(pnumber), str(epnumber), str(unepnumber), str(epnumber_per), str(unepnumber_per), str(ahits)]

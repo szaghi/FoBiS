@@ -26,8 +26,16 @@ This is a class aimed at fobos file handling.
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
 from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import *
+from builtins import object
 try:
-  import ConfigParser as configparser
+  import configparser as configparser
 except ImportError:
   import configparser
 from copy import deepcopy
@@ -69,7 +77,7 @@ class Fobos(object):
     else:
       filename = 'fobos'
     if os.path.exists(filename):
-      self.fobos = configparser.ConfigParser()
+      self.fobos = configparser.RawConfigParser()
       if not cliargs.fobos_case_insensitive:
         self.fobos.optionxform = str  # case sensitive
       self.fobos.read(filename)
@@ -162,7 +170,7 @@ class Fobos(object):
       if self.fobos.has_section(section):
         for item in self.fobos.items(section):
           item_val = item[1]
-          for key, value in self.local_variables.items():
+          for key, value in list(self.local_variables.items()):
             item_val = re.sub(re.escape(key), value, item_val)
             # item_val = re.sub(r"(?!" + re.escape(key) + r"[aZ_-])\s*" + re.escape(key) + r"\s*", value, item_val)
           self.fobos.set(section, item[0], item_val)

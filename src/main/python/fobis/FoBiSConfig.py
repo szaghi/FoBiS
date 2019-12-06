@@ -8,6 +8,10 @@
 """
 FoBiSConfig.py, module definition of FoBiS.py configuration.
 """
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 # Copyright (C) 2015  Stefano Zaghi
 #
 # This file is part of FoBiS.py.
@@ -24,6 +28,11 @@ FoBiSConfig.py, module definition of FoBiS.py configuration.
 #
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import *
+from builtins import object
 import hashlib
 import os
 import re
@@ -349,6 +358,6 @@ class FoBiSConfig(object):
     """
     string = ["FoBiS.py settings\n"]
     options = vars(self.cliargs)
-    for key, value in options.items():
+    for key, value in list(options.items()):
       string.append(str(key) + ": " + str(value))
     return "".join([s + "\n" for s in string])
