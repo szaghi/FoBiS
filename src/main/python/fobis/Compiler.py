@@ -163,8 +163,8 @@ class Compiler(object):
     self.lflags = ''
     self.preproc = ''
     self.modsw = '-module '
-    self._mpi = 'mpif90'
-    self._openmp = ['-openmp', '-openmp']
+    self._mpi = 'mpiifort'
+    self._openmp = ['-qopenmp', '-oqpenmp']
     self._coarray = ['-coarray', '-coarray']
     self._coverage = ['-prof-gen=srcpos', '']
     self._profile = ['', '']
