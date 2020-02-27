@@ -33,7 +33,7 @@ try:
   from pygooglechart import PieChart2D
   __graph__ = True
 except ImportError:
-  print("Module 'pygooglechart' not found: Gcov graphs disabled")
+  # print("Module 'pygooglechart' not found: Gcov graphs disabled")
   __graph__ = False
 import os
 import re

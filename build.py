@@ -33,6 +33,8 @@ def initialize(project):
   project.build_depends_on('frosted')
   project.build_depends_on('pylint')
 
+  project.set_property("teamcity_output", True)
+
   project.set_property('flake8_max_line_length', 500)
   project.set_property('verbose', True)
 

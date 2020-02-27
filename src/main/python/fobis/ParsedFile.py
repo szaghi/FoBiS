@@ -128,8 +128,9 @@ __str_eol__ = r"(?P<eol>\s*!.*|\s*)?$"
 # __str_f95_mod_only__ = r"(\s*,\s*[Oo][Nn][Ll][Yy]\s*:\s*([a-zA-Z][a-zA-Z0-9_]*\s*=>\s*[a-zA-Z][a-zA-Z0-9_]*|[a-zA-Z][a-zA-Z0-9_]*))*"
 __str_use_mod__ = (r"^(\s*)" +  # eventual initial white spaces
                    __str_kw_use__ +  # keyword "use"
-                   r"(\s*,\s*.*\s*::)*" +  # eventual module nature
-                   r"(\s+)" +  # 1 or more white spaces
+                   # r"(\s*,\s*.*\s*::)*" +  # eventual module nature
+                   # r"(\s+)" +  # 1 or more white spaces
+                   r"((\s*,\s*.*\s*::)|(\s*::\s*)|(\s+))" + # eventual module nature
                    __str_name__ +  # construct name
                    r"(?P<mod_eol>(.*))")
 __str_use_mod_intrinsic__ = (r"^(\s*)" +  # eventual initial white spaces
