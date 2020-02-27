@@ -12,7 +12,7 @@ use_plugin('python.flake8')
 use_plugin('python.frosted')
 use_plugin('python.install_dependencies')
 use_plugin('python.pylint')
-use_plugin('python.unittest')
+# use_plugin('python.unittest')
 
 __source__ = open('src/main/python/fobis/FoBiSConfig.py').read()
 __version__ = re.search(r'^__version__\s*=\s*"(.*)"', __source__, re.M).group(1)
@@ -32,6 +32,8 @@ def initialize(project):
   project.build_depends_on('flake8')
   project.build_depends_on('frosted')
   project.build_depends_on('pylint')
+
+  # project.set_property("teamcity_output", True)
 
   project.set_property('flake8_max_line_length', 500)
   project.set_property('verbose', True)

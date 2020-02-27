@@ -1,0 +1,17 @@
+[default]
+compiler  = Gnu
+cflags    = -c
+mod_dir   = ./mod/
+obj_dir   = ./obj/
+build_dir = ./
+src       = ./src/
+colors    = True
+quiet     = False
+verbose   = True
+target    = use_module_with_double_dots.f90
+output    = build-test28
+
+[rule-finalize]
+help  = Rule for preparing the next test
+quiet = True
+rule  = echo ""

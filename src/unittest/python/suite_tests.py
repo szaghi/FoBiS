@@ -6,6 +6,8 @@ import filecmp
 import os
 import subprocess
 import unittest
+import sys
+sys.path.append("../../main/python/")
 from fobis.fobis import run_fobis
 
 
@@ -180,16 +182,23 @@ class SuiteTest(unittest.TestCase):
     """Test buildings."""
     num_failures = 0
     failed = []
+    passed = []
 
-    for test in range(27):
+    for test in range(28):
       if test + 1 == 15 and not opencoarrays:
         continue
       build_ok = self.run_build('build-test' + str(test + 1))
       if not build_ok:
-        failed.append('build-test' + str(test + 1))
+        failed.append('FAILED build-test' + str(test + 1))
         num_failures += 1
+      else:
+        passed.append('PASSED build-test' + str(test + 1))
 
+    print('List of PASSED build-tests')
+    for pas in passed:
+      print(pas)
     if len(failed) > 0:
+      print('List of FAILED build-tests')
       for fail in failed:
         print(fail)
     self.assertEquals(num_failures, 0)
@@ -199,13 +208,19 @@ class SuiteTest(unittest.TestCase):
     """Test cleanings."""
     num_failures = 0
     failed = []
+    passed = []
 
     for test in range(1):
       clean_ok = self.run_clean('clean-test' + str(test + 1))
       if not clean_ok:
-        failed.append('clean-test' + str(test + 1))
+        failed.append('FAILED clean-test' + str(test + 1))
         num_failures += 1
+      else:
+        passed.append('PASSED clean-test' + str(test + 1))
 
+    print('List of PASSED clean-tests')
+    for pas in passed:
+      print(pas)
     if len(failed) > 0:
       for fail in failed:
         print(fail)
@@ -216,13 +231,19 @@ class SuiteTest(unittest.TestCase):
     """Test makefile generation."""
     num_failures = 0
     failed = []
+    passed = []
 
     for test in range(2):
       make_ok = self.make_makefile('makefile-test' + str(test + 1))
       if not make_ok:
-        failed.append('makefile-test' + str(test + 1))
+        failed.append('FAILED makefile-test' + str(test + 1))
         num_failures += 1
+      else:
+        passed.append('PASSED makefile-test' + str(test + 1))
 
+    print('List of PASSED makefile-tests')
+    for pas in passed:
+      print(pas)
     if len(failed) > 0:
       for fail in failed:
         print("Error: Test " + fail + " failed!")
@@ -233,13 +254,19 @@ class SuiteTest(unittest.TestCase):
     """Test installs."""
     num_failures = 0
     failed = []
+    passed = []
 
     for test in range(4):
       install_ok = self.run_install('install-test' + str(test + 1))
       if not install_ok:
-        failed.append('install-test' + str(test + 1))
+        failed.append('FAILED install-test' + str(test + 1))
         num_failures += 1
+      else:
+        passed.append('PASSED install-test' + str(test + 1))
 
+    print('List of PASSED install-tests')
+    for pas in passed:
+      print(pas)
     if len(failed) > 0:
       for fail in failed:
         print(fail)
@@ -250,13 +277,19 @@ class SuiteTest(unittest.TestCase):
     """Test doctests."""
     num_failures = 0
     failed = []
+    passed = []
 
     for test in range(3):
       build_ok = self.run_doctest('doctest-test' + str(test + 1))
       if not build_ok:
-        failed.append('doctest-test' + str(test + 1))
+        failed.append('FAILED doctest-test' + str(test + 1))
         num_failures += 1
+      else:
+        passed.append('PASSED doctest-test' + str(test + 1))
 
+    print('List of PASSED doctest-tests')
+    for pas in passed:
+      print(pas)
     if len(failed) > 0:
       for fail in failed:
         print(fail)
@@ -267,13 +300,19 @@ class SuiteTest(unittest.TestCase):
     """Test rules."""
     num_failures = 0
     failed = []
+    passed = []
 
     for test in range(1):
       rule_ok = self.run_rule('rule-test' + str(test + 1))
       if not rule_ok:
-        failed.append('rule-test' + str(test + 1))
+        failed.append('FAILED rule-test' + str(test + 1))
         num_failures += 1
+      else:
+        passed.append('PASSED rule-test' + str(test + 1))
 
+    print('List of PASSED rule-tests')
+    for pas in passed:
+      print(pas)
     if len(failed) > 0:
       for fail in failed:
         print(fail)
