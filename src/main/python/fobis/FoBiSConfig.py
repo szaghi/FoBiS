@@ -1,10 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# File: src/main/python/fobis/FoBiSConfig.py
-# Author: Stefano Zaghi <stefano.zaghi@gmail.com>
-# Date: 01.08.2017
-# Last Modified Date: 29.08.2017
-# Last Modified By: Stefano Zaghi <stefano.zaghi@gmail.com>
 """
 FoBiSConfig.py, module definition of FoBiS.py configuration.
 """
@@ -12,7 +7,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
-# Copyright (C) 2015  Stefano Zaghi
+# Copyright (C) 2020  Stefano Zaghi
 #
 # This file is part of FoBiS.py.
 #
@@ -44,7 +39,7 @@ from .cli_parser import cli_parser
 from .utils import syswork
 
 __appname__ = "FoBiS.py"
-__version__ = "3.0.2"
+__version__ = "3.0.3"
 __author__ = "Stefano Zaghi"
 __author_email__ = "stefano.zaghi@gmail.com"
 __license__ = "GNU General Public License v3 (GPLv3)"
