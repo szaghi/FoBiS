@@ -30,5 +30,5 @@ if __name__ == '__main__':
         entry_points          = { 'console_scripts': [] },
         extras_require        = { 'PreForM.py':  ["PreForM.py>=v1.1.1"],
                                   'FORD': ["FORD>=1.1.0"],
-                                  'graphviz': ["graphviz>=0.4.2"]})
-        # install_requires      = [ "multiprocessing" ])
+                                  'graphviz': ["graphviz>=0.4.2"]},
+        install_requires      = [ "multiprocessing", "future", "configparser" ])
