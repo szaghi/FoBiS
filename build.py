@@ -6,10 +6,11 @@ from shutil import copyfile
 import subprocess
 import re
 
+name = "FoBiS"
 use_plugin('python.core')
 use_plugin('python.coverage')
 use_plugin('python.flake8')
-use_plugin('python.frosted')
+# use_plugin('python.frosted')
 use_plugin('python.install_dependencies')
 use_plugin('python.pylint')
 # use_plugin('python.unittest')
@@ -17,12 +18,16 @@ use_plugin('python.pylint')
 __source__ = open('src/main/python/fobis/FoBiSConfig.py').read()
 __version__ = re.search(r'^__version__\s*=\s*"(.*)"', __source__, re.M).group(1)
 try:
-  __branch__ = str(subprocess.check_output(['git', 'symbolic-ref', '--quiet', '--short', 'HEAD'])).strip('\n')
+  __branch__ = subprocess.check_output(['git', 'symbolic-ref', '--quiet', '--short', 'HEAD'])
+  # __branch__ = str(subprocess.check_output(['git', 'symbolic-ref', '--quiet', '--short', 'HEAD'])).strip('\n')
 except subprocess.CalledProcessError as e:
   __branch__ = 'unknown'
 
+__branch__ = __branch__.decode('utf-8')
 __branch__ = re.sub(r'feature/', '', __branch__)
 __branch__ = re.sub(r'hotfix/', '', __branch__)
+__branch__ = re.sub(r'\n', '', __branch__)
+__branch__ = re.sub(r'/', '-', __branch__)
 
 @init
 def initialize(project):
