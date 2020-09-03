@@ -23,7 +23,8 @@ try:
 except subprocess.CalledProcessError as e:
   __branch__ = 'unknown'
 
-__branch__ = __branch__.decode('utf-8')
+if hasattr(__branch__, 'decode'):
+  __branch__ = __branch__.decode('utf-8')
 __branch__ = re.sub(r'feature/', '', __branch__)
 __branch__ = re.sub(r'hotfix/', '', __branch__)
 __branch__ = re.sub(r'\n', '', __branch__)
