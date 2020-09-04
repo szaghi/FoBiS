@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [2.7, 3.5, 3.6, 3.7, 3.8]
+        python-version: [2.7, 3.6, 3.7, 3.8]
 
     steps:
     - uses: actions/checkout@v2
@@ -29,5 +29,6 @@ jobs:
     - name: Test install and build package
       run: |
         pyb
-        cd release/FoBiS-${GITHUB_REF##*/}
+        cd release
+        cd $(ls -d FoBiS-*)
         python setup.py install
