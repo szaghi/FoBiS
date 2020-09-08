@@ -12,9 +12,10 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: [2.7, 3.6, 3.7, 3.8]
 
     steps:
@@ -26,9 +27,25 @@ jobs:
     - name: Install dependencies
       run: |
         pip install pybuilder
-    - name: Test install and build package
+    - name: Test build package
       run: |
         pyb
+    - name: Test install package on Linux/macOS
+      if: startsWith(runner.os, 'Linux') || startsWith(runner.os, 'macOS')
+      run: |
         cd release
         cd $(ls -d FoBiS-*)
         python setup.py install
+    - name: Test install package on Windows
+      if: startsWith(runner.os, 'Windows')
+      run: |
+        cd release
+        cd $(ls -Directory FoBiS-*)
+        python setup.py install
+    - name: Test FoBiS.py -h
+      shell: bash
+      run: |
+        python --version
+        pip list
+        FoBiS.py -v
+        FoBiS.py -h
