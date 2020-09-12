@@ -31,4 +31,4 @@ if __name__ == '__main__':
         extras_require        = { 'PreForM.py':  ["PreForM.py>=v1.1.1"],
                                   'FORD': ["FORD>=1.1.0"],
                                   'graphviz': ["graphviz>=0.4.2"]},
-        install_requires      = [ "future", "configparser" ])
+        install_requires      = [ "future", "configparser", "colorama ; platform_system=='Windows'" ])
