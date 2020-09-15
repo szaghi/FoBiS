@@ -45,11 +45,11 @@ class Compiler(object):
 
   Attributes
   ----------
-  supported : {['gnu', 'intel', 'g95', 'opencoarrays-gnu', 'pgi', ibm']}
+  supported : {['gnu', 'intel', 'g95', 'opencoarrays-gnu', 'pgi', 'ibm', 'nag', 'nvfortran', 'custom']}
     list of supported compilers
   """
 
-  supported = ['gnu', 'intel', 'g95', 'opencoarrays-gnu', 'pgi', 'ibm', 'nag']
+  supported = ['gnu', 'intel', 'g95', 'opencoarrays-gnu', 'pgi', 'ibm', 'nag', 'nvfortran', 'custom']
 
   def __init__(self, cliargs, print_w=None):
     """
@@ -112,6 +112,8 @@ class Compiler(object):
         self._ibm()
       elif self.compiler.lower() == 'nag':
         self._nag()
+      elif self.compiler.lower() == 'nvfortran':
+        self._nvfortran()
       elif self.compiler.lower() == 'custom':
         self._custom()
       else:
@@ -241,6 +243,21 @@ class Compiler(object):
     self._mpi = 'mpif90'
     self._openmp = ['-openmp', '-openmp']
     self._coarray = ['-num_images=1', '']
+    self._coverage = ['', '']
+    self._profile = ['-pg', '-pg']
+    return
+
+  def _nvfortran(self):
+    """Set compiler defaults to the NVFortran compiler options."""
+    self.compiler = 'nvfortran'
+    self.fcs = 'nvfortran'
+    self.cflags = '-c'
+    self.lflags = ''
+    self.preproc = ''
+    self.modsw = '-module '
+    self._mpi = 'mpif90'
+    self._openmp = ['-mp', '-mp']
+    self._coarray = ['', '']
     self._coverage = ['', '']
     self._profile = ['-pg', '-pg']
     return
