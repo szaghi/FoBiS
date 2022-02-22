@@ -31,7 +31,7 @@ __extensions_inc__ = [".inc", ".INC", ".h", ".H"]
 __extensions_old__ = [".f", ".F", ".for", ".FOR", ".fpp", ".FPP", ".fortran", ".f77", ".F77"]
 __extensions_modern__ = [".f90", ".F90", ".f95", ".F95", ".f03", ".F03", ".f08", ".F08", ".f2k", ".F2K"]
 __extensions_parsed__ = __extensions_inc__ + __extensions_old__ + __extensions_modern__
-__compiler_supported__ = ('gnu', 'intel', 'g95', 'opencoarrays-gnu', 'pgi', 'ibm', 'nag', 'nvfortran', 'custom')
+__compiler_supported__ = ('gnu', 'intel', 'intel_nextgen', 'g95', 'opencoarrays-gnu', 'pgi', 'ibm', 'nag', 'nvfortran', 'custom')
 
 
 def _subparser_compiler(clean=False):
@@ -59,6 +59,7 @@ def _subparser_compiler(clean=False):
   parser_group.add_argument('-modsw', required=False, action='store', default=None, help='Specify the switch for setting the module searching path, necessary for custom compiler specification (-compiler Custom)')
   parser_group.add_argument('-mpi', required=False, action='store_true', default=False, help='Use MPI enabled version of compiler')
   parser_group.add_argument('-openmp', required=False, action='store_true', default=False, help='Use OpenMP pragmas')
+  parser_group.add_argument('-openmp_offload', required=False, action='store_true', default=False, help='Use OpenMP Offload pragmas')
   parser_group.add_argument('-coarray', required=False, action='store_true', default=False, help='Use coarrays')
   parser_group.add_argument('-coverage', required=False, action='store_true', default=False, help='Instrument the built code with coverage analysis tools [default False]')
   parser_group.add_argument('-profile', required=False, action='store_true', default=False, help='Instrument the built code with profiling analysis tools [default False]')

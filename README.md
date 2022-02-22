@@ -65,7 +65,8 @@ Go to [Top](#top)
     * [X] relative linking via extending linker search paths;
 * [ ] support for widely used compilers:
     * [X] GNU Fortran Compiler;
-    * [X] Intel Fortran Compiler;
+    * [X] Intel Fortran Compiler Classic (ifort);
+    * [X] Intel Fortran Compiler (ifx);
     * [X] g95 Fortran Compiler;
     * [X] IBM XL Fortran Compiler;
     * [ ] NAG Fortran Compiler;
