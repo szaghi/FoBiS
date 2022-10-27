@@ -197,6 +197,8 @@ class Gcov(object):
           coverage.append(0)
       elif cov_num == '=====':
         coverage.append(0)
+      elif '*' in cov_num:
+        coverage.append(0)
       else:
         coverage.append(int(cov_num))
       return ignoring
@@ -206,6 +208,8 @@ class Gcov(object):
       if os.path.exists(self.filename):
         with open(self.filename, 'r') as source:
           for line in source:
+            if ":" not in line:
+              break
             report_fields = line.split(':')
             cov_num = report_fields[0].strip()
             line_num = int(report_fields[1].strip())
