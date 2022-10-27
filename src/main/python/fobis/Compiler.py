@@ -45,11 +45,11 @@ class Compiler(object):
 
   Attributes
   ----------
-  supported : {['gnu', 'intel', 'g95', 'opencoarrays-gnu', 'pgi', 'ibm', 'nag', 'nvfortran', 'custom']}
+  supported : {['gnu', 'intel', 'intel_nextgen', 'g95', 'opencoarrays-gnu', 'pgi', 'ibm', 'nag', 'nvfortran', 'custom']}
     list of supported compilers
   """
 
-  supported = ['gnu', 'intel', 'g95', 'opencoarrays-gnu', 'pgi', 'ibm', 'nag', 'nvfortran', 'custom']
+  supported = ['gnu', 'intel', 'intel_nextgen', 'g95', 'opencoarrays-gnu', 'pgi', 'ibm', 'nag', 'nvfortran', 'custom']
 
   def __init__(self, cliargs, print_w=None):
     """
@@ -77,6 +77,8 @@ class Compiler(object):
       activate the MPI compiler
     openmp : {False}
       activate the OpenMP pragmas
+    openmp_offload : {False}
+      activate the OpenMP Offload pragmas
     coarray : {False}
       activate the coarray compilation
     coverage : {False}
@@ -93,6 +95,7 @@ class Compiler(object):
 
     self._mpi = None
     self._openmp = None
+    self._openmp_offload = None
     self._coarray = None
     self._coverage = None
     self._profile = None
@@ -102,6 +105,8 @@ class Compiler(object):
         self._gnu()
       elif self.compiler.lower() == 'intel':
         self._intel()
+      elif self.compiler.lower() == 'intel_nextgen':
+        self._intel_nextgen()
       elif self.compiler.lower() == 'g95':
         self._g95()
       elif self.compiler.lower() == 'opencoarrays-gnu':
@@ -131,6 +136,7 @@ class Compiler(object):
       self.modsw = cliargs.modsw.replace("'","")
     self.mpi = cliargs.mpi
     self.openmp = cliargs.openmp
+    self.openmp_offload = cliargs.openmp_offload
     self.coarray = cliargs.coarray
     self.coverage = cliargs.coverage
     self.profile = cliargs.profile
@@ -167,6 +173,22 @@ class Compiler(object):
     self.modsw = '-module '
     self._mpi = 'mpiifort'
     self._openmp = ['-qopenmp', '-oqpenmp']
+    self._coarray = ['-coarray', '-coarray']
+    self._coverage = ['-prof-gen=srcpos', '']
+    self._profile = ['', '']
+    return
+
+  def _intel_nextgen(self):
+    """Set compiler defaults to the Intel Next Generation Fortran compiler options."""
+    self.compiler = 'intel_nextgen'
+    self.fcs = 'ifx'
+    self.cflags = '-c'
+    self.lflags = ''
+    self.preproc = ''
+    self.modsw = '-module '
+    self._mpi = 'mpiifort -fc=ifx'
+    self._openmp = ['-qopenmp', '-fiopenmp']
+    self._openmp_offload = '-fopenmp-targets=spir64'
     self._coarray = ['-coarray', '-coarray']
     self._coverage = ['-prof-gen=srcpos', '']
     self._profile = ['', '']
@@ -297,6 +319,9 @@ class Compiler(object):
     if self.openmp:
       if self._openmp[0] != '':
         self.cflags += ' ' + self._openmp[0]
+    if self.openmp_offload:
+      if self._openmp_offload != '':
+        self.cflags += ' ' + self._openmp_offload
     if self.coarray:
       if self._coarray[0] != '':
         self.cflags += ' ' + self._coarray[0]
@@ -323,6 +348,9 @@ class Compiler(object):
     if self.openmp:
       if self._openmp[1] != '':
         self.lflags += ' ' + self._openmp[1]
+    if self.openmp_offload:
+      if self._openmp_offload != '':
+        self.lflags += ' ' + self._openmp_offload
     if self.coarray:
       if self._coarray[1] != '':
         self.lflags += ' ' + self._coarray[1]
