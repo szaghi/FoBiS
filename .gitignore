@@ -1,2 +1,3 @@
 .pybuilder/
 release/
+*.pyc

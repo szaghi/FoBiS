@@ -133,7 +133,7 @@ class Compiler(object):
     if cliargs.preproc:
       self.preproc = cliargs.preproc
     if cliargs.modsw:
-      self.modsw = cliargs.modsw
+      self.modsw = cliargs.modsw.replace("'","")
     self.mpi = cliargs.mpi
     self.openmp = cliargs.openmp
     self.openmp_offload = cliargs.openmp_offload
