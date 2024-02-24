@@ -297,7 +297,7 @@ class ParsedFile(object):
     self.pfile_dep_all.sort(key=operator.attrgetter('order'), reverse=True)
     return
 
-  def parse(self, inc, preprocessor='cpp'):
+  def parse(self, inc, preprocessor='cpp', preproc=''):
     """
     Parse the file creating its the dependencies list and the list of modules names that self eventually contains.
 
@@ -305,12 +305,34 @@ class ParsedFile(object):
     ----------
     inc : list
       list of extensions of included files
+    preprocessor : str
+      preprocessor name
+    preproc : str
+      preprocessor flags
     """
     self.module_names = []
     self.submodule_names = []
     self.dependencies = []
-    ffile = openReader(self.name)
-    for line in ffile:
+
+    if self.extension in ['.INC', '.F', '.FOR', '.FPP', '.F77', '.F90', '.F95', '.F03', '.F08']:
+      preprocessor_exist = False
+      for path in os.environ["PATH"].split(os.pathsep):
+        preprocessor_exist = os.path.exists(os.path.join(path, preprocessor))
+        if preprocessor_exist:
+          break
+      if preprocessor_exist:
+        if preprocessor == 'cpp':
+          preprocessor += ' -C -w '
+        elif preprocessor == 'fpp':
+          preprocessor += ' -w '
+        source = str(check_output(preprocessor + ' ' + preproc + ' ' + self.name, shell=True, stderr=STDOUT, encoding='UTF-8'))
+        source = source.replace('\\n', '\n')
+      else:
+        source = str(openReader(self.name).read())
+    else:
+      source = str(openReader(self.name).read())
+
+    for line in source.split('\n'):
       matching = re.match(__regex_program__, line)
       if matching:
         self.program = True
@@ -335,30 +357,9 @@ class ParsedFile(object):
         if not re.match(__regex_mpifh__, line):
           dep = Dependency(dtype="include", name=matching.group('name'))
           self.dependencies.append(dep)
-    ffile.close()
 
     if self.module:
       self.doctest = Doctest()
-
-      if self.extension in ['.INC', '.F', '.FOR', '.FPP', '.F77', '.F90', '.F95', '.F03', '.F08']:
-        preprocessor_exist = False
-        for path in os.environ["PATH"].split(os.pathsep):
-          preprocessor_exist = os.path.exists(os.path.join(path, preprocessor))
-          if preprocessor_exist:
-            break
-        if preprocessor_exist:
-          if preprocessor == 'cpp':
-            preprocessor += ' -C -w '
-          elif preprocessor == 'fpp':
-            preprocessor += ' -w '
-          source = str(check_output(preprocessor + self.name, shell=True, stderr=STDOUT, encoding='UTF-8'))
-          source = source.replace('\\n', '\n')
-        else:
-          source = str(openReader(self.name).read())
-
-      else:
-        source = str(openReader(self.name).read())
-
       self.doctest.parse(source=source)
       self.doctest.make_volatile_programs()
 
