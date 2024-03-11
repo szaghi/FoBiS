@@ -116,6 +116,8 @@ __str_kw_iso_c_binding__ = r"[Ii][Ss][Oo]_[Cc]_[Bb][Ii][Nn][Dd][Ii][Nn][Gg]"
 __str_kw_ieee_exceptions__ = r"[Ii][Ee][Ee][Ee]_[Ee][Xx][Cc][Ee][Pp][Tt][Ii][Oo][Nn][Ss]"
 __str_kw_ieee_arithmetic__ = r"[Ii][Ee][Ee][Ee]_[Aa][Rr][Ii][Tt][Hh][Mm][Ee][Tt][Ii][Cc]"
 __str_kw_ieee_features__ = r"[Ii][Ee][Ee][Ee]_[Ff][Ee][Aa][Tt][Uu][Rr][Ee][Ss]"
+__str_kw_openacc__ = r"[Oo][Pp][Ee][Nn][Aa][Cc][Cc]"
+__str_kw_omp_lib__ = r"[Oo][Mm][Pp]_[Ll][Ii][Bb]"
 __str_kw_module__ = r"[Mm][Oo][Dd][Uu][Ll][Ee]"
 __str_kw_submodule__ = r"[Ss][Uu][Bb][Mm][Oo][Dd][Uu][Ll][Ee]"
 __str_kw_program__ = r"[Pp][Rr][Oo][Gg][Rr][Aa][Mm]"
@@ -157,6 +159,14 @@ __str_use_mod_ieee_features__ = (r"^(\s*)" +  # eventual initial white spaces
                                  __str_kw_use__ +  # keyword "use"
                                  r"\s+" + __str_kw_ieee_features__ +  # keyword intrinsic module ieee_features
                                  r"(?P<mod_eol>(.*))")
+__str_use_mod_openacc__ = (r"^(\s*)" +  # eventual initial white spaces
+                           __str_kw_use__ +  # keyword "use"
+                           r"\s+" + r"(.*)" + __str_kw_openacc__ + r".*" + # keyword intrinsic module openacc
+                           r"(?P<mod_eol>(.*))")
+__str_use_mod_omp_lib__ = (r"^(\s*)" +  # eventual initial white spaces
+                           __str_kw_use__ +  # keyword "use"
+                           r"\s+" + r"(.*)" + __str_kw_omp_lib__ + r".*" + # keyword intrinsic module omp_lib
+                           r"(?P<mod_eol>(.*))")
 __str_include__ = (r"^(\s*|\#)" +  # eventual initial white spaces or "#" character
                    __str_kw_include__ +  # keyword "include"
                    r"(\s+)" +  # 1 or more white spaces
@@ -196,12 +206,16 @@ __regex_use_mod_iso_c_binding__ = re.compile(__str_use_mod_iso_c_binding__)
 __regex_use_mod_ieee_exceptions__ = re.compile(__str_use_mod_ieee_exceptions__)
 __regex_use_mod_ieee_arithmetic__ = re.compile(__str_use_mod_ieee_arithmetic__)
 __regex_use_mod_ieee_features__ = re.compile(__str_use_mod_ieee_features__)
+__regex_use_mod_openacc__ = re.compile(__str_use_mod_openacc__)
+__regex_use_mod_omp_lib__ = re.compile(__str_use_mod_omp_lib__)
 __regex_use_intrinsic_modules__ = [__regex_use_mod_intrinsic__,
                                    __regex_use_mod_iso_fortran_env__,
                                    __regex_use_mod_iso_c_binding__,
                                    __regex_use_mod_ieee_exceptions__,
                                    __regex_use_mod_ieee_arithmetic__,
-                                   __regex_use_mod_ieee_features__]
+                                   __regex_use_mod_ieee_features__,
+                                   __regex_use_mod_openacc__,
+                                   __regex_use_mod_omp_lib__]
 __regex_mpifh__ = re.compile(__str_mpifh__)
 
 # alternative "open and read"... it should avoid encoding issues with python 2.X vs 3.X
@@ -297,7 +311,7 @@ class ParsedFile(object):
     self.pfile_dep_all.sort(key=operator.attrgetter('order'), reverse=True)
     return
 
-  def parse(self, inc, preprocessor='cpp', preproc=''):
+  def parse(self, inc=['.INC', '.F', '.FOR', '.FPP', '.F77', '.F90', '.F95', '.F03', '.F08'], preprocessor='cpp', preproc='', include=''):
     """
     Parse the file creating its the dependencies list and the list of modules names that self eventually contains.
 
@@ -309,12 +323,14 @@ class ParsedFile(object):
       preprocessor name
     preproc : str
       preprocessor flags
+    include : list
+      include directories
     """
     self.module_names = []
     self.submodule_names = []
     self.dependencies = []
 
-    if self.extension in ['.INC', '.F', '.FOR', '.FPP', '.F77', '.F90', '.F95', '.F03', '.F08']:
+    if self.extension in inc:
       preprocessor_exist = False
       for path in os.environ["PATH"].split(os.pathsep):
         preprocessor_exist = os.path.exists(os.path.join(path, preprocessor))
@@ -325,7 +341,7 @@ class ParsedFile(object):
           preprocessor += ' -C -w '
         elif preprocessor == 'fpp':
           preprocessor += ' -w '
-        source = str(check_output(preprocessor + ' ' + preproc + ' ' + self.name, shell=True, stderr=STDOUT, encoding='UTF-8'))
+        source = str(check_output(preprocessor + ' ' + preproc + ' ' + '-I'.join(include) + ' ' + self.name, shell=True, stderr=STDOUT, encoding='UTF-8'))
         source = source.replace('\\n', '\n')
       else:
         source = str(openReader(self.name).read())
