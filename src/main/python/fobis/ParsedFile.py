@@ -341,7 +341,12 @@ class ParsedFile(object):
           preprocessor += ' -C -w '
         elif preprocessor == 'fpp':
           preprocessor += ' -w '
-        source = str(check_output(preprocessor + ' ' + preproc + ' ' + '-I'.join(include) + ' ' + self.name, shell=True, stderr=STDOUT, encoding='UTF-8'))
+        if preproc is None:
+            preproc = ''
+        includes = ' '
+        if len(include) > 0 :
+            includes = ' -I' + '-I'.join(include) + ' '
+        source = str(check_output(preprocessor + ' ' + preproc + includes + self.name, shell=True, stderr=STDOUT, encoding='UTF-8'))
         source = source.replace('\\n', '\n')
       else:
         source = str(openReader(self.name).read())
