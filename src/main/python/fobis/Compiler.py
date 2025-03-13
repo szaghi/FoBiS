@@ -194,6 +194,22 @@ class Compiler(object):
     self._profile = ['', '']
     return
 
+  def _amdflang(self):
+    """Set compiler defaults to the AMD Flang-based Fortran compiler options."""
+    self.compiler = 'amdflang'
+    self.fcs = 'amdflang'
+    self.cflags = '-c'
+    self.lflags = ''
+    self.preproc = ''
+    self.modsw = '-module-dir '
+    self._mpi = 'mpifort'
+    self._openmp = ['-fopenmp']
+    self._openmp_offload = '--offload-arch=gfx90a,gfx942'
+    self._coarray = ['', '']
+    self._coverage = ['--coverage']
+    self._profile = ['', '']
+    return
+
   def _g95(self):
     """Set compiler defaults to the g95 compiler options."""
     self.compiler = 'g95'
