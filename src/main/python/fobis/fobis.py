@@ -258,9 +258,9 @@ def parse_files(configuration, src_dir=None, is_doctest=False):
               all(exc not in os.path.dirname(filename) for exc in configuration.cliargs.exclude_dirs)):
              pfile = ParsedFile(name=os.path.join(src_dir, filename), is_doctest=is_doctest)
              if is_doctest:
-               pfile.parse(inc=configuration.cliargs.inc, preprocessor=configuration.cliargs.doctests_preprocessor)
+               pfile.parse(inc=configuration.cliargs.inc, preprocessor=configuration.cliargs.doctests_preprocessor, preproc=configuration.cliargs.preproc, include=configuration.cliargs.include)
              else:
-               pfile.parse(inc=configuration.cliargs.inc)
+               pfile.parse(inc=configuration.cliargs.inc, preproc=configuration.cliargs.preproc, include=configuration.cliargs.include)
              pfiles.append(pfile)
     else:
       for root, _, files in os.walk(src_dir):
@@ -271,9 +271,9 @@ def parse_files(configuration, src_dir=None, is_doctest=False):
               filen = os.path.join(root, filename)
               pfile = ParsedFile(name=filen, is_doctest=is_doctest)
               if is_doctest:
-                pfile.parse(inc=configuration.cliargs.inc, preprocessor=configuration.cliargs.doctests_preprocessor)
+                pfile.parse(inc=configuration.cliargs.inc, preprocessor=configuration.cliargs.doctests_preprocessor, preproc=configuration.cliargs.preproc, include=configuration.cliargs.include)
               else:
-                pfile.parse(inc=configuration.cliargs.inc)
+                pfile.parse(inc=configuration.cliargs.inc, preproc=configuration.cliargs.preproc, include=configuration.cliargs.include)
               pfiles.append(pfile)
   return pfiles
 
