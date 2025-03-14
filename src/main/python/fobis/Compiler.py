@@ -45,7 +45,7 @@ class Compiler(object):
 
   Attributes
   ----------
-  supported : {['gnu', 'intel', 'intel_nextgen', 'g95', 'opencoarrays-gnu', 'pgi', 'ibm', 'nag', 'nvfortran', 'custom']}
+  supported : {['gnu', 'intel', 'intel_nextgen', 'g95', 'opencoarrays-gnu', 'pgi', 'ibm', 'nag', 'nvfortran', 'amd', 'custom']}
     list of supported compilers
   """
 
