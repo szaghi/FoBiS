@@ -1,8 +1,8 @@
 """FoBiS.py main package"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+# from __future__ import absolute_import
+# from __future__ import division
+# from __future__ import print_function
+# from __future__ import unicode_literals
 # Copyright (C) 2015  Stefano Zaghi
 #
 # This file is part of FoBiS.py.
@@ -20,6 +20,6 @@ from __future__ import unicode_literals
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
 
-from future import standard_library
-standard_library.install_aliases()
-from builtins import *
+# from future import standard_library
+# standard_library.install_aliases()
+# from builtins import *

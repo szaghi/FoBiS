@@ -9,10 +9,10 @@
 Compiler.py, module definition of Compiler class.
 This is a class designed for handling compilers default support.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+# from __future__ import absolute_import
+# from __future__ import division
+# from __future__ import print_function
+# from __future__ import unicode_literals
 # Copyright (C) 2015  Stefano Zaghi
 #
 # This file is part of FoBiS.py.
@@ -29,11 +29,11 @@ from __future__ import unicode_literals
 #
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
-from future import standard_library
-standard_library.install_aliases()
-from builtins import str
-from builtins import *
-from builtins import object
+# from future import standard_library
+# standard_library.install_aliases()
+# from builtins import str
+# from builtins import *
+# from builtins import object
 import re
 from .utils import print_fake
 __regex_opts__ = re.compile(r"-O[0-9,s]")
@@ -49,7 +49,7 @@ class Compiler(object):
     list of supported compilers
   """
 
-  supported = ['gnu', 'intel', 'intel_nextgen', 'g95', 'opencoarrays-gnu', 'pgi', 'ibm', 'nag', 'nvfortran', 'custom']
+  supported = ['gnu', 'intel', 'intel_nextgen', 'g95', 'opencoarrays-gnu', 'pgi', 'ibm', 'nag', 'nvfortran', 'amd', 'custom']
 
   def __init__(self, cliargs, print_w=None):
     """
@@ -119,6 +119,8 @@ class Compiler(object):
         self._nag()
       elif self.compiler.lower() == 'nvfortran':
         self._nvfortran()
+      elif self.compiler.lower() == 'amd':
+        self._amd()
       elif self.compiler.lower() == 'custom':
         self._custom()
       else:
@@ -279,6 +281,21 @@ class Compiler(object):
     self.modsw = '-module '
     self._mpi = 'mpif90'
     self._openmp = ['-mp', '-mp']
+    self._coarray = ['', '']
+    self._coverage = ['', '']
+    self._profile = ['-pg', '-pg']
+    return
+
+  def _amd(self):
+    """Set compiler defaults to the AMD Flang compiler options."""
+    self.compiler = 'amd'
+    self.fcs = 'amdflang'
+    self.cflags = '-c'
+    self.lflags = ''
+    self.preproc = ''
+    self.modsw = '-module-dir '
+    self._mpi = 'mpif90'
+    self._openmp = ['-fopenmp', '-fopenmp']
     self._coarray = ['', '']
     self._coverage = ['', '']
     self._profile = ['-pg', '-pg']
