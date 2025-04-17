@@ -3,10 +3,10 @@ Gcov.py, module definition of Gcov class.
 
 This is a class designed for analyzing gcov files.
 """
-from __future__ import division
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import unicode_literals
+# from __future__ import division
+# from __future__ import absolute_import
+# from __future__ import print_function
+# from __future__ import unicode_literals
 # Copyright (C) 2015  Stefano Zaghi
 #
 # This file is part of FoBiS.py.
@@ -23,12 +23,12 @@ from __future__ import unicode_literals
 #
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
-from future import standard_library
-standard_library.install_aliases()
-from builtins import str
-from builtins import *
-from builtins import object
-from past.utils import old_div
+# from future import standard_library
+# standard_library.install_aliases()
+# from builtins import str
+# from builtins import *
+# from builtins import object
+# from past.utils import old_div
 try:
   from pygooglechart import PieChart2D
   __graph__ = True

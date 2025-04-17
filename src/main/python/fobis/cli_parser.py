@@ -1,10 +1,10 @@
 """
 CliParser.py, module definition of FoBiS.py CLI Parser object, an istance of argparse.ArgumentParser.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+# from __future__ import absolute_import
+# from __future__ import division
+# from __future__ import print_function
+# from __future__ import unicode_literals
 # Copyright (C) 2015  Stefano Zaghi
 #
 # This file is part of FoBiS.py.
@@ -21,17 +21,17 @@ from __future__ import unicode_literals
 #
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
-from future import standard_library
-standard_library.install_aliases()
-from builtins import str
-from builtins import *
+# from future import standard_library
+# standard_library.install_aliases()
+# from builtins import str
+# from builtins import *
 import argparse
 
 __extensions_inc__ = [".inc", ".INC", ".h", ".H"]
 __extensions_old__ = [".f", ".F", ".for", ".FOR", ".fpp", ".FPP", ".fortran", ".f77", ".F77"]
 __extensions_modern__ = [".f90", ".F90", ".f95", ".F95", ".f03", ".F03", ".f08", ".F08", ".f2k", ".F2K"]
 __extensions_parsed__ = __extensions_inc__ + __extensions_old__ + __extensions_modern__
-__compiler_supported__ = ('gnu', 'intel', 'intel_nextgen', 'g95', 'opencoarrays-gnu', 'pgi', 'ibm', 'nag', 'nvfortran', 'custom')
+__compiler_supported__ = ('gnu', 'intel', 'intel_nextgen', 'g95', 'opencoarrays-gnu', 'pgi', 'ibm', 'nag', 'nvfortran', 'amd', 'custom')
 
 
 def _subparser_compiler(clean=False):
