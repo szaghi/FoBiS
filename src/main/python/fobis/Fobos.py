@@ -133,14 +133,34 @@ class Fobos(object):
     Function for checking the correct use of "template" sections.
     """
     if self.fobos:
+      # create list of used templates
+      templates = []
       for mode in self.fobos.sections():
         if self.fobos.has_option(mode, 'template'):
-          if self.fobos.has_section(self.fobos.get(mode, 'template')):
-            for item in self.fobos.items(self.fobos.get(mode, 'template')):
-              self.fobos.set(mode, item[0], item[1])
+          template = self.fobos.get(mode, 'template')
+          if self.fobos.has_section(template):
+            if template not in templates:
+              templates.append(template)
           else:
             self.print_w('Error: mode "' + mode + '" uses as template the mode "' + self.fobos.get(mode, 'template') + '" that is NOT defined')
             sys.exit(1)
+      if len(templates)>0:
+        # substitute template option into template modes
+        for template in templates:
+          if self.fobos.has_option(template, 'template'):
+            # template mode has a template option
+            template_option = self.fobos.get(template, 'template')
+            # substitute template option items
+            for item in self.fobos.items(template_option):
+              if not self.fobos.has_option(template, item[0]):
+                self.fobos.set(template, item[0], item[1])
+        # substitute template option into main modes
+        for mode in self.fobos.sections():
+          if self.fobos.has_option(mode, 'template'):
+            template = self.fobos.get(mode, 'template')
+            for item in self.fobos.items(template):
+              if not self.fobos.has_option(mode, item[0]):
+                self.fobos.set(mode, item[0], item[1])
     return
 
   def _get_local_variables(self):
