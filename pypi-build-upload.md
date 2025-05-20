@@ -18,7 +18,7 @@ This creates a `release/FoBiS-release-v3.0.6/` directory, build the package and 
 If `pyb` is not installed, install it via pip
 
 ```bash
-pip install pybuilder
+pipx install pybuilder
 ```
 
 ### Upload the package to PyPi
@@ -45,5 +45,5 @@ https://pypi.org/project/FoBiS.py/3.0.6/
 If `twine` is not installed, install it via pip
 
 ```bash
-pip install twine
+pipx install twine
 ```
