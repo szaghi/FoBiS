@@ -221,7 +221,10 @@ class Gcov(object):
               ptype = proc_matching.group('ptype').strip()
               pname = proc_matching.group('pname').strip()
               if cov_num != '#####' and cov_num != '-':
-                pcov = int(cov_num)
+                try:
+                  pcov = int(cov_num.strip('*'))
+                except ValueError:
+                  pcov = 0
               else:
                 pcov = 0
               if cov_num != '-':  # needed due to abstract iterfaces
