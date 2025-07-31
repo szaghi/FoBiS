@@ -200,7 +200,11 @@ class Gcov(object):
       elif '*' in cov_num:
         coverage.append(0)
       else:
-        coverage.append(int(cov_num))
+        try:
+          cov_num_int = int(cov_num) 
+        except ValueError:
+          cov_num_int = 0
+        coverage.append(cov_num_int)
       return ignoring
 
     ignoring = False
