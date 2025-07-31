@@ -84,7 +84,7 @@ class Gcov(object):
         elnumber_per = 0
         unelnumber_per = 0
       if elnumber > 0:
-        ahits = old_div(sum(cov for cov in self.coverage if isinstance(cov, int)), elnumber)
+        ahits = sum(cov for cov in self.coverage if isinstance(cov, int)) / elnumber
       else:
         ahits = 0
       self.metrics['coverage'] = [str(lnumber), str(elnumber), str(unelnumber), str(elnumber_per), str(unelnumber_per), str(ahits)]
@@ -99,7 +99,7 @@ class Gcov(object):
         epnumber_per = 0
         unepnumber_per = 0
       if epnumber > 0:
-        ahits = old_div(sum(proc[2] for proc in self.procedures), epnumber)
+        ahits = sum(proc[2] for proc in self.procedures) / epnumber
       else:
         ahits = 0
       self.metrics['procedures'] = [str(pnumber), str(epnumber), str(unepnumber), str(epnumber_per), str(unepnumber_per), str(ahits)]
