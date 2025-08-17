@@ -29,6 +29,10 @@ jobs:
     - name: Install dependencies
       run: |
         pip install pybuilder
+    - name: Install dependencies (python 3.12)
+      if: contains( matrix.python-version, 12 )
+      run: |
+        pip install setuptools
     - name: Test build package
       run: |
         pyb
