@@ -32,7 +32,7 @@ jobs:
     - name: Install dependencies (python 3.12)
       if: contains( matrix.python-version, 12 )
       run: |
-        pip install setuptools
+        pip install setuptools colorama
     - name: Test build package
       run: |
         pyb
