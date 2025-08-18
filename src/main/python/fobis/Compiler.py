@@ -174,7 +174,7 @@ class Compiler(object):
     self.preproc = ''
     self.modsw = '-module '
     self._mpi = 'mpiifort'
-    self._openmp = ['-qopenmp', '-oqpenmp']
+    self._openmp = ['-qopenmp', '-qopenmp']
     self._coarray = ['-coarray', '-coarray']
     self._coverage = ['-prof-gen=srcpos', '']
     self._profile = ['', '']
