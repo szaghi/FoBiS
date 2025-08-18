@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.9', '3.10', '3.11']
+        python-version: ['3.9', '3.10', '3.11', '3.12']
 
     steps:
     - uses: actions/checkout@v4.2.2
@@ -29,6 +29,10 @@ jobs:
     - name: Install dependencies
       run: |
         pip install pybuilder
+    - name: Install dependencies (python 3.12)
+      if: contains( matrix.python-version, 12 )
+      run: |
+        pip install setuptools colorama
     - name: Test build package
       run: |
         pyb
