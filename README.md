@@ -7,17 +7,13 @@
 A KISS tool for automatic building modern Fortran projects.
 
 ### Status
-[![Build Status](https://travis-ci.org/szaghi/FoBiS.svg?branch=master)](https://travis-ci.org/szaghi/FoBiS)
+[![Build Status](https://github.com/szaghi/FoBiS/actions/workflows/python-package.yml/badge.svg)](https://github.com/szaghi/FoBiS/actions)
 [![Coverage Status](https://img.shields.io/coveralls/szaghi/FoBiS.svg)](https://coveralls.io/r/szaghi/FoBiS)
-[![Code Health](https://landscape.io/github/szaghi/FoBiS/master/landscape.svg?style=flat)](https://landscape.io/github/szaghi/FoBiS/master)
 
 #### Issues
 [![GitHub issues](https://img.shields.io/github/issues/szaghi/FoBiS.svg)]()
-[![Ready in backlog](https://badge.waffle.io/szaghi/fobis.png?label=ready&title=Ready)](https://waffle.io/szaghi/fobis)
-[![In Progress](https://badge.waffle.io/szaghi/fobis.png?label=in%20progress&title=In%20Progress)](https://waffle.io/szaghi/fobis)
-[![Open bugs](https://badge.waffle.io/szaghi/fobis.png?label=bug&title=Open%20Bugs)](https://waffle.io/szaghi/fobis)
 
-#### Python support [![Supported Python versions](https://img.shields.io/badge/Py-%202.7,%203.4-blue.svg)]()
+#### Python support [![Supported Python versions](https://img.shields.io/badge/Py-%203.9,%203.10,%203.11-blue.svg)]()
 
 ## Why?
 GNU Make, CMake, SCons & Co. are fantastic tools, even too much for _poor-fortran-people_.
