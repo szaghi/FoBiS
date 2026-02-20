@@ -331,27 +331,27 @@ class ParsedFile(object):
     self.dependencies = []
 
     if self.extension in inc:
-      preprocessor_exist = False
-      for path in os.environ["PATH"].split(os.pathsep):
-        preprocessor_exist = os.path.exists(os.path.join(path, preprocessor))
-        if preprocessor_exist:
-          break
-      if preprocessor_exist:
-        if preprocessor == 'cpp':
-          preprocessor += ' -C -w '
-        elif preprocessor == 'fpp':
-          preprocessor += ' -w '
-        if preproc is None:
-            preproc = ''
-        includes = ' '
-        if len(include) > 0 :
-            includes = ' -I' + '-I'.join(include) + ' '
-        source = str(check_output(preprocessor + ' ' + preproc + includes + self.name, shell=True, stderr=STDOUT, encoding='UTF-8'))
-        source = source.replace('\\n', '\n')
-      else:
-        source = str(openReader(self.name).read())
+       preprocessor_exist = False
+       for path in os.environ["PATH"].split(os.pathsep):
+          preprocessor_exist = os.path.exists(os.path.join(path, preprocessor))
+          if preprocessor_exist:
+             break
+       if preprocessor_exist:
+          if preprocessor == 'cpp':
+             preprocessor += ' -C -w '
+          elif preprocessor == 'fpp':
+             preprocessor += ' -w '
+          if preproc is None:
+             preproc = ''
+          includes = ' '
+          if len(include) > 0 :
+             includes = ' -I' + '-I'.join(include) + ' '
+          source = str(check_output(preprocessor + ' ' + preproc + includes + self.name, shell=True, stderr=STDOUT, encoding='UTF-8'))
+          source = source.replace('\\n', '\n')
+       else:
+         source = str(openReader(self.name).read())
     else:
-      source = str(openReader(self.name).read())
+       source = str(openReader(self.name).read())
 
     for line in source.split('\n'):
       matching = re.match(__regex_program__, line)
