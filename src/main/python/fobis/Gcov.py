@@ -28,7 +28,6 @@ This is a class designed for analyzing gcov files.
 # from builtins import str
 # from builtins import *
 # from builtins import object
-from past.utils import old_div
 try:
   from pygooglechart import PieChart2D
   __graph__ = True
