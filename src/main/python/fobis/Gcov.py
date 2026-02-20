@@ -28,7 +28,7 @@ This is a class designed for analyzing gcov files.
 # from builtins import str
 # from builtins import *
 # from builtins import object
-# from past.utils import old_div
+from past.utils import old_div
 try:
   from pygooglechart import PieChart2D
   __graph__ = True
@@ -49,6 +49,15 @@ __str_procedure__ = (r"^(\s*)" +  # initial white spaces
                      r"(?P<ptype>" + __str_kw_function__ + r"|" + __str_kw_subroutine__ + r")\s+" +  # type of procedure
                      r"(?P<pname>" + __str_name__ + r"\s*).*")  # name of procedure
 __regex_procedure__ = re.compile(__str_procedure__)
+
+
+def _mermaid_pie(title, executed, unexecuted):
+  """Return a Mermaid pie-chart fenced code block string with surrounding blank lines."""
+  return ('```mermaid\npie showData\n' +
+          '    title ' + title + '\n' +
+          '    "Executed" : ' + executed + '\n' +
+          '    "Unexecuted" : ' + unexecuted + '\n' +
+          '```\n\n')
 
 
 class Gcov(object):
@@ -198,7 +207,7 @@ class Gcov(object):
       elif cov_num == '=====':
         coverage.append(0)
       elif '*' in cov_num:
-        coverage.append(0)
+        coverage.append(int(cov_num.rstrip('*')))
       else:
         coverage.append(int(cov_num))
       return ignoring
@@ -221,7 +230,7 @@ class Gcov(object):
               ptype = proc_matching.group('ptype').strip()
               pname = proc_matching.group('pname').strip()
               if cov_num != '#####' and cov_num != '-':
-                pcov = int(cov_num)
+                pcov = int(cov_num.rstrip('*'))
               else:
                 pcov = 0
               if cov_num != '-':  # needed due to abstract iterfaces
@@ -249,19 +258,26 @@ class Gcov(object):
       if report_format == 'markdown':
         string.append('### Coverage analysis of *' + os.path.splitext(os.path.basename(self.filename))[0] + '*\n')
         string.append('\n')
-        if self.metrics['coverage'] or self.metrics['procedures']:
-          string.append('|Metrics| | |\n')
-          string.append('| --- | --- | --- |\n')
         if self.metrics['coverage']:
-          string.append('|Number of executable lines          |' + self.metrics['coverage'][0] + '| |\n')
-          string.append('|Number of executed lines            |' + self.metrics['coverage'][1] + '|' + self.metrics['coverage'][3] + '%|\n')
-          string.append('|Number of unexecuted lines          |' + self.metrics['coverage'][2] + '|' + self.metrics['coverage'][4] + '%|\n')
-          string.append('|Average hits per executed line      |' + self.metrics['coverage'][5] + '| |\n')
+          string.append('|Lines| | |\n')
+          string.append('| --- | --- | --- |\n')
+          string.append('|Executable lines            |' + self.metrics['coverage'][0] + '| |\n')
+          string.append('|Executed lines              |' + self.metrics['coverage'][1] + '|' + self.metrics['coverage'][3] + '%|\n')
+          string.append('|Unexecuted lines            |' + self.metrics['coverage'][2] + '|' + self.metrics['coverage'][4] + '%|\n')
+          string.append('|Average hits / executed     |' + self.metrics['coverage'][5] + '| |\n')
+          string.append('\n')
+          string.append(_mermaid_pie('Lines (' + self.metrics['coverage'][3] + '% covered)',
+                                     self.metrics['coverage'][1], self.metrics['coverage'][2]))
         if self.metrics['procedures']:
-          string.append('|Number of procedures                |' + self.metrics['procedures'][0] + '| |\n')
-          string.append('|Number of executed procedures       |' + self.metrics['procedures'][1] + '|' + self.metrics['procedures'][3] + '%|\n')
-          string.append('|Number of unexecuted procedures     |' + self.metrics['procedures'][2] + '|' + self.metrics['procedures'][4] + '%|\n')
-          string.append('|Average hits per executed procedure |' + self.metrics['procedures'][5] + '| |\n')
+          string.append('|Procedures| | |\n')
+          string.append('| --- | --- | --- |\n')
+          string.append('|Total procedures            |' + self.metrics['procedures'][0] + '| |\n')
+          string.append('|Executed procedures         |' + self.metrics['procedures'][1] + '|' + self.metrics['procedures'][3] + '%|\n')
+          string.append('|Unexecuted procedures       |' + self.metrics['procedures'][2] + '|' + self.metrics['procedures'][4] + '%|\n')
+          string.append('|Average hits / executed     |' + self.metrics['procedures'][5] + '| |\n')
+          string.append('\n')
+          string.append(_mermaid_pie('Procedures (' + self.metrics['procedures'][3] + '% covered)',
+                                     self.metrics['procedures'][1], self.metrics['procedures'][2]))
         if graphs and __graph__ and (self.metrics['coverage'] or self.metrics['procedures']):
           string.append('\n --- \n')
           if self.metrics['coverage']:

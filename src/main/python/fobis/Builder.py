@@ -57,6 +57,8 @@ class Builder(object):
     ----------
     compiler : Compiler object
       compiler used
+    src_dir = {"./"}
+      directory into which search source files
     build_dir : {"./"}
       directory containing built files
     obj_dir : {"./"}
@@ -102,7 +104,7 @@ class Builder(object):
     self.compiler = Compiler(cliargs=cliargs, print_w=self.print_w)
 
     self.jobs = cliargs.jobs
-    self._sanitize_dirs(build_dir=cliargs.build_dir, obj_dir=cliargs.obj_dir, mod_dir=cliargs.mod_dir, lib_dir=cliargs.lib_dir, dinc=cliargs.include)
+    self._sanitize_dirs(src_dir=cliargs.src, build_dir=cliargs.build_dir, obj_dir=cliargs.obj_dir, mod_dir=cliargs.mod_dir, lib_dir=cliargs.lib_dir, dinc=cliargs.include)
     self._sanitize_files(libs=cliargs.libs, vlibs=cliargs.vlibs, ext_libs=cliargs.ext_libs, ext_vlibs=cliargs.ext_vlibs)
     self._set_preprocessor(preprocessor=cliargs.preprocessor,
                            preprocessor_dir=cliargs.preprocessor_dir,
@@ -162,12 +164,14 @@ class Builder(object):
     # return modsw
     return Compiler(compiler=cliargs.compiler, modsw=cliargs.modsw).modsw
 
-  def _sanitize_dirs(self, build_dir, obj_dir, mod_dir, lib_dir, dinc):
+  def _sanitize_dirs(self, src_dir, build_dir, obj_dir, mod_dir, lib_dir, dinc):
     """
     Method for sanitizing directory paths.
 
     Parameters
     ----------
+    src_dir : list
+      directory into which search source files
     build_dir : str
       directory containing built files
     obj_dir : str
@@ -179,6 +183,8 @@ class Builder(object):
     dinc : list
       list of directories for searching included files
     """
+    self.src_dir = ' '.join(src_dir)
+
     self.build_dir = os.path.normpath(build_dir)
     safe_mkdir(directory=self.build_dir, print_w=self.print_w)
 
@@ -701,6 +707,7 @@ class Builder(object):
     if not quiet:
       message = "Builder options" + "\n"
       message += "  Directories\n"
+      message += '    Root of source files directory: "' + self.src_dir + '"\n'
       message += '    Building directory: "' + self.build_dir + '"\n'
       message += '    Compiled-objects .o   directory: "' + self.obj_dir + '"\n'
       message += '    Compiled-objects .mod directory: "' + self.mod_dir + '"\n'
@@ -718,6 +725,7 @@ class Builder(object):
         message += "  Linked volatile libraries in path: " + "".join([s + " " for s in self.ext_vlibs]) + "\n"
       message += self.compiler.pprint(prefix='  ')
       message += "  Preprocessor used: " + str(self.preprocessor) + "\n"
+      message += "  Preprocessor args: " + str(self.preprocessor_args) + "\n"
       message += "  Preprocessor output directory: " + str(self.preprocessor_dir) + "\n"
       message += "  Preprocessor extensions processed: " + str(self.preprocessor_ext) + "\n"
     return message

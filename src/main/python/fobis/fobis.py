@@ -36,7 +36,7 @@ import sys
 from .Builder import Builder
 from .Cleaner import Cleaner
 from .FoBiSConfig import FoBiSConfig
-from .Gcov import Gcov
+from .Gcov import Gcov, _mermaid_pie
 from .ParsedFile import ParsedFile
 from .utils import dependency_hiearchy
 from .utils import remove_other_main
@@ -91,8 +91,8 @@ def run_fobis_build(configuration):
   configuration : FoBiSConfig()
   """
 
-  pfiles = parse_files(configuration=configuration)
   builder = Builder(cliargs=configuration.cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
+  pfiles = parse_files(configuration=configuration)
   dependency_hiearchy(builder=builder, pfiles=pfiles, print_w=configuration.print_r, force_compile=configuration.cliargs.force_compile)
   if configuration.cliargs.makefile:
     save_makefile(configuration=configuration, pfiles=pfiles, builder=builder)
@@ -559,7 +559,28 @@ def gcov_analyzer(configuration):
     string.append('### ' + configuration.cliargs.gcov_analyzer[1] + '\n')
     for gcov in gcovs:
       string.append('\n#### [[' + os.path.basename(gcov.filename) + ']]\n\n')
-      string.append(gcov.l_pie_url + '\n' + gcov.p_pie_url + '\n')
+      if gcov.l_pie_url or gcov.p_pie_url:
+        string.append(gcov.l_pie_url + '\n' + gcov.p_pie_url + '\n')
+      if gcov.metrics['coverage']:
+        string.append('|Lines| | |\n')
+        string.append('| --- | --- | --- |\n')
+        string.append('|Executable lines            |' + gcov.metrics['coverage'][0] + '| |\n')
+        string.append('|Executed lines              |' + gcov.metrics['coverage'][1] + '|' + gcov.metrics['coverage'][3] + '%|\n')
+        string.append('|Unexecuted lines            |' + gcov.metrics['coverage'][2] + '|' + gcov.metrics['coverage'][4] + '%|\n')
+        string.append('|Average hits / executed     |' + gcov.metrics['coverage'][5] + '| |\n')
+        string.append('\n')
+        string.append(_mermaid_pie('Lines (' + gcov.metrics['coverage'][3] + '% covered)',
+                                   gcov.metrics['coverage'][1], gcov.metrics['coverage'][2]))
+      if gcov.metrics['procedures']:
+        string.append('|Procedures| | |\n')
+        string.append('| --- | --- | --- |\n')
+        string.append('|Total procedures            |' + gcov.metrics['procedures'][0] + '| |\n')
+        string.append('|Executed procedures         |' + gcov.metrics['procedures'][1] + '|' + gcov.metrics['procedures'][3] + '%|\n')
+        string.append('|Unexecuted procedures       |' + gcov.metrics['procedures'][2] + '|' + gcov.metrics['procedures'][4] + '%|\n')
+        string.append('|Average hits / executed     |' + gcov.metrics['procedures'][5] + '| |\n')
+        string.append('\n')
+        string.append(_mermaid_pie('Procedures (' + gcov.metrics['procedures'][3] + '% covered)',
+                                   gcov.metrics['procedures'][1], gcov.metrics['procedures'][2]))
     with open(os.path.join(configuration.cliargs.gcov_analyzer[0], configuration.cliargs.gcov_analyzer[1] + '.md'), 'w') as summary:
       summary.writelines(string)
 
