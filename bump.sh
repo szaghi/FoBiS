@@ -77,6 +77,12 @@ CURRENT_BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || true)
 git fetch --tags --quiet
 [[ -z "$(git tag -l "v${NEW_VER}")" ]] || die "tag v${NEW_VER} already exists"
 
+# ensure local develop and master are not behind their remotes
+DEVELOP_BEHIND=$(git rev-list --count HEAD..origin/develop 2>/dev/null || echo 0)
+MASTER_BEHIND=$(git rev-list --count master..origin/master 2>/dev/null || echo 0)
+[[ "$DEVELOP_BEHIND" -eq 0 ]] || die "develop is ${DEVELOP_BEHIND} commit(s) behind origin/develop — run: git pull origin develop"
+[[ "$MASTER_BEHIND"  -eq 0 ]] || die "master is ${MASTER_BEHIND} commit(s) behind origin/master — run: git pull origin master"
+
 # ── confirm ───────────────────────────────────────────────────────────────────
 echo "  Current version : $CUR_VER"
 echo "  New version     : $NEW_VER"
@@ -106,6 +112,7 @@ pyb
 # ── merge to master, tag, push to GitHub ─────────────────────────────────────
 info "Merging to master and tagging v${NEW_VER}"
 git checkout master
+git pull origin master --ff-only
 git merge --no-ff "$RELEASE_BRANCH" -m "Merge branch '${RELEASE_BRANCH}'"
 git tag -a "v${NEW_VER}" -m "Release v${NEW_VER}"
 
@@ -128,7 +135,9 @@ if [[ "$SKIP_PYPI" == false ]]; then
   (
     cd "$DIST_DIR"
     python setup.py sdist
-    twine upload dist/*
+    # PyPI now requires normalized filenames (PEP 625): FoBiS.py-X.Y.Z → fobis_py-X.Y.Z
+    mv dist/FoBiS.py-${NEW_VER}.tar.gz dist/fobis_py-${NEW_VER}.tar.gz
+    twine upload dist/fobis_py-${NEW_VER}.tar.gz
   )
 fi
 
