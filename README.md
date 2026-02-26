@@ -1,113 +1,81 @@
-<a name="top"></a>
-# FoBiS.py [![Latest Version](https://img.shields.io/pypi/v/FoBiS.py.svg)](https://img.shields.io/pypi/v/FoBiS.py.svg) [![GitHub tag](https://img.shields.io/github/tag/szaghi/FoBiS.svg)]()
+# FoBiS — Fortran Building System for poor people
+
+[![Latest Version](https://img.shields.io/pypi/v/FoBiS.py.svg)](https://pypi.org/project/FoBiS.py/)
+[![GitHub tag](https://img.shields.io/github/tag/szaghi/FoBiS.svg)]()
+[![Build Status](https://github.com/szaghi/FoBiS/actions/workflows/python-package.yml/badge.svg)](https://github.com/szaghi/FoBiS/actions)
+[![GitHub issues](https://img.shields.io/github/issues/szaghi/FoBiS.svg)]()
+[![Supported Python versions](https://img.shields.io/badge/Py-%203.9,%203.10,%203.11,%203.12-blue.svg)]()
 
 [![License](https://img.shields.io/badge/license-GNU%20GeneraL%20Public%20License%20v3,%20GPLv3-blue.svg)]()
 
-### FoBiS.py, Fortran Building System for poor people
-A KISS tool for automatic building modern Fortran projects.
+> Automatic dependency-resolving build tool for modern Fortran projects — no makefiles, no boilerplate.
 
-### Status
-[![Build Status](https://github.com/szaghi/FoBiS/actions/workflows/python-package.yml/badge.svg)](https://github.com/szaghi/FoBiS/actions)
-[![Coverage Status](https://img.shields.io/coveralls/szaghi/FoBiS.svg)](https://coveralls.io/r/szaghi/FoBiS)
+| ⚡ Zero-configuration builds | 🔗 Automatic dependency resolution | ⚙️ Multi-compiler support | 📄 fobos — the FoBiS makefile |
+|---|---|---|---|
+| Drop FoBiS into any Fortran project and run `fobis build`. It recursively scans sources, resolves all `use` and `include` dependencies, and compiles in the correct order — automatically. | Parses every source file for module definitions, use statements, and include directives. Builds and updates the full dependency hierarchy on each run, skipping up-to-date objects. | First-class support for GNU gfortran, Intel ifort/ifx, AMD flang, g95, IBM XL, NAG, PGI, NVIDIA nvfortran, and fully custom compilers. MPI, OpenMP, coarray, and coverage variants included. | A concise INI-style configuration file replaces makefiles entirely. Define multiple build modes, templates, variables, and custom rules — all in one readable file. |
+| 🚀 Parallel compilation | 🌐 Fetch GitHub dependencies | 🔬 Introspective doctests | 🆓 Free and open source |
+| Compile independent translation units concurrently with `-j N`. Dependency ordering is respected automatically; only the safe parallel frontier is compiled in parallel. | Declare external FoBiS projects in a `[dependencies]` fobos section. Run `fobis fetch` to clone, pin to branch/tag/rev, and build — then `fobis build` picks them up automatically. | Embed micro-unit-tests directly inside Fortran comment docstrings. FoBiS generates, compiles, and runs volatile test programs automatically — inspired by Python's doctest module, no test harness needed. | Released under the GNU GPL v3 license. Free to use, study, modify, and distribute. Contributions welcome — see the [contributing guidelines](CONTRIBUTING.md). |
 
-#### Issues
-[![GitHub issues](https://img.shields.io/github/issues/szaghi/FoBiS.svg)]()
+## Why FoBiS?
 
-#### Python support [![Supported Python versions](https://img.shields.io/badge/Py-%203.9,%203.10,%203.11-blue.svg)]()
+Modern Fortran's module system is powerful — but tracking inter-module compilation order by hand in a makefile quickly becomes a nightmare as project size grows. Every time you add a module, rename a file, or restructure directories, the makefile needs manual updates.
 
-## Why?
-GNU Make, CMake, SCons & Co. are fantastic tools, even too much for _poor-fortran-people_.
+**FoBiS solves this completely.** It parses source files on every invocation, rebuilds the dependency graph from scratch, and compiles in the correct order — with no configuration required for simple projects.
 
-However, the support for modern Fortran project is still poor: in particular, it is quite difficult (and boring) to track the inter-module-dependency hierarchy of project using many module files.
-
-Modern Fortran programs can take great advantage of using modules (e.g. encapsulation), however their compilations can quickly become a nightmare as the number of modules grows. As  a consequence, an automatic build system able to track (on the fly) any changes on the inter-module-dependency hierarchy can save the life of _poor-fortran-people_.
-
-### Why not use an auto-make-like tool?
-There are a lot of alternatives for deal with inter-module-dependency hierarchy, but they can be viewed as a pre-processor for the actual building system (such as auto-make tools or even the Fortran compiler itself that, in most cases, can generate a dependency list of a processed file), thus they introduce another level of complexity... but _poor-fortran-people_ always love the KISS (Keep It Simple, Stupid) things!
-
-##### FoBiS.py is designed to do just one thing: build a modern Fortran program without boring you to specify a particular compilation hierarchy.
-
-### OK, what can FoBiS.py do? We are _poor-fortran-people_, we do not understand you...
-Let us consider the following project tree
 ```bash
-└── src
-    ├── cumbersome.f90
-    └── nested-1
-        ├── first_dep.f90
-        └── nested-2
-            └── second_dep.inc
+# That's it. FoBiS finds all programs, resolves all dependencies, compiles.
+fobis build
 ```
-The main program contained into `cumbersome.f90` depends on `first_dep.f90` via the use statement `use NesteD_1`, thus it actually depends on the module `nested_1`. This module depends on `second_dep.inc` via the include statement `include  'second_dep.inc'`. Note that the dependency files are stored in a *cumbersome* nested tree. Write a makefile for this very simple example could waste many minutes... when the modules number increases the time wasted blows up!
 
-It would be very nice to have a tool that automatically track the actual dependency-hierarchy and build the project on the fly, without the necessity to track the dependency-hierarchy changes. FoBiS.py just makes this... and few more things!
+For complex projects, a single `fobos` file in the project root replaces makefiles entirely:
 
-Suppose your goal is to build some (all) of the main programs contained into the project tree. In this case FoBiS.py can save your life: just type
+```ini
+[modes]
+modes = debug release
+
+[debug]
+compiler  = gnu
+cflags    = -c -O0 -g -Wall
+build_dir = ./build/debug/
+
+[release]
+compiler  = gnu
+cflags    = -c -O3
+build_dir = ./build/release/
+```
+
 ```bash
-FoBiS.py build
+fobis build -mode release
 ```
-in the root of your project and FoBis.py will build all the main programs nested into the current root directory. Obviously, FoBiS.py will not (re-)compile unnecessary objects if they are up-to-date (like the "magic" of a makefile).
 
-FoBiS.py has many (ok... some) others interesting features: if I have convinced you, please read the following.
+---
 
-Go to [Top](#top)
+## Projects using FoBiS
 
-## Main features
-* [X] :zap: Automatic parsing of files for dependency-hierarchy creation in case of _use_ and _include_ statements;
-* [X] :zap: automatic building of all _programs_ found into the root directory parsed or only a specific selected target;
-* [X] avoid unnecessary re-compilation (algorithm based on file-timestamp value);
-* [X] simple command line interface (CLI);
-* [X] friendly support for external libraries linking:
-    * [X] direct linking with full libraries paths;
-    * [X] relative linking via extending linker search paths;
-* [ ] support for widely used compilers:
-    * [X] GNU Fortran Compiler;
-    * [X] Intel Fortran Compiler Classic (ifort);
-    * [X] Intel Fortran Compiler (ifx);
-    * [X] AMD Flang Fortran Compiler (amdflang);
-    * [X] g95 Fortran Compiler;
-    * [X] IBM XL Fortran Compiler;
-    * [ ] NAG Fortran Compiler;
-    * [ ] PGI Fortran Compiler;
-* [X] custom compiler support;
-* [X] :zap: configuration-files-free;
-* [X] ... but also configuration-file driven building for complex buildings;
-* [X] :zap: parallel compiling enabled by means of concurrent `multiprocessing` jobs;
-* [X] :zap: support **submodules**;
-* [X] advanced automatic (re-)building algorithms:
-    * [X] :zap: automatic (re-)building when compiling flags change with respect the previous building;
-    * [X] :zap: automatic (re-)building when linked library change;
-    * [X] :zap: automatic building of projects upon which the actual project depends;
-* [X] :zap: **automatic fetching and building of GitHub-hosted Fortran dependencies** via the `fetch` subcommand:
-    * [X] declare dependencies in a `[dependencies]` section of the fobos file;
-    * [X] pin to a specific branch, tag, or commit revision;
-    * [X] fetched dependencies are auto-discovered at every subsequent `build` run;
-* [X] :zap: advanced automatic micro-atomic introspective unittest support by means of *doctests*;
-* [X] :zap: generation of GNU Make makefile with rules fully supporting dependency-hierarchy for _make-irreducible users_;
-* [X] easy-extensible;
-* [X] well integrate with a flexible pythonic pre-processor, [PreForM.py](https://github.com/szaghi/PreForM).
+- **[ADAM](https://szaghi.github.io/adam/)** — Accelerated fluid Dynamics on Adaptive Mesh refinement grids &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/adam)
+- **[BeFoR64](https://szaghi.github.io/BeFoR64/)** — Base64 encoding/decoding library for Fortran &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/BeFoR64)
+- **[FACE](https://szaghi.github.io/FACE/)** — Fortran ANSI Colors and Escape sequences &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/FACE)
+- **[FiNeR](https://szaghi.github.io/FiNeR/)** — Fortran INI ParseR and generator &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/FiNeR)
+- **[FLAP](https://szaghi.github.io/FLAP/)** — Fortran command Line Arguments Parser for poor people &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/FLAP)
+- **[FUNDAL](https://szaghi.github.io/FUNDAL/)** — Fortran UNified Device Acceleration Library &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/FUNDAL)
+- **[FOSSIL](https://szaghi.github.io/FOSSIL/)** — FOrtran Stereo (si) Litography parser &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/FOSSIL)
+- **[MORTIF](https://szaghi.github.io/MORTIF/)** — MORTon Indexer (Z-order) Fortran environment &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/MORTIF)
+- **[MOTIOn](https://szaghi.github.io/MOTIOn/)** — Modular (HPC) Optimized Toolkit (for) IO (in fortra)n &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/MOTIOn)
+- **[PENF](https://szaghi.github.io/PENF/)** — Portability Environment for Fortran poor people &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/PENF)
+- **[StringiFor](https://szaghi.github.io/StringiFor/)** — Strings Fortran Manipulator with steroids &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/StringiFor)
+- **[VecFor](https://szaghi.github.io/VecFor/)** — Vector algebra class for Fortran poor people &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/VecFor)
+- **[VTKFortran](https://szaghi.github.io/VTKFortran/)** — pure Fortran VTK (XML) API &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/VTKFortran)
 
-Go to [Top](#top)
+---
 
-## Documentation
-FoBiS.py documentations are hosted on GitHub. The [wiki](https://github.com/szaghi/FoBiS/wiki) and the [README](https://github.com/szaghi/FoBiS) are the main documentation resources. Other sources of documentation are the examples.
+## Author
 
-Here is a non-comprehensive list of the main topics
-
-| [Install](https://github.com/szaghi/FoBiS/wiki/Install)                                            | [Usage](https://github.com/szaghi/FoBiS/wiki/Usage)                             |
-|----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
-| [Manual Install](https://github.com/szaghi/FoBiS/wiki/Manual-Installation)                         | [Getting Started](https://github.com/szaghi/FoBiS/wiki/Getting-Started)         |
-| [PyPi Install](https://github.com/szaghi/FoBiS/wiki/PyPI-Installation%2C-the-Python-Package-Index) | [A Taste of FoBiS.py](https://github.com/szaghi/FoBiS/wiki/Taste)               |
-|                                                                                                    | [Uncommon usage](https://github.com/szaghi/FoBiS/wiki/Uncommon_Usage)           |
-|                                                                                                    | [fobos: the FoBiS.py makefile](https://github.com/szaghi/FoBiS/wiki/fobos)      |
-|                                                                                                    | [FoBiS.py in action](https://github.com/szaghi/FoBiS/wiki/Projects-Using-FoBiS) |
-
-Go to [Top](#top)
+**Stefano Zaghi** — [stefano.zaghi@cnr.it](mailto:stefano.zaghi@cnr.it) · [GitHub](https://github.com/szaghi)
 
 ## Copyrights
-FoBiS.py is an open source project, it is distributed under the [GPL v3](http://www.gnu.org/licenses/gpl-3.0.html) license. A copy of the license should be distributed within FoBiS.py. Anyone interested to use, develop or to contribute to FoBiS.py is welcome. Take a look at the [contributing guidelines](CONTRIBUTING.md) for starting to contribute to the project.
 
-Go to [Top](#top)
+FoBiS is an open source project distributed under the [GPL v3](http://www.gnu.org/licenses/gpl-3.0.html) license. Anyone interested in using, developing, or contributing to FoBiS is welcome — see the [contributing guidelines](CONTRIBUTING.md).
 
-## A screencast of a very cumbersome example
+---
 
 ![Screencast](examples/cumbersome_dependency_program_interdepent/cumbersome-cast.gif)
