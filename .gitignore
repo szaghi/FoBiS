@@ -1,3 +1,20 @@
 .pybuilder/
 release/
-*.pyc
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.ruff_cache/
+.pytest_cache/
+.venv/
+venv/
+*.swp
+*.swo
+*~
+.DS_Store
+# VitePress
+docs/.vitepress/dist/
+docs/.vitepress/cache/
