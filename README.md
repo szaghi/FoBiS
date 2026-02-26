@@ -77,6 +77,10 @@ Go to [Top](#top)
     * [X] :zap: automatic (re-)building when compiling flags change with respect the previous building;
     * [X] :zap: automatic (re-)building when linked library change;
     * [X] :zap: automatic building of projects upon which the actual project depends;
+* [X] :zap: **automatic fetching and building of GitHub-hosted Fortran dependencies** via the `fetch` subcommand:
+    * [X] declare dependencies in a `[dependencies]` section of the fobos file;
+    * [X] pin to a specific branch, tag, or commit revision;
+    * [X] fetched dependencies are auto-discovered at every subsequent `build` run;
 * [X] :zap: advanced automatic micro-atomic introspective unittest support by means of *doctests*;
 * [X] :zap: generation of GNU Make makefile with rules fully supporting dependency-hierarchy for _make-irreducible users_;
 * [X] easy-extensible;

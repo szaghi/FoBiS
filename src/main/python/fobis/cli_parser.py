@@ -324,6 +324,27 @@ def _parser_doctests(clisubparsers):
   return
 
 
+def _parser_fetch(clisubparsers):
+  """
+  Construct the fetch cli parser.
+
+  Parameters
+  ----------
+  clisubparsers : argparse subparser object
+  """
+  fobos = _subparser_fobos()
+  fancy = _subparser_fancy()
+  fetchparser = clisubparsers.add_parser('fetch', help='Fetch and build GitHub-hosted Fortran dependencies listed in the fobos [dependencies] section', parents=[fobos, fancy])
+  fetchparser.add_argument('--deps-dir', required=False, action='store', default='.fobis_deps',
+                           help='Directory for storing fetched dependencies [default: .fobis_deps]')
+  fetchparser.add_argument('--update', required=False, action='store_true', default=False,
+                           help='Update already fetched dependencies (git fetch + re-checkout)')
+  fetchparser.add_argument('--no-build', required=False, action='store_true', default=False,
+                           help='Only fetch dependencies, do not build them')
+  fetchparser.set_defaults(which='fetch')
+  return
+
+
 def cli_parser(appname, description, version):
   """
   Create the FoBiS.py Command Line Interface (CLI).
@@ -344,7 +365,8 @@ def cli_parser(appname, description, version):
                                       "\n  " + appname + " build -h,--help" +
                                       "\n  " + appname + " clean -h,--help" +
                                       "\n  " + appname + " rule -h,--help" +
-                                      "\n  " + appname + " doctests -h,--help")
+                                      "\n  " + appname + " doctests -h,--help" +
+                                      "\n  " + appname + " fetch -h,--help")
   cliparser.add_argument('-v', '--version', action='version', help='Show version', version='%(prog)s ' + version)
   clisubparsers = cliparser.add_subparsers(title='Commands', description='Valid commands')
   _parser_build(clisubparsers)
@@ -352,4 +374,5 @@ def cli_parser(appname, description, version):
   _parser_rule(clisubparsers)
   _parser_install(clisubparsers)
   _parser_doctests(clisubparsers)
+  _parser_fetch(clisubparsers)
   return cliparser

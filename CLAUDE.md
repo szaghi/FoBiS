@@ -41,11 +41,11 @@ pyb analyze
 
 ### Core Components (src/main/python/fobis/)
 
-- **fobis.py**: Main entry point with `run_fobis()` orchestrating all commands (build, clean, install, doctests, rule)
+- **fobis.py**: Main entry point with `run_fobis()` orchestrating all commands (build, clean, install, doctests, rule, fetch)
 
-- **FoBiSConfig.py**: Configuration class that parses CLI arguments and fobos files, manages cflags heritage, and handles interdependent project builds. Contains version info (`__version__`, `__appname__`).
+- **FoBiSConfig.py**: Configuration class that parses CLI arguments and fobos files, manages cflags heritage, and handles interdependent project builds. Contains version info (`__version__`, `__appname__`). The `_load_fetched_deps()` method auto-loads `.fobis_deps/.deps_config.ini` during `build`, appending fetched dependency paths to `cliargs.dependon`.
 
-- **cli_parser.py**: Argparse-based CLI with subcommands (build, clean, rule, install, doctests). Defines supported file extensions and compilers.
+- **cli_parser.py**: Argparse-based CLI with subcommands (build, clean, rule, install, doctests, fetch). Defines supported file extensions and compilers.
 
 - **ParsedFile.py**: Parses Fortran source files using regex to extract:
   - Module definitions and submodule relationships
@@ -68,6 +68,13 @@ pyb analyze
   - Templates for mode inheritance
   - Local variable substitution ($var syntax)
   - Custom rules execution
+  - `[dependencies]` section parsed by `get_dependencies()` for the `fetch` command
+
+- **Fetcher.py**: Handles fetching and building GitHub-hosted FoBiS dependencies:
+  - `parse_dep_spec()` parses `"URL [:: branch=X] [:: tag=X] [:: rev=X] [:: mode=X]"` specs
+  - `fetch()` clones repos on first run; with `--update` runs `git fetch` + checkout
+  - `build_dep()` runs `FoBiS.py build` inside the cloned dependency directory
+  - `save_config()` / `load_config()` manage `.fobis_deps/.deps_config.ini`
 
 - **Dependency.py**: Simple class representing a single dependency (module or include)
 
@@ -83,6 +90,31 @@ pyb analyze
 - Uses `fake_args` parameter in `run_fobis()` to enable programmatic invocation (used heavily in tests)
 - Fobos file serves as project-specific makefile replacement (INI format with modes, templates, rules)
 - Timestamps used to skip up-to-date objects; volatile libraries trigger rebuilds via MD5 hashing
+- `fetch` command stores fetched deps in `.fobis_deps/` and writes `.fobis_deps/.deps_config.ini`; `build` auto-reads this file via `_load_fetched_deps()` before the normal `dependon` machinery runs — zero changes to the build engine
+
+### fetch command
+
+The `fetch` subcommand clones GitHub-hosted FoBiS projects, builds them, and saves a config file that `build` picks up automatically.
+
+**Fobos `[dependencies]` section:**
+```ini
+[dependencies]
+stdlib   = https://github.com/fortran-lang/stdlib :: tag=v0.5.0 :: mode=gnu
+jsonfort = https://github.com/jacobwilliams/json-fortran :: branch=main
+utils    = https://github.com/certik/fortran-utils :: rev=a1b2c3d
+simple   = https://github.com/user/repo
+```
+Each entry: `name = URL [:: branch=X | tag=X | rev=X] [:: mode=X]`
+
+**Workflow:**
+```bash
+FoBiS.py fetch             # clone + build all deps from [dependencies]
+FoBiS.py fetch --update    # re-fetch (git pull/checkout) and rebuild
+FoBiS.py fetch --no-build  # clone only, skip building
+FoBiS.py build             # auto-detects .fobis_deps/.deps_config.ini -> adds to -dependon
+```
+
+**Storage:** deps are cloned into `.fobis_deps/<name>/`; the generated `.fobis_deps/.deps_config.ini` lists paths in `dependon` format so the existing interdependent build machinery handles include paths and library linking automatically.
 
 ## Test Structure
 

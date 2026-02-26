@@ -79,7 +79,42 @@ def run_fobis(fake_args=None):
       run_fobis_install(configuration)
     if configuration.cliargs.which == 'doctests':
       run_fobis_doctests(configuration)
+    if configuration.cliargs.which == 'fetch':
+      run_fobis_fetch(configuration)
   return
+
+
+def run_fobis_fetch(configuration):
+  """
+  Run FoBiS in fetch mode: clone/update and optionally build GitHub dependencies.
+
+  Parameters
+  ----------
+  configuration : FoBiSConfig()
+  """
+  from .Fetcher import Fetcher
+  fetcher = Fetcher(
+    deps_dir=configuration.cliargs.deps_dir,
+    print_n=configuration.print_b,
+    print_w=configuration.print_r)
+  deps = configuration.fobos.get_dependencies()
+  if not deps:
+    configuration.print_r('No [dependencies] section found in fobos file')
+    return
+  deps_info = []
+  for name, spec in deps.items():
+    parsed = fetcher.parse_dep_spec(spec)
+    dep_path = fetcher.fetch(
+      name,
+      parsed['url'],
+      branch=parsed.get('branch'),
+      tag=parsed.get('tag'),
+      rev=parsed.get('rev'),
+      update=configuration.cliargs.update)
+    if not configuration.cliargs.no_build:
+      fetcher.build_dep(name, dep_path, mode=parsed.get('mode'))
+    deps_info.append({'name': name, 'path': dep_path, 'mode': parsed.get('mode', '')})
+  fetcher.save_config(deps_info)
 
 
 def run_fobis_build(configuration):

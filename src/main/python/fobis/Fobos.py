@@ -362,6 +362,21 @@ class Fobos(object):
         attribute = ' '.join(attribute)
       print(str(argument) + " = " + str(attribute))
 
+  def get_dependencies(self):
+    """
+    Parse [dependencies] section and return dict of {name: spec_string}.
+
+    Returns
+    -------
+    dict
+      mapping of dependency name to its spec string, or empty dict if no section
+    """
+    deps = {}
+    if self.fobos and self.fobos.has_section('dependencies'):
+      for name, spec in self.fobos.items('dependencies'):
+        deps[name] = spec
+    return deps
+
   def rules_list(self, quiet=False):
     """
     Function for listing defined rules.
