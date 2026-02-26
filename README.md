@@ -16,6 +16,10 @@
 | 🚀 Parallel compilation | 🌐 Fetch GitHub dependencies | 🔬 Introspective doctests | 🆓 Free and open source |
 | Compile independent translation units concurrently with `-j N`. Dependency ordering is respected automatically; only the safe parallel frontier is compiled in parallel. | Declare external FoBiS projects in a `[dependencies]` fobos section. Run `fobis fetch` to clone, pin to branch/tag/rev, and build — then `fobis build` picks them up automatically. | Embed micro-unit-tests directly inside Fortran comment docstrings. FoBiS generates, compiles, and runs volatile test programs automatically — inspired by Python's doctest module, no test harness needed. | Released under the GNU GPL v3 license. Free to use, study, modify, and distribute. Contributions welcome — see the [contributing guidelines](CONTRIBUTING.md). |
 
+## Documentation
+
+For full FoBiS documentations (guide, tutorial, examples, etc...) se the [GitHub pages docs](https://szaghi.github.io/FoBiS).
+
 ## Why FoBiS?
 
 Modern Fortran's module system is powerful — but tracking inter-module compilation order by hand in a makefile quickly becomes a nightmare as project size grows. Every time you add a module, rename a file, or restructure directories, the makefile needs manual updates.
