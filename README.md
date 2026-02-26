@@ -18,7 +18,7 @@
 
 ## Documentation
 
-For full FoBiS documentations (guide, tutorial, examples, etc...) se the [GitHub pages docs](https://szaghi.github.io/FoBiS).
+For full FoBiS documentations (guide, tutorial, examples, etc...) see the [GitHub pages docs](https://szaghi.github.io/FoBiS).
 
 ## Why FoBiS?
 
