@@ -1,0 +1,19 @@
+{
+  "name": "fobis-docs",
+  "private": true,
+  "scripts": {
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "debug": "^4.4.3",
+    "markdown-it-mathjax3": "^4.3.2",
+    "mermaid": "^11.0.0",
+    "vitepress": "^1.6.3",
+    "vitepress-plugin-mermaid": "^2.0.0"
+  },
+  "overrides": {
+    "esbuild": ">=0.25.0"
+  }
+}
