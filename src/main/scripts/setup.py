@@ -27,7 +27,7 @@ if __name__ == '__main__':
                                  'Programming Language :: Python :: 3',
                                  'Programming Language :: Python :: 3.8',
                                  'Topic :: Text Processing'],
-        entry_points          = { 'console_scripts': [] },
+        entry_points          = { 'console_scripts': ['fobis = fobis.fobis:main'] },
         extras_require        = { 'PreForM.py':  ["PreForM.py>=v1.1.1"],
                                   'FORD': ["FORD>=1.1.0"],
                                   'graphviz': ["graphviz>=0.4.2"]},
