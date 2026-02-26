@@ -49,7 +49,6 @@ jobs:
         cd $(ls -Directory FoBiS-*)
         python setup.py install
     - name: Test FoBiS.py -h
-      shell: bash
       run: |
         python --version
         pip list
