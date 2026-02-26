@@ -136,7 +136,25 @@ class FoBiSConfig(object):
         self._check_vlibs_md5sum()
       if len(self.cliargs.ext_vlibs) > 0:
         self._check_ext_vlibs_md5sum()
+    self._load_fetched_deps()
     self._check_interdependent_fobos()
+
+  def _load_fetched_deps(self):
+    """
+    Auto-load dependencies previously fetched with 'fetch' command.
+
+    Reads .fobis_deps/.deps_config.ini (if present) and appends its dependon
+    entries to cliargs.dependon so the existing interdependent build machinery
+    picks them up automatically.
+    """
+    if self.cliargs.which == 'build':
+      config_file = os.path.join('.fobis_deps', '.deps_config.ini')
+      if os.path.exists(config_file):
+        from .Fetcher import Fetcher
+        fetcher = Fetcher(deps_dir='.fobis_deps', print_n=self.print_b, print_w=self.print_r)
+        extra_dependon = fetcher.load_config()
+        if extra_dependon:
+          self.cliargs.dependon.extend(extra_dependon)
 
   @staticmethod
   def _check_md5sum(filename, hashfile):
