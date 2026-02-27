@@ -117,3 +117,4 @@ cflags   = -c -O2
 - [Variables](/fobos/variables) — define reusable `$variable` values
 - [Rules](/fobos/rules) — custom task automation (documentation, archives, …)
 - [Intrinsic rules](/fobos/intrinsic-rules) — built-in automation rules
+- [Project metadata](/fobos/project) — `[project]` section: name, version, authors, and more

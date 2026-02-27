@@ -69,6 +69,8 @@ pyb analyze
   - Local variable substitution ($var syntax)
   - Custom rules execution
   - `[dependencies]` section parsed by `get_dependencies()` for the `fetch` command
+  - `[project]` section (optional) parsed by `get_project_info()` → returns `{'name': str, 'authors': [str], 'version': str}` (raw fobos values); authors are newline-separated (configparser continuation lines)
+  - `get_version()` resolves the effective version: reads `[project] version` (literal or file path relative to git root), falls back to `git describe --tags --abbrev=0`, warns with fix suggestions when both sources disagree
 
 - **Fetcher.py**: Handles fetching, building, and installing GitHub-hosted FoBiS dependencies:
   - `parse_dep_spec()` parses `"URL [:: branch=X] [:: tag=X] [:: rev=X] [:: mode=X]"` specs
