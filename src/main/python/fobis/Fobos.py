@@ -369,17 +369,76 @@ class Fobos(object):
     Returns
     -------
     dict
-      dict with keys 'name' (str) and 'authors' (list of str).
-      Both are empty/empty-list if the section or option is absent.
+      dict with keys 'name' (str), 'authors' (list of str), and
+      'version' (str, raw value as written in fobos — not resolved).
+      All values are empty/empty-list if the section or option is absent.
     """
-    info = {'name': '', 'authors': []}
+    info = {'name': '', 'authors': [], 'version': ''}
     if self.fobos and self.fobos.has_section('project'):
       if self.fobos.has_option('project', 'name'):
         info['name'] = self.fobos.get('project', 'name').strip()
       if self.fobos.has_option('project', 'authors'):
         raw = self.fobos.get('project', 'authors')
         info['authors'] = [a.strip() for a in raw.splitlines() if a.strip()]
+      if self.fobos.has_option('project', 'version'):
+        info['version'] = self.fobos.get('project', 'version').strip()
     return info
+
+  def get_version(self):
+    """
+    Resolve the project version from [project] and/or git tags.
+
+    Resolution steps
+    ----------------
+    1. Read 'version' from [project] in fobos.  If the value is a
+       file path (relative to the git repository root), the version
+       string is read from that file.
+    2. Query the most recent git tag via ``git describe --tags --abbrev=0``.
+    3. If both sources provide a version and they disagree, emit a
+       warning with a suggested fix.
+    4. Return the fobos version when available; fall back to the git
+       tag; return '' when neither source is determinable.
+
+    Returns
+    -------
+    str
+      Resolved version string, or '' if not determinable.
+    """
+    fobos_version = ''
+    if self.fobos and self.fobos.has_section('project'):
+      if self.fobos.has_option('project', 'version'):
+        raw = self.fobos.get('project', 'version').strip()
+        # try to resolve as a file path relative to the git repo root
+        git_root_result = syswork('git rev-parse --show-toplevel')
+        if git_root_result[0] == 0:
+          candidate = os.path.join(git_root_result[1].strip(), raw)
+          if os.path.isfile(candidate):
+            with open(candidate) as ver_file:
+              fobos_version = ver_file.read().strip()
+          else:
+            fobos_version = raw
+        else:
+          fobos_version = raw  # not inside a git repo; treat as literal
+        if fobos_version and not fobos_version.startswith('v'):
+          fobos_version = 'v' + fobos_version
+
+    # query the most recent git tag
+    git_version = ''
+    git_result = syswork('git describe --tags --abbrev=0')
+    if git_result[0] == 0:
+      git_version = git_result[1].strip()
+
+    # warn on mismatch
+    if fobos_version and git_version and fobos_version != git_version:
+      git_version_v = git_version if git_version.startswith('v') else 'v' + git_version
+      self.print_w('Warning: project version mismatch!')
+      self.print_w('  fobos [project] version : ' + fobos_version)
+      self.print_w('  git tag version         : ' + git_version)
+      self.print_w('  To fix, either:')
+      self.print_w('    - update fobos: set  version = ' + git_version_v + '  under [project]')
+      self.print_w('    - create a matching tag: git tag ' + fobos_version + ' && git push --tags')
+
+    return fobos_version or git_version
 
   def get_dependencies(self):
     """
