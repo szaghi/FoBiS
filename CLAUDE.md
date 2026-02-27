@@ -70,11 +70,15 @@ pyb analyze
   - Custom rules execution
   - `[dependencies]` section parsed by `get_dependencies()` for the `fetch` command
 
-- **Fetcher.py**: Handles fetching and building GitHub-hosted FoBiS dependencies:
+- **Fetcher.py**: Handles fetching, building, and installing GitHub-hosted FoBiS dependencies:
   - `parse_dep_spec()` parses `"URL [:: branch=X] [:: tag=X] [:: rev=X] [:: mode=X]"` specs
   - `fetch()` clones repos on first run; with `--update` runs `git fetch` + checkout
-  - `build_dep()` runs `FoBiS.py build` inside the cloned dependency directory
+  - `build_dep()` runs `FoBiS.py build` inside the cloned dependency directory (used by `fetch`)
   - `save_config()` / `load_config()` manage `.fobis_deps/.deps_config.ini`
+  - `_resolve_url()` converts `user/repo` GitHub shorthand to a full HTTPS URL
+  - `install_from_github()` orchestrates clone → build (with `--track_build`) → artifact install (used by `install <repo>`)
+  - `_build_dep_tracked()` runs `fobis build --track_build` inside the cloned dir
+  - `_install_artifacts()` walks dep dir for `.track_build` files and copies executables/libraries/mod files to prefix
 
 - **Dependency.py**: Simple class representing a single dependency (module or include)
 
@@ -115,6 +119,24 @@ FoBiS.py build             # auto-detects .fobis_deps/.deps_config.ini -> adds t
 ```
 
 **Storage:** deps are cloned into `.fobis_deps/<name>/`; the generated `.fobis_deps/.deps_config.ini` lists paths in `dependon` format so the existing interdependent build machinery handles include paths and library linking automatically.
+
+### install command (GitHub mode)
+
+When `install` receives a positional `repo` argument it behaves like a package manager: clone → build (with `--track_build`) → install artifacts to a prefix. The existing `install` behaviour (installing previously built local files) is fully preserved when no `repo` is given.
+
+**Usage:**
+```bash
+fobis install szaghi/FLAP                        # install latest default branch to ./
+fobis install szaghi/FLAP --tag v2.0.0 -p ~/.local  # pin to tag, install to ~/.local
+fobis install szaghi/FLAP --branch develop --mode gnu
+fobis install https://github.com/user/repo --rev a1b2c3d
+fobis install szaghi/FLAP --no-build            # clone only
+fobis install szaghi/FLAP --update              # re-pull before building
+```
+
+**Options added to `install`:** `repo` (positional, optional), `--branch`, `--tag`, `--rev`, `--update`, `--no-build`, `--deps-dir` (default: `~/.fobis/`).
+
+**How it works:** `Fetcher.install_from_github()` calls `fetch()` to clone/update, then `_build_dep_tracked()` to build with `fobis build --track_build`, then `_install_artifacts()` scans for `.track_build` files and copies executables → `prefix/bin/`, libraries → `prefix/lib/`, mod files → `prefix/include/`.
 
 ## Test Structure
 

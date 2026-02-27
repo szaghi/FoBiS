@@ -300,7 +300,21 @@ def _parser_install(clisubparsers):
   # files = _subparser_files()
   fobos = _subparser_fobos()
   fancy = _subparser_fancy()
-  installparser = clisubparsers.add_parser('install', help='Install project files: install previously built files', parents=[directories, fobos, fancy])
+  installparser = clisubparsers.add_parser('install', help='Install previously built files, or clone+build+install a GitHub-hosted FoBiS project', parents=[directories, fobos, fancy])
+  installparser.add_argument('repo', nargs='?', default=None,
+                             help='GitHub repository to install: "user/repo" shorthand or full HTTPS URL (e.g. szaghi/FLAP)')
+  installparser.add_argument('--branch', required=False, action='store', default=None,
+                             help='Branch to check out when installing from GitHub')
+  installparser.add_argument('--tag', required=False, action='store', default=None,
+                             help='Tag to check out when installing from GitHub')
+  installparser.add_argument('--rev', required=False, action='store', default=None,
+                             help='Commit revision to check out when installing from GitHub')
+  installparser.add_argument('--update', required=False, action='store_true', default=False,
+                             help='Re-fetch (git pull) the repository before building and installing')
+  installparser.add_argument('--no-build', required=False, action='store_true', default=False,
+                             help='Clone only — skip building and installing')
+  installparser.add_argument('--deps-dir', required=False, action='store', default=None,
+                             help='Directory for cloning GitHub repositories [default: ~/.fobis/]')
   installparser.set_defaults(which='install')
   return
 

@@ -203,10 +203,38 @@ def run_fobis_install(configuration):
   """
   Run FoBiS in install mode.
 
+  When 'repo' is provided (e.g. 'szaghi/FLAP' or a full URL) the command
+  clones the GitHub-hosted FoBiS project, builds it with --track_build, and
+  installs the resulting artifacts to the specified prefix.
+
+  Without 'repo', the existing behaviour is preserved: install previously
+  built artifacts recorded in .track_build files inside the build directory.
+
   Parameters
   ----------
   configuration : FoBiSConfig()
   """
+  if configuration.cliargs.repo:
+    from .Fetcher import Fetcher
+    import os
+    deps_dir = configuration.cliargs.deps_dir or os.path.join(os.path.expanduser('~'), '.fobis')
+    fetcher = Fetcher(
+      deps_dir=deps_dir,
+      print_n=configuration.print_b,
+      print_w=configuration.print_r)
+    fetcher.install_from_github(
+      repo=configuration.cliargs.repo,
+      branch=configuration.cliargs.branch,
+      tag=configuration.cliargs.tag,
+      rev=configuration.cliargs.rev,
+      mode=configuration.cliargs.mode,
+      update=configuration.cliargs.update,
+      no_build=configuration.cliargs.no_build,
+      prefix=configuration.cliargs.prefix,
+      bin_dir=configuration.cliargs.bin,
+      lib_dir=configuration.cliargs.lib,
+      include_dir=configuration.cliargs.include)
+    return
 
   if not os.path.exists(configuration.cliargs.build_dir):
     configuration.fobos.print_w('Error: build directory not found! Maybe you have to run "FoBiS.py build" before.')
