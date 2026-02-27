@@ -69,6 +69,7 @@ pyb analyze
   - Local variable substitution ($var syntax)
   - Custom rules execution
   - `[dependencies]` section parsed by `get_dependencies()` for the `fetch` command
+  - `[project]` section (optional) parsed by `get_project_info()` → returns `{'name': str, 'authors': [str]}`; authors are newline-separated (configparser continuation lines)
 
 - **Fetcher.py**: Handles fetching, building, and installing GitHub-hosted FoBiS dependencies:
   - `parse_dep_spec()` parses `"URL [:: branch=X] [:: tag=X] [:: rev=X] [:: mode=X]"` specs

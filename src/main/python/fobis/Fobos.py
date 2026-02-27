@@ -362,6 +362,25 @@ class Fobos(object):
         attribute = ' '.join(attribute)
       print(str(argument) + " = " + str(attribute))
 
+  def get_project_info(self):
+    """
+    Parse [project] section and return project metadata.
+
+    Returns
+    -------
+    dict
+      dict with keys 'name' (str) and 'authors' (list of str).
+      Both are empty/empty-list if the section or option is absent.
+    """
+    info = {'name': '', 'authors': []}
+    if self.fobos and self.fobos.has_section('project'):
+      if self.fobos.has_option('project', 'name'):
+        info['name'] = self.fobos.get('project', 'name').strip()
+      if self.fobos.has_option('project', 'authors'):
+        raw = self.fobos.get('project', 'authors')
+        info['authors'] = [a.strip() for a in raw.splitlines() if a.strip()]
+    return info
+
   def get_dependencies(self):
     """
     Parse [dependencies] section and return dict of {name: spec_string}.
