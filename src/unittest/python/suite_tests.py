@@ -184,7 +184,7 @@ class SuiteTest(unittest.TestCase):
     failed = []
     passed = []
 
-    for test in range(28):
+    for test in range(30):
       if test + 1 == 15 and not opencoarrays:
         continue
       build_ok = self.run_build('build-test' + str(test + 1))
@@ -295,6 +295,19 @@ class SuiteTest(unittest.TestCase):
         print(fail)
     self.assertEquals(num_failures, 0)
     return
+
+  def test_template_circular_detection(self):
+    """Test that circular template references are detected and abort."""
+    old_pwd = os.getcwd()
+    os.chdir(os.path.dirname(os.path.abspath(__file__)) + '/template-circular-test1')
+    circular_detected = False
+    try:
+      run_fobis(fake_args=['build', '-f', 'fobos'])
+    except SystemExit:
+      circular_detected = True
+    finally:
+      os.chdir(old_pwd)
+    self.assertTrue(circular_detected)
 
   def test_rules(self):
     """Test rules."""

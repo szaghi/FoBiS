@@ -15,4 +15,5 @@ verbose      = True
 [rule-finalize]
 help  = Rule for preparing the next test
 quiet = True
-rule  = rm -f build-test20
+rule-1 = rm -f build-test20
+rule-2 = rm -f *.log

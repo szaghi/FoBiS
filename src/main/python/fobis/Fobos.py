@@ -130,37 +130,49 @@ class Fobos(object):
 
   def _check_template(self):
     """
-    Function for checking the correct use of "template" sections.
+    Check and apply template sections.
+
+    Each mode may specify one or more template names as a space-separated
+    list.  Templates are applied left-to-right: the mode itself always
+    wins, and earlier templates take precedence over later ones.
+    Template-of-template inheritance is expanded depth-first.
+    Circular references are detected and cause an error.
     """
-    if self.fobos:
-      # create list of used templates
-      templates = []
-      for mode in self.fobos.sections():
-        if self.fobos.has_option(mode, 'template'):
-          template = self.fobos.get(mode, 'template')
-          if self.fobos.has_section(template):
-            if template not in templates:
-              templates.append(template)
-          else:
-            self.print_w('Error: mode "' + mode + '" uses as template the mode "' + self.fobos.get(mode, 'template') + '" that is NOT defined')
-            sys.exit(1)
-      if len(templates)>0:
-        # substitute template option into template modes
-        for template in templates:
-          if self.fobos.has_option(template, 'template'):
-            # template mode has a template option
-            template_option = self.fobos.get(template, 'template')
-            # substitute template option items
-            for item in self.fobos.items(template_option):
-              if not self.fobos.has_option(template, item[0]):
-                self.fobos.set(template, item[0], item[1])
-        # substitute template option into main modes
-        for mode in self.fobos.sections():
-          if self.fobos.has_option(mode, 'template'):
-            template = self.fobos.get(mode, 'template')
-            for item in self.fobos.items(template):
-              if not self.fobos.has_option(mode, item[0]):
-                self.fobos.set(mode, item[0], item[1])
+    if not self.fobos:
+      return
+
+    def _template_names(section):
+      if self.fobos.has_option(section, 'template'):
+        return self.fobos.get(section, 'template').split()
+      return []
+
+    def _resolve(section, visiting):
+      """Return ordered list of template names to apply for section."""
+      if section in visiting:
+        self.print_w('Error: circular template reference detected involving "' + section + '"')
+        sys.exit(1)
+      visiting = visiting | {section}
+      resolved = []
+      for name in _template_names(section):
+        if not self.fobos.has_section(name):
+          self.print_w('Error: mode "' + section + '" uses template "' + name + '" that is NOT defined')
+          sys.exit(1)
+        if name not in resolved:
+          resolved.append(name)
+        for sub in _resolve(name, visiting):
+          if sub not in resolved:
+            resolved.append(sub)
+      return resolved
+
+    for section in self.fobos.sections():
+      if not self.fobos.has_option(section, 'template'):
+        continue
+      for template in _resolve(section, set()):
+        for item in self.fobos.items(template):
+          if item[0] == 'template':
+            continue
+          if not self.fobos.has_option(section, item[0]):
+            self.fobos.set(section, item[0], item[1])
     return
 
   def _get_local_variables(self):

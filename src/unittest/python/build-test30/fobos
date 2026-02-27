@@ -1,0 +1,25 @@
+[common-variables]
+$cflags = -c
+
+[default]
+template  = template-gnu
+target    = main.f90
+output    = build-test30
+
+[template-gnu]
+template  = template-base
+compiler  = Gnu
+
+[template-base]
+cflags    = $cflags
+mod_dir   = ./mod/
+obj_dir   = ./obj/
+build_dir = ./
+src       = ./src/
+colors    = True
+quiet     = False
+
+[rule-finalize]
+help  = Rule for preparing the next test
+quiet = True
+rule  = echo ""

@@ -1,0 +1,21 @@
+[default]
+template  = template-a
+compiler  = Gnu
+cflags    = -c
+build_dir = ./
+src       = ./src/
+target    = main.f90
+output    = circular-test
+
+[template-a]
+template  = template-b
+mod_dir   = ./mod/
+
+[template-b]
+template  = template-a
+obj_dir   = ./obj/
+
+[rule-finalize]
+help  = Rule for preparing the next test
+quiet = True
+rule  = echo ""
