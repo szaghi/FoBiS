@@ -155,24 +155,31 @@ class Fetcher(object):
 
   def save_config(self, deps_info):
     """
-    Write the deps config file with dependon entries for use by FoBiS.py build.
+    Write the deps config file for use by FoBiS.py build.
+
+    Deps with use='fobos' are written as 'dependon' entries (library approach).
+    Deps with use='sources' (default) are written as 'src' entries (direct source inclusion).
 
     Parameters
     ----------
     deps_info : list
-      list of dicts with keys 'name', 'path', 'mode'
+      list of dicts with keys 'name', 'path', 'mode', 'use'
     """
     config = configparser.RawConfigParser()
     config.add_section('deps')
     dependon_entries = []
+    src_entries = []
     for dep in deps_info:
-      fobos_path = os.path.join(dep['path'], 'fobos')
-      if dep.get('mode'):
-        entry = fobos_path + ':' + dep['mode']
+      if dep.get('use', 'sources') == 'fobos':
+        fobos_path = os.path.join(dep['path'], 'fobos')
+        entry = fobos_path + ':' + dep['mode'] if dep.get('mode') else fobos_path
+        dependon_entries.append(entry)
       else:
-        entry = fobos_path
-      dependon_entries.append(entry)
-    config.set('deps', 'dependon', ' '.join(dependon_entries))
+        src_entries.append(dep['path'])
+    if dependon_entries:
+      config.set('deps', 'dependon', ' '.join(dependon_entries))
+    if src_entries:
+      config.set('deps', 'src', ' '.join(src_entries))
     config_path = os.path.join(self.deps_dir, self.DEPS_CONFIG_FILE)
     with open(config_path, 'w') as cfg_file:
       config.write(cfg_file)
@@ -326,19 +333,23 @@ class Fetcher(object):
 
   def load_config(self):
     """
-    Read the deps config file and return list of dependon strings.
+    Read the deps config file and return a dict with 'dependon' and 'src' lists.
 
     Returns
     -------
-    list
-      list of dependon entry strings (e.g. ['.fobis_deps/mylib/fobos:gnu'])
+    dict
+      'dependon' : list of fobos-path strings for use=fobos deps
+      'src'      : list of directory paths for use=sources deps
+      either key is absent when no entries of that type exist
     """
     config_path = os.path.join(self.deps_dir, self.DEPS_CONFIG_FILE)
     if not os.path.exists(config_path):
-      return []
+      return {}
     config = configparser.RawConfigParser()
     config.read(config_path)
+    result = {}
     if config.has_option('deps', 'dependon'):
-      value = config.get('deps', 'dependon')
-      return value.split()
-    return []
+      result['dependon'] = config.get('deps', 'dependon').split()
+    if config.has_option('deps', 'src'):
+      result['src'] = config.get('deps', 'src').split()
+    return result

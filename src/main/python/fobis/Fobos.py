@@ -476,6 +476,25 @@ class Fobos(object):
         deps[name] = spec
     return deps
 
+  def get_deps_dir(self, default='.fobis_deps'):
+    """
+    Read deps_dir from [dependencies] section of fobos.
+
+    Parameters
+    ----------
+    default : str
+      value returned when the option is absent [default: '.fobis_deps']
+
+    Returns
+    -------
+    str
+      deps_dir value from fobos, or default if not set
+    """
+    if self.fobos and self.fobos.has_section('dependencies'):
+      if self.fobos.has_option('dependencies', 'deps_dir'):
+        return self.fobos.get('dependencies', 'deps_dir').strip()
+    return default
+
   def rules_list(self, quiet=False):
     """
     Function for listing defined rules.

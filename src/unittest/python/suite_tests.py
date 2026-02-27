@@ -5,10 +5,12 @@ from __future__ import print_function
 import filecmp
 import os
 import subprocess
+import tempfile
 import unittest
 import sys
 sys.path.append("../../main/python/")
 from fobis.fobis import run_fobis
+from fobis.Fetcher import Fetcher
 
 
 try:
@@ -201,7 +203,7 @@ class SuiteTest(unittest.TestCase):
       print('List of FAILED build-tests')
       for fail in failed:
         print(fail)
-    self.assertEquals(num_failures, 0)
+    self.assertEqual(num_failures, 0)
     return
 
   def test_cleanings(self):
@@ -224,7 +226,7 @@ class SuiteTest(unittest.TestCase):
     if len(failed) > 0:
       for fail in failed:
         print(fail)
-    self.assertEquals(num_failures, 0)
+    self.assertEqual(num_failures, 0)
     return
 
   def test_makefile(self):
@@ -247,7 +249,7 @@ class SuiteTest(unittest.TestCase):
     if len(failed) > 0:
       for fail in failed:
         print("Error: Test " + fail + " failed!")
-    self.assertEquals(num_failures, 0)
+    self.assertEqual(num_failures, 0)
     return
 
   def test_installs(self):
@@ -270,7 +272,7 @@ class SuiteTest(unittest.TestCase):
     if len(failed) > 0:
       for fail in failed:
         print(fail)
-    self.assertEquals(num_failures, 0)
+    self.assertEqual(num_failures, 0)
     return
 
   def test_doctests(self):
@@ -293,7 +295,7 @@ class SuiteTest(unittest.TestCase):
     if len(failed) > 0:
       for fail in failed:
         print(fail)
-    self.assertEquals(num_failures, 0)
+    self.assertEqual(num_failures, 0)
     return
 
   def test_template_circular_detection(self):
@@ -308,6 +310,78 @@ class SuiteTest(unittest.TestCase):
     finally:
       os.chdir(old_pwd)
     self.assertTrue(circular_detected)
+
+  def test_fetch_dep_modes(self):
+    """Test fetch dependency use=sources and use=fobos integration modes."""
+
+    # --- Unit tests: save_config / load_config format ---
+
+    # use=sources dep goes to 'src' key; use=fobos dep goes to 'dependon' key
+    with tempfile.TemporaryDirectory() as tmpdir:
+      fetcher = Fetcher(deps_dir=tmpdir)
+      deps_info = [
+        {'name': 'src_dep',   'path': '/fake/src_dep',   'mode': '',    'use': 'sources'},
+        {'name': 'fobos_dep', 'path': '/fake/fobos_dep', 'mode': 'gnu', 'use': 'fobos'},
+      ]
+      fetcher.save_config(deps_info)
+      cfg = fetcher.load_config()
+      self.assertIn('src', cfg, 'use=sources dep must appear under src key')
+      self.assertIn('/fake/src_dep', cfg['src'])
+      self.assertNotIn('/fake/src_dep', ' '.join(cfg.get('dependon', [])))
+      self.assertIn('dependon', cfg, 'use=fobos dep must appear under dependon key')
+      self.assertTrue(any('/fake/fobos_dep/fobos:gnu' in e for e in cfg['dependon']))
+      self.assertNotIn('/fake/fobos_dep', cfg.get('src', []))
+
+    # use=sources is the default when 'use' key is absent (treated as 'sources')
+    with tempfile.TemporaryDirectory() as tmpdir:
+      fetcher = Fetcher(deps_dir=tmpdir)
+      deps_info = [
+        {'name': 'default_dep', 'path': '/fake/default', 'mode': '', 'use': 'sources'},
+      ]
+      fetcher.save_config(deps_info)
+      cfg = fetcher.load_config()
+      self.assertIn('src', cfg, 'default use should produce src key')
+      self.assertNotIn('dependon', cfg, 'default use must not produce dependon key')
+
+    # use=fobos dep without a mode: no colon suffix in fobos path
+    with tempfile.TemporaryDirectory() as tmpdir:
+      fetcher = Fetcher(deps_dir=tmpdir)
+      deps_info = [
+        {'name': 'fobos_dep', 'path': '/fake/fobos_dep', 'mode': '', 'use': 'fobos'},
+      ]
+      fetcher.save_config(deps_info)
+      cfg = fetcher.load_config()
+      self.assertIn('dependon', cfg)
+      self.assertEqual(cfg['dependon'], ['/fake/fobos_dep/fobos'])
+
+    # load_config on empty / missing file returns empty dict
+    with tempfile.TemporaryDirectory() as tmpdir:
+      fetcher = Fetcher(deps_dir=tmpdir)
+      cfg = fetcher.load_config()
+      self.assertEqual(cfg, {})
+
+    # --- Integration tests ---
+
+    num_failures = 0
+    failed = []
+    passed = []
+
+    for test in range(4):
+      build_ok = self.run_build('fetch-dep-test' + str(test + 1))
+      if build_ok:
+        passed.append('PASSED fetch-dep-test' + str(test + 1))
+      else:
+        failed.append('FAILED fetch-dep-test' + str(test + 1))
+        num_failures += 1
+
+    print('List of PASSED fetch-dep-tests')
+    for pas in passed:
+      print(pas)
+    if len(failed) > 0:
+      print('List of FAILED fetch-dep-tests')
+      for fail in failed:
+        print(fail)
+    self.assertEqual(num_failures, 0)
 
   def test_rules(self):
     """Test rules."""
@@ -329,7 +403,7 @@ class SuiteTest(unittest.TestCase):
     if len(failed) > 0:
       for fail in failed:
         print(fail)
-    self.assertEquals(num_failures, 0)
+    self.assertEqual(num_failures, 0)
     return
 
 
