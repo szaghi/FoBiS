@@ -121,6 +121,10 @@ class Fetcher(object):
       result = syswork('git -C ' + dep_dir + ' checkout ' + ref)
       if result[0] != 0:
         self.print_w('Error checking out ' + ref + ' for ' + name + ':\n' + result[1])
+    elif update:
+      result = syswork('git -C ' + dep_dir + ' merge --ff-only')
+      if result[0] != 0:
+        self.print_w('Error merging updates for ' + name + ':\n' + result[1])
     return dep_dir
 
   def build_dep(self, name, dep_dir, mode=None):

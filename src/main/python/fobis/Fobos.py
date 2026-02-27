@@ -473,6 +473,8 @@ class Fobos(object):
     deps = {}
     if self.fobos and self.fobos.has_section('dependencies'):
       for name, spec in self.fobos.items('dependencies'):
+        if name == 'deps_dir':
+          continue
         deps[name] = spec
     return deps
 
