@@ -371,10 +371,10 @@ class Fobos(object):
     dict
       dict with keys 'name' (str), 'authors' (list of str),
       'version' (str, raw value as written in fobos — not resolved),
-      and 'summary' (str).
+      'summary' (str), and 'repository' (str).
       All values are empty/empty-list if the section or option is absent.
     """
-    info = {'name': '', 'authors': [], 'version': '', 'summary': ''}
+    info = {'name': '', 'authors': [], 'version': '', 'summary': '', 'repository': ''}
     if self.fobos and self.fobos.has_section('project'):
       if self.fobos.has_option('project', 'name'):
         info['name'] = self.fobos.get('project', 'name').strip()
@@ -385,6 +385,8 @@ class Fobos(object):
         info['version'] = self.fobos.get('project', 'version').strip()
       if self.fobos.has_option('project', 'summary'):
         info['summary'] = self.fobos.get('project', 'summary').strip()
+      if self.fobos.has_option('project', 'repository'):
+        info['repository'] = self.fobos.get('project', 'repository').strip()
     return info
 
   def get_version(self):
