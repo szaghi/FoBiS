@@ -1,0 +1,19 @@
+[default]
+compiler  = gnu
+cflags    = -c
+build_dir = ./
+obj_dir   = ./obj/
+mod_dir   = ./mod/
+src       = ./src/
+mklib     = static
+build_all = True
+output    = build-test31
+ar        = ar
+arflags   = -rcs
+ranlib    = ranlib
+
+[rule-finalize]
+help  = Rule for preparing the next test
+quiet = True
+rule-1 = rm -f build-test31
+rule-2 = rm -f *.log

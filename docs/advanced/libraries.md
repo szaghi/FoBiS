@@ -44,6 +44,44 @@ lib_dir  = /path/to/libs/
 include  = /path/to/libs/mod/
 ```
 
+## Custom archiver and ranlib
+
+By default FoBiS.py uses the system `ar -rcs` to create static libraries and `ranlib` to index them. Alternative toolchains — LLVM (`llvm-ar`, `llvm-ranlib`), Intel, AMD AOCC, cross-compilation environments — can be selected with three options:
+
+| Option | Default | Description |
+|---|---|---|
+| `-ar AR` | `ar` | Archiver executable |
+| `-arflags ARFLAGS` | `-rcs` | Archiver flags |
+| `-ranlib RANLIB` | `ranlib` | Ranlib executable; set to empty string to skip |
+
+### LLVM toolchain example
+
+```bash
+fobis build -t src/mylib.f90 -mklib static -ar llvm-ar -ranlib llvm-ranlib
+```
+
+`llvm-ar` updates the symbol table internally, so the ranlib step can be skipped entirely:
+
+```bash
+fobis build -t src/mylib.f90 -mklib static -ar llvm-ar -ranlib ""
+```
+
+### fobos example
+
+```ini
+[llvm-static]
+compiler = custom
+fc       = flang-new
+ar       = llvm-ar
+ranlib   = llvm-ranlib
+mklib    = static
+target   = src/mylib.f90
+output   = libmylib.a
+build_dir = ./build/
+obj_dir   = ./obj/
+mod_dir   = ./mod/
+```
+
 ## Volatile libraries
 
 Libraries that may change between builds (e.g. CI-generated artifacts) can be declared as *volatile*. FoBiS.py saves an MD5 hash on first use and forces a full recompile whenever the library file changes.

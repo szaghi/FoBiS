@@ -88,6 +88,9 @@ All CLI options accepted by `build` and `clean` are available in a fobos mode se
 | `ext_vlibs` | Volatile external libraries (by name) |
 | `dependon` | Interdependent external fobos files |
 | `mklib` | Build a library: `static` or `shared` |
+| `ar` | Archiver executable for static libraries (default: `ar`) |
+| `arflags` | Archiver flags (default: `-rcs`) |
+| `ranlib` | Ranlib executable; set to empty string to skip (default: `ranlib`) |
 | `mpi` | Enable MPI compiler variant |
 | `openmp` | Enable OpenMP |
 | `coarray` | Enable coarrays |
