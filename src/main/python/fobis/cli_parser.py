@@ -64,6 +64,9 @@ def _subparser_compiler(clean=False):
   parser_group.add_argument('-coverage', required=False, action='store_true', default=False, help='Instrument the built code with coverage analysis tools [default False]')
   parser_group.add_argument('-profile', required=False, action='store_true', default=False, help='Instrument the built code with profiling analysis tools [default False]')
   parser_group.add_argument('-mklib', required=False, action='store', default=None, choices=('static', 'shared'), help='Target library instead of program (use with -target switch)')
+  parser_group.add_argument('-ar', required=False, action='store', default='ar', help='Archiver executable used for building static libraries [default: ar]')
+  parser_group.add_argument('-arflags', required=False, action='store', default='-rcs', help='Archiver flags used for building static libraries [default: -rcs]')
+  parser_group.add_argument('-ranlib', required=False, action='store', default='ranlib', help='Ranlib executable for indexing static libraries; set to empty string to skip [default: ranlib]')
   parser_group.add_argument('-ch', '--cflags_heritage', required=False, action='store_true', default=False, help='Store cflags as a heritage for the next build: if cflags change re-compile all')
   parser_group.add_argument('-tb', '--track_build', required=False, action='store_true', default=False, help='Store build infos for the next install command')
   return parser

@@ -22,6 +22,9 @@ FoBiS.py build [options]
 | `-coverage` | Coverage instrumentation |
 | `-profile` | Profiling instrumentation |
 | `-mklib {static,shared}` | Build a library instead of a program (use with `-t`) |
+| `-ar AR` | Archiver executable for static libraries (default: `ar`) |
+| `-arflags ARFLAGS` | Archiver flags (default: `-rcs`) |
+| `-ranlib RANLIB` | Ranlib executable for indexing static libraries (default: `ranlib`); set to empty string to skip |
 | `-ch`, `--cflags_heritage` | Track flag changes; force full rebuild when they differ |
 | `-tb`, `--track_build` | Save build info for use by `install` |
 
@@ -102,6 +105,12 @@ FoBiS.py build -t src/solver.f90 -o solver
 
 # Build a static library
 FoBiS.py build -t src/mylib.f90 -mklib static -o libmylib.a
+
+# Build a static library with LLVM tools
+FoBiS.py build -t src/mylib.f90 -mklib static -ar llvm-ar -ranlib llvm-ranlib
+
+# Build a static library skipping ranlib (llvm-ar updates the symbol table itself)
+FoBiS.py build -t src/mylib.f90 -mklib static -ar llvm-ar -ranlib ""
 
 # Use a fobos file and a specific mode
 FoBiS.py build -f project.fobos -mode release

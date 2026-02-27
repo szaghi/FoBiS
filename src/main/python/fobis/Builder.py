@@ -112,6 +112,10 @@ class Builder(object):
                            preprocessor_no_o=cliargs.preprocessor_no_o,
                            preprocessor_args=cliargs.preprocessor_args)
 
+    self.ar = cliargs.ar
+    self.arflags = cliargs.arflags
+    self.ranlib = cliargs.ranlib
+
     self.cmd_comp = self.compiler.compile_cmd(mod_dir=self.mod_dir)
     self.cmd_link = self.compiler.link_cmd(mod_dir=self.mod_dir)
     return
@@ -420,7 +424,9 @@ class Builder(object):
       if mklib.lower() == 'shared':
         link_cmd = self.cmd_link + " " + link_cmd + " -o " + lib
       elif mklib.lower() == 'static':
-        link_cmd = "ar -rcs " + lib + " " + link_cmd + " \n ranlib " + lib
+        link_cmd = self.ar + " " + self.arflags + " " + lib + " " + link_cmd
+        if self.ranlib:
+          link_cmd += " \n " + self.ranlib + " " + lib
     return link_cmd, lib
 
   def _get_libs_link_command(self, file_to_build, exclude_programs=False, nomodlibs=None, submodules=None, mklib=None):
@@ -724,6 +730,9 @@ class Builder(object):
       if len(self.ext_vlibs) > 0:
         message += "  Linked volatile libraries in path: " + "".join([s + " " for s in self.ext_vlibs]) + "\n"
       message += self.compiler.pprint(prefix='  ')
+      message += "  Archiver: " + self.ar + " " + self.arflags + "\n"
+      if self.ranlib:
+        message += "  Ranlib: " + self.ranlib + "\n"
       message += "  Preprocessor used: " + str(self.preprocessor) + "\n"
       message += "  Preprocessor args: " + str(self.preprocessor_args) + "\n"
       message += "  Preprocessor output directory: " + str(self.preprocessor_dir) + "\n"
