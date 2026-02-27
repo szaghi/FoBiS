@@ -15,6 +15,7 @@ This section covers FoBiS.py's more powerful features for large or complex Fortr
 | [Doctests](/advanced/doctests) | Embed and run micro-tests inside Fortran comments |
 | [GNU Makefile Export](/advanced/makefile) | Export a GNU Makefile from your fobos settings |
 | [Fetch Dependencies](/advanced/fetch) | Clone and build GitHub-hosted Fortran deps |
+| [GitHub Install](/advanced/install) | One-shot install of a GitHub-hosted FoBiS project |
 
 ## When to use advanced features
 
@@ -29,3 +30,4 @@ Most projects only need the basics covered in [Quick Start](/guide/quickstart). 
 - Want lightweight atomic unit tests living next to the code — **Doctests**
 - Need to hand off a GNU Makefile to users without FoBiS.py — **GNU Makefile Export**
 - Want a declarative way to pull in GitHub-hosted Fortran libraries — **Fetch Dependencies**
+- Want to install a single GitHub-hosted FoBiS project in one step — **GitHub Install**

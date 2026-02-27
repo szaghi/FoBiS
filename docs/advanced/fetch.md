@@ -112,6 +112,20 @@ This design means zero changes to the core build engine — `fetch` is a thin la
 | git clone / fetch failure | Error message with git output |
 | Already cloned, no `--update` | Skip with "already fetched" message |
 
+## Relation to `install`
+
+`fetch` and `install` both use `git clone` + FoBiS to handle GitHub-hosted Fortran projects, but serve different purposes:
+
+| | `fobis fetch` | `fobis install <repo>` |
+|---|---|---|
+| Purpose | Declarative multi-dep management | One-shot install of a single project |
+| Configured via | `[dependencies]` in fobos | CLI arguments |
+| Result | Wired into `-dependon` for building | Artifacts copied to `--prefix` |
+
+Use `fetch` when your project **depends on** other FoBiS libraries at build time. Use `install` when you want to install a FoBiS-based tool or library for your own use.
+
+See the [GitHub Install](/advanced/install) advanced guide.
+
 ## Command reference
 
 See [`fetch` command](/reference/fetch) for the full option reference.

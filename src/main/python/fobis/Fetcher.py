@@ -26,6 +26,7 @@ try:
 except ImportError:
   import configparser
 import os
+import shutil
 from .utils import print_fake, syswork
 
 
@@ -176,6 +177,152 @@ class Fetcher(object):
     with open(config_path, 'w') as cfg_file:
       config.write(cfg_file)
     self.print_n('Saved deps config to ' + config_path)
+
+  def _resolve_url(self, repo):
+    """
+    Convert a shorthand repo reference to a full GitHub HTTPS URL.
+
+    Accepts 'user/repo' (GitHub shorthand) or any full URL unchanged.
+
+    Parameters
+    ----------
+    repo : str
+      repository reference
+
+    Returns
+    -------
+    str
+      full git-cloneable URL
+    """
+    if repo.startswith('http://') or repo.startswith('https://') or repo.startswith('git@'):
+      return repo
+    return 'https://github.com/' + repo
+
+  def install_from_github(self, repo, branch=None, tag=None, rev=None, mode=None,
+                          update=False, no_build=False,
+                          prefix='./', bin_dir='bin/', lib_dir='lib/', include_dir='include/'):
+    """
+    Clone, build, and install a GitHub-hosted FoBiS project.
+
+    Parameters
+    ----------
+    repo : str
+      repository reference ('user/repo' shorthand or full URL)
+    branch : {None}
+      branch to check out
+    tag : {None}
+      tag to check out
+    rev : {None}
+      revision/commit to check out
+    mode : {None}
+      fobos mode to use when building
+    update : {False}
+      re-fetch before building
+    no_build : {False}
+      clone only, skip building and installing
+    prefix : str
+      installation prefix directory
+    bin_dir : str
+      sub-directory under prefix for executables
+    lib_dir : str
+      sub-directory under prefix for libraries
+    include_dir : str
+      sub-directory under prefix for module files
+    """
+    url = self._resolve_url(repo)
+    name = url.rstrip('/').split('/')[-1]
+    if name.endswith('.git'):
+      name = name[:-4]
+    dep_dir = self.fetch(name, url, branch=branch, tag=tag, rev=rev, update=update)
+    if no_build:
+      self.print_n('Cloned ' + name + ' to ' + dep_dir + ' (--no-build: skipping build and install)')
+      return
+    self._build_dep_tracked(name, dep_dir, mode=mode)
+    self._install_artifacts(dep_dir, prefix, bin_dir, lib_dir, include_dir)
+
+  def _build_dep_tracked(self, name, dep_dir, mode=None):
+    """
+    Build a dependency using 'fobis build --track_build'.
+
+    Parameters
+    ----------
+    name : str
+      dependency name (for messages)
+    dep_dir : str
+      path to the dependency directory
+    mode : {None}
+      fobos mode to use for building
+    """
+    fobos_file = os.path.join(dep_dir, 'fobos')
+    if not os.path.exists(fobos_file):
+      self.print_w('Error: "' + name + '" has no fobos file in ' + dep_dir)
+      return
+    self.print_n('Building ' + name + ' (with --track_build)')
+    old_pwd = os.getcwd()
+    os.chdir(dep_dir)
+    cmd = 'fobis build --track_build'
+    if mode:
+      cmd += ' -mode ' + mode
+    result = syswork(cmd)
+    os.chdir(old_pwd)
+    if result[0] != 0:
+      self.print_w('Error building ' + name + ':\n' + result[1])
+    else:
+      self.print_n(result[1])
+
+  def _install_artifacts(self, dep_dir, prefix, bin_dir, lib_dir, include_dir):
+    """
+    Scan dep_dir for .track_build files and copy artifacts to the prefix.
+
+    Parameters
+    ----------
+    dep_dir : str
+      root of the cloned dependency
+    prefix : str
+      installation prefix
+    bin_dir : str
+      sub-directory under prefix for executables
+    lib_dir : str
+      sub-directory under prefix for libraries
+    include_dir : str
+      sub-directory under prefix for module/include files
+    """
+    installed_any = False
+    for root, _, files in os.walk(dep_dir):
+      for filename in files:
+        if not filename.endswith('.track_build'):
+          continue
+        track_file = configparser.ConfigParser()
+        track_file.read(os.path.join(root, filename))
+        if not track_file.has_option('build', 'output'):
+          continue
+        output = track_file.get('build', 'output')
+        if not os.path.exists(output):
+          continue
+        is_program = (track_file.has_option('build', 'program') and
+                      track_file.get('build', 'program'))
+        is_library = (track_file.has_option('build', 'library') and
+                      track_file.get('build', 'library'))
+        if is_program:
+          dest = os.path.join(prefix, bin_dir)
+          os.makedirs(dest, exist_ok=True)
+          self.print_n('Installing "' + output + '" -> "' + dest + '"')
+          shutil.copy(output, dest)
+          installed_any = True
+        if is_library:
+          dest = os.path.join(prefix, lib_dir)
+          os.makedirs(dest, exist_ok=True)
+          self.print_n('Installing "' + output + '" -> "' + dest + '"')
+          shutil.copy(output, dest)
+          installed_any = True
+          if track_file.has_option('build', 'mod_file'):
+            mod_file = track_file.get('build', 'mod_file')
+            inc_dest = os.path.join(prefix, include_dir)
+            os.makedirs(inc_dest, exist_ok=True)
+            self.print_n('Installing "' + mod_file + '" -> "' + inc_dest + '"')
+            shutil.copy(mod_file, inc_dest)
+    if not installed_any:
+      self.print_w('No installable artifacts found. Ensure the project fobos uses --track_build or check the fobos mode.')
 
   def load_config(self):
     """
