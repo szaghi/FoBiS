@@ -101,6 +101,34 @@ All CLI options accepted by `build` and `clean` are available in a fobos mode se
 | `log` | Write build log file |
 | `cflags_heritage` | Track flag changes and force rebuild on change |
 
+## Special sections
+
+Beyond the mode sections, a fobos file can contain several top-level sections with fixed names:
+
+| Section | Purpose | Documentation |
+|---|---|---|
+| `[modes]` | Lists the available named mode sections | [Many-mode fobos](/fobos/many-modes) |
+| `[project]` | Project metadata: name, version, authors, … | [Project metadata](/fobos/project) |
+| `[dependencies]` | GitHub-hosted build dependencies | [Fetch Dependencies](/advanced/fetch) |
+| `[rule-NAME]` | Custom shell-command rules | [Rules](/fobos/rules) |
+
+### `[dependencies]` section
+
+Declares GitHub-hosted dependencies. Each entry maps a short name to a repository spec:
+
+```ini
+[dependencies]
+deps_dir = .fobis_deps          # optional: where to clone deps (same as --deps-dir)
+penf     = https://github.com/szaghi/PENF :: tag=v1.5.0
+stdlib   = https://github.com/fortran-lang/stdlib :: tag=v0.5.0 :: use=fobos :: mode=gnu
+```
+
+The `use=` field selects the integration mode:
+- **`sources`** (default) — dependency sources are compiled inline with your project
+- **`fobos`** — dependency is built as a separate library and linked
+
+See [Fetch Dependencies](/advanced/fetch) for the full syntax and workflow.
+
 ## Comments
 
 Lines beginning with `#` are ignored:
@@ -121,3 +149,4 @@ cflags   = -c -O2
 - [Rules](/fobos/rules) — custom task automation (documentation, archives, …)
 - [Intrinsic rules](/fobos/intrinsic-rules) — built-in automation rules
 - [Project metadata](/fobos/project) — `[project]` section: name, version, authors, and more
+- [Fetch Dependencies](/advanced/fetch) — `[dependencies]` section: GitHub-hosted build dependencies

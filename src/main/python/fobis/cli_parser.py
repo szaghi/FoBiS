@@ -352,8 +352,8 @@ def _parser_fetch(clisubparsers):
   fobos = _subparser_fobos()
   fancy = _subparser_fancy()
   fetchparser = clisubparsers.add_parser('fetch', help='Fetch and build GitHub-hosted Fortran dependencies listed in the fobos [dependencies] section', parents=[fobos, fancy])
-  fetchparser.add_argument('--deps-dir', required=False, action='store', default='.fobis_deps',
-                           help='Directory for storing fetched dependencies [default: .fobis_deps]')
+  fetchparser.add_argument('--deps-dir', required=False, action='store', default=None,
+                           help='Directory for storing fetched dependencies [default: .fobis_deps, or deps_dir from fobos [dependencies] section]')
   fetchparser.add_argument('--update', required=False, action='store_true', default=False,
                            help='Update already fetched dependencies (git fetch + re-checkout)')
   fetchparser.add_argument('--no-build', required=False, action='store_true', default=False,

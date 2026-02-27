@@ -93,8 +93,9 @@ def run_fobis_fetch(configuration):
   configuration : FoBiSConfig()
   """
   from .Fetcher import Fetcher
+  deps_dir = configuration.cliargs.deps_dir or configuration.fobos.get_deps_dir()
   fetcher = Fetcher(
-    deps_dir=configuration.cliargs.deps_dir,
+    deps_dir=deps_dir,
     print_n=configuration.print_b,
     print_w=configuration.print_r)
   deps = configuration.fobos.get_dependencies()
@@ -104,6 +105,7 @@ def run_fobis_fetch(configuration):
   deps_info = []
   for name, spec in deps.items():
     parsed = fetcher.parse_dep_spec(spec)
+    use_mode = parsed.get('use', 'sources')
     dep_path = fetcher.fetch(
       name,
       parsed['url'],
@@ -111,9 +113,9 @@ def run_fobis_fetch(configuration):
       tag=parsed.get('tag'),
       rev=parsed.get('rev'),
       update=configuration.cliargs.update)
-    if not configuration.cliargs.no_build:
+    if not configuration.cliargs.no_build and use_mode == 'fobos':
       fetcher.build_dep(name, dep_path, mode=parsed.get('mode'))
-    deps_info.append({'name': name, 'path': dep_path, 'mode': parsed.get('mode', '')})
+    deps_info.append({'name': name, 'path': dep_path, 'mode': parsed.get('mode', ''), 'use': use_mode})
   fetcher.save_config(deps_info)
 
 
@@ -216,7 +218,6 @@ def run_fobis_install(configuration):
   """
   if configuration.cliargs.repo:
     from .Fetcher import Fetcher
-    import os
     deps_dir = configuration.cliargs.deps_dir or os.path.join(os.path.expanduser('~'), '.fobis')
     fetcher = Fetcher(
       deps_dir=deps_dir,

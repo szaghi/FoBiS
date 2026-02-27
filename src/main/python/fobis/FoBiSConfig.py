@@ -148,13 +148,23 @@ class FoBiSConfig(object):
     picks them up automatically.
     """
     if self.cliargs.which == 'build':
-      config_file = os.path.join('.fobis_deps', '.deps_config.ini')
+      deps_dir = self.fobos.get_deps_dir()
+      config_file = os.path.join(deps_dir, '.deps_config.ini')
       if os.path.exists(config_file):
         from .Fetcher import Fetcher
-        fetcher = Fetcher(deps_dir='.fobis_deps', print_n=self.print_b, print_w=self.print_r)
-        extra_dependon = fetcher.load_config()
-        if extra_dependon:
-          self.cliargs.dependon.extend(extra_dependon)
+        fetcher = Fetcher(deps_dir=deps_dir, print_n=self.print_b, print_w=self.print_r)
+        config = fetcher.load_config()
+        if config.get('dependon'):
+          self.cliargs.dependon.extend(config['dependon'])
+          for entry in config['dependon']:
+            dep_dir = os.path.normpath(os.path.dirname(entry.split(':')[0]))
+            if dep_dir not in self.cliargs.exclude_dirs:
+              self.cliargs.exclude_dirs.append(dep_dir)
+        if config.get('src'):
+          for src_path in config['src']:
+            abs_src = os.path.abspath(src_path)
+            if not any(abs_src.startswith(os.path.abspath(s)) for s in self.cliargs.src):
+              self.cliargs.src.append(src_path)
 
   @staticmethod
   def _check_md5sum(filename, hashfile):

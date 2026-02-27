@@ -1,0 +1,14 @@
+[default]
+compiler  = gnu
+cflags    = -c
+mod_dir   = ./mod/
+obj_dir   = ./obj/
+build_dir = ./
+src       = ./
+target    = main.f90
+output    = fetch-dep-test2
+
+[rule-finalize]
+help  = Clean up after test
+quiet = True
+rule-1 = echo "fetch-dep-test2 done"
