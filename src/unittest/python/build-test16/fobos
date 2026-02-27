@@ -13,4 +13,5 @@ disable_recursive_search = True
 [rule-finalize]
 help  = Rule for preparing the next test
 quiet = True
-rule  = rm -f build-test16*
+rule-1 = rm -f build-test16*
+rule-2 = rm -f *.log
