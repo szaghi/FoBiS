@@ -441,7 +441,12 @@ def build_submodules(configuration, pfiles, builder):
       build_ok = builder.build(file_to_build=pfile, verbose=configuration.cliargs.verbose, log=configuration.cliargs.log)
       if build_ok:
         submodules.append(pfile.basename + ".o")
-  return submodules
+        # Also include transitive module dependencies of this submodule.
+        # Modules used exclusively by submodule files are not reachable from the
+        # main program's module dependency graph and would otherwise be compiled
+        # but never added to the link command.
+        submodules += pfile.obj_dependencies(exclude_programs=True)
+  return list(set(submodules))
 
 
 def test_doctests(configuration, doctests, pfiles, nomodlibs, builder):
