@@ -41,13 +41,13 @@ jobs:
       run: |
         cd release
         cd $(ls -d FoBiS-*)
-        python setup.py install
+        pip install .
     - name: Test install package on Windows
       if: startsWith(runner.os, 'Windows')
       run: |
         cd release
         cd $(ls -Directory FoBiS-*)
-        python setup.py install
+        pip install .
     - name: Test fobis entry point
       run: |
         python --version
