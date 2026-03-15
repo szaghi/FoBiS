@@ -8,45 +8,40 @@ FoBiS.py doctests [options]
 
 The `doctests` command accepts the same compiler, directory, file, fobos, and preprocessor options as [`build`](/reference/build), plus the doctest-specific options listed below.
 
-## Doctest-specific file options
+## Doctest-specific options
 
 | Option | Description |
 |---|---|
-| `-keep_volatile_doctests` | Keep generated test programs after execution (useful for debugging) |
-| `--exclude_from_doctests FILE…` | Exclude specific source files from doctest scanning |
-
-## Preprocessor options
-
-| Option | Description |
-|---|---|
-| `-doctests_preprocessor {cpp,fpp}` | Preprocessor used when parsing doctest sources (default: `cpp`) |
+| `--keep-volatile-doctests` | Keep generated test programs after execution (useful for debugging) |
+| `--exclude-from-doctests FILE…` | Exclude specific source files from doctest scanning (repeatable) |
+| `--doctests-preprocessor {cpp,fpp}` | Preprocessor used when parsing doctest sources (default: `cpp`) — tab-completable |
 
 ## Compiler options
 
-Same as [`build`](/reference/build#compiler-options): `-compiler`, `-fc`, `-cflags`, `-lflags`, `-modsw`, `-mpi`, `-openmp`, etc.
+Same as [`build`](/reference/build#compiler-options): `--compiler`, `--fc`, `--cflags`, `--lflags`, `--modsw`, `--mpi`, `--openmp`, etc.
 
 ## Directory options
 
-Same as [`build`](/reference/build#directory-options): `-s`, `-dbld`, `-dobj`, `-dmod`, `-dlib`, `-i`, `-ed`, `-drs`.
+Same as [`build`](/reference/build#directory-options): `-s`, `--build-dir`, `--obj-dir`, `--mod-dir`, `--lib-dir`, `-i`, `--exclude-dirs`, `--drs`.
 
 ## fobos options
 
 | Option | Description |
 |---|---|
 | `-f`, `--fobos` | Specify a fobos file |
-| `-fci`, `--fobos_case_insensitive` | Case-insensitive parsing |
-| `-mode` | Select a fobos mode |
-| `-lmodes` | List available modes |
-| `--print_fobos_template` | Print a fobos template |
+| `--fci`, `--fobos-case-insensitive` | Case-insensitive parsing |
+| `--mode` | Select a fobos mode — tab-completable from the active fobos file |
+| `--lmodes` | List available modes |
+| `--print-fobos-template` | Print a fobos template |
 
 ## Fancy options
 
 | Option | Description |
 |---|---|
-| `-colors` | Coloured terminal output |
+| `--colors` | Coloured terminal output |
 | `-l`, `--log` | Write a log file |
 | `-q`, `--quiet` | Less verbose output |
-| `-verbose` | Maximum verbosity |
+| `--verbose` | Maximum verbosity |
 | `-j`, `--jobs` | Parallel compile jobs |
 
 ## Examples
@@ -56,16 +51,16 @@ Same as [`build`](/reference/build#directory-options): `-s`, `-dbld`, `-dobj`, `
 FoBiS.py doctests
 
 # Run doctests using a fobos mode
-FoBiS.py doctests -f project.fobos -mode gnu
+FoBiS.py doctests -f project.fobos --mode gnu
 
 # Keep volatile test programs for inspection
-FoBiS.py doctests -keep_volatile_doctests
+FoBiS.py doctests --keep-volatile-doctests
 
 # Exclude a file from doctest scanning
-FoBiS.py doctests --exclude_from_doctests src/legacy.f90
+FoBiS.py doctests --exclude-from-doctests src/legacy.f90
 
 # Store doctests build output under ./build/
-FoBiS.py doctests -dbld ./build/
+FoBiS.py doctests --build-dir ./build/
 ```
 
 ## Doctest syntax

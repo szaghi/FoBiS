@@ -8,7 +8,7 @@ fobis install [repo] [options]
 
 The `install` command has two modes:
 
-- **Local install** (no `repo` argument): copies artifacts that were built with `--track_build` to a prefix directory.
+- **Local install** (no `repo` argument): copies artifacts that were built with `--track-build` to a prefix directory.
 - **GitHub install** (`repo` argument given): clones a GitHub-hosted FoBiS project, builds it, and installs the artifacts — all in a single command.
 
 ## GitHub install options
@@ -17,7 +17,7 @@ These options are only relevant when a `repo` is provided.
 
 | Option | Default | Description |
 |---|---|---|
-| `repo` | *(none)* | GitHub repository — `user/repo` shorthand or full HTTPS/SSH URL |
+| `repo` | *(none)* | GitHub repository — `user/repo` shorthand or full HTTPS URL |
 | `--branch BRANCH` | `None` | Check out a specific branch |
 | `--tag TAG` | `None` | Check out a specific tag |
 | `--rev REV` | `None` | Check out a specific commit SHA |
@@ -39,19 +39,19 @@ These options are only relevant when a `repo` is provided.
 | Option | Description |
 |---|---|
 | `-f`, `--fobos` | Specify a fobos file |
-| `-fci`, `--fobos_case_insensitive` | Case-insensitive fobos parsing |
-| `-mode` | Select a fobos mode |
-| `-lmodes` | List available modes and exit |
-| `--print_fobos_template` | Print a fobos template |
+| `--fci`, `--fobos-case-insensitive` | Case-insensitive fobos parsing |
+| `--mode` | Select a fobos mode — tab-completable from the active fobos file |
+| `--lmodes` | List available modes and exit |
+| `--print-fobos-template` | Print a fobos template |
 
 ## Fancy options
 
 | Option | Description |
 |---|---|
-| `-colors` | Coloured terminal output |
+| `--colors` | Coloured terminal output |
 | `-l`, `--log` | Write a log file |
 | `-q`, `--quiet` | Less verbose output |
-| `-verbose` | Maximum verbosity |
+| `--verbose` | Maximum verbosity |
 
 ## Examples
 
@@ -65,7 +65,7 @@ fobis install szaghi/FLAP
 fobis install szaghi/FLAP --prefix /usr/local/
 
 # Pin to a specific tag and mode
-fobis install szaghi/FLAP --tag v20210301 --prefix ~/.local/ -mode gnu
+fobis install szaghi/FLAP --tag v20210301 --prefix ~/.local/ --mode gnu
 
 # Clone only — inspect before building
 fobis install szaghi/FLAP --no-build
@@ -78,7 +78,7 @@ fobis install https://github.com/szaghi/FLAP --prefix /opt/fortran/
 
 ```bash
 # Build with artifact tracking enabled
-fobis build --track_build
+fobis build --track-build
 
 # Install tracked artifacts to the default prefix (./)
 fobis install
@@ -92,7 +92,7 @@ fobis install --prefix /usr/local/
 1. The `user/repo` shorthand is resolved to `https://github.com/user/repo`; full URLs are used as-is.
 2. The repository is cloned into `<deps-dir>/<repo-name>/` (default: `~/.fobis/<repo-name>/`).
 3. If `--branch`, `--tag`, or `--rev` is given, that revision is checked out.
-4. The dependency is built with `fobis build --track_build` (optionally with `-mode`).
+4. The dependency is built with `fobis build --track-build` (optionally with `--mode`).
 5. The generated `.track_build` files are scanned for artifact paths.
 6. Executables are copied to `<prefix>/<bin>/`, libraries to `<prefix>/<lib>/`, and module files to `<prefix>/<include>/`.
 
@@ -100,6 +100,6 @@ The target repository **must** contain a `fobos` file.
 
 ## How local install works
 
-The local mode reads `.track_build` files produced by a previous `fobis build --track_build` run and copies the recorded artifacts to the prefix. Use `-tb` / `--track_build` on the `build` command to enable this.
+The local mode reads `.track_build` files produced by a previous `fobis build --track-build` run and copies the recorded artifacts to the prefix. Use `--tb` / `--track-build` on the `build` command to enable this.
 
 See the [GitHub Install](/advanced/install) advanced guide for a full workflow walkthrough.

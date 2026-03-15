@@ -21,11 +21,12 @@ export default defineConfig({
       {
         text: 'Guide',
         items: [
-          { text: 'About',        link: '/guide/' },
-          { text: 'Installation', link: '/guide/installation' },
-          { text: 'Quick Start',  link: '/guide/quickstart' },
-          { text: 'Compilers',    link: '/guide/compilers' },
-          { text: 'Changelog',    link: '/guide/changelog' },
+          { text: 'About',             link: '/guide/' },
+          { text: 'Installation',      link: '/guide/installation' },
+          { text: 'Quick Start',       link: '/guide/quickstart' },
+          { text: 'Shell Completion',  link: '/guide/shell-completion' },
+          { text: 'Compilers',         link: '/guide/compilers' },
+          { text: 'Changelog',         link: '/guide/changelog' },
         ],
       },
       { text: 'fobos',     link: '/fobos/' },
@@ -40,9 +41,10 @@ export default defineConfig({
         {
           text: 'Introduction',
           items: [
-            { text: 'About FoBiS.py', link: '/guide/' },
-            { text: 'Installation',   link: '/guide/installation' },
-            { text: 'Quick Start',    link: '/guide/quickstart' },
+            { text: 'About FoBiS.py',    link: '/guide/' },
+            { text: 'Installation',      link: '/guide/installation' },
+            { text: 'Quick Start',       link: '/guide/quickstart' },
+            { text: 'Shell Completion',  link: '/guide/shell-completion' },
           ],
         },
         {

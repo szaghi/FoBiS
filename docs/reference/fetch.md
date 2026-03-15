@@ -21,19 +21,19 @@ After fetching, run `FoBiS.py build` as usual — it automatically picks up the 
 | Option | Description |
 |---|---|
 | `-f`, `--fobos` | Specify a fobos file with a different name or path |
-| `-fci`, `--fobos_case_insensitive` | Case-insensitive fobos option parsing |
-| `-mode` | Select a fobos mode |
-| `-lmodes` | List available modes and exit |
-| `--print_fobos_template` | Print a fobos template |
+| `--fci`, `--fobos-case-insensitive` | Case-insensitive fobos option parsing |
+| `--mode` | Select a fobos mode — tab-completable from the active fobos file |
+| `--lmodes` | List available modes and exit |
+| `--print-fobos-template` | Print a fobos template |
 
 ## Fancy options
 
 | Option | Description |
 |---|---|
-| `-colors` | Coloured terminal output |
+| `--colors` | Coloured terminal output |
 | `-l`, `--log` | Write a log file |
 | `-q`, `--quiet` | Less verbose output |
-| `-verbose` | Maximum verbosity |
+| `--verbose` | Maximum verbosity |
 
 ## fobos `[dependencies]` section
 
@@ -76,7 +76,7 @@ Setting `deps_dir` in the `[dependencies]` section is equivalent to passing `--d
 | `use=` | `fobis fetch` behaviour | `fobis build` behaviour |
 |--------|------------------------|------------------------|
 | `sources` (default) | Clone only, no pre-build | Dep directory added to source scan; sources compiled inline with your project |
-| `fobos` | Clone + `FoBiS.py build` inside dep | Dep fobos path added to `-dependon`; dep dir excluded from source scan; dep library linked |
+| `fobos` | Clone + `FoBiS.py build` inside dep | Dep fobos path added to `--dependon`; dep dir excluded from source scan; dep library linked |
 
 For `use=fobos` the target repository **must** contain a `fobos` file.
 For `use=sources` no `fobos` file is required.
@@ -91,7 +91,7 @@ For `use=sources` no `fobos` file is required.
    - `use=fobos` deps → listed under the `dependon` key
 5. When you run `FoBiS.py build`, it reads `.deps_config.ini`:
    - `src` entries are appended to the source search paths (skipped if already covered)
-   - `dependon` entries are added to `-dependon`, and the dep directory is added to `exclude_dirs` to prevent double-compilation
+   - `dependon` entries are added to `--dependon`, and the dep directory is added to `--exclude-dirs` to prevent double-compilation
 
 ## Workflow
 

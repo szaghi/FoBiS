@@ -1,10 +1,6 @@
 """
-CliParser.py, module definition of FoBiS.py CLI Parser object, an istance of argparse.ArgumentParser.
+cli_parser.py, FoBiS.py CLI definition built with Typer.
 """
-# from __future__ import absolute_import
-# from __future__ import division
-# from __future__ import print_function
-# from __future__ import unicode_literals
 # Copyright (C) 2015  Stefano Zaghi
 #
 # This file is part of FoBiS.py.
@@ -21,375 +17,636 @@ CliParser.py, module definition of FoBiS.py CLI Parser object, an istance of arg
 #
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
-# from future import standard_library
-# standard_library.install_aliases()
-# from builtins import str
-# from builtins import *
 import argparse
+import re
+from typing import List, Optional
+from typing_extensions import Annotated
+import typer
 
+# ---------------------------------------------------------------------------
+# Module-level constants (imported by other modules — do not rename)
+# ---------------------------------------------------------------------------
 __extensions_inc__ = [".inc", ".INC", ".h", ".H"]
 __extensions_old__ = [".f", ".F", ".for", ".FOR", ".fpp", ".FPP", ".fortran", ".f77", ".F77"]
 __extensions_modern__ = [".f90", ".F90", ".f95", ".F95", ".f03", ".F03", ".f08", ".F08", ".f2k", ".F2K"]
 __extensions_parsed__ = __extensions_inc__ + __extensions_old__ + __extensions_modern__
 __compiler_supported__ = ('gnu', 'intel', 'intel_nextgen', 'g95', 'opencoarrays-gnu', 'pgi', 'ibm', 'nag', 'nvfortran', 'amd', 'custom')
 
+# ---------------------------------------------------------------------------
+# Argument normaliser — preserves backward compat with argparse-style options
+# ---------------------------------------------------------------------------
+_MULTI_CHAR_OPT = re.compile(r'^-[A-Za-z][A-Za-z0-9_-]+$')
 
-def _subparser_compiler(clean=False):
+
+def _normalize_args(args):
   """
-  Construct a cli subparser with the compiler group of arguments.
+  Normalise FoBiS legacy single-dash long options for Click/Typer.
 
-  Parameters
-  ----------
-  clean : bool
-    activate the clean parser-specific options
-
-  Returns
-  -------
-  parser : argparse.ArgumentParser()
+  Rules applied to each token:
+  - Single-dash multi-char option (-compiler, -mode, -get_output_name)
+    → double-dash with underscores turned to hyphens (--compiler, --mode, --get-output-name)
+  - Double-dash option with underscores (--build_dir, --cflags_heritage)
+    → double-dash with hyphens (--build-dir, --cflags-heritage)
+  - Single-char short options (-f, -m, -q), values, and negative numbers
+    are left unchanged.
   """
-  parser = argparse.ArgumentParser(add_help=False)
-  parser_group = parser.add_argument_group('compiler')
-  if clean:
-    parser_group.add_argument('-only_obj', required=False, action='store_true', default=False, help='Clean only compiled objects and not also built targets')
-    parser_group.add_argument('-only_target', required=False, action='store_true', default=False, help='Clean only built targets and not also compiled objects')
-  parser_group.add_argument('-compiler', required=False, action='store', default='gnu', type=str.lower, choices=__compiler_supported__, help='Compiler used (value is case insensitive, default gnu)')
-  parser_group.add_argument('-fc', required=False, action='store', default=None, help='Specify the Fortran compiler statement, necessary for custom compiler specification (-compiler Custom)')
-  parser_group.add_argument('-cflags', required=False, action='store', default=None, help='Compile flags')
-  parser_group.add_argument('-lflags', required=False, action='store', default=None, help='Link flags')
-  parser_group.add_argument('-modsw', required=False, action='store', default=None, help='Specify the switch for setting the module searching path, necessary for custom compiler specification (-compiler Custom)')
-  parser_group.add_argument('-mpi', required=False, action='store_true', default=False, help='Use MPI enabled version of compiler')
-  parser_group.add_argument('-openmp', required=False, action='store_true', default=False, help='Use OpenMP pragmas')
-  parser_group.add_argument('-openmp_offload', required=False, action='store_true', default=False, help='Use OpenMP Offload pragmas')
-  parser_group.add_argument('-coarray', required=False, action='store_true', default=False, help='Use coarrays')
-  parser_group.add_argument('-coverage', required=False, action='store_true', default=False, help='Instrument the built code with coverage analysis tools [default False]')
-  parser_group.add_argument('-profile', required=False, action='store_true', default=False, help='Instrument the built code with profiling analysis tools [default False]')
-  parser_group.add_argument('-mklib', required=False, action='store', default=None, choices=('static', 'shared'), help='Target library instead of program (use with -target switch)')
-  parser_group.add_argument('-ar', required=False, action='store', default='ar', help='Archiver executable used for building static libraries [default: ar]')
-  parser_group.add_argument('-arflags', required=False, action='store', default='-rcs', help='Archiver flags used for building static libraries [default: -rcs]')
-  parser_group.add_argument('-ranlib', required=False, action='store', default='ranlib', help='Ranlib executable for indexing static libraries; set to empty string to skip [default: ranlib]')
-  parser_group.add_argument('-ch', '--cflags_heritage', required=False, action='store_true', default=False, help='Store cflags as a heritage for the next build: if cflags change re-compile all')
-  parser_group.add_argument('-tb', '--track_build', required=False, action='store_true', default=False, help='Store build infos for the next install command')
-  return parser
+  result = []
+  for arg in args:
+    if _MULTI_CHAR_OPT.match(arg):
+      # -compiler → --compiler ; -get_output_name → --get-output-name
+      result.append('--' + arg[1:].replace('_', '-'))
+    elif arg.startswith('--') and len(arg) > 2:
+      # --build_dir → --build-dir  (handle optional = form too)
+      if '=' in arg:
+        opt, val = arg[2:].split('=', 1)
+        result.append('--' + opt.replace('_', '-') + '=' + val)
+      else:
+        result.append('--' + arg[2:].replace('_', '-'))
+    else:
+      result.append(arg)
+  return result
+
+# ---------------------------------------------------------------------------
+# Typer application
+# ---------------------------------------------------------------------------
+app = typer.Typer(
+  name='FoBiS.py',
+  help='a Fortran Building System for poor men',
+  no_args_is_help=True,
+  add_completion=True,
+  rich_markup_mode=None,
+)
 
 
-def _subparser_directories(install=False):
-  """
-  Construct a cli subparser with the directories group of arguments.
-
-  Returns
-  -------
-  parser : argparse.ArgumentParser()
-  """
-  parser = argparse.ArgumentParser(add_help=False)
-  parser_group = parser.add_argument_group('directories')
-  if install:
-    parser_group.add_argument('-dbld', '--build_dir', required=False, action='store', default='./', help='Directory containing built objects [default: ./]')
-    parser_group.add_argument('-p', '--prefix', required=False, action='store', default='./', help='Prefix path where built objects are installed')
-    parser_group.add_argument('--bin', required=False, action='store', default='bin/', help='Prefix sub-directory where executable files are installed')
-    parser_group.add_argument('--lib', required=False, action='store', default='lib/', help='Prefix sub-directory where library files are installed')
-    parser_group.add_argument('--include', required=False, action='store', default='include/', help='Prefix sub-directory where include files are installed')
-  else:
-    parser_group.add_argument('-s', '--src', required=False, action='store', nargs='+', default=['./'], help='Root-directory of source files [default: ./]')
-    parser_group.add_argument('-dbld', '--build_dir', required=False, action='store', default='./', help='Directory containing built objects [default: ./]')
-    parser_group.add_argument('-dobj', '--obj_dir', required=False, action='store', default='./obj/', help='Directory containing compiled objects [default: ./obj/]')
-    parser_group.add_argument('-dmod', '--mod_dir', required=False, action='store', default='./mod/', help='Directory containing .mod files of compiled objects [default: ./mod/]')
-    parser_group.add_argument('-dlib', '--lib_dir', required=False, action='store', nargs='+', default=[], help='List of directories searched for libraries [default: None]')
-    parser_group.add_argument('-i', '--include', required=False, action='store', nargs='+', default=[], help='List of directories for searching included files')
-    parser_group.add_argument('-ed', '--exclude_dirs', required=False, action='store', nargs='+', default=[], help='Exclude a list of directories from the building process')
-    parser_group.add_argument('-drs', '--disable_recursive_search', required=False, action='store_true', default=False, help='Disable recursive search inside directories [default False]')
-  return parser
+def _version_callback(value: bool):
+  if value:
+    # lazy import avoids circular dependency
+    from .FoBiSConfig import __version__, __appname__
+    typer.echo(f'{__appname__} {__version__}')
+    raise typer.Exit()
 
 
-def _subparser_files(doctests=False):
-  """
-  Construct a cli subparser with the files group of arguments.
+@app.callback()
+def _app_callback(
+  ctx: typer.Context,
+  version: Annotated[bool, typer.Option(
+    '--version', '-v',
+    help='Show version and exit.',
+    callback=_version_callback,
+    is_eager=True,
+  )] = False,
+):
+  ctx.ensure_object(dict)
 
-  Parameters
-  ----------
-  doctests : bool
-    activate the doctests parser-specific options
+# ---------------------------------------------------------------------------
+# Autocompletion callbacks
+# ---------------------------------------------------------------------------
 
-  Returns
-  -------
-  parser : argparse.ArgumentParser()
-  """
-  parser = argparse.ArgumentParser(add_help=False)
-  parser_group = parser.add_argument_group('files')
-  parser_group.add_argument('-t', '--target', required=False, action='store', default=None, help='Specify a target file [default: all programs found]')
-  parser_group.add_argument('-o', '--output', required=False, action='store', default=None, help='Specify the output file name is used with -target switch [default: basename of target]')
-  parser_group.add_argument('-e', '--exclude', required=False, action='store', nargs='+', default=[], help='Exclude a list of files from the building process')
-  parser_group.add_argument('-libs', required=False, action='store', nargs='+', default=[], help='List of external libraries used that are not into the path: specify with full paths [default: None]')
-  parser_group.add_argument('-vlibs', required=False, action='store', nargs='+', default=[], help='List of external libraries used that are not into the path and that are volatile (can change thus triggering re-building): specify with full paths [default: None]')
-  parser_group.add_argument('-ext_libs', required=False, action='store', nargs='+', default=[], help='List of external libraries used that are into compiler path [default: None]')
-  parser_group.add_argument('-ext_vlibs', required=False, action='store', nargs='+', default=[], help='List of external libraries used that are into compiler path and that are volatile (can change thus triggering re-building) [default: None]')
-  parser_group.add_argument('-dependon', required=False, action='store', nargs='+', default=[], help='List of interdependent external fobos file (and mode) for interdependent building [default: None]')
-  parser_group.add_argument('-inc', required=False, action='store', nargs='+', default=__extensions_inc__, help='List of extensions for include files [default: ' + str(__extensions_inc__) + ']')
-  parser_group.add_argument('-extensions', required=False, action='store', nargs='+', default=__extensions_parsed__, help='List of extensions of parsed files [default: ' + str(__extensions_parsed__) + ']')
-  parser_group.add_argument('-build_all', required=False, action='store_true', default=False, help='Build all sources parsed [default False]')
-  if doctests:
-    parser_group.add_argument('-keep_volatile_doctests', required=False, action='store_true', default=False, help='Keep the volatile doctests programs [default False]')
-    parser_group.add_argument('--exclude_from_doctests', required=False, action='store', nargs='+', default=[], help='Exclude a list of files from the doctests process', metavar='FILE#...')
-  return parser
+def _complete_compiler(incomplete: str):
+  return [c for c in __compiler_supported__ if c.startswith(incomplete.lower())]
 
 
-def _subparser_fobos():
-  """
-  Construct a cli subparser with the fobos group of arguments.
-
-  Returns
-  -------
-  parser : argparse.ArgumentParser()
-  """
-  parser = argparse.ArgumentParser(add_help=False)
-  parser_group = parser.add_argument_group('fobos')
-  parser_group.add_argument('-f', '--fobos', required=False, action='store', default=None, help='Specify a "fobos" file named differently from "fobos"')
-  parser_group.add_argument('-fci', '--fobos_case_insensitive', required=False, action='store_true', default=False, help='Assume fobos inputs as case insensitive [defaul: False, case sensitive]')
-  parser_group.add_argument('-mode', required=False, action='store', default=None, help='Select a mode defined into a fobos file')
-  parser_group.add_argument('-lmodes', required=False, action='store_true', default=False, help='List the modes defined into a fobos file')
-  parser_group.add_argument('--print_fobos_template', required=False, action='store_true', default=False, help='Print a comprehensive fobos template')
-  return parser
+def _complete_mklib(incomplete: str):
+  return [m for m in ('static', 'shared') if m.startswith(incomplete)]
 
 
-def _subparser_preprocessor(doctests=False):
-  """
-  Construct a cli subparser with the preprocessor group of arguments.
-
-  Parameters
-  ----------
-  doctests : bool
-    activate the doctests parser-specific options
-
-  Returns
-  -------
-  parser : argparse.ArgumentParser()
-  """
-  parser = argparse.ArgumentParser(add_help=False)
-  parser_group = parser.add_argument_group('preprocessor')
-  parser_group.add_argument('-preprocessor', required=False, action='store', const='PreForM.py', default=None, nargs='?', help='Use the pre-processor for pre-processing sources file; if no preprocessor is specified, PreForM.py is used')
-  parser_group.add_argument('-p', '--preproc', required=False, action='store', default=None, help='Preprocessor flags for the main compiler')
-  parser_group.add_argument('-app', '--preprocessor_args', required=False, action='store', default='', help='Preprocessor flags for the preprocessor')
-  parser_group.add_argument('-npp', '--preprocessor_no_o', required=False, action='store_true', default=False, help='Do not add -o in front of the output file in the preprocessor command line')
-  parser_group.add_argument('-dpp', '--preprocessor_dir', required=False, action='store', default=None, help='Directory containing the sources processed by preprocessor [default: none, the processed files are removed after used]')
-  parser_group.add_argument('-epp', '--preprocessor_ext', required=False, action='store', nargs='+', default=[], help='List of custom-defined file extensions to be preprocessed by preprocessor [default: none, all files are preprocessed if preprocessor is used]')
-  if doctests:
-    parser_group.add_argument('-doctests_preprocessor', required=False, action='store', default='cpp', choices=['cpp', 'fpp'], help='preprocessor used during doctests parsing')
-  return parser
+def _complete_extensions(incomplete: str):
+  return [e for e in __extensions_parsed__ if e.startswith(incomplete)]
 
 
-def _subparser_fancy():
-  """
-  Construct a cli subparser with the fancy group of arguments.
-
-  Returns
-  -------
-  parser : argparse.ArgumentParser()
-  """
-  parser = argparse.ArgumentParser(add_help=False)
-  parser_group = parser.add_argument_group('fancy')
-  parser_group.add_argument('-force_compile', required=False, action='store_true', default=False, help='Force to (re-)compile all [default: False]')
-  parser_group.add_argument('-colors', required=False, action='store_true', default=False, help='Activate colors in shell prints [default: no colors]')
-  parser_group.add_argument('-l', '--log', required=False, action='store_true', default=False, help='Activate the creation of a log file [default: no log file]')
-  parser_group.add_argument('-graph', required=False, action='store_true', default=False, help='Generate a dependencies graph by means of graphviz [default false]')
-  parser_group.add_argument('-q', '--quiet', required=False, action='store_true', default=False, help='Less verbose than default [default false]')
-  parser_group.add_argument('-verbose', required=False, action='store_true', default=False, help='Extremely verbose outputs for debugging FoBiS.py [default false]')
-  parser_group.add_argument('-j', '--jobs', required=False, action='store', default=1, type=int, help='Specify the number of concurrent jobs used for compiling dependencies [default 1]')
-  parser_group.add_argument('-m', '--makefile', required=False, action='store', default=None, help='Generate a GNU Makefile for building the project', metavar='MAKEFILE_name')
-  return parser
+def _complete_doctests_preprocessor(incomplete: str):
+  return [p for p in ('cpp', 'fpp') if p.startswith(incomplete)]
 
 
-def _subparser_rules():
-  """
-  Construct a cli subparser with the rules group of arguments.
+def _complete_fobos_mode(ctx: typer.Context, incomplete: str):
+  import configparser
+  import os
+  fobos_path = ctx.params.get('fobos') or 'fobos'
+  if not os.path.exists(fobos_path):
+    return []
+  cp = configparser.RawConfigParser()
+  cp.read(fobos_path)
+  if cp.has_option('modes', 'modes'):
+    modes = [m.strip() for m in cp.get('modes', 'modes').split()]
+    return [m for m in modes if m.startswith(incomplete)]
+  return [s for s in cp.sections() if s.startswith(incomplete) and s not in ('modes', 'rules', 'dependencies', 'project')]
 
-  Returns
-  -------
-  parser : argparse.ArgumentParser()
-  """
-  parser = argparse.ArgumentParser(add_help=False)
-  parser_group = parser.add_argument_group('rules')
-  parser_group.add_argument('-ex', '--execute', required=False, action='store', default=None, help='Specify a rule (defined into fobos file) to be executed', metavar='RULE')
-  parser_group.add_argument('-ls', '--list', required=False, action='store_true', default=False, help='List the rules defined into a fobos file')
-  return parser
+# ---------------------------------------------------------------------------
+# Namespace factory
+# ---------------------------------------------------------------------------
 
+def _ns(**kwargs) -> argparse.Namespace:
+  """Build an argparse.Namespace — preserves the duck-type expected by all downstream code."""
+  return argparse.Namespace(**kwargs)
 
-def _subparser_rules_intrinsic():
-  """
-  Construct a cli subparser with the rules_intrinsic group of arguments.
+# ---------------------------------------------------------------------------
+# build command
+# ---------------------------------------------------------------------------
 
-  Returns
-  -------
-  parser : argparse.ArgumentParser()
-  """
-  parser = argparse.ArgumentParser(add_help=False)
-  parser_group = parser.add_argument_group('intrinsic rules')
-  parser_group.add_argument('-get', required=False, action='store', default=None, help='Intrinsic rule for getting options defined into fobos, e.g. -get build_dir')
-  parser_group.add_argument('-get_output_name', required=False, action='store_true', default=False, help='Intrinsic rule for getting the final output name accordingly to options defined into fobos')
-  parser_group.add_argument('-ford', required=False, action='store', default=None, help='Intrinsic rule for building documentation by means of Ford tool', metavar='project-file.md')
-  parser_group.add_argument('-gcov_analyzer', required=False, action='store', default=None, nargs='+', help='Analyze .gcov coverage files saving a report for each file found', metavar='GCOV_REPORTS_DIR [REPORT_SUMMARY_FILE_NAME]')
-  parser_group.add_argument('-is_ascii_kind_supported', required=False, action='store_true', default=False, help='Check is compiler support ASCII kind')
-  parser_group.add_argument('-is_ucs4_kind_supported', required=False, action='store_true', default=False, help='Check is compiler support UCS4 kind')
-  parser_group.add_argument('-is_float128_kind_supported', required=False, action='store_true', default=False, help='Check is compiler support flat128 kind')
-  return parser
+@app.command('build')
+def cmd_build(
+  ctx: typer.Context,
+  # fobos group
+  fobos:                    Annotated[Optional[str],       typer.Option('--fobos', '-f',           help='Specify a "fobos" file named differently from "fobos"')] = None,
+  fobos_case_insensitive:   Annotated[bool,                typer.Option('--fci',                   help='Assume fobos inputs as case insensitive')] = False,
+  mode:                     Annotated[Optional[str],       typer.Option('--mode',                  help='Select a mode defined into a fobos file', autocompletion=_complete_fobos_mode)] = None,
+  lmodes:                   Annotated[bool,                typer.Option('--lmodes',                help='List the modes defined into a fobos file')] = False,
+  print_fobos_template:     Annotated[bool,                typer.Option('--print-fobos-template',  help='Print a comprehensive fobos template')] = False,
+  # compiler group
+  compiler:                 Annotated[str,                 typer.Option('--compiler',              help='Compiler used (case insensitive, default gnu)', autocompletion=_complete_compiler)] = 'gnu',
+  fc:                       Annotated[Optional[str],       typer.Option('--fc',                    help='Fortran compiler statement (for --compiler custom)')] = None,
+  cflags:                   Annotated[Optional[str],       typer.Option('--cflags',                help='Compile flags')] = None,
+  lflags:                   Annotated[Optional[str],       typer.Option('--lflags',                help='Link flags')] = None,
+  modsw:                    Annotated[Optional[str],       typer.Option('--modsw',                 help='Module search path switch (for --compiler custom)')] = None,
+  mpi:                      Annotated[bool,                typer.Option('--mpi',                   help='Use MPI enabled version of compiler')] = False,
+  openmp:                   Annotated[bool,                typer.Option('--openmp',                help='Use OpenMP pragmas')] = False,
+  openmp_offload:           Annotated[bool,                typer.Option('--openmp-offload',        help='Use OpenMP Offload pragmas')] = False,
+  coarray:                  Annotated[bool,                typer.Option('--coarray',               help='Use coarrays')] = False,
+  coverage:                 Annotated[bool,                typer.Option('--coverage',              help='Instrument for coverage analysis')] = False,
+  profile:                  Annotated[bool,                typer.Option('--profile',               help='Instrument for profiling analysis')] = False,
+  mklib:                    Annotated[Optional[str],       typer.Option('--mklib',                 help='Build library instead of program (static|shared)', autocompletion=_complete_mklib)] = None,
+  ar:                       Annotated[str,                 typer.Option('--ar',                    help='Archiver executable for static libraries [default: ar]')] = 'ar',
+  arflags:                  Annotated[str,                 typer.Option('--arflags',               help='Archiver flags for static libraries [default: -rcs]')] = '-rcs',
+  ranlib:                   Annotated[str,                 typer.Option('--ranlib',                help='Ranlib executable; empty string to skip [default: ranlib]')] = 'ranlib',
+  cflags_heritage:          Annotated[bool,                typer.Option('--cflags-heritage', '--ch', help='Store cflags for heritage checking; re-compile all if they change')] = False,
+  track_build:              Annotated[bool,                typer.Option('--track-build', '--tb',   help='Store build info for the install command')] = False,
+  # directories group
+  src:                      Annotated[Optional[List[str]], typer.Option('--src', '-s',             help='Root-directory of source files [default: ./]')] = None,
+  build_dir:                Annotated[str,                 typer.Option('--build-dir', '--dbld',   help='Directory containing built objects [default: ./]')] = './',
+  obj_dir:                  Annotated[str,                 typer.Option('--obj-dir', '--dobj',     help='Directory containing compiled objects [default: ./obj/]')] = './obj/',
+  mod_dir:                  Annotated[str,                 typer.Option('--mod-dir', '--dmod',     help='Directory containing .mod files [default: ./mod/]')] = './mod/',
+  lib_dir:                  Annotated[Optional[List[str]], typer.Option('--lib-dir', '--dlib',     help='Directories searched for libraries')] = None,
+  include:                  Annotated[Optional[List[str]], typer.Option('--include', '-i',         help='Directories for searching included files')] = None,
+  exclude_dirs:             Annotated[Optional[List[str]], typer.Option('--exclude-dirs', '--ed',  help='Exclude directories from the building process')] = None,
+  disable_recursive_search: Annotated[bool,                typer.Option('--disable-recursive-search', '--drs', help='Disable recursive search inside directories')] = False,
+  # files group
+  target:                   Annotated[Optional[str],       typer.Option('--target', '-t',          help='Specify a target file [default: all programs found]')] = None,
+  output:                   Annotated[Optional[str],       typer.Option('--output', '-o',          help='Output file name (used with --target)')] = None,
+  exclude:                  Annotated[Optional[List[str]], typer.Option('--exclude', '-e',         help='Exclude files from the building process')] = None,
+  libs:                     Annotated[Optional[List[str]], typer.Option('--libs',                  help='External libraries with full paths')] = None,
+  vlibs:                    Annotated[Optional[List[str]], typer.Option('--vlibs',                 help='Volatile external libraries with full paths')] = None,
+  ext_libs:                 Annotated[Optional[List[str]], typer.Option('--ext-libs',              help='External libraries in compiler path')] = None,
+  ext_vlibs:                Annotated[Optional[List[str]], typer.Option('--ext-vlibs',             help='Volatile external libraries in compiler path')] = None,
+  dependon:                 Annotated[Optional[List[str]], typer.Option('--dependon',              help='Interdependent external fobos files for interdependent building')] = None,
+  inc:                      Annotated[Optional[List[str]], typer.Option('--inc',                   help='Extensions for include files', autocompletion=_complete_extensions)] = None,
+  extensions:               Annotated[Optional[List[str]], typer.Option('--extensions',            help='Extensions of parsed files', autocompletion=_complete_extensions)] = None,
+  build_all:                Annotated[bool,                typer.Option('--build-all',             help='Build all sources parsed')] = False,
+  # preprocessor group
+  preprocessor:             Annotated[Optional[str],       typer.Option('--preprocessor',          help='Preprocessor name for pre-processing sources (e.g. PreForM.py)')] = None,
+  preproc:                  Annotated[Optional[str],       typer.Option('--preproc',               help='Preprocessor flags for the main compiler')] = None,
+  preprocessor_args:        Annotated[str,                 typer.Option('--preprocessor-args', '--app', help='Preprocessor-specific flags')] = '',
+  preprocessor_no_o:        Annotated[bool,                typer.Option('--preprocessor-no-o', '--npp', help='Do not add -o in front of output in preprocessor command')] = False,
+  preprocessor_dir:         Annotated[Optional[str],       typer.Option('--preprocessor-dir', '--dpp', help='Directory for preprocessed files')] = None,
+  preprocessor_ext:         Annotated[Optional[List[str]], typer.Option('--preprocessor-ext', '--epp', help='File extensions to preprocess')] = None,
+  # fancy group
+  force_compile:            Annotated[bool,                typer.Option('--force-compile',         help='Force to (re-)compile all')] = False,
+  colors:                   Annotated[bool,                typer.Option('--colors',                help='Activate colors in shell prints')] = False,
+  log:                      Annotated[bool,                typer.Option('--log', '-l',             help='Activate log file creation')] = False,
+  graph:                    Annotated[bool,                typer.Option('--graph',                 help='Generate a dependencies graph via graphviz')] = False,
+  quiet:                    Annotated[bool,                typer.Option('--quiet', '-q',           help='Less verbose output')] = False,
+  verbose:                  Annotated[bool,                typer.Option('--verbose',               help='Extremely verbose output for debugging')] = False,
+  jobs:                     Annotated[int,                 typer.Option('--jobs', '-j',            help='Number of concurrent compilation jobs [default: 1]')] = 1,
+  makefile:                 Annotated[Optional[str],       typer.Option('--makefile', '-m',        help='Generate a GNU Makefile for building the project')] = None,
+):
+  """Build all programs found or specific target(s)."""
+  ctx.ensure_object(dict)
+  ctx.obj['cliargs'] = _ns(
+    which='build',
+    fobos=fobos, fobos_case_insensitive=fobos_case_insensitive,
+    mode=mode, lmodes=lmodes, print_fobos_template=print_fobos_template,
+    compiler=compiler.lower(), fc=fc, cflags=cflags, lflags=lflags, modsw=modsw,
+    mpi=mpi, openmp=openmp, openmp_offload=openmp_offload,
+    coarray=coarray, coverage=coverage, profile=profile,
+    mklib=mklib, ar=ar, arflags=arflags, ranlib=ranlib,
+    cflags_heritage=cflags_heritage, track_build=track_build,
+    src=src or ['./'],
+    build_dir=build_dir, obj_dir=obj_dir, mod_dir=mod_dir,
+    lib_dir=lib_dir or [], include=include or [],
+    exclude_dirs=exclude_dirs or [],
+    disable_recursive_search=disable_recursive_search,
+    target=target, output=output,
+    exclude=exclude or [], libs=libs or [], vlibs=vlibs or [],
+    ext_libs=ext_libs or [], ext_vlibs=ext_vlibs or [],
+    dependon=dependon or [],
+    inc=inc or list(__extensions_inc__),
+    extensions=extensions or list(__extensions_parsed__),
+    build_all=build_all,
+    preprocessor=preprocessor, preproc=preproc,
+    preprocessor_args=preprocessor_args,
+    preprocessor_no_o=preprocessor_no_o,
+    preprocessor_dir=preprocessor_dir,
+    preprocessor_ext=preprocessor_ext or [],
+    force_compile=force_compile, colors=colors, log=log, graph=graph,
+    quiet=quiet, verbose=verbose, jobs=jobs, makefile=makefile,
+  )
 
+# ---------------------------------------------------------------------------
+# clean command
+# ---------------------------------------------------------------------------
 
-def _parser_build(clisubparsers):
-  """
-  Construct the build cli parser.
+@app.command('clean')
+def cmd_clean(
+  ctx: typer.Context,
+  # fobos group
+  fobos:                    Annotated[Optional[str],       typer.Option('--fobos', '-f',           help='Specify a "fobos" file named differently from "fobos"')] = None,
+  fobos_case_insensitive:   Annotated[bool,                typer.Option('--fci',                   help='Assume fobos inputs as case insensitive')] = False,
+  mode:                     Annotated[Optional[str],       typer.Option('--mode',                  help='Select a mode defined into a fobos file', autocompletion=_complete_fobos_mode)] = None,
+  lmodes:                   Annotated[bool,                typer.Option('--lmodes',                help='List the modes defined into a fobos file')] = False,
+  print_fobos_template:     Annotated[bool,                typer.Option('--print-fobos-template',  help='Print a comprehensive fobos template')] = False,
+  # clean-specific (were part of compiler group in argparse)
+  only_obj:                 Annotated[bool,                typer.Option('--only-obj',              help='Clean only compiled objects and not built targets')] = False,
+  only_target:              Annotated[bool,                typer.Option('--only-target',           help='Clean only built targets and not compiled objects')] = False,
+  # compiler group
+  compiler:                 Annotated[str,                 typer.Option('--compiler',              help='Compiler used (case insensitive, default gnu)', autocompletion=_complete_compiler)] = 'gnu',
+  fc:                       Annotated[Optional[str],       typer.Option('--fc',                    help='Fortran compiler statement (for --compiler custom)')] = None,
+  cflags:                   Annotated[Optional[str],       typer.Option('--cflags',                help='Compile flags')] = None,
+  lflags:                   Annotated[Optional[str],       typer.Option('--lflags',                help='Link flags')] = None,
+  modsw:                    Annotated[Optional[str],       typer.Option('--modsw',                 help='Module search path switch (for --compiler custom)')] = None,
+  mpi:                      Annotated[bool,                typer.Option('--mpi',                   help='Use MPI enabled version of compiler')] = False,
+  openmp:                   Annotated[bool,                typer.Option('--openmp',                help='Use OpenMP pragmas')] = False,
+  openmp_offload:           Annotated[bool,                typer.Option('--openmp-offload',        help='Use OpenMP Offload pragmas')] = False,
+  coarray:                  Annotated[bool,                typer.Option('--coarray',               help='Use coarrays')] = False,
+  coverage:                 Annotated[bool,                typer.Option('--coverage',              help='Instrument for coverage analysis')] = False,
+  profile:                  Annotated[bool,                typer.Option('--profile',               help='Instrument for profiling analysis')] = False,
+  mklib:                    Annotated[Optional[str],       typer.Option('--mklib',                 help='Build library instead of program (static|shared)', autocompletion=_complete_mklib)] = None,
+  ar:                       Annotated[str,                 typer.Option('--ar',                    help='Archiver executable for static libraries [default: ar]')] = 'ar',
+  arflags:                  Annotated[str,                 typer.Option('--arflags',               help='Archiver flags for static libraries [default: -rcs]')] = '-rcs',
+  ranlib:                   Annotated[str,                 typer.Option('--ranlib',                help='Ranlib executable; empty string to skip [default: ranlib]')] = 'ranlib',
+  cflags_heritage:          Annotated[bool,                typer.Option('--cflags-heritage', '--ch', help='Store cflags for heritage checking')] = False,
+  track_build:              Annotated[bool,                typer.Option('--track-build', '--tb',   help='Store build info for the install command')] = False,
+  # directories group
+  src:                      Annotated[Optional[List[str]], typer.Option('--src', '-s',             help='Root-directory of source files [default: ./]')] = None,
+  build_dir:                Annotated[str,                 typer.Option('--build-dir', '--dbld',   help='Directory containing built objects [default: ./]')] = './',
+  obj_dir:                  Annotated[str,                 typer.Option('--obj-dir', '--dobj',     help='Directory containing compiled objects [default: ./obj/]')] = './obj/',
+  mod_dir:                  Annotated[str,                 typer.Option('--mod-dir', '--dmod',     help='Directory containing .mod files [default: ./mod/]')] = './mod/',
+  lib_dir:                  Annotated[Optional[List[str]], typer.Option('--lib-dir', '--dlib',     help='Directories searched for libraries')] = None,
+  include:                  Annotated[Optional[List[str]], typer.Option('--include', '-i',         help='Directories for searching included files')] = None,
+  exclude_dirs:             Annotated[Optional[List[str]], typer.Option('--exclude-dirs', '--ed',  help='Exclude directories from the building process')] = None,
+  disable_recursive_search: Annotated[bool,                typer.Option('--disable-recursive-search', '--drs', help='Disable recursive search inside directories')] = False,
+  # files group
+  target:                   Annotated[Optional[str],       typer.Option('--target', '-t',          help='Specify a target file')] = None,
+  output:                   Annotated[Optional[str],       typer.Option('--output', '-o',          help='Output file name (used with --target)')] = None,
+  exclude:                  Annotated[Optional[List[str]], typer.Option('--exclude', '-e',         help='Exclude files from the building process')] = None,
+  libs:                     Annotated[Optional[List[str]], typer.Option('--libs',                  help='External libraries with full paths')] = None,
+  vlibs:                    Annotated[Optional[List[str]], typer.Option('--vlibs',                 help='Volatile external libraries with full paths')] = None,
+  ext_libs:                 Annotated[Optional[List[str]], typer.Option('--ext-libs',              help='External libraries in compiler path')] = None,
+  ext_vlibs:                Annotated[Optional[List[str]], typer.Option('--ext-vlibs',             help='Volatile external libraries in compiler path')] = None,
+  dependon:                 Annotated[Optional[List[str]], typer.Option('--dependon',              help='Interdependent external fobos files')] = None,
+  inc:                      Annotated[Optional[List[str]], typer.Option('--inc',                   help='Extensions for include files')] = None,
+  extensions:               Annotated[Optional[List[str]], typer.Option('--extensions',            help='Extensions of parsed files')] = None,
+  build_all:                Annotated[bool,                typer.Option('--build-all',             help='Build all sources parsed')] = False,
+  # fancy group
+  force_compile:            Annotated[bool,                typer.Option('--force-compile',         help='Force to (re-)compile all')] = False,
+  colors:                   Annotated[bool,                typer.Option('--colors',                help='Activate colors in shell prints')] = False,
+  log:                      Annotated[bool,                typer.Option('--log', '-l',             help='Activate log file creation')] = False,
+  graph:                    Annotated[bool,                typer.Option('--graph',                 help='Generate a dependencies graph via graphviz')] = False,
+  quiet:                    Annotated[bool,                typer.Option('--quiet', '-q',           help='Less verbose output')] = False,
+  verbose:                  Annotated[bool,                typer.Option('--verbose',               help='Extremely verbose output for debugging')] = False,
+  jobs:                     Annotated[int,                 typer.Option('--jobs', '-j',            help='Number of concurrent compilation jobs [default: 1]')] = 1,
+  makefile:                 Annotated[Optional[str],       typer.Option('--makefile', '-m',        help='Generate a GNU Makefile for building the project')] = None,
+):
+  """Clean project: remove all OBJs and MODs files. Use carefully."""
+  ctx.ensure_object(dict)
+  if only_obj and only_target:
+    typer.echo('Error: --only-obj and --only-target are mutually exclusive.', err=True)
+    raise typer.Exit(1)
+  ctx.obj['cliargs'] = _ns(
+    which='clean',
+    fobos=fobos, fobos_case_insensitive=fobos_case_insensitive,
+    mode=mode, lmodes=lmodes, print_fobos_template=print_fobos_template,
+    only_obj=only_obj, only_target=only_target,
+    compiler=compiler.lower(), fc=fc, cflags=cflags, lflags=lflags, modsw=modsw,
+    mpi=mpi, openmp=openmp, openmp_offload=openmp_offload,
+    coarray=coarray, coverage=coverage, profile=profile,
+    mklib=mklib, ar=ar, arflags=arflags, ranlib=ranlib,
+    cflags_heritage=cflags_heritage, track_build=track_build,
+    src=src or ['./'],
+    build_dir=build_dir, obj_dir=obj_dir, mod_dir=mod_dir,
+    lib_dir=lib_dir or [], include=include or [],
+    exclude_dirs=exclude_dirs or [],
+    disable_recursive_search=disable_recursive_search,
+    target=target, output=output,
+    exclude=exclude or [], libs=libs or [], vlibs=vlibs or [],
+    ext_libs=ext_libs or [], ext_vlibs=ext_vlibs or [],
+    dependon=dependon or [],
+    inc=inc or list(__extensions_inc__),
+    extensions=extensions or list(__extensions_parsed__),
+    build_all=build_all,
+    force_compile=force_compile, colors=colors, log=log, graph=graph,
+    quiet=quiet, verbose=verbose, jobs=jobs, makefile=makefile,
+  )
 
-  Parameters
-  ----------
-  clisubparsers : argparse subparser object
-  """
-  compiler = _subparser_compiler()
-  directories = _subparser_directories()
-  files = _subparser_files()
-  fobos = _subparser_fobos()
-  preprocessor = _subparser_preprocessor()
-  fancy = _subparser_fancy()
-  buildparser = clisubparsers.add_parser('build', help='Build all programs found or specific target(s)', parents=[compiler, directories, files, fobos, preprocessor, fancy])
-  buildparser.set_defaults(which='build')
-  return
+# ---------------------------------------------------------------------------
+# rule command
+# ---------------------------------------------------------------------------
 
+@app.command('rule')
+def cmd_rule(
+  ctx: typer.Context,
+  # fobos group
+  fobos:                    Annotated[Optional[str],       typer.Option('--fobos', '-f',           help='Specify a "fobos" file named differently from "fobos"')] = None,
+  fobos_case_insensitive:   Annotated[bool,                typer.Option('--fci',                   help='Assume fobos inputs as case insensitive')] = False,
+  mode:                     Annotated[Optional[str],       typer.Option('--mode',                  help='Select a mode defined into a fobos file', autocompletion=_complete_fobos_mode)] = None,
+  lmodes:                   Annotated[bool,                typer.Option('--lmodes',                help='List the modes defined into a fobos file')] = False,
+  print_fobos_template:     Annotated[bool,                typer.Option('--print-fobos-template',  help='Print a comprehensive fobos template')] = False,
+  # compiler group
+  compiler:                 Annotated[str,                 typer.Option('--compiler',              help='Compiler used (case insensitive, default gnu)', autocompletion=_complete_compiler)] = 'gnu',
+  fc:                       Annotated[Optional[str],       typer.Option('--fc',                    help='Fortran compiler statement (for --compiler custom)')] = None,
+  cflags:                   Annotated[Optional[str],       typer.Option('--cflags',                help='Compile flags')] = None,
+  lflags:                   Annotated[Optional[str],       typer.Option('--lflags',                help='Link flags')] = None,
+  modsw:                    Annotated[Optional[str],       typer.Option('--modsw',                 help='Module search path switch (for --compiler custom)')] = None,
+  mpi:                      Annotated[bool,                typer.Option('--mpi',                   help='Use MPI enabled version of compiler')] = False,
+  openmp:                   Annotated[bool,                typer.Option('--openmp',                help='Use OpenMP pragmas')] = False,
+  openmp_offload:           Annotated[bool,                typer.Option('--openmp-offload',        help='Use OpenMP Offload pragmas')] = False,
+  coarray:                  Annotated[bool,                typer.Option('--coarray',               help='Use coarrays')] = False,
+  coverage:                 Annotated[bool,                typer.Option('--coverage',              help='Instrument for coverage analysis')] = False,
+  profile:                  Annotated[bool,                typer.Option('--profile',               help='Instrument for profiling analysis')] = False,
+  mklib:                    Annotated[Optional[str],       typer.Option('--mklib',                 help='Build library instead of program (static|shared)', autocompletion=_complete_mklib)] = None,
+  ar:                       Annotated[str,                 typer.Option('--ar',                    help='Archiver executable for static libraries [default: ar]')] = 'ar',
+  arflags:                  Annotated[str,                 typer.Option('--arflags',               help='Archiver flags for static libraries [default: -rcs]')] = '-rcs',
+  ranlib:                   Annotated[str,                 typer.Option('--ranlib',                help='Ranlib executable; empty string to skip [default: ranlib]')] = 'ranlib',
+  cflags_heritage:          Annotated[bool,                typer.Option('--cflags-heritage', '--ch', help='Store cflags for heritage checking; re-compile all if they change')] = False,
+  track_build:              Annotated[bool,                typer.Option('--track-build', '--tb',   help='Store build info for the install command')] = False,
+  # directories group
+  src:                      Annotated[Optional[List[str]], typer.Option('--src', '-s',             help='Root-directory of source files [default: ./]')] = None,
+  build_dir:                Annotated[str,                 typer.Option('--build-dir', '--dbld',   help='Directory containing built objects [default: ./]')] = './',
+  obj_dir:                  Annotated[str,                 typer.Option('--obj-dir', '--dobj',     help='Directory containing compiled objects [default: ./obj/]')] = './obj/',
+  mod_dir:                  Annotated[str,                 typer.Option('--mod-dir', '--dmod',     help='Directory containing .mod files [default: ./mod/]')] = './mod/',
+  lib_dir:                  Annotated[Optional[List[str]], typer.Option('--lib-dir', '--dlib',     help='Directories searched for libraries')] = None,
+  include:                  Annotated[Optional[List[str]], typer.Option('--include', '-i',         help='Directories for searching included files')] = None,
+  exclude_dirs:             Annotated[Optional[List[str]], typer.Option('--exclude-dirs', '--ed',  help='Exclude directories from the building process')] = None,
+  disable_recursive_search: Annotated[bool,                typer.Option('--disable-recursive-search', '--drs', help='Disable recursive search inside directories')] = False,
+  # files group
+  target:                   Annotated[Optional[str],       typer.Option('--target', '-t',          help='Specify a target file')] = None,
+  output:                   Annotated[Optional[str],       typer.Option('--output', '-o',          help='Output file name (used with --target)')] = None,
+  exclude:                  Annotated[Optional[List[str]], typer.Option('--exclude', '-e',         help='Exclude files from the building process')] = None,
+  libs:                     Annotated[Optional[List[str]], typer.Option('--libs',                  help='External libraries with full paths')] = None,
+  vlibs:                    Annotated[Optional[List[str]], typer.Option('--vlibs',                 help='Volatile external libraries with full paths')] = None,
+  ext_libs:                 Annotated[Optional[List[str]], typer.Option('--ext-libs',              help='External libraries in compiler path')] = None,
+  ext_vlibs:                Annotated[Optional[List[str]], typer.Option('--ext-vlibs',             help='Volatile external libraries in compiler path')] = None,
+  dependon:                 Annotated[Optional[List[str]], typer.Option('--dependon',              help='Interdependent external fobos files for interdependent building')] = None,
+  inc:                      Annotated[Optional[List[str]], typer.Option('--inc',                   help='Extensions for include files', autocompletion=_complete_extensions)] = None,
+  extensions:               Annotated[Optional[List[str]], typer.Option('--extensions',            help='Extensions of parsed files', autocompletion=_complete_extensions)] = None,
+  build_all:                Annotated[bool,                typer.Option('--build-all',             help='Build all sources parsed')] = False,
+  # preprocessor group
+  preprocessor:             Annotated[Optional[str],       typer.Option('--preprocessor',          help='Preprocessor name (e.g. PreForM.py)')] = None,
+  preproc:                  Annotated[Optional[str],       typer.Option('--preproc',               help='Preprocessor flags for the main compiler')] = None,
+  preprocessor_args:        Annotated[str,                 typer.Option('--preprocessor-args', '--app', help='Preprocessor-specific flags')] = '',
+  preprocessor_no_o:        Annotated[bool,                typer.Option('--preprocessor-no-o', '--npp', help='Do not add -o in front of output in preprocessor command')] = False,
+  preprocessor_dir:         Annotated[Optional[str],       typer.Option('--preprocessor-dir', '--dpp', help='Directory for preprocessed files')] = None,
+  preprocessor_ext:         Annotated[Optional[List[str]], typer.Option('--preprocessor-ext', '--epp', help='File extensions to preprocess')] = None,
+  # rules group
+  execute:                  Annotated[Optional[str],       typer.Option('--execute', '--ex',       help='Specify a rule (defined in fobos) to execute')] = None,
+  list_rules:               Annotated[bool,                typer.Option('--list', '--ls',          help='List the rules defined in a fobos file')] = False,
+  # intrinsic rules group
+  get:                      Annotated[Optional[str],       typer.Option('--get',                   help='Get option value defined in fobos (e.g. --get build_dir)')] = None,
+  get_output_name:          Annotated[bool,                typer.Option('--get-output-name',       help='Get the final output name from fobos options')] = False,
+  ford:                     Annotated[Optional[str],       typer.Option('--ford',                  help='Build docs with Ford tool (specify project-file.md)')] = None,
+  gcov_analyzer:            Annotated[Optional[List[str]], typer.Option('--gcov-analyzer',         help='Analyse .gcov files; args: REPORTS_DIR [SUMMARY_FILE]')] = None,
+  is_ascii_kind_supported:  Annotated[bool,                typer.Option('--is-ascii-kind-supported',  help='Check if compiler supports ASCII kind')] = False,
+  is_ucs4_kind_supported:   Annotated[bool,                typer.Option('--is-ucs4-kind-supported',   help='Check if compiler supports UCS4 kind')] = False,
+  is_float128_kind_supported: Annotated[bool,              typer.Option('--is-float128-kind-supported', help='Check if compiler supports float128 kind')] = False,
+  # fancy group
+  force_compile:            Annotated[bool,                typer.Option('--force-compile',         help='Force to (re-)compile all')] = False,
+  colors:                   Annotated[bool,                typer.Option('--colors',                help='Activate colors in shell prints')] = False,
+  log:                      Annotated[bool,                typer.Option('--log', '-l',             help='Activate log file creation')] = False,
+  graph:                    Annotated[bool,                typer.Option('--graph',                 help='Generate a dependencies graph via graphviz')] = False,
+  quiet:                    Annotated[bool,                typer.Option('--quiet', '-q',           help='Less verbose output')] = False,
+  verbose:                  Annotated[bool,                typer.Option('--verbose',               help='Extremely verbose output for debugging')] = False,
+  jobs:                     Annotated[int,                 typer.Option('--jobs', '-j',            help='Number of concurrent compilation jobs [default: 1]')] = 1,
+  makefile:                 Annotated[Optional[str],       typer.Option('--makefile', '-m',        help='Generate a GNU Makefile for building the project')] = None,
+):
+  """Execute special rules or user-defined ones from a fobos file."""
+  ctx.ensure_object(dict)
+  ctx.obj['cliargs'] = _ns(
+    which='rule',
+    fobos=fobos, fobos_case_insensitive=fobos_case_insensitive,
+    mode=mode, lmodes=lmodes, print_fobos_template=print_fobos_template,
+    compiler=compiler.lower(), fc=fc, cflags=cflags, lflags=lflags, modsw=modsw,
+    mpi=mpi, openmp=openmp, openmp_offload=openmp_offload,
+    coarray=coarray, coverage=coverage, profile=profile,
+    mklib=mklib, ar=ar, arflags=arflags, ranlib=ranlib,
+    cflags_heritage=cflags_heritage, track_build=track_build,
+    src=src or ['./'],
+    build_dir=build_dir, obj_dir=obj_dir, mod_dir=mod_dir,
+    lib_dir=lib_dir or [], include=include or [],
+    exclude_dirs=exclude_dirs or [],
+    disable_recursive_search=disable_recursive_search,
+    target=target, output=output,
+    exclude=exclude or [], libs=libs or [], vlibs=vlibs or [],
+    ext_libs=ext_libs or [], ext_vlibs=ext_vlibs or [],
+    dependon=dependon or [],
+    inc=inc or list(__extensions_inc__),
+    extensions=extensions or list(__extensions_parsed__),
+    build_all=build_all,
+    preprocessor=preprocessor, preproc=preproc,
+    preprocessor_args=preprocessor_args,
+    preprocessor_no_o=preprocessor_no_o,
+    preprocessor_dir=preprocessor_dir,
+    preprocessor_ext=preprocessor_ext or [],
+    execute=execute, list=list_rules,
+    get=get, get_output_name=get_output_name,
+    ford=ford, gcov_analyzer=gcov_analyzer,
+    is_ascii_kind_supported=is_ascii_kind_supported,
+    is_ucs4_kind_supported=is_ucs4_kind_supported,
+    is_float128_kind_supported=is_float128_kind_supported,
+    force_compile=force_compile, colors=colors, log=log, graph=graph,
+    quiet=quiet, verbose=verbose, jobs=jobs, makefile=makefile,
+  )
 
-def _parser_clean(clisubparsers):
-  """
-  Construct the clean cli parser.
+# ---------------------------------------------------------------------------
+# install command
+# ---------------------------------------------------------------------------
 
-  Parameters
-  ----------
-  clisubparsers : argparse subparser object
-  """
-  compiler = _subparser_compiler(clean=True)
-  directories = _subparser_directories()
-  files = _subparser_files()
-  fobos = _subparser_fobos()
-  fancy = _subparser_fancy()
-  cleanparser = clisubparsers.add_parser('clean', help='Clean project: remove all OBJs and MODs files... use carefully', parents=[compiler, directories, files, fobos, fancy])
-  cleanparser.set_defaults(which='clean')
-  return
+@app.command('install')
+def cmd_install(
+  ctx: typer.Context,
+  repo:                     Annotated[Optional[str],       typer.Argument(               help='GitHub repository: "user/repo" shorthand or full HTTPS URL')] = None,
+  # fobos group
+  fobos:                    Annotated[Optional[str],       typer.Option('--fobos', '-f', help='Specify a "fobos" file named differently from "fobos"')] = None,
+  fobos_case_insensitive:   Annotated[bool,                typer.Option('--fci',         help='Assume fobos inputs as case insensitive')] = False,
+  mode:                     Annotated[Optional[str],       typer.Option('--mode',        help='Select a mode defined into a fobos file', autocompletion=_complete_fobos_mode)] = None,
+  lmodes:                   Annotated[bool,                typer.Option('--lmodes',      help='List the modes defined into a fobos file')] = False,
+  print_fobos_template:     Annotated[bool,                typer.Option('--print-fobos-template', help='Print a comprehensive fobos template')] = False,
+  # directories group (install variant)
+  build_dir:                Annotated[str,                 typer.Option('--build-dir', '--dbld', help='Directory containing built objects [default: ./]')] = './',
+  prefix:                   Annotated[str,                 typer.Option('--prefix', '-p', help='Prefix path where built objects are installed [default: ./]')] = './',
+  bin:                      Annotated[str,                 typer.Option('--bin',         help='Sub-directory for executables [default: bin/]')] = 'bin/',
+  lib:                      Annotated[str,                 typer.Option('--lib',         help='Sub-directory for libraries [default: lib/]')] = 'lib/',
+  include:                  Annotated[str,                 typer.Option('--include',     help='Sub-directory for include files [default: include/]')] = 'include/',
+  # GitHub install options
+  branch:                   Annotated[Optional[str],       typer.Option('--branch',      help='Branch to check out when installing from GitHub')] = None,
+  tag:                      Annotated[Optional[str],       typer.Option('--tag',         help='Tag to check out when installing from GitHub')] = None,
+  rev:                      Annotated[Optional[str],       typer.Option('--rev',         help='Commit revision to check out when installing from GitHub')] = None,
+  update:                   Annotated[bool,                typer.Option('--update',      help='Re-fetch (git pull) before building and installing')] = False,
+  no_build:                 Annotated[bool,                typer.Option('--no-build',    help='Clone only — skip building and installing')] = False,
+  deps_dir:                 Annotated[Optional[str],       typer.Option('--deps-dir',    help='Directory for cloning GitHub repositories [default: ~/.fobis/]')] = None,
+  # fancy group
+  force_compile:            Annotated[bool,                typer.Option('--force-compile', help='Force to (re-)compile all')] = False,
+  colors:                   Annotated[bool,                typer.Option('--colors',      help='Activate colors in shell prints')] = False,
+  log:                      Annotated[bool,                typer.Option('--log', '-l',   help='Activate log file creation')] = False,
+  graph:                    Annotated[bool,                typer.Option('--graph',       help='Generate a dependencies graph via graphviz')] = False,
+  quiet:                    Annotated[bool,                typer.Option('--quiet', '-q', help='Less verbose output')] = False,
+  verbose:                  Annotated[bool,                typer.Option('--verbose',     help='Extremely verbose output for debugging')] = False,
+  jobs:                     Annotated[int,                 typer.Option('--jobs', '-j',  help='Number of concurrent compilation jobs [default: 1]')] = 1,
+  makefile:                 Annotated[Optional[str],       typer.Option('--makefile', '-m', help='Generate a GNU Makefile for building the project')] = None,
+):
+  """Install previously built files, or clone+build+install a GitHub-hosted FoBiS project."""
+  ctx.ensure_object(dict)
+  ctx.obj['cliargs'] = _ns(
+    which='install',
+    repo=repo,
+    fobos=fobos, fobos_case_insensitive=fobos_case_insensitive,
+    mode=mode, lmodes=lmodes, print_fobos_template=print_fobos_template,
+    build_dir=build_dir, prefix=prefix,
+    bin=bin, lib=lib, include=include,
+    branch=branch, tag=tag, rev=rev,
+    update=update, no_build=no_build, deps_dir=deps_dir,
+    force_compile=force_compile, colors=colors, log=log, graph=graph,
+    quiet=quiet, verbose=verbose, jobs=jobs, makefile=makefile,
+  )
 
+# ---------------------------------------------------------------------------
+# doctests command
+# ---------------------------------------------------------------------------
 
-def _parser_rule(clisubparsers):
-  """
-  Construct the rule cli parser.
+@app.command('doctests')
+def cmd_doctests(
+  ctx: typer.Context,
+  # fobos group
+  fobos:                    Annotated[Optional[str],       typer.Option('--fobos', '-f',           help='Specify a "fobos" file named differently from "fobos"')] = None,
+  fobos_case_insensitive:   Annotated[bool,                typer.Option('--fci',                   help='Assume fobos inputs as case insensitive')] = False,
+  mode:                     Annotated[Optional[str],       typer.Option('--mode',                  help='Select a mode defined into a fobos file', autocompletion=_complete_fobos_mode)] = None,
+  lmodes:                   Annotated[bool,                typer.Option('--lmodes',                help='List the modes defined into a fobos file')] = False,
+  print_fobos_template:     Annotated[bool,                typer.Option('--print-fobos-template',  help='Print a comprehensive fobos template')] = False,
+  # compiler group
+  compiler:                 Annotated[str,                 typer.Option('--compiler',              help='Compiler used (case insensitive, default gnu)', autocompletion=_complete_compiler)] = 'gnu',
+  fc:                       Annotated[Optional[str],       typer.Option('--fc',                    help='Fortran compiler statement (for --compiler custom)')] = None,
+  cflags:                   Annotated[Optional[str],       typer.Option('--cflags',                help='Compile flags')] = None,
+  lflags:                   Annotated[Optional[str],       typer.Option('--lflags',                help='Link flags')] = None,
+  modsw:                    Annotated[Optional[str],       typer.Option('--modsw',                 help='Module search path switch (for --compiler custom)')] = None,
+  mpi:                      Annotated[bool,                typer.Option('--mpi',                   help='Use MPI enabled version of compiler')] = False,
+  openmp:                   Annotated[bool,                typer.Option('--openmp',                help='Use OpenMP pragmas')] = False,
+  openmp_offload:           Annotated[bool,                typer.Option('--openmp-offload',        help='Use OpenMP Offload pragmas')] = False,
+  coarray:                  Annotated[bool,                typer.Option('--coarray',               help='Use coarrays')] = False,
+  coverage:                 Annotated[bool,                typer.Option('--coverage',              help='Instrument for coverage analysis')] = False,
+  profile:                  Annotated[bool,                typer.Option('--profile',               help='Instrument for profiling analysis')] = False,
+  mklib:                    Annotated[Optional[str],       typer.Option('--mklib',                 help='Build library instead of program (static|shared)', autocompletion=_complete_mklib)] = None,
+  ar:                       Annotated[str,                 typer.Option('--ar',                    help='Archiver executable for static libraries [default: ar]')] = 'ar',
+  arflags:                  Annotated[str,                 typer.Option('--arflags',               help='Archiver flags for static libraries [default: -rcs]')] = '-rcs',
+  ranlib:                   Annotated[str,                 typer.Option('--ranlib',                help='Ranlib executable; empty string to skip [default: ranlib]')] = 'ranlib',
+  cflags_heritage:          Annotated[bool,                typer.Option('--cflags-heritage', '--ch', help='Store cflags for heritage checking')] = False,
+  track_build:              Annotated[bool,                typer.Option('--track-build', '--tb',   help='Store build info for the install command')] = False,
+  # directories group
+  src:                      Annotated[Optional[List[str]], typer.Option('--src', '-s',             help='Root-directory of source files [default: ./]')] = None,
+  build_dir:                Annotated[str,                 typer.Option('--build-dir', '--dbld',   help='Directory containing built objects [default: ./]')] = './',
+  obj_dir:                  Annotated[str,                 typer.Option('--obj-dir', '--dobj',     help='Directory containing compiled objects [default: ./obj/]')] = './obj/',
+  mod_dir:                  Annotated[str,                 typer.Option('--mod-dir', '--dmod',     help='Directory containing .mod files [default: ./mod/]')] = './mod/',
+  lib_dir:                  Annotated[Optional[List[str]], typer.Option('--lib-dir', '--dlib',     help='Directories searched for libraries')] = None,
+  include:                  Annotated[Optional[List[str]], typer.Option('--include', '-i',         help='Directories for searching included files')] = None,
+  exclude_dirs:             Annotated[Optional[List[str]], typer.Option('--exclude-dirs', '--ed',  help='Exclude directories from the building process')] = None,
+  disable_recursive_search: Annotated[bool,                typer.Option('--disable-recursive-search', '--drs', help='Disable recursive search inside directories')] = False,
+  # files group (doctests variant)
+  target:                   Annotated[Optional[str],       typer.Option('--target', '-t',          help='Specify a target file')] = None,
+  output:                   Annotated[Optional[str],       typer.Option('--output', '-o',          help='Output file name (used with --target)')] = None,
+  exclude:                  Annotated[Optional[List[str]], typer.Option('--exclude', '-e',         help='Exclude files from the building process')] = None,
+  libs:                     Annotated[Optional[List[str]], typer.Option('--libs',                  help='External libraries with full paths')] = None,
+  vlibs:                    Annotated[Optional[List[str]], typer.Option('--vlibs',                 help='Volatile external libraries with full paths')] = None,
+  ext_libs:                 Annotated[Optional[List[str]], typer.Option('--ext-libs',              help='External libraries in compiler path')] = None,
+  ext_vlibs:                Annotated[Optional[List[str]], typer.Option('--ext-vlibs',             help='Volatile external libraries in compiler path')] = None,
+  dependon:                 Annotated[Optional[List[str]], typer.Option('--dependon',              help='Interdependent external fobos files')] = None,
+  inc:                      Annotated[Optional[List[str]], typer.Option('--inc',                   help='Extensions for include files', autocompletion=_complete_extensions)] = None,
+  extensions:               Annotated[Optional[List[str]], typer.Option('--extensions',            help='Extensions of parsed files', autocompletion=_complete_extensions)] = None,
+  build_all:                Annotated[bool,                typer.Option('--build-all',             help='Build all sources parsed')] = False,
+  keep_volatile_doctests:   Annotated[bool,                typer.Option('--keep-volatile-doctests', help='Keep the volatile doctests programs')] = False,
+  exclude_from_doctests:    Annotated[Optional[List[str]], typer.Option('--exclude-from-doctests', help='Exclude files from the doctests process')] = None,
+  # preprocessor group (doctests variant)
+  preprocessor:             Annotated[Optional[str],       typer.Option('--preprocessor',          help='Preprocessor name (e.g. PreForM.py)')] = None,
+  preproc:                  Annotated[Optional[str],       typer.Option('--preproc',               help='Preprocessor flags for the main compiler')] = None,
+  preprocessor_args:        Annotated[str,                 typer.Option('--preprocessor-args', '--app', help='Preprocessor-specific flags')] = '',
+  preprocessor_no_o:        Annotated[bool,                typer.Option('--preprocessor-no-o', '--npp', help='Do not add -o in front of output in preprocessor command')] = False,
+  preprocessor_dir:         Annotated[Optional[str],       typer.Option('--preprocessor-dir', '--dpp', help='Directory for preprocessed files')] = None,
+  preprocessor_ext:         Annotated[Optional[List[str]], typer.Option('--preprocessor-ext', '--epp', help='File extensions to preprocess')] = None,
+  doctests_preprocessor:    Annotated[str,                 typer.Option('--doctests-preprocessor', help='Preprocessor used during doctests parsing (cpp|fpp)', autocompletion=_complete_doctests_preprocessor)] = 'cpp',
+  # fancy group
+  force_compile:            Annotated[bool,                typer.Option('--force-compile',         help='Force to (re-)compile all')] = False,
+  colors:                   Annotated[bool,                typer.Option('--colors',                help='Activate colors in shell prints')] = False,
+  log:                      Annotated[bool,                typer.Option('--log', '-l',             help='Activate log file creation')] = False,
+  graph:                    Annotated[bool,                typer.Option('--graph',                 help='Generate a dependencies graph via graphviz')] = False,
+  quiet:                    Annotated[bool,                typer.Option('--quiet', '-q',           help='Less verbose output')] = False,
+  verbose:                  Annotated[bool,                typer.Option('--verbose',               help='Extremely verbose output for debugging')] = False,
+  jobs:                     Annotated[int,                 typer.Option('--jobs', '-j',            help='Number of concurrent compilation jobs [default: 1]')] = 1,
+  makefile:                 Annotated[Optional[str],       typer.Option('--makefile', '-m',        help='Generate a GNU Makefile for building the project')] = None,
+):
+  """Test all valid doctests snippets found."""
+  ctx.ensure_object(dict)
+  ctx.obj['cliargs'] = _ns(
+    which='doctests',
+    fobos=fobos, fobos_case_insensitive=fobos_case_insensitive,
+    mode=mode, lmodes=lmodes, print_fobos_template=print_fobos_template,
+    compiler=compiler.lower(), fc=fc, cflags=cflags, lflags=lflags, modsw=modsw,
+    mpi=mpi, openmp=openmp, openmp_offload=openmp_offload,
+    coarray=coarray, coverage=coverage, profile=profile,
+    mklib=mklib, ar=ar, arflags=arflags, ranlib=ranlib,
+    cflags_heritage=cflags_heritage, track_build=track_build,
+    src=src or ['./'],
+    build_dir=build_dir, obj_dir=obj_dir, mod_dir=mod_dir,
+    lib_dir=lib_dir or [], include=include or [],
+    exclude_dirs=exclude_dirs or [],
+    disable_recursive_search=disable_recursive_search,
+    target=target, output=output,
+    exclude=exclude or [], libs=libs or [], vlibs=vlibs or [],
+    ext_libs=ext_libs or [], ext_vlibs=ext_vlibs or [],
+    dependon=dependon or [],
+    inc=inc or list(__extensions_inc__),
+    extensions=extensions or list(__extensions_parsed__),
+    build_all=build_all,
+    keep_volatile_doctests=keep_volatile_doctests,
+    exclude_from_doctests=exclude_from_doctests or [],
+    preprocessor=preprocessor, preproc=preproc,
+    preprocessor_args=preprocessor_args,
+    preprocessor_no_o=preprocessor_no_o,
+    preprocessor_dir=preprocessor_dir,
+    preprocessor_ext=preprocessor_ext or [],
+    doctests_preprocessor=doctests_preprocessor,
+    force_compile=force_compile, colors=colors, log=log, graph=graph,
+    quiet=quiet, verbose=verbose, jobs=jobs, makefile=makefile,
+  )
 
-  Parameters
-  ----------
-  clisubparsers : argparse subparser object
-  """
-  compiler = _subparser_compiler()
-  directories = _subparser_directories()
-  files = _subparser_files()
-  fobos = _subparser_fobos()
-  preprocessor = _subparser_preprocessor()
-  rules = _subparser_rules()
-  rules_intrinsic = _subparser_rules_intrinsic()
-  fancy = _subparser_fancy()
-  rulexparser = clisubparsers.add_parser('rule', help="Execute special rules or user's ones defined into a fobos file", parents=[compiler, directories, files, fobos, preprocessor, rules, rules_intrinsic, fancy])
-  rulexparser.set_defaults(which='rule')
-  return
+# ---------------------------------------------------------------------------
+# fetch command
+# ---------------------------------------------------------------------------
 
-
-def _parser_install(clisubparsers):
-  """
-  Construct the install cli parser.
-
-  Parameters
-  ----------
-  clisubparsers : argparse subparser object
-  """
-  # compiler = _subparser_compiler()
-  directories = _subparser_directories(install=True)
-  # files = _subparser_files()
-  fobos = _subparser_fobos()
-  fancy = _subparser_fancy()
-  installparser = clisubparsers.add_parser('install', help='Install previously built files, or clone+build+install a GitHub-hosted FoBiS project', parents=[directories, fobos, fancy])
-  installparser.add_argument('repo', nargs='?', default=None,
-                             help='GitHub repository to install: "user/repo" shorthand or full HTTPS URL (e.g. szaghi/FLAP)')
-  installparser.add_argument('--branch', required=False, action='store', default=None,
-                             help='Branch to check out when installing from GitHub')
-  installparser.add_argument('--tag', required=False, action='store', default=None,
-                             help='Tag to check out when installing from GitHub')
-  installparser.add_argument('--rev', required=False, action='store', default=None,
-                             help='Commit revision to check out when installing from GitHub')
-  installparser.add_argument('--update', required=False, action='store_true', default=False,
-                             help='Re-fetch (git pull) the repository before building and installing')
-  installparser.add_argument('--no-build', required=False, action='store_true', default=False,
-                             help='Clone only — skip building and installing')
-  installparser.add_argument('--deps-dir', required=False, action='store', default=None,
-                             help='Directory for cloning GitHub repositories [default: ~/.fobis/]')
-  installparser.set_defaults(which='install')
-  return
-
-
-def _parser_doctests(clisubparsers):
-  """
-  Construct the doctests cli parser.
-
-  Parameters
-  ----------
-  clisubparsers : argparse subparser object
-  """
-  compiler = _subparser_compiler()
-  directories = _subparser_directories()
-  files = _subparser_files(doctests=True)
-  fobos = _subparser_fobos()
-  preprocessor = _subparser_preprocessor(doctests=True)
-  fancy = _subparser_fancy()
-  doctestsparser = clisubparsers.add_parser('doctests', help='Test all valid doctests snippets found', parents=[compiler, directories, files, fobos, preprocessor, fancy])
-  doctestsparser.set_defaults(which='doctests')
-  return
-
-
-def _parser_fetch(clisubparsers):
-  """
-  Construct the fetch cli parser.
-
-  Parameters
-  ----------
-  clisubparsers : argparse subparser object
-  """
-  fobos = _subparser_fobos()
-  fancy = _subparser_fancy()
-  fetchparser = clisubparsers.add_parser('fetch', help='Fetch and build GitHub-hosted Fortran dependencies listed in the fobos [dependencies] section', parents=[fobos, fancy])
-  fetchparser.add_argument('--deps-dir', required=False, action='store', default=None,
-                           help='Directory for storing fetched dependencies [default: .fobis_deps, or deps_dir from fobos [dependencies] section]')
-  fetchparser.add_argument('--update', required=False, action='store_true', default=False,
-                           help='Update already fetched dependencies (git fetch + re-checkout)')
-  fetchparser.add_argument('--no-build', required=False, action='store_true', default=False,
-                           help='Only fetch dependencies, do not build them')
-  fetchparser.set_defaults(which='fetch')
-  return
-
-
-def cli_parser(appname, description, version):
-  """
-  Create the FoBiS.py Command Line Interface (CLI).
-
-  Parameters
-  ----------
-  appname : str
-    name of the main application
-  description : str
-    description of the application
-  version : str
-    current application version
-  """
-  cliparser = argparse.ArgumentParser(prog=appname,
-                                      description=description,
-                                      formatter_class=argparse.RawDescriptionHelpFormatter,
-                                      epilog="For more detailed commands help use" +
-                                      "\n  " + appname + " build -h,--help" +
-                                      "\n  " + appname + " clean -h,--help" +
-                                      "\n  " + appname + " rule -h,--help" +
-                                      "\n  " + appname + " doctests -h,--help" +
-                                      "\n  " + appname + " fetch -h,--help")
-  cliparser.add_argument('-v', '--version', action='version', help='Show version', version='%(prog)s ' + version)
-  clisubparsers = cliparser.add_subparsers(title='Commands', description='Valid commands')
-  _parser_build(clisubparsers)
-  _parser_clean(clisubparsers)
-  _parser_rule(clisubparsers)
-  _parser_install(clisubparsers)
-  _parser_doctests(clisubparsers)
-  _parser_fetch(clisubparsers)
-  return cliparser
+@app.command('fetch')
+def cmd_fetch(
+  ctx: typer.Context,
+  # fobos group
+  fobos:                    Annotated[Optional[str],       typer.Option('--fobos', '-f', help='Specify a "fobos" file named differently from "fobos"')] = None,
+  fobos_case_insensitive:   Annotated[bool,                typer.Option('--fci',         help='Assume fobos inputs as case insensitive')] = False,
+  mode:                     Annotated[Optional[str],       typer.Option('--mode',        help='Select a mode defined into a fobos file', autocompletion=_complete_fobos_mode)] = None,
+  lmodes:                   Annotated[bool,                typer.Option('--lmodes',      help='List the modes defined into a fobos file')] = False,
+  print_fobos_template:     Annotated[bool,                typer.Option('--print-fobos-template', help='Print a comprehensive fobos template')] = False,
+  # fetch-specific options
+  deps_dir:                 Annotated[Optional[str],       typer.Option('--deps-dir',    help='Directory for storing fetched dependencies [default: .fobis_deps or fobos [dependencies] setting]')] = None,
+  update:                   Annotated[bool,                typer.Option('--update',      help='Update already-fetched dependencies (git fetch + re-checkout)')] = False,
+  no_build:                 Annotated[bool,                typer.Option('--no-build',    help='Only fetch dependencies, do not build them')] = False,
+  # fancy group
+  force_compile:            Annotated[bool,                typer.Option('--force-compile', help='Force to (re-)compile all')] = False,
+  colors:                   Annotated[bool,                typer.Option('--colors',      help='Activate colors in shell prints')] = False,
+  log:                      Annotated[bool,                typer.Option('--log', '-l',   help='Activate log file creation')] = False,
+  graph:                    Annotated[bool,                typer.Option('--graph',       help='Generate a dependencies graph via graphviz')] = False,
+  quiet:                    Annotated[bool,                typer.Option('--quiet', '-q', help='Less verbose output')] = False,
+  verbose:                  Annotated[bool,                typer.Option('--verbose',     help='Extremely verbose output for debugging')] = False,
+  jobs:                     Annotated[int,                 typer.Option('--jobs', '-j',  help='Number of concurrent compilation jobs [default: 1]')] = 1,
+  makefile:                 Annotated[Optional[str],       typer.Option('--makefile', '-m', help='Generate a GNU Makefile for building the project')] = None,
+):
+  """Fetch and build GitHub-hosted Fortran dependencies listed in the fobos [dependencies] section."""
+  ctx.ensure_object(dict)
+  ctx.obj['cliargs'] = _ns(
+    which='fetch',
+    fobos=fobos, fobos_case_insensitive=fobos_case_insensitive,
+    mode=mode, lmodes=lmodes, print_fobos_template=print_fobos_template,
+    deps_dir=deps_dir, update=update, no_build=no_build,
+    force_compile=force_compile, colors=colors, log=log, graph=graph,
+    quiet=quiet, verbose=verbose, jobs=jobs, makefile=makefile,
+  )

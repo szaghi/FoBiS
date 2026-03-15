@@ -10,36 +10,36 @@ FoBiS.py build [options]
 
 | Option | Description |
 |---|---|
-| `-compiler {gnu,intel,intel_nextgen,g95,opencoarrays-gnu,pgi,ibm,nag,nvfortran,amd,custom}` | Compiler (case-insensitive, default: `gnu`) |
-| `-fc FC` | Compiler executable — required for `-compiler custom` |
-| `-cflags CFLAGS` | Compilation flags |
-| `-lflags LFLAGS` | Linking flags |
-| `-modsw MODSW` | Module path switch — required for `-compiler custom` |
-| `-mpi` | MPI compiler variant |
-| `-openmp` | OpenMP |
-| `-openmp_offload` | OpenMP offload |
-| `-coarray` | Coarrays |
-| `-coverage` | Coverage instrumentation |
-| `-profile` | Profiling instrumentation |
-| `-mklib {static,shared}` | Build a library instead of a program (use with `-t`) |
-| `-ar AR` | Archiver executable for static libraries (default: `ar`) |
-| `-arflags ARFLAGS` | Archiver flags (default: `-rcs`) |
-| `-ranlib RANLIB` | Ranlib executable for indexing static libraries (default: `ranlib`); set to empty string to skip |
-| `-ch`, `--cflags_heritage` | Track flag changes; force full rebuild when they differ |
-| `-tb`, `--track_build` | Save build info for use by `install` |
+| `--compiler {gnu,intel,intel_nextgen,g95,opencoarrays-gnu,pgi,ibm,nag,nvfortran,amd,custom}` | Compiler (case-insensitive, default: `gnu`) — tab-completable |
+| `--fc FC` | Compiler executable — required for `--compiler custom` |
+| `--cflags CFLAGS` | Compilation flags |
+| `--lflags LFLAGS` | Linking flags |
+| `--modsw MODSW` | Module path switch — required for `--compiler custom` |
+| `--mpi` | MPI compiler variant |
+| `--openmp` | OpenMP |
+| `--openmp-offload` | OpenMP offload |
+| `--coarray` | Coarrays |
+| `--coverage` | Coverage instrumentation |
+| `--profile` | Profiling instrumentation |
+| `--mklib {static,shared}` | Build a library instead of a program (use with `-t`) — tab-completable |
+| `--ar AR` | Archiver executable for static libraries (default: `ar`) |
+| `--arflags ARFLAGS` | Archiver flags (default: `-rcs`) |
+| `--ranlib RANLIB` | Ranlib executable for indexing static libraries (default: `ranlib`); set to empty string to skip |
+| `--ch`, `--cflags-heritage` | Track flag changes; force full rebuild when they differ |
+| `--tb`, `--track-build` | Save build info for use by `install` |
 
 ## Directory options
 
 | Option | Default | Description |
 |---|---|---|
-| `-s`, `--src` | `./` | Root source directory (repeatable) |
-| `-dbld`, `--build_dir` | `./` | Build output directory |
-| `-dobj`, `--obj_dir` | `./obj/` | Compiled objects directory |
-| `-dmod`, `--mod_dir` | `./mod/` | Module interface files directory |
-| `-dlib`, `--lib_dir` | — | Library search directories |
-| `-i`, `--include` | — | Include file search directories |
-| `-ed`, `--exclude_dirs` | — | Directories to exclude from the build |
-| `-drs`, `--disable_recursive_search` | `False` | Do not recurse into subdirectories |
+| `-s`, `--src` | `./` | Root source directory (repeatable: `--src ./a --src ./b`) |
+| `--dbld`, `--build-dir` | `./` | Build output directory |
+| `--dobj`, `--obj-dir` | `./obj/` | Compiled objects directory |
+| `--dmod`, `--mod-dir` | `./mod/` | Module interface files directory |
+| `--dlib`, `--lib-dir` | — | Library search directories (repeatable) |
+| `-i`, `--include` | — | Include file search directories (repeatable) |
+| `--ed`, `--exclude-dirs` | — | Directories to exclude from the build (repeatable) |
+| `--drs`, `--disable-recursive-search` | `False` | Do not recurse into subdirectories |
 
 ## File options
 
@@ -47,47 +47,47 @@ FoBiS.py build [options]
 |---|---|---|
 | `-t`, `--target` | All programs found | Specific target source file |
 | `-o`, `--output` | Basename of target | Output executable name |
-| `-e`, `--exclude` | — | Source files to exclude |
-| `-libs` | — | External libraries (full paths) |
-| `-vlibs` | — | Volatile external libraries (full paths) — triggers rebuild on change |
-| `-ext_libs` | — | External libraries (by name, in linker path) |
-| `-ext_vlibs` | — | Volatile external libraries (by name) |
-| `-dependon` | — | Interdependent fobos files (`path/fobos[:mode]`) |
-| `-inc` | `.inc .INC .h .H` | Include file extensions |
-| `-extensions` | (all Fortran extensions) | Parsed file extensions |
-| `-build_all` | `False` | Build all parsed sources, not just program files |
+| `-e`, `--exclude` | — | Source files to exclude (repeatable) |
+| `--libs` | — | External libraries (full paths, repeatable) |
+| `--vlibs` | — | Volatile external libraries (full paths) — triggers rebuild on change |
+| `--ext-libs` | — | External libraries (by name, in linker path) |
+| `--ext-vlibs` | — | Volatile external libraries (by name) |
+| `--dependon` | — | Interdependent fobos files (`path/fobos[:mode]`, repeatable) |
+| `--inc` | `.inc .INC .h .H` | Include file extensions — tab-completable |
+| `--extensions` | (all Fortran extensions) | Parsed file extensions — tab-completable |
+| `--build-all` | `False` | Build all parsed sources, not just program files |
 
 ## fobos options
 
 | Option | Description |
 |---|---|
 | `-f`, `--fobos` | Specify a fobos file with a different name or path |
-| `-fci`, `--fobos_case_insensitive` | Case-insensitive fobos option parsing |
-| `-mode` | Select a fobos mode |
-| `-lmodes` | List available modes and exit |
-| `--print_fobos_template` | Print a fobos template with all current option values |
+| `--fci`, `--fobos-case-insensitive` | Case-insensitive fobos option parsing |
+| `--mode` | Select a fobos mode — tab-completable from the active fobos file |
+| `--lmodes` | List available modes and exit |
+| `--print-fobos-template` | Print a fobos template with all current option values |
 
 ## Preprocessor options
 
 | Option | Description |
 |---|---|
-| `-preprocessor [CMD]` | Enable source preprocessing (default: `PreForM.py`) |
-| `-p`, `--preproc` | Preprocessor flags for the main compiler |
-| `-app`, `--preprocessor_args` | Flags passed to the preprocessor |
-| `-npp`, `--preprocessor_no_o` | Omit `-o` from the preprocessor command line |
-| `-dpp`, `--preprocessor_dir` | Directory for preprocessed sources (kept if set) |
-| `-epp`, `--preprocessor_ext` | File extensions to preprocess |
+| `--preprocessor CMD` | Enable source preprocessing; specify preprocessor name (e.g. `PreForM.py`) |
+| `--preproc` | Preprocessor flags for the main compiler |
+| `--app`, `--preprocessor-args` | Flags passed to the preprocessor |
+| `--npp`, `--preprocessor-no-o` | Omit `-o` from the preprocessor command line |
+| `--dpp`, `--preprocessor-dir` | Directory for preprocessed sources (kept if set) |
+| `--epp`, `--preprocessor-ext` | File extensions to preprocess (repeatable) |
 
 ## Fancy options
 
 | Option | Description |
 |---|---|
-| `-force_compile` | Force recompilation of all sources |
-| `-colors` | Coloured terminal output |
+| `--force-compile` | Force recompilation of all sources |
+| `--colors` | Coloured terminal output |
 | `-l`, `--log` | Write a build log file |
-| `-graph` | Generate a graphviz dependency graph |
+| `--graph` | Generate a graphviz dependency graph |
 | `-q`, `--quiet` | Less verbose output |
-| `-verbose` | Maximum verbosity (for debugging FoBiS.py itself) |
+| `--verbose` | Maximum verbosity (for debugging FoBiS.py itself) |
 | `-j`, `--jobs` | Number of parallel compile jobs (default: 1) |
 | `-m`, `--makefile` | Export a GNU Makefile instead of building |
 
@@ -98,23 +98,34 @@ FoBiS.py build [options]
 FoBiS.py build
 
 # Build with GNU gfortran, parallel, debug flags
-FoBiS.py build -compiler gnu -cflags " -c -O0 -g" -j 4
+FoBiS.py build --compiler gnu --cflags " -c -O0 -g" -j 4
 
 # Build a specific target
 FoBiS.py build -t src/solver.f90 -o solver
 
 # Build a static library
-FoBiS.py build -t src/mylib.f90 -mklib static -o libmylib.a
+FoBiS.py build -t src/mylib.f90 --mklib static -o libmylib.a
 
 # Build a static library with LLVM tools
-FoBiS.py build -t src/mylib.f90 -mklib static -ar llvm-ar -ranlib llvm-ranlib
+FoBiS.py build -t src/mylib.f90 --mklib static --ar llvm-ar --ranlib llvm-ranlib
 
 # Build a static library skipping ranlib (llvm-ar updates the symbol table itself)
-FoBiS.py build -t src/mylib.f90 -mklib static -ar llvm-ar -ranlib ""
+FoBiS.py build -t src/mylib.f90 --mklib static --ar llvm-ar --ranlib ""
 
 # Use a fobos file and a specific mode
-FoBiS.py build -f project.fobos -mode release
+FoBiS.py build -f project.fobos --mode release
 
 # Force full recompile
-FoBiS.py build -force_compile
+FoBiS.py build --force-compile
+
+# Multiple source directories
+FoBiS.py build --src ./src --src ./vendor/mylib/src
 ```
+
+::: tip Legacy single-dash options
+All single-dash multi-character options from older versions (`-compiler`, `-mode`, `-force_compile`, etc.) are still accepted and normalised automatically. Both forms are equivalent:
+```bash
+FoBiS.py build -compiler intel -mode release   # legacy style
+FoBiS.py build --compiler intel --mode release  # current style
+```
+:::

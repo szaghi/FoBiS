@@ -2,12 +2,12 @@
 
 ## Selecting a compiler
 
-Use the `-compiler` flag (case-insensitive):
+Use the `--compiler` flag (case-insensitive, tab-completable):
 
 ```bash
-FoBiS.py build -compiler gnu
-FoBiS.py build -compiler intel
-FoBiS.py build -compiler custom -fc g95 -modsw "-fmod="
+FoBiS.py build --compiler gnu
+FoBiS.py build --compiler intel
+FoBiS.py build --compiler custom --fc g95 --modsw "-fmod="
 ```
 
 Or set it in the fobos file:
@@ -31,14 +31,14 @@ compiler = gnu
 | `nag` | NAG Fortran Compiler |
 | `nvfortran` | NVIDIA HPC Fortran (nvfortran) |
 | `amd` | AMD Flang (amdflang) |
-| `custom` | User-defined — requires `-fc` and optionally `-modsw` |
+| `custom` | User-defined — requires `--fc` and optionally `--modsw` |
 
 ## Custom compiler
 
 For any compiler not listed, use `custom` and specify the executable and module path switch:
 
 ```bash
-FoBiS.py build -compiler custom -fc /opt/myfc/bin/myfc -modsw "-module "
+FoBiS.py build --compiler custom --fc /opt/myfc/bin/myfc --modsw "-module "
 ```
 
 In a fobos file:
@@ -58,7 +58,7 @@ cflags   = -c -O2
 Enable the MPI-wrapped compiler variant:
 
 ```bash
-FoBiS.py build -mpi
+FoBiS.py build --mpi
 ```
 
 This switches to the MPI wrapper (e.g. `mpif90` for GNU, `mpiifort` for Intel).
@@ -66,7 +66,7 @@ This switches to the MPI wrapper (e.g. `mpif90` for GNU, `mpiifort` for Intel).
 ### OpenMP
 
 ```bash
-FoBiS.py build -openmp
+FoBiS.py build --openmp
 ```
 
 Adds the appropriate OpenMP flag for the selected compiler.
@@ -74,13 +74,13 @@ Adds the appropriate OpenMP flag for the selected compiler.
 ### OpenMP offloading
 
 ```bash
-FoBiS.py build -openmp_offload
+FoBiS.py build --openmp-offload
 ```
 
 ### Coarrays
 
 ```bash
-FoBiS.py build -coarray
+FoBiS.py build --coarray
 ```
 
 ### Coverage instrumentation
@@ -88,19 +88,19 @@ FoBiS.py build -coarray
 Instrument the build for gcov-compatible coverage analysis:
 
 ```bash
-FoBiS.py build -coverage
+FoBiS.py build --coverage
 ```
 
 After running the program, analyze `.gcov` files with the intrinsic rule:
 
 ```bash
-FoBiS.py rule -gcov_analyzer reports/ summary
+FoBiS.py rule --gcov-analyzer reports/ summary
 ```
 
 ### Profiling
 
 ```bash
-FoBiS.py build -profile
+FoBiS.py build --profile
 ```
 
 ## Compilation and linking flags
@@ -108,7 +108,7 @@ FoBiS.py build -profile
 Override the default flags for the selected compiler:
 
 ```bash
-FoBiS.py build -cflags " -c -O3 -march=native" -lflags " -O3"
+FoBiS.py build --cflags " -c -O3 -march=native" --lflags " -O3"
 ```
 
 Or in fobos:
@@ -120,7 +120,7 @@ lflags = -O3
 ```
 
 ::: tip Flag prefixing
-Prepend a space to flag strings to avoid `argparse` misinterpreting flags that start with `-`. See the [Quick Start](/guide/quickstart#quoted-string-arguments) note.
+Prepend a space to flag strings to avoid the parser misinterpreting flags that start with `-`. See the [Quick Start](/guide/quickstart#quoted-string-arguments) note.
 :::
 
 ## Preprocessor flags
@@ -128,7 +128,7 @@ Prepend a space to flag strings to avoid `argparse` misinterpreting flags that s
 Pass flags to the compiler's built-in preprocessor (e.g. `-D` macros):
 
 ```bash
-FoBiS.py build -p " -DDEBUG -DUSE_MPI"
+FoBiS.py build --preproc " -DDEBUG -DUSE_MPI"
 ```
 
 In fobos:
