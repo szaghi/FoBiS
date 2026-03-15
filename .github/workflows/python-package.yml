@@ -53,9 +53,9 @@ jobs:
         python --version
         pip list
         fobis -v
-        fobis -h
+        fobis --help
     - name: Test FoBiS.py entry point (Linux/macOS only)
       if: startsWith(runner.os, 'Linux') || startsWith(runner.os, 'macOS')
       run: |
         FoBiS.py -v
-        FoBiS.py -h
+        FoBiS.py --help
