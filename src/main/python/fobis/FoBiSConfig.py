@@ -40,7 +40,7 @@ from typer.testing import CliRunner as _CliRunner
 from .utils import syswork
 
 __appname__ = "FoBiS.py"
-__version__ = "3.5.4"
+__version__ = "3.6.0"
 __author__ = "Stefano Zaghi"
 __author_email__ = "stefano.zaghi@gmail.com"
 __license__ = "GNU General Public License v3 (GPLv3)"
