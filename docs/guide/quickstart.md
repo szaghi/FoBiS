@@ -50,7 +50,7 @@ After the build your tree looks like:
 Override any directory with CLI flags:
 
 ```bash
-FoBiS.py build -dobj my-objs -dmod my-mods -dbld my-build
+FoBiS.py build --obj-dir my-objs --mod-dir my-mods --build-dir my-build
 ```
 
 The `obj` and `mod` directories are always relative to the build directory, so the tree becomes:
@@ -71,19 +71,19 @@ FoBiS.py clean
 This removes all compiled objects (`*.o`) and module files (`*.mod`) from the `obj/` and `mod/` directories. If you used custom paths during the build, repeat them:
 
 ```bash
-FoBiS.py clean -dobj my-objs -dmod my-mods -dbld my-build
+FoBiS.py clean --obj-dir my-objs --mod-dir my-mods --build-dir my-build
 ```
 
 Clean only compiled objects (keep executable):
 
 ```bash
-FoBiS.py clean -only_obj
+FoBiS.py clean --only-obj
 ```
 
 Clean only the executable (keep objects for faster incremental rebuild):
 
 ```bash
-FoBiS.py clean -only_target
+FoBiS.py clean --only-target
 ```
 
 ## Parsed file extensions
@@ -96,10 +96,10 @@ By default FoBiS.py parses files with these extensions:
 | Legacy Fortran | `.f` `.F` `.for` `.FOR` `.fpp` `.FPP` `.fortran` `.f77` `.F77` |
 | Include files  | `.inc` `.INC` `.h` `.H` |
 
-Add custom include extensions:
+Add custom include extensions (tab-completable):
 
 ```bash
-FoBiS.py build -inc .cmn .icp
+FoBiS.py build --inc .cmn .icp
 ```
 
 ## Selecting a specific target
@@ -142,13 +142,13 @@ FoBiS.py clean
 See the [fobos section](/fobos/) for the full reference.
 
 ::: tip Quoted string arguments
-`argparse` can misinterpret flags beginning with `-` that are passed as quoted strings. Prefix such values with a leading space:
+Flag values that start with `-` should be prefixed with a leading space to prevent the parser from misinterpreting them as option names:
 
 ```bash
 # problematic:
-FoBiS.py build -cflags "-c -fPIC"
+FoBiS.py build --cflags "-c -fPIC"
 
 # correct:
-FoBiS.py build -cflags " -c -fPIC"
+FoBiS.py build --cflags " -c -fPIC"
 ```
 :::

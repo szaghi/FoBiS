@@ -35,11 +35,12 @@ import sys
 from .Builder import Builder
 from .Colors import Colors
 from .Fobos import Fobos
-from .cli_parser import cli_parser
+from .cli_parser import app as _fobis_app, _normalize_args
+from typer.testing import CliRunner as _CliRunner
 from .utils import syswork
 
 __appname__ = "FoBiS.py"
-__version__ = "3.5.4"
+__version__ = "3.6.0"
 __author__ = "Stefano Zaghi"
 __author_email__ = "stefano.zaghi@gmail.com"
 __license__ = "GNU General Public License v3 (GPLv3)"
@@ -63,8 +64,14 @@ class FoBiSConfig(object):
     colors : {Colors()}
       Colors object
     """
-    cliparser = cli_parser(appname=__appname__, description=__description__, version=__version__)
-    self.cliargs = cliparser.parse_args(fake_args)
+    _shared = {}
+    _args = _normalize_args(fake_args if fake_args is not None else sys.argv[1:])
+    _result = _CliRunner().invoke(_fobis_app, _args, obj=_shared)
+    if _result.output:
+      sys.stdout.write(_result.output)
+    if 'cliargs' not in _shared:
+      sys.exit(_result.exit_code)
+    self.cliargs = _shared['cliargs']
     self.colors = Colors()
     self.fobos = Fobos(cliargs=self.cliargs, print_n=self.print_b, print_w=self.print_r)
     self.colors = Colors(enabled=self.cliargs.colors)  # reset colors accordingly fobos options
