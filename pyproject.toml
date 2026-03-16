@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "FoBiS.py"
 dynamic = ["version"]
-description = "a Fortran Building System for poor men"
+description = "a Fortran Building System"
 readme = "README.md"
 license = { text = "GNU General Public License v3 (GPLv3)" }
 authors = [{ name = "Stefano Zaghi", email = "stefano.zaghi@gmail.com" }]

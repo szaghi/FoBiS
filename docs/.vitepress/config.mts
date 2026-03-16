@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'FoBiS.py',
-  description: 'Fortran Building System for poor people — automatic dependency-resolving build tool for modern Fortran projects',
+  description: 'Fortran Building System — automatic dependency-resolving build tool for modern Fortran projects',
   base: '/FoBiS/',
   markdown: {
     math: true,

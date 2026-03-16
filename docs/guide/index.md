@@ -1,6 +1,6 @@
 # About FoBiS.py
 
-**FoBiS.py** (Fortran Building System for poor people) is a KISS build tool for modern Fortran projects. It automatically resolves inter-module dependency hierarchies so you never have to track them manually in makefiles.
+**FoBiS.py** is a KISS build tool for modern Fortran projects. It automatically resolves inter-module dependency hierarchies so you never have to track them manually in makefiles.
 
 ## The problem it solves
 

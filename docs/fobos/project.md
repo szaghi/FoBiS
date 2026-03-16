@@ -84,7 +84,7 @@ FoBiS.py reads the file and normalises the result to `v1.2.3`.
 ```ini
 [project]
 name       = PENF
-summary    = Portability Environment for Fortran poor people
+summary    = Portability Environment for Fortran
 version    = VERSION
 repository = https://github.com/szaghi/PENF
 website    = https://szaghi.github.io/PENF

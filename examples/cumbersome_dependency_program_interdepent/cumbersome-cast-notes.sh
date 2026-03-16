@@ -1,5 +1,5 @@
 #!/bin/bash
-echo -e "\033[1m Hi all Fortran Poor men! \033[0m" ; sleep 4
+echo -e "\033[1m Hi all Fortran developers! \033[0m" ; sleep 4
 echo -e "\033[1m Let us play with FoBiS.py \033[0m" ; sleep 4
 echo -e "\033[1m Let us assume our aim is build this cumbersome hello world program \033[0m" ; sleep 4
 echo "tree" ; sleep 2
@@ -47,4 +47,4 @@ echo
 echo -e "\033[1m Is it simple enough? \033[0m" ; sleep 4
 echo -e "\033[1m Note that is a very cumbersome scenario... In most cases, FoBiS.py can do \033[0m" ; sleep 4
 echo -e "\033[1m similar stuff even without a fobos file, directly from the command line! \033[0m" ; sleep 4
-echo -e "\033[1;31m Bye bye Fortran poor men \033[0m"
+echo -e "\033[1;31m Bye bye Fortran developers \033[0m"

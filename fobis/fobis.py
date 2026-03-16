@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-FoBiS.py, Fortran Building System for poor men
+FoBiS.py, Fortran Building System
 """
 
 # Copyright (C) 2015  Stefano Zaghi

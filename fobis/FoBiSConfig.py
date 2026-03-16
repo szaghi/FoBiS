@@ -47,8 +47,8 @@ __author__ = "Stefano Zaghi"
 __author_email__ = "stefano.zaghi@gmail.com"
 __license__ = "GNU General Public License v3 (GPLv3)"
 __url__ = "https://github.com/szaghi/FoBiS"
-__description__ = "a Fortran Building System for poor men"
-__long_description__ = "FoBiS.py, a Fortran Building System for poor men, is a KISS tool for automatic building modern Fortran projects, it being able to automatically resolve inter-modules dependancy hierarchy."
+__description__ = "a Fortran Building System"
+__long_description__ = "FoBiS.py, a Fortran Building System, is a KISS tool for automatic building modern Fortran projects, it being able to automatically resolve inter-modules dependancy hierarchy."
 
 
 class FoBiSConfig:
