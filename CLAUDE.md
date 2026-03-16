@@ -17,6 +17,24 @@ make fmt    # ruff check --fix + ruff format
 make clean  # remove dist/, *.egg-info/, .pytest_cache/, .ruff_cache/, __pycache__/
 ```
 
+### Releasing a new version
+```bash
+# Requires: git-cliff installed (pipx install git-cliff)
+./bump.sh --patch    # X.Y.Z → X.Y.Z+1
+./bump.sh --minor    # X.Y.Z → X.Y+1.0
+./bump.sh --major    # X.Y.Z → X+1.0.0
+./bump.sh 3.7.0      # explicit version
+
+# What bump.sh does:
+# 1. Creates release/vX.Y.Z branch
+# 2. Bumps __version__ in fobis/__init__.py
+# 3. Regenerates CHANGELOG.md via git-cliff
+# 4. Runs pytest
+# 5. Commits + merges to master + tags vX.Y.Z + pushes
+# 6. Merges master back to develop + pushes
+# PyPI upload is triggered automatically by the tag push via CI
+```
+
 ### Building/Running the Project
 ```bash
 # Run directly from source

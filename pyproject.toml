@@ -33,7 +33,7 @@ dependencies = [
 PreForM = ["PreForM.py>=v1.1.1"]
 FORD    = ["FORD>=1.1.0"]
 graphviz = ["graphviz>=0.4.2"]
-dev = ["build", "twine", "ruff", "pytest", "pytest-cov"]
+dev = ["build", "twine", "ruff", "pytest", "pytest-cov", "git-cliff"]
 
 [project.scripts]
 fobis    = "fobis.fobis:main"
