@@ -48,13 +48,10 @@ cd FoBiS
 pip install -e .
 ```
 
-### Build from source with pybuilder
+For development (editable install with all dev tools):
 
 ```bash
-pip install pybuilder
-pyb
-cd release/FoBiS-<branch>/
-pip install -e .
+pip install -e ".[dev]"
 ```
 
 ## Programmatic use

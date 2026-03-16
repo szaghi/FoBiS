@@ -8,42 +8,100 @@ FoBiS.py (Fortran Building System for poor men) is a Python CLI tool that automa
 
 ## Build and Development Commands
 
+### Common tasks (via Makefile)
+```bash
+make dev    # pip install -e ".[dev]"
+make test   # pytest
+make lint   # ruff check + format check (no fixes)
+make fmt    # ruff check --fix + ruff format
+make clean  # remove dist/, *.egg-info/, .pytest_cache/, .ruff_cache/, __pycache__/
+```
+
+### Releasing a new version
+```bash
+# Requires: git-cliff installed (pipx install git-cliff)
+./release.sh --patch    # X.Y.Z → X.Y.Z+1
+./release.sh --minor    # X.Y.Z → X.Y+1.0
+./release.sh --major    # X.Y.Z → X+1.0.0
+./release.sh 3.7.0      # explicit version
+
+# What release.sh does:
+# 1. Creates release/vX.Y.Z branch
+# 2. Bumps __version__ in fobis/__init__.py
+# 3. Regenerates CHANGELOG.md via git-cliff
+# 4. Runs pytest
+# 5. Commits + merges to master + tags vX.Y.Z + pushes
+# 6. Merges master back to develop + pushes
+# 7. Tag push triggers CI: lint → test → build → publish (PyPI via OIDC)
+```
+
+### CI / release pipeline
+
+The `python-package.yml` workflow has four jobs:
+
+| Job | Trigger | What it does |
+|-----|---------|--------------|
+| `lint` | push/PR to master, tag `v*` | ruff check + format |
+| `test` | push/PR to master, tag `v*` | pytest on ubuntu + gfortran |
+| `build` | push/PR to master, tag `v*` | smoke-test entry points across 3 OS × 4 Python |
+| `publish` | tag `v*` only | `python -m build` + PyPI OIDC publish |
+
+PyPI publishing uses [OIDC Trusted Publisher](https://docs.pypi.org/trusted-publishers/) — no API token required. The PyPI project must have a Trusted Publisher configured:
+- Repository: `szaghi/FoBiS`
+- Workflow: `python-package.yml`
+- Environment: `release`
+
 ### Building/Running the Project
 ```bash
 # Run directly from source
-python src/main/python/fobis/fobis.py build
+python fobis/fobis.py build
 
-# Or using pybuilder (creates release artifacts)
-pyb
+# Install for development (editable install)
+pip install -e ".[dev]"
 
-# Install for development (from release directory after pyb)
-pip install -e release/FoBiS-<branch>/
+# Build a distribution (sdist + wheel)
+python -m build
 ```
 
 ### Testing
 ```bash
 # Run the full test suite
-python src/unittest/python/suite_tests.py
+pytest
 
-# Run a single test class
-python -m unittest src.unittest.python.suite_tests.SuiteTest.test_buildings
+# Run a single test file
+pytest tests/test_build.py
+
+# Run a specific parametrized case
+pytest tests/test_build.py::test_build[1]
+
+# Run with coverage
+pytest --cov=fobis --cov-report=term-missing
 
 # Tests require gfortran to be available in PATH
 ```
 
 ### Linting
 ```bash
-# Via pybuilder (runs flake8 and pylint)
-pyb analyze
+# Check for lint issues
+ruff check fobis/ tests/
+
+# Check formatting
+ruff format --check fobis/ tests/
+
+# Auto-fix lint issues
+ruff check --fix fobis/ tests/
+
+# Apply formatting
+ruff format fobis/ tests/
 ```
 
 ## Architecture
 
-### Core Components (src/main/python/fobis/)
+### Core Components (fobis/)
 
 - **fobis.py**: Main entry point with `run_fobis()` orchestrating all commands (build, clean, install, doctests, rule, fetch)
 
-- **FoBiSConfig.py**: Configuration class that parses CLI arguments and fobos files, manages cflags heritage, and handles interdependent project builds. Contains version info (`__version__`, `__appname__`). The `_load_fetched_deps()` method auto-loads `.fobis_deps/.deps_config.ini` during `build`: `dependon` entries are appended to `cliargs.dependon` (and their directories added to `cliargs.exclude_dirs` to prevent source-scan overlap); `src` entries are appended to `cliargs.src` when not already covered by an existing source path.
+- **FoBiSConfig.py**: Configuration class that parses CLI arguments and fobos files, manages cflags heritage, and handles interdependent project builds. Contains app metadata (`__appname__`, `__author__`, etc.); `__version__` is imported from `fobis/__init__.py` (single source of truth for `pyproject.toml`). The `_load_fetched_deps()` method auto-loads `.fobis_deps/.deps_config.ini` during `build`: `dependon` entries are appended to `cliargs.dependon` (and their directories added to `cliargs.exclude_dirs` to prevent source-scan overlap); `src` entries are appended to `cliargs.src` when not already covered by an existing source path.
 
 - **cli_parser.py**: Argparse-based CLI with subcommands (build, clean, rule, install, doctests, fetch). Defines supported file extensions and compilers.
 
@@ -156,12 +214,29 @@ fobis install szaghi/FLAP --update              # re-pull before building
 
 ## Test Structure
 
-Tests are in `src/unittest/python/` with subdirectories for each test type:
-- `build-test{1-28}/`: Build scenarios with fobos files
+Tests use **pytest** and live in `tests/`:
+
+| File | Description |
+|------|-------------|
+| `tests/helpers.py` | Shared helpers: `run_build`, `run_clean`, `make_makefile`, `run_install`, `run_doctest`, `run_rule`, `TESTS_DIR`, `OPENCOARRAYS` |
+| `tests/conftest.py` | pytest configuration/fixtures |
+| `tests/test_build.py` | 32 parametrized build scenarios |
+| `tests/test_clean.py` | 1 clean scenario |
+| `tests/test_makefile.py` | 2 Makefile generation scenarios |
+| `tests/test_install.py` | 4 install scenarios |
+| `tests/test_doctest.py` | 3 doctest scenarios |
+| `tests/test_rules.py` | 1 custom rule scenario |
+| `tests/test_template.py` | Circular template detection |
+| `tests/test_fetch.py` | Fetcher unit tests + 4 integration scenarios |
+
+Fixture directories in `tests/`:
+- `build-test{1-32}/`: Build scenarios with fobos files
 - `clean-test1/`: Clean functionality
 - `makefile-test{1-2}/`: Makefile generation
 - `install-test{1-4}/`: Install functionality
 - `doctest-test{1-3}/`: Doctest functionality
 - `rule-test1/`: Custom rule execution
+- `fetch-dep-test{1-4}/`: Fetch dependency integration
+- `template-circular-test1/`: Circular template detection
 
-Each test directory contains a `fobos` file and Fortran sources.
+Each fixture directory contains a `fobos` file and Fortran sources.
