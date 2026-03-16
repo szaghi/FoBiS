@@ -34,6 +34,7 @@ After fetching, run `FoBiS.py build` as usual — it automatically picks up the 
 | `-l`, `--log` | Write a log file |
 | `-q`, `--quiet` | Less verbose output |
 | `--verbose` | Maximum verbosity |
+| `--json` | Emit structured JSON to stdout (see [JSON output](/advanced/json-output)) |
 
 ## fobos `[dependencies]` section
 

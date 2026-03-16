@@ -73,6 +73,7 @@ def cmd_clean(
     verbose: VerboseOpt = False,
     jobs: JobsOpt = 1,
     makefile: MakefileOpt = None,
+    json_output: JsonOpt = False,
 ):
     """Clean project: remove all OBJs and MODs files. Use carefully."""
     ctx.ensure_object(dict)
@@ -132,4 +133,5 @@ def cmd_clean(
         verbose=verbose,
         jobs=jobs,
         makefile=makefile,
+        json_output=json_output,
     )

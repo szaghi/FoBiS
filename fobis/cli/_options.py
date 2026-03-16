@@ -212,3 +212,15 @@ KeepVolatileDoctestsOpt = Annotated[
 ExcludeFromDoctestsOpt = Annotated[
     list[str] | None, typer.Option("--exclude-from-doctests", help="Exclude files from the doctests process")
 ]
+
+# ---------------------------------------------------------------------------
+# Output format option  (build, clean, fetch)
+# ---------------------------------------------------------------------------
+
+JsonOpt = Annotated[
+    bool,
+    typer.Option(
+        "--json",
+        help="Emit structured JSON to stdout instead of human-readable output (useful for scripting / agents)",
+    ),
+]

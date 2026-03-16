@@ -730,7 +730,7 @@ class Builder:
             if not quiet:
                 self.print_n("Target " + file_to_build.name + " has been successfully built")
         if track:
-            print("Track building of " + file_to_build.name)
+            self.print_n("Track building of " + file_to_build.name)
             track_file_name = self.get_track_build_file(file_to_build)
             with open(track_file_name, "w") as track_file:
                 track_file.writelines("[build]\n")
