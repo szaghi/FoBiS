@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "FoBiS.py"
+dynamic = ["version"]
+description = "a Fortran Building System for poor men"
+readme = "README.md"
+license = { text = "GNU General Public License v3 (GPLv3)" }
+authors = [{ name = "Stefano Zaghi", email = "stefano.zaghi@gmail.com" }]
+requires-python = ">=3.9"
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+  "Environment :: Console",
+  "Intended Audience :: End Users/Desktop",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Text Processing",
+]
+dependencies = [
+  "typer>=0.9.0",
+  "typing_extensions",
+  "colorama ; platform_system=='Windows'",
+]
+
+[project.optional-dependencies]
+PreForM = ["PreForM.py>=v1.1.1"]
+FORD    = ["FORD>=1.1.0"]
+graphviz = ["graphviz>=0.4.2"]
+dev = ["build", "twine"]
+
+[project.scripts]
+fobis    = "fobis.fobis:main"
+"FoBiS.py" = "fobis.fobis:main"
+
+[project.urls]
+Homepage = "https://github.com/szaghi/FoBiS"
+
+[tool.setuptools.dynamic]
+version = { attr = "fobis.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src/main/python"]

@@ -12,7 +12,7 @@
 
 set -euo pipefail
 
-FOBIS_CONFIG="src/main/python/fobis/FoBiSConfig.py"
+FOBIS_INIT="src/main/python/fobis/__init__.py"
 
 die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
@@ -23,7 +23,7 @@ usage() {
 }
 
 current_version() {
-  grep -oP '(?<=__version__ = ")[^"]+' "$FOBIS_CONFIG"
+  grep -oP '(?<=__version__ = ")[^"]+' "$FOBIS_INIT"
 }
 
 bump() {
@@ -63,8 +63,7 @@ case "$BUMP_ARG" in
 esac
 
 # ── pre-flight checks ─────────────────────────────────────────────────────────
-[[ -f "$FOBIS_CONFIG" ]] || die "$FOBIS_CONFIG not found — run from the repo root"
-command -v pyb   >/dev/null || die "'pyb' not found (install: pipx install pybuilder)"
+[[ -f "$FOBIS_INIT" ]] || die "$FOBIS_INIT not found — run from the repo root"
 [[ "$SKIP_PYPI" == true ]] || \
   command -v twine >/dev/null || die "'twine' not found (install: pipx install twine)"
 
@@ -93,21 +92,18 @@ read -r -p "Proceed? [y/N] " confirm
 
 # ── create release branch and bump version ────────────────────────────────────
 RELEASE_BRANCH="release/v${NEW_VER}"
-# build.py sanitises the branch name: strips feature/ hotfix/ and replaces / with -
-# release/v3.2.0 → release-v3.2.0 → dir release/FoBiS-release-v3.2.0
-DIST_DIR="release/FoBiS-release-v${NEW_VER}"
 
 info "Creating branch $RELEASE_BRANCH"
 git checkout -b "$RELEASE_BRANCH"
 
-info "Bumping version in $FOBIS_CONFIG ($CUR_VER → $NEW_VER)"
-sed -i "s/__version__ = \"${CUR_VER}\"/__version__ = \"${NEW_VER}\"/" "$FOBIS_CONFIG"
-git add "$FOBIS_CONFIG"
+info "Bumping version in $FOBIS_INIT ($CUR_VER → $NEW_VER)"
+sed -i "s/__version__ = \"${CUR_VER}\"/__version__ = \"${NEW_VER}\"/" "$FOBIS_INIT"
+git add "$FOBIS_INIT"
 git commit -m "chore: bump version to v${NEW_VER}"
 
-# ── build and test ────────────────────────────────────────────────────────────
-info "Running pyb (analyze + build + test)"
-pyb
+# ── build distribution ────────────────────────────────────────────────────────
+info "Building distribution with python -m build"
+python -m build
 
 # ── merge to master, tag, push to GitHub ─────────────────────────────────────
 info "Merging to master and tagging v${NEW_VER}"
@@ -131,14 +127,8 @@ git branch -d "$RELEASE_BRANCH"
 
 # ── upload to PyPI ────────────────────────────────────────────────────────────
 if [[ "$SKIP_PYPI" == false ]]; then
-  info "Building sdist and uploading to PyPI from $DIST_DIR"
-  (
-    cd "$DIST_DIR"
-    python setup.py sdist
-    # PyPI now requires normalized filenames (PEP 625): FoBiS.py-X.Y.Z → fobis_py-X.Y.Z
-    mv dist/FoBiS.py-${NEW_VER}.tar.gz dist/fobis_py-${NEW_VER}.tar.gz
-    twine upload dist/fobis_py-${NEW_VER}.tar.gz
-  )
+  info "Uploading to PyPI"
+  twine upload dist/FoBiS*"${NEW_VER}"*.tar.gz
 fi
 
 info "Done — v${NEW_VER} released"

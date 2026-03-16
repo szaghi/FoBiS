@@ -39,8 +39,9 @@ from .cli_parser import app as _fobis_app, _normalize_args
 from typer.testing import CliRunner as _CliRunner
 from .utils import syswork
 
+from . import __version__  # single source of truth: fobis/__init__.py
+
 __appname__ = "FoBiS.py"
-__version__ = "3.6.4"
 __author__ = "Stefano Zaghi"
 __author_email__ = "stefano.zaghi@gmail.com"
 __license__ = "GNU General Public License v3 (GPLv3)"

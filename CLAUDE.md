@@ -13,11 +13,11 @@ FoBiS.py (Fortran Building System for poor men) is a Python CLI tool that automa
 # Run directly from source
 python src/main/python/fobis/fobis.py build
 
-# Or using pybuilder (creates release artifacts)
-pyb
+# Install for development (editable install)
+pip install -e .
 
-# Install for development (from release directory after pyb)
-pip install -e release/FoBiS-<branch>/
+# Build a distribution (sdist + wheel)
+python -m build
 ```
 
 ### Testing
@@ -33,8 +33,11 @@ python -m unittest src.unittest.python.suite_tests.SuiteTest.test_buildings
 
 ### Linting
 ```bash
-# Via pybuilder (runs flake8 and pylint)
-pyb analyze
+# flake8
+flake8 src/main/python/fobis/
+
+# pylint
+pylint src/main/python/fobis/
 ```
 
 ## Architecture
@@ -43,7 +46,7 @@ pyb analyze
 
 - **fobis.py**: Main entry point with `run_fobis()` orchestrating all commands (build, clean, install, doctests, rule, fetch)
 
-- **FoBiSConfig.py**: Configuration class that parses CLI arguments and fobos files, manages cflags heritage, and handles interdependent project builds. Contains version info (`__version__`, `__appname__`). The `_load_fetched_deps()` method auto-loads `.fobis_deps/.deps_config.ini` during `build`: `dependon` entries are appended to `cliargs.dependon` (and their directories added to `cliargs.exclude_dirs` to prevent source-scan overlap); `src` entries are appended to `cliargs.src` when not already covered by an existing source path.
+- **FoBiSConfig.py**: Configuration class that parses CLI arguments and fobos files, manages cflags heritage, and handles interdependent project builds. Contains app metadata (`__appname__`, `__author__`, etc.); `__version__` is imported from `fobis/__init__.py` (single source of truth for `pyproject.toml`). The `_load_fetched_deps()` method auto-loads `.fobis_deps/.deps_config.ini` during `build`: `dependon` entries are appended to `cliargs.dependon` (and their directories added to `cliargs.exclude_dirs` to prevent source-scan overlap); `src` entries are appended to `cliargs.src` when not already covered by an existing source path.
 
 - **cli_parser.py**: Argparse-based CLI with subcommands (build, clean, rule, install, doctests, fetch). Defines supported file extensions and compilers.
 
