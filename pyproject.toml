@@ -24,9 +24,9 @@ classifiers = [
   "Topic :: Text Processing",
 ]
 dependencies = [
-  "typer>=0.9.0",
-  "typing_extensions",
-  "colorama ; platform_system=='Windows'",
+  "typer>=0.9.0,<2.0",
+  "typing_extensions>=4.0",
+  "colorama>=0.4 ; platform_system=='Windows'",
 ]
 
 [project.optional-dependencies]
@@ -54,7 +54,6 @@ ignore = [
   "N999",   # invalid-module-name — PascalCase filenames are a project convention
   "SIM102", # collapsible-if — style preference
   "SIM108", # ternary operator — style preference
-  "SIM115", # open-file-with-context-handler — separate cleanup
   "UP006",  # non-pep585-annotation — separate type-hint cleanup
   "UP031",  # printf-string-formatting — separate cleanup
   "UP035",  # deprecated-import — separate cleanup

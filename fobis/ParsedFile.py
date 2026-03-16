@@ -107,6 +107,7 @@ except ImportError:
 import operator
 import os
 import re
+import shlex
 from subprocess import STDOUT, check_output
 
 from .Dependency import Dependency
@@ -423,7 +424,10 @@ class ParsedFile:
                     includes = " -I" + "-I".join(include) + " "
                 source = str(
                     check_output(
-                        preprocessor + " " + preproc + includes + self.name, shell=True, stderr=STDOUT, encoding="UTF-8"
+                        shlex.split(preprocessor + " " + preproc + includes + self.name),
+                        shell=False,
+                        stderr=STDOUT,
+                        encoding="UTF-8",
                     )
                 )
                 source = source.replace("\\n", "\n")

@@ -793,9 +793,8 @@ def is_ascii_kind_supported(configuration):
     """
     builder = Builder(cliargs=configuration.cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
     test_file_name = os.path.join(builder.build_dir, "ascii_kind_introspection.f90")
-    test = open(test_file_name, "w")
-    test.write("program test\nprint*, selected_char_kind('ascii')\nendprogram")
-    test.close()
+    with open(test_file_name, "w") as fh:
+        fh.write("program test\nprint*, selected_char_kind('ascii')\nendprogram")
     test = ParsedFile(name=test_file_name)
     test.parse(inc=configuration.cliargs.inc)
     pfiles = [test]
@@ -828,9 +827,8 @@ def is_ucs4_kind_supported(configuration):
     """
     builder = Builder(cliargs=configuration.cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
     test_file_name = os.path.join(builder.build_dir, "ucs4_kind_introspection.f90")
-    test = open(test_file_name, "w")
-    test.write("program test\nprint*, selected_char_kind('iso_10646')\nendprogram")
-    test.close()
+    with open(test_file_name, "w") as fh:
+        fh.write("program test\nprint*, selected_char_kind('iso_10646')\nendprogram")
     test = ParsedFile(name=test_file_name)
     test.parse(inc=configuration.cliargs.inc)
     pfiles = [test]
@@ -863,9 +861,8 @@ def is_float128_kind_supported(configuration):
     """
     builder = Builder(cliargs=configuration.cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
     test_file_name = os.path.join(builder.build_dir, "float128_kind_introspection.f90")
-    test = open(test_file_name, "w")
-    test.write("program test\nprint*, selected_real_kind(33,4931)\nendprogram")
-    test.close()
+    with open(test_file_name, "w") as fh:
+        fh.write("program test\nprint*, selected_real_kind(33,4931)\nendprogram")
     test = ParsedFile(name=test_file_name)
     test.parse(inc=configuration.cliargs.inc)
     pfiles = [test]

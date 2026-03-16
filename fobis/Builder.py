@@ -40,7 +40,7 @@ import operator
 import os
 
 from .Compiler import Compiler
-from .utils import check_results, print_fake, safe_mkdir, syswork
+from .utils import check_results, print_fake, safe_mkdir, syswork, syswork_steps
 
 
 class Builder:
@@ -316,15 +316,15 @@ class Builder:
         Returns
         -------
         str
-          string containing the preprocessor command
+          string containing the preprocessor command (empty if no preprocessing)
         str
           string containing the output file name of preprocessor
-        str
-          string containing the command for removing/storing preprocessor outputs
+        bool
+          True if the preprocessor output file should be removed after compilation
         """
         preprocessor_cmd = ""
         preprocessor_output = ""
-        preprocessor_remove = ""
+        preprocessor_remove = False
         to_preprocess = False
         if self.preprocessor:
             if len(self.preprocessor_ext) > 0:
@@ -350,11 +350,10 @@ class Builder:
                     + file_to_compile.name
                     + output_prepend
                     + os.path.join(preprocessor_dir, file_to_compile.basename + ".pp.f90")
-                    + " ; "
                 )
                 preprocessor_output = os.path.join(preprocessor_dir, file_to_compile.basename + ".pp.f90")
                 if not preprocessor_store:
-                    preprocessor_remove = " ; rm -f " + preprocessor_output
+                    preprocessor_remove = True
         return preprocessor_cmd, preprocessor_output, preprocessor_remove
 
     def _compile_include(self):
@@ -373,7 +372,7 @@ class Builder:
 
     def _compile_command(self, file_to_compile):
         """
-        Method for returning the OS command for compiling file_to_compile.
+        Method for returning the OS commands for compiling file_to_compile.
 
         Parameters
         ----------
@@ -382,23 +381,24 @@ class Builder:
 
         Returns
         -------
-        str
-          string containing the compile command
+        list
+          list of (cmd_string, cleanup_path_or_None) tuples to execute in order;
+          cleanup_path is set on the last step when a temporary preprocessor output must be removed
         """
         preprocessor_cmd, preprocessor_output, preprocessor_remove = self._compile_preprocessor(file_to_compile)
         include_cmd = self._compile_include()
 
         if preprocessor_cmd != "":
-            comp_cmd = (
-                preprocessor_cmd
-                + self.cmd_comp
+            compile_cmd = (
+                self.cmd_comp
                 + " "
                 + include_cmd
                 + preprocessor_output
                 + " -o "
                 + os.path.join(self.obj_dir, file_to_compile.basename + ".o")
-                + preprocessor_remove
             )
+            cleanup = preprocessor_output if preprocessor_remove else None
+            return [(preprocessor_cmd, None), (compile_cmd, cleanup)]
         else:
             comp_cmd = (
                 self.cmd_comp
@@ -408,7 +408,7 @@ class Builder:
                 + " -o "
                 + os.path.join(self.obj_dir, file_to_compile.basename + ".o")
             )
-        return comp_cmd
+            return [(comp_cmd, None)]
 
     def _link_command(self, file_to_build, output=None, nomodlibs=None, submodules=None, mklib=None):
         """
@@ -470,14 +470,15 @@ class Builder:
         link_cmd = self._get_libs_link_command(
             file_to_build=file_to_build, exclude_programs=True, nomodlibs=nomodlibs, submodules=submodules, mklib=mklib
         )
+        ranlib_cmd = None
         if mklib is not None:
             if mklib.lower() == "shared":
                 link_cmd = self.cmd_link + " " + link_cmd + " -o " + lib
             elif mklib.lower() == "static":
                 link_cmd = self.ar + " " + self.arflags + " " + lib + " " + link_cmd
                 if self.ranlib:
-                    link_cmd += " \n " + self.ranlib + " " + lib
-        return link_cmd, lib
+                    ranlib_cmd = self.ranlib + " " + lib
+        return link_cmd, ranlib_cmd, lib
 
     def _get_libs_link_command(
         self, file_to_build, exclude_programs=False, nomodlibs=None, submodules=None, mklib=None
@@ -569,29 +570,29 @@ class Builder:
         hierarchy = self._get_hierarchy(file_to_build)
         for deps in reversed(hierarchy):
             files_to_compile = ""
-            cmds = []
+            steps_per_file = []
             for dep in deps:
                 files_to_compile = files_to_compile + " " + dep[0]
-                cmds.append(dep[1])
+                steps_per_file.append(dep[1])
             if len(deps) > 1 and self.jobs > 1 and __parallel__:
                 jobs = min(len(deps), self.jobs)
                 if not quiet:
                     self.print_n("Compiling" + files_to_compile + " using " + str(jobs) + " concurrent processes")
                     if verbose:
-                        self.print_n("Executing: " + str(cmds))
+                        self.print_n("Executing: " + str(steps_per_file))
                 pool = Pool(processes=jobs)
-                results = pool.map(syswork, cmds)
+                results = pool.map(syswork_steps, steps_per_file)
                 pool.close()
                 pool.join()
             else:
                 if not quiet:
                     self.print_n("Compiling" + files_to_compile + " serially")
                 results = []
-                for cmd in cmds:
+                for steps in steps_per_file:
                     if not quiet:
                         if verbose:
-                            self.print_n("Executing: " + str(cmd))
-                    result = syswork(cmd)
+                            self.print_n("Executing: " + str(steps))
+                    result = syswork_steps(steps)
                     results.append(result)
             if not file_to_build.nomodlib:
                 if log:
@@ -710,7 +711,7 @@ class Builder:
             if not quiet:
                 self.print_n("Target " + file_to_build.name + " has been successfully built")
         elif mklib:
-            link_cmd, lib = self._mklib_command(
+            link_cmd, ranlib_cmd, lib = self._mklib_command(
                 file_to_build=file_to_build, output=output, nomodlibs=nomodlibs, submodules=submodules, mklib=mklib
             )
             if not quiet:
@@ -722,6 +723,12 @@ class Builder:
                 check_results(results=[result], log="building-errors.log", print_w=self.print_w)
             else:
                 check_results(results=[result], print_w=self.print_w)
+            if ranlib_cmd and result[0] == 0:
+                result = syswork(ranlib_cmd)
+                if log:
+                    check_results(results=[result], log="building-errors.log", print_w=self.print_w)
+                else:
+                    check_results(results=[result], print_w=self.print_w)
             if not quiet:
                 self.print_n("Target " + file_to_build.name + " has been successfully built")
         if track:
