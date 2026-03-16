@@ -1,6 +1,6 @@
 """FoBiS.py main package"""
 
-__version__ = "3.6.4"
+__version__ = "3.6.5"
 # from __future__ import absolute_import
 # from __future__ import division
 # from __future__ import print_function
