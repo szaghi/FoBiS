@@ -27,6 +27,7 @@ export default defineConfig({
           { text: 'Shell Completion',  link: '/guide/shell-completion' },
           { text: 'Compilers',         link: '/guide/compilers' },
           { text: 'Changelog',         link: '/guide/changelog' },
+          { text: 'Contributing',      link: '/guide/contributing' },
         ],
       },
       { text: 'fobos',     link: '/fobos/' },
@@ -56,7 +57,8 @@ export default defineConfig({
         {
           text: 'Project',
           items: [
-            { text: 'Changelog', link: '/guide/changelog' },
+            { text: 'Changelog',    link: '/guide/changelog' },
+            { text: 'Contributing', link: '/guide/contributing' },
           ],
         },
       ],

@@ -104,15 +104,15 @@ info "Bumping version ($CUR_VER → $NEW_VER)"
 sed -i "s/__version__ = \"${CUR_VER}\"/__version__ = \"${NEW_VER}\"/" "$FOBIS_INIT"
 
 # ── generate changelog ────────────────────────────────────────────────────────
-info "Generating CHANGELOG.md with git-cliff"
-git-cliff --tag "v${NEW_VER}" -o CHANGELOG.md
+info "Generating docs/guide/changelog.md with git-cliff"
+git-cliff --tag "v${NEW_VER}" -o docs/guide/changelog.md
 
 # ── run tests ─────────────────────────────────────────────────────────────────
 info "Running test suite"
 pytest
 
 # ── commit release ────────────────────────────────────────────────────────────
-git add "$FOBIS_INIT" CHANGELOG.md
+git add "$FOBIS_INIT" docs/guide/changelog.md
 git commit -m "chore(release): bump version to v${NEW_VER}"
 
 # ── build distribution ────────────────────────────────────────────────────────
