@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.6.8] — 2026-03-16
+### Fixed
+- **cli**: Restore -v / --version flag broken since version migration
+
+
 ## [3.6.6] — 2026-03-16
 ### Fixed
 - **release**: Handle pipx-installed build module in release script
