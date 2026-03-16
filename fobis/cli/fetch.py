@@ -1,9 +1,8 @@
 """fetch.py — FoBiS.py ``fetch`` subcommand."""
 
-from typing import Optional
+from typing import Annotated
 
 import typer
-from typing_extensions import Annotated
 
 from ._app import _ns, app
 from ._options import *
@@ -20,13 +19,15 @@ def cmd_fetch(
     print_fobos_template: PrintFobosTemplateOpt = False,
     # fetch-specific options
     deps_dir: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(
             "--deps-dir",
             help="Directory for storing fetched dependencies [default: .fobis_deps or fobos [dependencies] setting]",
         ),
     ] = None,
-    update: Annotated[bool, typer.Option("--update", help="Update already-fetched dependencies (git fetch + re-checkout)")] = False,
+    update: Annotated[
+        bool, typer.Option("--update", help="Update already-fetched dependencies (git fetch + re-checkout)")
+    ] = False,
     no_build: Annotated[bool, typer.Option("--no-build", help="Only fetch dependencies, do not build them")] = False,
     # fancy group
     force_compile: ForceCompileOpt = False,

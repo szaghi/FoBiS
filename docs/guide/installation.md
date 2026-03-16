@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- **Python** 3.9 or later
+- **Python** 3.10 or later
 - **A Fortran compiler** in `PATH` (e.g. `gfortran`, `ifort`, `ifx`)
 - [**Typer**](https://typer.tiangolo.com/) — installed automatically as a dependency (provides the CLI and shell completion)
 - Optional: [PreForM.py](https://github.com/szaghi/PreForM) for source preprocessing

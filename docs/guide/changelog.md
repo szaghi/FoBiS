@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.7.0] — 2026-03-16
+### Changed
+- Drop Python 3.9, modernize type hints to PEP 604/585 syntax ⚠ BREAKING CHANGE
+
+
 ## [3.6.13] — 2026-03-16
 ### Fixed
 - **cli**: Resolve ruff lint failures in fobis/cli sub-package

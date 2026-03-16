@@ -7,7 +7,7 @@
 [![Build Status](https://github.com/szaghi/FoBiS/actions/workflows/python-package.yml/badge.svg)](https://github.com/szaghi/FoBiS/actions)
 [![codecov](https://codecov.io/gh/szaghi/FoBiS/graph/badge.svg)](https://codecov.io/gh/szaghi/FoBiS)
 [![GitHub issues](https://img.shields.io/github/issues/szaghi/FoBiS.svg)]()
-[![Supported Python versions](https://img.shields.io/badge/Py-%203.9,%203.10,%203.11,%203.12-blue.svg)]()
+[![Supported Python versions](https://img.shields.io/badge/Py-%203.10,%203.11,%203.12-blue.svg)]()
 
 [![License](https://img.shields.io/badge/license-GNU%20GeneraL%20Public%20License%20v3,%20GPLv3-blue.svg)]()
 

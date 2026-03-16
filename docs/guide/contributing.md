@@ -119,7 +119,7 @@ build ─┘  (3 OS × 4 Python versions)
 |-----|---------|----------------|
 | `lint` | ubuntu, Python 3.12 | `ruff check` + `ruff format --check` |
 | `test` | ubuntu, Python 3.12 + gfortran | full `pytest` suite |
-| `build` | ubuntu / macOS / Windows × Python 3.9–3.12 | `pip install -e .` + entry-point smoke test |
+| `build` | ubuntu / macOS / Windows × Python 3.10–3.12 | `pip install -e .` + entry-point smoke test |
 | `publish` | ubuntu, Python 3.12 | builds wheel/sdist, pushes to PyPI via OIDC |
 
 `publish` only runs when the commit is a `v*` tag **and** all three other jobs pass.

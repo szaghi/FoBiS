@@ -30,7 +30,7 @@ except ImportError:
 import operator
 import os
 from collections.abc import Callable
-from typing import Any, Optional
+from typing import Any
 
 from .Compiler import Compiler
 from .utils import check_results, print_fake, safe_mkdir, syswork, syswork_steps
@@ -42,8 +42,8 @@ class Builder:
     def __init__(
         self,
         cliargs: Any,
-        print_n: Optional[Callable[..., None]] = None,
-        print_w: Optional[Callable[..., None]] = None,
+        print_n: Callable[..., None] | None = None,
+        print_w: Callable[..., None] | None = None,
     ) -> None:
         """
         Parameters
@@ -644,10 +644,10 @@ class Builder:
     def build(
         self,
         file_to_build: Any,
-        output: Optional[str] = None,
-        nomodlibs: Optional[list[str]] = None,
-        submodules: Optional[list[str]] = None,
-        mklib: Optional[str] = None,
+        output: str | None = None,
+        nomodlibs: list[str] | None = None,
+        submodules: list[str] | None = None,
+        mklib: str | None = None,
         verbose: bool = False,
         log: bool = False,
         quiet: bool = False,
@@ -746,7 +746,7 @@ class Builder:
                     )
         return build_ok
 
-    def get_output_name(self, file_to_build: Any, output: Optional[str] = None, mklib: Optional[str] = None) -> str:
+    def get_output_name(self, file_to_build: Any, output: str | None = None, mklib: str | None = None) -> str:
         """
         Return the output build file name.
 
