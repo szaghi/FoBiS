@@ -11,7 +11,7 @@ FoBiS.py (Fortran Building System for poor men) is a Python CLI tool that automa
 ### Building/Running the Project
 ```bash
 # Run directly from source
-python src/main/python/fobis/fobis.py build
+python fobis/fobis.py build
 
 # Install for development (editable install)
 pip install -e .
@@ -23,10 +23,10 @@ python -m build
 ### Testing
 ```bash
 # Run the full test suite
-python src/unittest/python/suite_tests.py
+python tests/suite_tests.py
 
 # Run a single test class
-python -m unittest src.unittest.python.suite_tests.SuiteTest.test_buildings
+python -m unittest tests.suite_tests.SuiteTest.test_buildings
 
 # Tests require gfortran to be available in PATH
 ```
@@ -34,15 +34,15 @@ python -m unittest src.unittest.python.suite_tests.SuiteTest.test_buildings
 ### Linting
 ```bash
 # flake8
-flake8 src/main/python/fobis/
+flake8 fobis/
 
 # pylint
-pylint src/main/python/fobis/
+pylint fobis/
 ```
 
 ## Architecture
 
-### Core Components (src/main/python/fobis/)
+### Core Components (fobis/)
 
 - **fobis.py**: Main entry point with `run_fobis()` orchestrating all commands (build, clean, install, doctests, rule, fetch)
 
@@ -159,8 +159,8 @@ fobis install szaghi/FLAP --update              # re-pull before building
 
 ## Test Structure
 
-Tests are in `src/unittest/python/` with subdirectories for each test type:
-- `build-test{1-28}/`: Build scenarios with fobos files
+Tests are in `tests/` with subdirectories for each test type:
+- `build-test{1-32}/`: Build scenarios with fobos files
 - `clean-test1/`: Clean functionality
 - `makefile-test{1-2}/`: Makefile generation
 - `install-test{1-4}/`: Install functionality

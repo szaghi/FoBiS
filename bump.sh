@@ -12,7 +12,7 @@
 
 set -euo pipefail
 
-FOBIS_INIT="src/main/python/fobis/__init__.py"
+FOBIS_INIT="fobis/__init__.py"
 
 die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }

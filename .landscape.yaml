@@ -5,6 +5,6 @@ max-line-length: 600
 autodetect: yes
 ignore-paths:
     - examples
-    - src/unittest
+    - tests
     - wiki
     - release

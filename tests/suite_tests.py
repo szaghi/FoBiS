@@ -8,7 +8,6 @@ import subprocess
 import tempfile
 import unittest
 import sys
-sys.path.append("../../main/python/")
 from fobis.fobis import run_fobis
 from fobis.Fetcher import Fetcher
 

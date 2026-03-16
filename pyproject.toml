@@ -46,4 +46,4 @@ Homepage = "https://github.com/szaghi/FoBiS"
 version = { attr = "fobis.__version__" }
 
 [tool.setuptools.packages.find]
-where = ["src/main/python"]
+include = ["fobis*"]
