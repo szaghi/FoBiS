@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# bump.sh — Bump FoBiS.py version, generate changelog, publish to GitHub.
+# release.sh — Bump FoBiS.py version, generate changelog, publish to GitHub.
 #
 # Usage:
-#   ./bump.sh (--major | --minor | --patch | <X.Y.Z>)
+#   ./release.sh (--major | --minor | --patch | <X.Y.Z>)
 #
 #   --major, -M     X.Y.Z → X+1.0.0
 #   --minor, -m     X.Y.Z → X.Y+1.0

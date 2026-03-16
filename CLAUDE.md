@@ -20,12 +20,12 @@ make clean  # remove dist/, *.egg-info/, .pytest_cache/, .ruff_cache/, __pycache
 ### Releasing a new version
 ```bash
 # Requires: git-cliff installed (pipx install git-cliff)
-./bump.sh --patch    # X.Y.Z → X.Y.Z+1
-./bump.sh --minor    # X.Y.Z → X.Y+1.0
-./bump.sh --major    # X.Y.Z → X+1.0.0
-./bump.sh 3.7.0      # explicit version
+./release.sh --patch    # X.Y.Z → X.Y.Z+1
+./release.sh --minor    # X.Y.Z → X.Y+1.0
+./release.sh --major    # X.Y.Z → X+1.0.0
+./release.sh 3.7.0      # explicit version
 
-# What bump.sh does:
+# What release.sh does:
 # 1. Creates release/vX.Y.Z branch
 # 2. Bumps __version__ in fobis/__init__.py
 # 3. Regenerates CHANGELOG.md via git-cliff
