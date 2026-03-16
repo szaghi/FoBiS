@@ -5,7 +5,7 @@ from typing_extensions import Annotated
 
 from ._app import _ns, app
 from ._constants import __extensions_inc__, __extensions_parsed__
-from ._options import *  # noqa: F401, F403
+from ._options import *
 
 
 @app.command("clean")

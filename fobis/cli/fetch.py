@@ -6,7 +6,7 @@ import typer
 from typing_extensions import Annotated
 
 from ._app import _ns, app
-from ._options import *  # noqa: F401, F403
+from ._options import *
 
 
 @app.command("fetch")

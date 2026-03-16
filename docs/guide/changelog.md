@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.6.13] — 2026-03-16
+### Fixed
+- **cli**: Resolve ruff lint failures in fobis/cli sub-package
+
+
 ## [3.6.12] — 2026-03-16
 ### Changed
 - **cli**: Split monolithic cli_parser.py into per-command subpackage
