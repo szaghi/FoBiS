@@ -19,25 +19,29 @@ hero:
 features:
   - icon: ⚡
     title: Zero-configuration builds
-    details: Drop FoBiS into any Fortran project and run `fobis build`. It recursively scans sources, resolves all `use` and `include` dependencies, and compiles in the correct order — automatically.
-  - icon: 🔗
-    title: Automatic dependency resolution
-    details: Parses every source file for module definitions, use statements, and include directives. Builds and updates the full dependency hierarchy on each run, skipping up-to-date objects.
-  - icon: ⚙️
-    title: Multi-compiler support
-    details: First-class support for GNU gfortran, Intel ifort/ifx, AMD flang, g95, IBM XL, NAG, PGI, NVIDIA nvfortran, and fully custom compilers. MPI, OpenMP, coarray, and coverage variants included.
+    details: Drop FoBiS into any Fortran project and run `fobis build`. It scans sources, resolves all `use`, `include`, and module dependencies automatically, and compiles in the correct order — no makefiles, no boilerplate.
+    link: /guide/quickstart
+    linkText: Quick start
   - icon: 📄
     title: fobos — the FoBiS makefile
     details: A concise INI-style configuration file replaces makefiles entirely. Define multiple build modes, templates, variables, and custom rules — all in one readable file.
-  - icon: 🚀
-    title: Parallel compilation
-    details: Compile independent translation units concurrently with `-j N`. Dependency ordering is respected automatically; only the safe parallel frontier is compiled in parallel.
+    link: /fobos/
+    linkText: fobos reference
   - icon: 🌐
-    title: Fetch GitHub dependencies
-    details: Declare external FoBiS projects in a `[dependencies]` fobos section. Run `fobis fetch` to clone, pin to branch/tag/rev, and build — then `fobis build` picks them up automatically.
+    title: GitHub integration
+    details: Declare dependencies in a `[dependencies]` fobos section — `fobis fetch` clones, pins to branch/tag/rev, and pre-builds them; `fobis build` picks them up automatically. Install any GitHub-hosted FoBiS project directly with `fobis install user/repo`.
+    link: /advanced/fetch
+    linkText: Fetch deps & install
   - icon: 🔬
     title: Introspective doctests
     details: Embed micro-unit-tests directly inside Fortran comment docstrings. FoBiS generates, compiles, and runs volatile test programs automatically — inspired by Python's doctest module, no test harness needed.
+    link: /advanced/doctests
+    linkText: Doctests
+  - icon: 🤖
+    title: JSON output & Claude Code skill
+    details: Pass `--json` to `fobis build`, `fobis clean`, or `fobis fetch` for machine-readable structured output — ideal for CI and AI agent workflows. Install the bundled `/fobis` Claude Code skill for expert AI assistance right in your editor.
+    link: /advanced/json-output
+    linkText: JSON output & Claude skill
   - icon: 🆓
     title: Free and open source
     details: Released under the GNU GPL v3 license. Free to use, study, modify, and distribute. Contributions welcome — see the contributing guidelines on GitHub.
