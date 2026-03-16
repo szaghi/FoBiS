@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.6.12] — 2026-03-16
+### Changed
+- **cli**: Split monolithic cli_parser.py into per-command subpackage
+
+
 ## [3.6.11] — 2026-03-16
 ### Fixed
 - **cliff**: Fix regex and catch-all parser silencing all git-cliff warnings
