@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.7.2] — 2026-03-16
+### Added
+- **cli**: Add --json structured output flag to build, clean, and fetch
+
+
 ## [3.7.1] — 2026-03-16
 ### Documentation
 - **advanced**: Add architecture guide with module map and data-flow diagrams
