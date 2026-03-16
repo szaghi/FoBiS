@@ -32,8 +32,24 @@ make clean  # remove dist/, *.egg-info/, .pytest_cache/, .ruff_cache/, __pycache
 # 4. Runs pytest
 # 5. Commits + merges to master + tags vX.Y.Z + pushes
 # 6. Merges master back to develop + pushes
-# PyPI upload is triggered automatically by the tag push via CI
+# 7. Tag push triggers CI: lint → test → build → publish (PyPI via OIDC)
 ```
+
+### CI / release pipeline
+
+The `python-package.yml` workflow has four jobs:
+
+| Job | Trigger | What it does |
+|-----|---------|--------------|
+| `lint` | push/PR to master, tag `v*` | ruff check + format |
+| `test` | push/PR to master, tag `v*` | pytest on ubuntu + gfortran |
+| `build` | push/PR to master, tag `v*` | smoke-test entry points across 3 OS × 4 Python |
+| `publish` | tag `v*` only | `python -m build` + PyPI OIDC publish |
+
+PyPI publishing uses [OIDC Trusted Publisher](https://docs.pypi.org/trusted-publishers/) — no API token required. The PyPI project must have a Trusted Publisher configured:
+- Repository: `szaghi/FoBiS`
+- Workflow: `python-package.yml`
+- Environment: `release`
 
 ### Building/Running the Project
 ```bash
