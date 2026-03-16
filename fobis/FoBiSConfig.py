@@ -369,7 +369,7 @@ class FoBiSConfig:
                         dmod = syswork("FoBiS.py rule -f " + fobos_file + " -get mod_dir")
                         output = syswork("FoBiS.py rule -f " + fobos_file + " -get_output_name")
                     os.chdir(old_pwd)
-                    print(result[1])
+                    self.print_b(result[1])
                     if result[0] != 0:
                         sys.exit(result[0])
                     add_paths.append(

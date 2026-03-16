@@ -38,6 +38,7 @@ def cmd_fetch(
     verbose: VerboseOpt = False,
     jobs: JobsOpt = 1,
     makefile: MakefileOpt = None,
+    json_output: JsonOpt = False,
 ):
     """Fetch and build GitHub-hosted Fortran dependencies listed in the fobos [dependencies] section."""
     ctx.ensure_object(dict)
@@ -59,4 +60,5 @@ def cmd_fetch(
         verbose=verbose,
         jobs=jobs,
         makefile=makefile,
+        json_output=json_output,
     )

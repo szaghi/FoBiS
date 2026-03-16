@@ -108,6 +108,7 @@ export default defineConfig({
             { text: 'GNU Makefile',            link: '/advanced/makefile' },
             { text: 'Fetch Dependencies',      link: '/advanced/fetch' },
             { text: 'GitHub Install',           link: '/advanced/install' },
+            { text: 'JSON Output',              link: '/advanced/json-output' },
             { text: 'Architecture',            link: '/advanced/architecture' },
           ],
         },

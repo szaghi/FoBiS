@@ -90,6 +90,7 @@ FoBiS.py build [options]
 | `--verbose` | Maximum verbosity (for debugging FoBiS.py itself) |
 | `-j`, `--jobs` | Number of parallel compile jobs (default: 1) |
 | `-m`, `--makefile` | Export a GNU Makefile instead of building |
+| `--json` | Emit structured JSON to stdout (see [JSON output](/advanced/json-output)) |
 
 ## Examples
 

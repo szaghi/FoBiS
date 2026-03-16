@@ -16,6 +16,7 @@ This section covers FoBiS.py's more powerful features for large or complex Fortr
 | [GNU Makefile Export](/advanced/makefile) | Export a GNU Makefile from your fobos settings |
 | [Fetch Dependencies](/advanced/fetch) | Clone GitHub-hosted Fortran deps and compile them inline or as libraries |
 | [GitHub Install](/advanced/install) | One-shot install of a GitHub-hosted FoBiS project |
+| [JSON Output](/advanced/json-output) | Machine-readable structured output for scripting and agents |
 
 ## When to use advanced features
 
@@ -31,3 +32,4 @@ Most projects only need the basics covered in [Quick Start](/guide/quickstart). 
 - Need to hand off a GNU Makefile to users without FoBiS.py — **GNU Makefile Export**
 - Want a declarative way to pull in GitHub-hosted Fortran libraries (inline sources or pre-built library) — **Fetch Dependencies**
 - Want to install a single GitHub-hosted FoBiS project in one step — **GitHub Install**
+- Drive FoBiS.py from a script or AI agent that needs parseable output — **JSON Output**

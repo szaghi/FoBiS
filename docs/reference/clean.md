@@ -83,6 +83,7 @@ FoBiS.py clean [options]
 | `-l`, `--log` | Write a log file |
 | `-q`, `--quiet` | Less verbose output |
 | `--verbose` | Maximum verbosity |
+| `--json` | Emit structured JSON to stdout (see [JSON output](/advanced/json-output)) |
 
 ## Examples
 

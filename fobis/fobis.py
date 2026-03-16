@@ -60,17 +60,193 @@ def run_fobis(fake_args=None):
         if configuration.cliargs.print_fobos_template:
             configuration.fobos.print_template(configuration.cliargs)
             sys.exit(0)
+        _json = getattr(configuration.cliargs, "json_output", False)
         if configuration.cliargs.which == "clean":
-            run_fobis_clean(configuration)
+            run_fobis_clean_json(configuration) if _json else run_fobis_clean(configuration)
         if configuration.cliargs.which == "build":
-            run_fobis_build(configuration)
+            run_fobis_build_json(configuration) if _json else run_fobis_build(configuration)
         if configuration.cliargs.which == "install":
             run_fobis_install(configuration)
         if configuration.cliargs.which == "doctests":
             run_fobis_doctests(configuration)
         if configuration.cliargs.which == "fetch":
-            run_fobis_fetch(configuration)
+            run_fobis_fetch_json(configuration) if _json else run_fobis_fetch(configuration)
     return
+
+
+class _JsonCollector:
+    """No-op buffering sinks for print_n / print_w callbacks used in JSON output mode."""
+
+    def __init__(self):
+        self.messages: list[str] = []
+        self.warnings: list[str] = []
+
+    def print_n(self, message: str = "") -> None:
+        self.messages.append(message)
+
+    def print_w(self, message: str = "") -> None:
+        self.warnings.append(message)
+
+
+def _obj_files(directory: str) -> set[str]:
+    """Return the set of .o file paths under *directory*."""
+    result: set[str] = set()
+    if os.path.exists(directory):
+        for root, _, files in os.walk(directory):
+            for f in files:
+                if f.endswith(".o"):
+                    result.add(os.path.join(root, f))
+    return result
+
+
+def _all_files(directory: str) -> set[str]:
+    """Return all file paths under *directory*."""
+    result: set[str] = set()
+    if os.path.exists(directory):
+        for root, _, files in os.walk(directory):
+            for f in files:
+                result.add(os.path.join(root, f))
+    return result
+
+
+def run_fobis_build_json(configuration):
+    """Run FoBiS build and emit a structured JSON result to stdout.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import io
+    import json
+
+    collector = _JsonCollector()
+    configuration.print_b = collector.print_n
+    configuration.print_r = collector.print_w
+
+    obj_dir = os.path.normpath(os.path.join(configuration.cliargs.build_dir, configuration.cliargs.obj_dir))
+    pre_objects = _obj_files(obj_dir)
+
+    old_stderr = sys.stderr
+    sys.stderr = io.StringIO()
+    exit_code = 0
+    try:
+        run_fobis_build(configuration)
+    except SystemExit as exc:
+        exit_code = exc.code if isinstance(exc.code, int) else 1
+    finally:
+        stderr_text = sys.stderr.getvalue()
+        sys.stderr = old_stderr
+
+    post_objects = _obj_files(obj_dir)
+    objects_compiled = len(post_objects - pre_objects)
+
+    errors = list(collector.warnings)
+    if stderr_text.strip():
+        errors.extend(stderr_text.strip().splitlines())
+
+    result = {
+        "status": "ok" if exit_code == 0 else "error",
+        "target": configuration.cliargs.target or "all",
+        "objects_compiled": objects_compiled,
+        "errors": errors,
+    }
+    print(json.dumps(result, indent=2))
+    if exit_code != 0:
+        sys.exit(exit_code)
+
+
+def run_fobis_clean_json(configuration):
+    """Run FoBiS clean and emit a structured JSON result to stdout.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import json
+
+    obj_dir = os.path.normpath(os.path.join(configuration.cliargs.build_dir, configuration.cliargs.obj_dir))
+    mod_dir = os.path.normpath(os.path.join(configuration.cliargs.build_dir, configuration.cliargs.mod_dir))
+    pre_files = _all_files(obj_dir) | _all_files(mod_dir)
+
+    collector = _JsonCollector()
+    configuration.print_r = collector.print_w
+
+    exit_code = 0
+    try:
+        run_fobis_clean(configuration)
+    except SystemExit as exc:
+        exit_code = exc.code if isinstance(exc.code, int) else 1
+
+    post_files = _all_files(obj_dir) | _all_files(mod_dir)
+    removed = sorted(pre_files - post_files)
+
+    result = {
+        "status": "ok" if exit_code == 0 else "error",
+        "removed": removed,
+        "errors": list(collector.warnings),
+    }
+    print(json.dumps(result, indent=2))
+    if exit_code != 0:
+        sys.exit(exit_code)
+
+
+def run_fobis_fetch_json(configuration):
+    """Run FoBiS fetch and emit a structured JSON result to stdout.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import io
+    import json
+
+    from .Fetcher import Fetcher
+
+    collector = _JsonCollector()
+
+    old_stderr = sys.stderr
+    sys.stderr = io.StringIO()
+    exit_code = 0
+    deps_info: list[dict] = []
+    try:
+        deps_dir = configuration.cliargs.deps_dir or configuration.fobos.get_deps_dir()
+        fetcher = Fetcher(deps_dir=deps_dir, print_n=collector.print_n, print_w=collector.print_w)
+        deps = configuration.fobos.get_dependencies()
+        if deps:
+            for name, spec in deps.items():
+                parsed = fetcher.parse_dep_spec(spec)
+                use_mode = parsed.get("use", "sources")
+                dep_path = fetcher.fetch(
+                    name,
+                    parsed["url"],
+                    branch=parsed.get("branch"),
+                    tag=parsed.get("tag"),
+                    rev=parsed.get("rev"),
+                    update=configuration.cliargs.update,
+                )
+                if not configuration.cliargs.no_build and use_mode == "fobos":
+                    fetcher.build_dep(name, dep_path, mode=parsed.get("mode"))
+                deps_info.append({"name": name, "path": dep_path, "use": use_mode})
+            fetcher.save_config(deps_info)
+    except SystemExit as exc:
+        exit_code = exc.code if isinstance(exc.code, int) else 1
+    finally:
+        stderr_text = sys.stderr.getvalue()
+        sys.stderr = old_stderr
+
+    errors = list(collector.warnings)
+    if stderr_text.strip():
+        errors.extend(stderr_text.strip().splitlines())
+
+    result = {
+        "status": "ok" if exit_code == 0 else "error",
+        "deps_dir": str(getattr(configuration.cliargs, "deps_dir", None) or configuration.fobos.get_deps_dir()),
+        "dependencies": deps_info,
+        "errors": errors,
+    }
+    print(json.dumps(result, indent=2))
+    if exit_code != 0:
+        sys.exit(exit_code)
 
 
 def run_fobis_fetch(configuration):

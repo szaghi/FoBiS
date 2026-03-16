@@ -71,6 +71,7 @@ def cmd_build(
     verbose: VerboseOpt = False,
     jobs: JobsOpt = 1,
     makefile: MakefileOpt = None,
+    json_output: JsonOpt = False,
 ):
     """Build all programs found or specific target(s)."""
     ctx.ensure_object(dict)
@@ -131,4 +132,5 @@ def cmd_build(
         verbose=verbose,
         jobs=jobs,
         makefile=makefile,
+        json_output=json_output,
     )
