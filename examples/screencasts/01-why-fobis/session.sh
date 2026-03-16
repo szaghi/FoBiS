@@ -1,8 +1,8 @@
 #doitlive commentecho: true
 #doitlive prompt: nicolauj
-echo "Hi all Fortran Poor People!" > /dev/null
+echo "Hi all Fortran developers!" > /dev/null
 
-echo "This is a simple video tutorial introducing to FoBiS, the Fortran projects Building System for poor people" > /dev/null
+echo "This is a simple video tutorial introducing to FoBiS, the Fortran projects Building System" > /dev/null
 
 # tree cumbersome
 

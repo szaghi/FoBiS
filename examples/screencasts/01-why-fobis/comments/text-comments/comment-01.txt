@@ -1,1 +1,1 @@
-Hi all Fortran Poor People!
+Hi all Fortran developers!

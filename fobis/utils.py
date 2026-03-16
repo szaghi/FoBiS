@@ -18,15 +18,10 @@ utils.py, module definition of FoBiS.py util functions.
 #
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
-# from __future__ import print_function
-# from __future__ import absolute_import
-# from __future__ import division
-# from __future__ import unicode_literals
-# from future import standard_library
-# standard_library.install_aliases()
-# from builtins import str
 # from builtins import *
+import contextlib
 import os
+import shlex
 import subprocess
 import sys
 
@@ -41,14 +36,37 @@ def syswork(cmd):
     Function for executing system command 'cmd': for compiling and linking files.
     """
     error = 0
+    args = shlex.split(cmd) if isinstance(cmd, str) else cmd
     try:
-        output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+        output = subprocess.check_output(args, shell=False, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as err:
         error = err.returncode
         output = err.output
-    if sys.version_info[0] > 2:
-        output = str(output, encoding="UTF-8")
+    output = str(output, encoding="UTF-8")
     return [error, str(output)]
+
+
+def syswork_steps(steps):
+    """
+    Run a sequence of compile steps for a single source file.
+
+    Each step is a (cmd, cleanup_path_or_None) tuple. Steps are run in order;
+    execution stops on the first non-zero exit code. If cleanup_path is set on
+    a step, the file is removed with os.remove() after that step completes
+    (regardless of success/failure).
+
+    Returns [error, combined_output] matching the syswork contract.
+    """
+    combined_output = ""
+    for cmd, cleanup in steps:
+        error, output = syswork(cmd)
+        combined_output += output
+        if cleanup:
+            with contextlib.suppress(OSError):
+                os.remove(cleanup)
+        if error:
+            return [error, combined_output]
+    return [0, combined_output]
 
 
 def traverse_recursive(parsed_file, path=None):

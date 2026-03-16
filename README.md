@@ -1,8 +1,11 @@
-# FoBiS — Fortran Building System for poor people
+<div align="center">
+
+# FoBiS — Fortran Building System
 
 [![Latest Version](https://img.shields.io/pypi/v/FoBiS.py.svg)](https://pypi.org/project/FoBiS.py/)
 [![GitHub tag](https://img.shields.io/github/tag/szaghi/FoBiS.svg)]()
 [![Build Status](https://github.com/szaghi/FoBiS/actions/workflows/python-package.yml/badge.svg)](https://github.com/szaghi/FoBiS/actions)
+[![codecov](https://codecov.io/gh/szaghi/FoBiS/graph/badge.svg)](https://codecov.io/gh/szaghi/FoBiS)
 [![GitHub issues](https://img.shields.io/github/issues/szaghi/FoBiS.svg)]()
 [![Supported Python versions](https://img.shields.io/badge/Py-%203.9,%203.10,%203.11,%203.12-blue.svg)]()
 
@@ -16,9 +19,9 @@
 | 🚀 Parallel compilation | 🌐 Fetch GitHub dependencies | 🔬 Introspective doctests | 🆓 Free and open source |
 | Compile independent translation units concurrently with `-j N`. Dependency ordering is respected automatically; only the safe parallel frontier is compiled in parallel. | Declare external FoBiS projects in a `[dependencies]` fobos section. Run `fobis fetch` to clone, pin to branch/tag/rev, and build — then `fobis build` picks them up automatically. | Embed micro-unit-tests directly inside Fortran comment docstrings. FoBiS generates, compiles, and runs volatile test programs automatically — inspired by Python's doctest module, no test harness needed. | Released under the GNU GPL v3 license. Free to use, study, modify, and distribute. Contributions welcome — see the [contributing guidelines](CONTRIBUTING.md). |
 
-## Documentation
+**[Full documentation](https://szaghi.github.io/FoBiS/)**
 
-For full documentations (guide, tutorial, examples, etc...) see the [FoBiS website](https://szaghi.github.io/FoBiS).
+</div>
 
 ## Why FoBiS?
 
@@ -60,14 +63,14 @@ fobis build -mode release
 - **[BeFoR64](https://szaghi.github.io/BeFoR64/)** — Base64 encoding/decoding library for Fortran &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/BeFoR64)
 - **[FACE](https://szaghi.github.io/FACE/)** — Fortran ANSI Colors and Escape sequences &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/FACE)
 - **[FiNeR](https://szaghi.github.io/FiNeR/)** — Fortran INI ParseR and generator &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/FiNeR)
-- **[FLAP](https://szaghi.github.io/FLAP/)** — Fortran command Line Arguments Parser for poor people &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/FLAP)
+- **[FLAP](https://szaghi.github.io/FLAP/)** — Fortran command Line Arguments Parser &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/FLAP)
 - **[FUNDAL](https://szaghi.github.io/FUNDAL/)** — Fortran UNified Device Acceleration Library &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/FUNDAL)
 - **[FOSSIL](https://szaghi.github.io/FOSSIL/)** — FOrtran Stereo (si) Litography parser &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/FOSSIL)
 - **[MORTIF](https://szaghi.github.io/MORTIF/)** — MORTon Indexer (Z-order) Fortran environment &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/MORTIF)
 - **[MOTIOn](https://szaghi.github.io/MOTIOn/)** — Modular (HPC) Optimized Toolkit (for) IO (in fortra)n &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/MOTIOn)
-- **[PENF](https://szaghi.github.io/PENF/)** — Portability Environment for Fortran poor people &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/PENF)
+- **[PENF](https://szaghi.github.io/PENF/)** — Portability Environment for Fortran &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/PENF)
 - **[StringiFor](https://szaghi.github.io/StringiFor/)** — Strings Fortran Manipulator with steroids &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/StringiFor)
-- **[VecFor](https://szaghi.github.io/VecFor/)** — Vector algebra class for Fortran poor people &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/VecFor)
+- **[VecFor](https://szaghi.github.io/VecFor/)** — Vector algebra class for Fortran &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/VecFor)
 - **[VTKFortran](https://szaghi.github.io/VTKFortran/)** — pure Fortran VTK (XML) API &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/VTKFortran)
 
 ---

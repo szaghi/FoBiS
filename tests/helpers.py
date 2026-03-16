@@ -12,6 +12,9 @@ TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 # Whether the OpenCoarrays compiler wrapper is available (needed for build-test15).
 OPENCOARRAYS = shutil.which("caf") is not None
 
+# Whether PreForM.py is available (needed for build-test5).
+PREFORM = shutil.which("PreForM.py") is not None
+
 
 def run_build(directory):
     """Run a build scenario. Returns True on success."""

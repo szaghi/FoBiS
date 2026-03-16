@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'FoBiS.py',
-  description: 'Fortran Building System for poor people — automatic dependency-resolving build tool for modern Fortran projects',
+  description: 'Fortran Building System — automatic dependency-resolving build tool for modern Fortran projects',
   base: '/FoBiS/',
   markdown: {
     math: true,
@@ -27,6 +27,7 @@ export default defineConfig({
           { text: 'Shell Completion',  link: '/guide/shell-completion' },
           { text: 'Compilers',         link: '/guide/compilers' },
           { text: 'Changelog',         link: '/guide/changelog' },
+          { text: 'Contributing',      link: '/guide/contributing' },
         ],
       },
       { text: 'fobos',     link: '/fobos/' },
@@ -56,7 +57,8 @@ export default defineConfig({
         {
           text: 'Project',
           items: [
-            { text: 'Changelog', link: '/guide/changelog' },
+            { text: 'Changelog',    link: '/guide/changelog' },
+            { text: 'Contributing', link: '/guide/contributing' },
           ],
         },
       ],

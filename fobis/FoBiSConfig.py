@@ -3,10 +3,6 @@
 FoBiSConfig.py, module definition of FoBiS.py configuration.
 """
 
-# from __future__ import absolute_import
-# from __future__ import division
-# from __future__ import print_function
-# from __future__ import unicode_literals
 # Copyright (C) 2020  Stefano Zaghi
 #
 # This file is part of FoBiS.py.
@@ -23,15 +19,12 @@ FoBiSConfig.py, module definition of FoBiS.py configuration.
 #
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
-# from future import standard_library
-# standard_library.install_aliases()
-# from builtins import str
 # from builtins import *
-# from builtins import object
 import hashlib
 import os
 import re
 import sys
+from typing import Any
 
 from typer.testing import CliRunner as _CliRunner
 
@@ -47,8 +40,8 @@ __author__ = "Stefano Zaghi"
 __author_email__ = "stefano.zaghi@gmail.com"
 __license__ = "GNU General Public License v3 (GPLv3)"
 __url__ = "https://github.com/szaghi/FoBiS"
-__description__ = "a Fortran Building System for poor men"
-__long_description__ = "FoBiS.py, a Fortran Building System for poor men, is a KISS tool for automatic building modern Fortran projects, it being able to automatically resolve inter-modules dependancy hierarchy."
+__description__ = "a Fortran Building System"
+__long_description__ = "FoBiS.py, a Fortran Building System, is a KISS tool for automatic building modern Fortran projects, it being able to automatically resolve inter-modules dependancy hierarchy."
 
 
 class FoBiSConfig:
@@ -56,7 +49,7 @@ class FoBiSConfig:
     FoBiS configuration class handling.
     """
 
-    def __init__(self, fake_args=None):
+    def __init__(self, fake_args: list[str] | None = None) -> None:
         """
         Attributes
         ----------
@@ -80,7 +73,7 @@ class FoBiSConfig:
         self.colors = Colors(enabled=self.cliargs.colors)  # reset colors accordingly fobos options
         self._postinit()
 
-    def _update_extensions(self):
+    def _update_extensions(self) -> None:
         """Update files extensions"""
         if self.cliargs.which == "build" or self.cliargs.which == "rule":
             for inc in self.cliargs.inc:
@@ -89,7 +82,7 @@ class FoBiSConfig:
             if len(self.cliargs.preprocessor_ext) > 0:
                 self.cliargs.extensions += self.cliargs.preprocessor_ext
 
-    def _sanitize_paths(self):
+    def _sanitize_paths(self) -> None:
         """
         Sanitize paths.
         """
@@ -111,7 +104,7 @@ class FoBiSConfig:
             self.cliargs.lib = os.path.normpath(self.cliargs.lib)
             self.cliargs.include = os.path.normpath(self.cliargs.include)
 
-    def _check_cflags_heritage(self):
+    def _check_cflags_heritage(self) -> None:
         """
         Check the heritage of cflags: if a file named '.cflags.heritage' is found into the root dir FoBiS.py is runned that file
         is sourced and compared with the actual cflags and in case they differ the project is forced to be recompiled. The actual cflags are saved,
@@ -127,7 +120,8 @@ class FoBiSConfig:
                 else:
                     her_file = os.path.join(self.cliargs.build_dir, ".cflags.heritage")
                 if os.path.exists(her_file):
-                    cflags_old = open(her_file).read()
+                    with open(her_file) as fh:
+                        cflags_old = fh.read()
                     if cflags != cflags_old:
                         self.cliargs.force_compile = True
                         self.print_r(
@@ -138,7 +132,7 @@ class FoBiSConfig:
                 with open(her_file, "w") as chf:
                     chf.writelines(cflags)
 
-    def _postinit(self):
+    def _postinit(self) -> None:
         """
         Post-initialization update of config attributes, after CLI and fobos parsing.
         """
@@ -153,7 +147,7 @@ class FoBiSConfig:
         self._load_fetched_deps()
         self._check_interdependent_fobos()
 
-    def _load_fetched_deps(self):
+    def _load_fetched_deps(self) -> None:
         """
         Auto-load dependencies previously fetched with 'fetch' command.
 
@@ -182,7 +176,7 @@ class FoBiSConfig:
                             self.cliargs.src.append(src_path)
 
     @staticmethod
-    def _check_md5sum(filename, hashfile):
+    def _check_md5sum(filename: str, hashfile: str) -> tuple[bool, bool]:
         """
         Check the md5sum hash of a file, compares with an eventual hashfile into which the hash is finally saved.
 
@@ -197,17 +191,19 @@ class FoBiSConfig:
         -------
         2 bools containing the previously existance of the hashfile and the result of hashes comparison
         """
-        md5sum = hashlib.md5(open(filename, "rb").read()).hexdigest()
+        with open(filename, "rb") as fh:
+            md5sum = hashlib.md5(fh.read()).hexdigest()
         hashexist = os.path.exists(hashfile)
         comparison = False
         if hashexist:
-            md5sum_old = open(hashfile).read()
+            with open(hashfile) as fh:
+                md5sum_old = fh.read()
             comparison = md5sum == md5sum_old
         with open(hashfile, "w") as md5:
             md5.writelines(md5sum)
         return hashexist, comparison
 
-    def _check_vlibs_md5sum(self):
+    def _check_vlibs_md5sum(self) -> None:
         """
         Check if the md5sum of volatile libraries has changed and, in case, a re-build is triggered.
         """
@@ -226,7 +222,7 @@ class FoBiSConfig:
                         + " is changed with respect the last building: forcing to (re-)compile all"
                     )
 
-    def _check_ext_vlibs_md5sum(self):
+    def _check_ext_vlibs_md5sum(self) -> None:
         """
         Check if the md5sum of volatile external libraries has changed and, in case, a re-build is triggered.
         """
@@ -263,7 +259,7 @@ class FoBiSConfig:
                         + " is changed with respect the last building: forcing to (re-)compile all"
                     )
 
-    def _add_include_paths(self, add_paths):
+    def _add_include_paths(self, add_paths: list[Any]) -> None:
         """
         Add include files search paths.
 
@@ -280,7 +276,7 @@ class FoBiSConfig:
                 self.cliargs.include = [path[1]]
             self.print_r("- " + path[1])
 
-    def _add_lib_dir_paths(self, add_paths):
+    def _add_lib_dir_paths(self, add_paths: list[Any]) -> None:
         """
         Add libraries search paths.
 
@@ -298,7 +294,7 @@ class FoBiSConfig:
                     self.cliargs.lib_dir = [path[0]]
                 self.print_r("- " + path[0])
 
-    def _add_ext_libs_paths(self, add_paths):
+    def _add_ext_libs_paths(self, add_paths: list[Any]) -> None:
         """
         Add libraries paths.
 
@@ -325,7 +321,7 @@ class FoBiSConfig:
                     self.cliargs.libs = [path[2][0]]
                 self.print_r("- (libs) " + path[2][0])
 
-    def _add_auxiliary_paths(self, add_paths):
+    def _add_auxiliary_paths(self, add_paths: list[Any]) -> None:
         """
         Add auxiliary paths to default searched ones.
 
@@ -339,7 +335,7 @@ class FoBiSConfig:
         self._add_lib_dir_paths(add_paths=add_paths)
         self._add_ext_libs_paths(add_paths=add_paths)
 
-    def _check_interdependent_fobos(self):
+    def _check_interdependent_fobos(self) -> None:
         """
         Check interdependency project by its fobos.
         """
@@ -385,7 +381,7 @@ class FoBiSConfig:
                     )
                 self._add_auxiliary_paths(add_paths)
 
-    def print_b(self, string, end="\n"):
+    def print_b(self, string: str, end: str = "\n") -> None:
         """
         Print string with bold color.
 
@@ -396,7 +392,7 @@ class FoBiSConfig:
         """
         self.colors.print_b(string, end=end)
 
-    def print_r(self, string, end="\n"):
+    def print_r(self, string: str, end: str = "\n") -> None:
         """
         Print string with red color.
 
@@ -407,7 +403,7 @@ class FoBiSConfig:
         """
         self.colors.print_r(string, end=end)
 
-    def printf(self):
+    def printf(self) -> str:
         """
         Return a pretty formatted printable string of config settings.
         """

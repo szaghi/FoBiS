@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-FoBiS.py (Fortran Building System for poor men) is a Python CLI tool that automatically builds modern Fortran projects by parsing source files and resolving inter-module dependency hierarchies. It eliminates the need to manually track module dependencies in makefiles.
+FoBiS.py is a Python CLI tool that automatically builds modern Fortran projects by parsing source files and resolving inter-module dependency hierarchies. It eliminates the need to manually track module dependencies in makefiles.
 
 ## Build and Development Commands
 
@@ -28,7 +28,7 @@ make clean  # remove dist/, *.egg-info/, .pytest_cache/, .ruff_cache/, __pycache
 # What release.sh does:
 # 1. Creates release/vX.Y.Z branch
 # 2. Bumps __version__ in fobis/__init__.py
-# 3. Regenerates CHANGELOG.md via git-cliff
+# 3. Regenerates docs/guide/changelog.md via git-cliff (CHANGELOG.md is a symlink to it)
 # 4. Runs pytest
 # 5. Commits + merges to master + tags vX.Y.Z + pushes
 # 6. Merges master back to develop + pushes

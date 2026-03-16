@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-FoBiS.py, Fortran Building System for poor men
+FoBiS.py, Fortran Building System
 """
 
 # Copyright (C) 2015  Stefano Zaghi
@@ -20,17 +20,7 @@ FoBiS.py, Fortran Building System for poor men
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
 # modules loading
-# from __future__ import print_function
-# from __future__ import absolute_import
-# from __future__ import division
-# from __future__ import unicode_literals
-# from future import standard_library
-# standard_library.install_aliases()
-# from builtins import *
-try:
-    import configparser as configparser
-except ImportError:
-    import configparser
+import configparser
 import os
 import shutil
 import sys
@@ -793,9 +783,8 @@ def is_ascii_kind_supported(configuration):
     """
     builder = Builder(cliargs=configuration.cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
     test_file_name = os.path.join(builder.build_dir, "ascii_kind_introspection.f90")
-    test = open(test_file_name, "w")
-    test.write("program test\nprint*, selected_char_kind('ascii')\nendprogram")
-    test.close()
+    with open(test_file_name, "w") as fh:
+        fh.write("program test\nprint*, selected_char_kind('ascii')\nendprogram")
     test = ParsedFile(name=test_file_name)
     test.parse(inc=configuration.cliargs.inc)
     pfiles = [test]
@@ -828,9 +817,8 @@ def is_ucs4_kind_supported(configuration):
     """
     builder = Builder(cliargs=configuration.cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
     test_file_name = os.path.join(builder.build_dir, "ucs4_kind_introspection.f90")
-    test = open(test_file_name, "w")
-    test.write("program test\nprint*, selected_char_kind('iso_10646')\nendprogram")
-    test.close()
+    with open(test_file_name, "w") as fh:
+        fh.write("program test\nprint*, selected_char_kind('iso_10646')\nendprogram")
     test = ParsedFile(name=test_file_name)
     test.parse(inc=configuration.cliargs.inc)
     pfiles = [test]
@@ -863,9 +851,8 @@ def is_float128_kind_supported(configuration):
     """
     builder = Builder(cliargs=configuration.cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
     test_file_name = os.path.join(builder.build_dir, "float128_kind_introspection.f90")
-    test = open(test_file_name, "w")
-    test.write("program test\nprint*, selected_real_kind(33,4931)\nendprogram")
-    test.close()
+    with open(test_file_name, "w") as fh:
+        fh.write("program test\nprint*, selected_real_kind(33,4931)\nendprogram")
     test = ParsedFile(name=test_file_name)
     test.parse(inc=configuration.cliargs.inc)
     pfiles = [test]

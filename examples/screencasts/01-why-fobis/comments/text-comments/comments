@@ -1,4 +1,4 @@
-Hi all Fortran Poor men!
+Hi all Fortran developers!
 Let us play with FoBiS.py
 Let us assume our aim is build this cumbersome hello world program
 It is very cumbersome... The main program is into src/cumbersome.f90
@@ -26,4 +26,4 @@ working makefile. Definitely not! Let us see the fobos file
 Is it simple enough?
 Note that is a very cumbersome scenario... In most cases, FoBiS.py can do
 similar stuff even without a fobos file, directly from the command line!
-Bye bye Fortran poor men
+Bye bye Fortran developers
