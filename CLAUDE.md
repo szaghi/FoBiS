@@ -8,13 +8,22 @@ FoBiS.py (Fortran Building System for poor men) is a Python CLI tool that automa
 
 ## Build and Development Commands
 
+### Common tasks (via Makefile)
+```bash
+make dev    # pip install -e ".[dev]"
+make test   # pytest
+make lint   # ruff check + format check (no fixes)
+make fmt    # ruff check --fix + ruff format
+make clean  # remove dist/, *.egg-info/, .pytest_cache/, .ruff_cache/, __pycache__/
+```
+
 ### Building/Running the Project
 ```bash
 # Run directly from source
 python fobis/fobis.py build
 
 # Install for development (editable install)
-pip install -e .
+pip install -e ".[dev]"
 
 # Build a distribution (sdist + wheel)
 python -m build
