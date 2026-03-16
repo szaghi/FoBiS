@@ -57,7 +57,6 @@ ignore = [
   "UP006",  # non-pep585-annotation — separate type-hint cleanup
   "UP031",  # printf-string-formatting — separate cleanup
   "UP035",  # deprecated-import — separate cleanup
-  "UP036",  # outdated-version-block — sys.version_info checks
   "B006",   # mutable-argument-default — needs review
   "B020",   # loop-variable-overrides-iterator — needs review
   "E741",   # ambiguous-variable-name — existing code convention
@@ -81,6 +80,9 @@ addopts = "-v"
 [tool.coverage.run]
 source = ["fobis"]
 omit = ["tests/*"]
+
+[tool.coverage.report]
+fail_under = 60
 
 [tool.setuptools.dynamic]
 version = { attr = "fobis.__version__" }

@@ -2,10 +2,6 @@
 ParsedFile.py, module definition of Dependency class.
 This is a class designed for handling a single parsed file.
 """
-# from __future__ import absolute_import
-# from __future__ import division
-# from __future__ import print_function
-# from __future__ import unicode_literals
 # Copyright (C) 2015  Stefano Zaghi
 #
 # This file is part of FoBiS.py.
@@ -23,12 +19,8 @@ This is a class designed for handling a single parsed file.
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
 
-# from future import standard_library
-# standard_library.install_aliases()
-# from builtins import str
-# from builtins import *
-# from builtins import object
 import sys
+from typing import Any
 
 try:
     import functools
@@ -275,12 +267,8 @@ __regex_use_intrinsic_modules__ = [
 __regex_mpifh__ = re.compile(__str_mpifh__)
 
 
-# alternative "open and read"... it should avoid encoding issues with python 2.X vs 3.X
-def openReader(filename):
-    if sys.version_info[0] < 3:
-        return open(filename)
-    else:
-        return open(filename, newline="", encoding="utf8")
+def openReader(filename: str) -> Any:
+    return open(filename, newline="", encoding="utf8")
 
 
 class ParsedFile:
@@ -288,16 +276,16 @@ class ParsedFile:
 
     def __init__(
         self,
-        name,
-        program=False,
-        module=False,
-        submodule=False,
-        include=False,
-        nomodlib=False,
-        to_compile=False,
-        output=None,
-        is_doctest=False,
-    ):
+        name: str,
+        program: bool = False,
+        module: bool = False,
+        submodule: bool = False,
+        include: bool = False,
+        nomodlib: bool = False,
+        to_compile: bool = False,
+        output: str | None = None,
+        is_doctest: bool = False,
+    ) -> None:
         """
         Parameters
         ----------
@@ -369,7 +357,7 @@ class ParsedFile:
         self.doctest = None
         return
 
-    def sort_dependencies(self):
+    def sort_dependencies(self) -> None:
         """
         Sort dependencies.
         """
@@ -383,11 +371,11 @@ class ParsedFile:
 
     def parse(
         self,
-        inc=[".INC", ".F", ".FOR", ".FPP", ".F77", ".F90", ".F95", ".F03", ".F08"],
-        preprocessor="cpp",
-        preproc="",
-        include="",
-    ):
+        inc: list[str] = [".INC", ".F", ".FOR", ".FPP", ".F77", ".F90", ".F95", ".F03", ".F08"],
+        preprocessor: str = "cpp",
+        preproc: str = "",
+        include: str | list[str] = "",
+    ) -> None:
         """
         Parse the file creating its the dependencies list and the list of modules names that self eventually contains.
 
@@ -471,7 +459,7 @@ class ParsedFile:
             if os.path.splitext(os.path.basename(self.name))[1] not in inc:
                 self.nomodlib = True
 
-    def save_build_log(self, builder):
+    def save_build_log(self, builder: Any) -> None:
         """
         Save a log file containing information about the building options used.
 
@@ -491,7 +479,7 @@ class ParsedFile:
             log_file.writelines(builder.verbose())
         return
 
-    def save_dep_graph(self):
+    def save_dep_graph(self) -> None:
         """
         Save dependency graph.
         """
@@ -512,7 +500,7 @@ class ParsedFile:
             print("Module 'graphviz' not found: saving of dependency graph disabled")
         return
 
-    def gnu_make_rule(self, builder):
+    def gnu_make_rule(self, builder: Any) -> str:
         """
         Return the file compiling rule in GNU Make format
 
@@ -548,7 +536,7 @@ class ParsedFile:
             string.append("\n")
         return "".join(string)
 
-    def str_dependencies(self, pref=""):
+    def str_dependencies(self, pref: str = "") -> str:
         """
         Create a string containing the depencies files list.
 
@@ -562,7 +550,7 @@ class ParsedFile:
             str_dep += pref + dep.name + "\n"
         return str_dep
 
-    def obj_dependencies(self, exclude_programs=False):
+    def obj_dependencies(self, exclude_programs: bool = False) -> list[str]:
         """
         Create a list containing the dependencies object files list.
 
@@ -576,7 +564,7 @@ class ParsedFile:
         else:
             return [p.basename + ".o" for p in self.pfile_dep_all if not p.include]
 
-    def check_compile(self, obj_dir, force_compile=False):
+    def check_compile(self, obj_dir: str, force_compile: bool = False) -> None:
         """
         Check if self must be compiled.
 
@@ -632,7 +620,7 @@ class ParsedFile:
                     # compiled object is absent, thus self must be compiled
                     self.to_compile = True
 
-    def create_pfile_dep_all(self):
+    def create_pfile_dep_all(self) -> None:
         """
         Create a complete list of all dependencies direct and indirect.
         """

@@ -21,12 +21,11 @@ This module handles fetching and building GitHub-hosted FoBiS.py dependencies.
 #
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
-try:
-    import configparser as configparser
-except ImportError:
-    import configparser
+import configparser
 import os
 import shutil
+from collections.abc import Callable
+from typing import Any
 
 from .utils import print_fake, syswork
 
@@ -38,7 +37,12 @@ class Fetcher:
 
     DEPS_CONFIG_FILE = ".deps_config.ini"
 
-    def __init__(self, deps_dir, print_n=None, print_w=None):
+    def __init__(
+        self,
+        deps_dir: str,
+        print_n: Callable[..., None] | None = None,
+        print_w: Callable[..., None] | None = None,
+    ) -> None:
         """
         Parameters
         ----------
@@ -53,7 +57,7 @@ class Fetcher:
         self.print_n = print_n if print_n is not None else print_fake
         self.print_w = print_w if print_w is not None else print_fake
 
-    def parse_dep_spec(self, spec):
+    def parse_dep_spec(self, spec: str) -> dict[str, str]:
         """
         Parse a dependency spec string into a dict.
 
@@ -77,7 +81,15 @@ class Fetcher:
                 result[key.strip()] = value.strip()
         return result
 
-    def fetch(self, name, url, branch=None, tag=None, rev=None, update=False):
+    def fetch(
+        self,
+        name: str,
+        url: str,
+        branch: str | None = None,
+        tag: str | None = None,
+        rev: str | None = None,
+        update: bool = False,
+    ) -> str:
         """
         Clone or update a dependency repo.
 
@@ -129,7 +141,7 @@ class Fetcher:
                 self.print_w("Error merging updates for " + name + ":\n" + result[1])
         return dep_dir
 
-    def build_dep(self, name, dep_dir, mode=None):
+    def build_dep(self, name: str, dep_dir: str, mode: str | None = None) -> None:
         """
         Build a dependency using FoBiS.py build.
 
@@ -159,7 +171,7 @@ class Fetcher:
         else:
             self.print_n(result[1])
 
-    def save_config(self, deps_info):
+    def save_config(self, deps_info: list[dict[str, Any]]) -> None:
         """
         Write the deps config file for use by FoBiS.py build.
 
@@ -191,7 +203,7 @@ class Fetcher:
             config.write(cfg_file)
         self.print_n("Saved deps config to " + config_path)
 
-    def _resolve_url(self, repo):
+    def _resolve_url(self, repo: str) -> str:
         """
         Convert a shorthand repo reference to a full GitHub HTTPS URL.
 
@@ -213,18 +225,18 @@ class Fetcher:
 
     def install_from_github(
         self,
-        repo,
-        branch=None,
-        tag=None,
-        rev=None,
-        mode=None,
-        update=False,
-        no_build=False,
-        prefix="./",
-        bin_dir="bin/",
-        lib_dir="lib/",
-        include_dir="include/",
-    ):
+        repo: str,
+        branch: str | None = None,
+        tag: str | None = None,
+        rev: str | None = None,
+        mode: str | None = None,
+        update: bool = False,
+        no_build: bool = False,
+        prefix: str = "./",
+        bin_dir: str = "bin/",
+        lib_dir: str = "lib/",
+        include_dir: str = "include/",
+    ) -> None:
         """
         Clone, build, and install a GitHub-hosted FoBiS project.
 
@@ -264,7 +276,7 @@ class Fetcher:
         self._build_dep_tracked(name, dep_dir, mode=mode)
         self._install_artifacts(dep_dir, prefix, bin_dir, lib_dir, include_dir)
 
-    def _build_dep_tracked(self, name, dep_dir, mode=None):
+    def _build_dep_tracked(self, name: str, dep_dir: str, mode: str | None = None) -> None:
         """
         Build a dependency using 'fobis build --track_build'.
 
@@ -294,7 +306,7 @@ class Fetcher:
         else:
             self.print_n(result[1])
 
-    def _install_artifacts(self, dep_dir, prefix, bin_dir, lib_dir, include_dir):
+    def _install_artifacts(self, dep_dir: str, prefix: str, bin_dir: str, lib_dir: str, include_dir: str) -> None:
         """
         Scan dep_dir for .track_build files and copy artifacts to the prefix.
 
@@ -348,7 +360,7 @@ class Fetcher:
                 "No installable artifacts found. Ensure the project fobos uses --track_build or check the fobos mode."
             )
 
-    def load_config(self):
+    def load_config(self) -> dict[str, list[str]]:
         """
         Read the deps config file and return a dict with 'dependon' and 'src' lists.
 

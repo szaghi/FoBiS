@@ -18,13 +18,6 @@ utils.py, module definition of FoBiS.py util functions.
 #
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
-# from __future__ import print_function
-# from __future__ import absolute_import
-# from __future__ import division
-# from __future__ import unicode_literals
-# from future import standard_library
-# standard_library.install_aliases()
-# from builtins import str
 # from builtins import *
 import contextlib
 import os
@@ -49,8 +42,7 @@ def syswork(cmd):
     except subprocess.CalledProcessError as err:
         error = err.returncode
         output = err.output
-    if sys.version_info[0] > 2:
-        output = str(output, encoding="UTF-8")
+    output = str(output, encoding="UTF-8")
     return [error, str(output)]
 
 

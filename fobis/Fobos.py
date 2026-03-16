@@ -25,23 +25,13 @@ This is a class aimed at fobos file handling.
 #
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
-# from __future__ import print_function
-# from __future__ import absolute_import
-# from __future__ import division
-# from __future__ import unicode_literals
-# from future import standard_library
-# standard_library.install_aliases()
-# from builtins import str
-# from builtins import *
-# from builtins import object
-try:
-    import configparser as configparser
-except ImportError:
-    import configparser
+import configparser
 import os
 import re
 import sys
+from collections.abc import Callable
 from copy import deepcopy
+from typing import Any
 
 from .utils import check_results, print_fake, syswork
 
@@ -51,7 +41,12 @@ class Fobos:
     Fobos is an object that handles fobos file, its attributes and methods.
     """
 
-    def __init__(self, cliargs, print_n=None, print_w=None):
+    def __init__(
+        self,
+        cliargs: Any,
+        print_n: Callable[..., None] | None = None,
+        print_w: Callable[..., None] | None = None,
+    ) -> None:
         """
         Parameters
         ----------
@@ -282,7 +277,7 @@ class Fobos:
             self._check_cliargs_cflags(cliargs=cliargs, cliargs_dict=cliargs_dict)
         return
 
-    def get(self, option, mode=None, toprint=True):
+    def get(self, option: str, mode: str | None = None, toprint: bool = True) -> str | None:
         """
         Get options defined into the fobos file.
 
@@ -307,7 +302,7 @@ class Fobos:
         else:
             return value
 
-    def get_output_name(self, mode=None, toprint=True):
+    def get_output_name(self, mode: str | None = None, toprint: bool = True) -> str | None:
         """
         Method for building the output name accordingly to the fobos options.
 
@@ -341,7 +336,7 @@ class Fobos:
         else:
             return output
 
-    def modes_list(self):
+    def modes_list(self) -> None:
         """List defined modes."""
         if self.fobos:
             self.print_n("The fobos file defines the following modes:")
@@ -361,7 +356,7 @@ class Fobos:
         return
 
     @staticmethod
-    def print_template(cliargs):
+    def print_template(cliargs: Any) -> None:
         """
         Print fobos template.
 
@@ -376,7 +371,7 @@ class Fobos:
                 attribute = " ".join(attribute)
             print(str(argument) + " = " + str(attribute))
 
-    def get_project_info(self):
+    def get_project_info(self) -> dict[str, Any]:
         """
         Parse [project] section and return project metadata.
 
@@ -407,7 +402,7 @@ class Fobos:
                 info["email"] = self.fobos.get("project", "email").strip()
         return info
 
-    def get_version(self):
+    def get_version(self) -> str:
         """
         Resolve the project version from [project] and/or git tags.
 
@@ -463,7 +458,7 @@ class Fobos:
 
         return fobos_version or git_version
 
-    def get_dependencies(self):
+    def get_dependencies(self) -> dict[str, str]:
         """
         Parse [dependencies] section and return dict of {name: spec_string}.
 
@@ -480,7 +475,7 @@ class Fobos:
                 deps[name] = spec
         return deps
 
-    def get_deps_dir(self, default=".fobis_deps"):
+    def get_deps_dir(self, default: str = ".fobis_deps") -> str:
         """
         Read deps_dir from [dependencies] section of fobos.
 
@@ -499,7 +494,7 @@ class Fobos:
                 return self.fobos.get("dependencies", "deps_dir").strip()
         return default
 
-    def rules_list(self, quiet=False):
+    def rules_list(self, quiet: bool = False) -> None:
         """
         Function for listing defined rules.
 
@@ -526,7 +521,7 @@ class Fobos:
         sys.exit(0)
         return
 
-    def rule_execute(self, rule, quiet=False, log=False):
+    def rule_execute(self, rule: str, quiet: bool = False, log: bool = False) -> None:
         """
         Function for executing selected rule.
 

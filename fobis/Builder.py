@@ -3,10 +3,6 @@ Builder.py, module definition of Builder class.
 This is a class designed for controlling the building phase.
 """
 
-# from __future__ import absolute_import
-# from __future__ import division
-# from __future__ import print_function
-# from __future__ import unicode_literals
 # Copyright (C) 2015  Stefano Zaghi
 #
 # This file is part of FoBiS.py.
@@ -23,12 +19,7 @@ This is a class designed for controlling the building phase.
 #
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
-# from future import standard_library
-# standard_library.install_aliases()
-# from builtins import str
-# from builtins import range
 # from builtins import *
-# from builtins import object
 try:
     from multiprocessing import Pool
 
@@ -38,6 +29,8 @@ except ImportError:
     __parallel__ = False
 import operator
 import os
+from collections.abc import Callable
+from typing import Any
 
 from .Compiler import Compiler
 from .utils import check_results, print_fake, safe_mkdir, syswork, syswork_steps
@@ -46,7 +39,12 @@ from .utils import check_results, print_fake, safe_mkdir, syswork, syswork_steps
 class Builder:
     """Builder is an object that handles the building system, its attributes and methods."""
 
-    def __init__(self, cliargs, print_n=None, print_w=None):
+    def __init__(
+        self,
+        cliargs: Any,
+        print_n: Callable[..., None] | None = None,
+        print_w: Callable[..., None] | None = None,
+    ) -> None:
         """
         Parameters
         ----------
@@ -135,7 +133,7 @@ class Builder:
         return
 
     @staticmethod
-    def get_fc(cliargs):
+    def get_fc(cliargs: Any) -> str:
         """
         Method for getting the compiler command built accordingly to the cli arguments.
 
@@ -146,7 +144,7 @@ class Builder:
         return Compiler(cliargs=cliargs).fcs
 
     @staticmethod
-    def get_cflags(cliargs):
+    def get_cflags(cliargs: Any) -> str:
         """
         Method for getting the compiling flags built accordingly to the cli arguments.
 
@@ -157,7 +155,7 @@ class Builder:
         return Compiler(cliargs=cliargs).cflags
 
     @staticmethod
-    def get_lflags(cliargs):
+    def get_lflags(cliargs: Any) -> str:
         """
         Method for getting the linking flags built accordingly to the cli arguments.
 
@@ -168,7 +166,7 @@ class Builder:
         return Compiler(cliargs=cliargs).lflags
 
     @staticmethod
-    def get_modsw(cliargs):
+    def get_modsw(cliargs: Any) -> str:
         """
         Method for getting the compiler modules switch built accordingly to the cli arguments.
 
@@ -610,7 +608,7 @@ class Builder:
                     )
         return build_ok
 
-    def gnu_make(self):
+    def gnu_make(self) -> str:
         """
         Return the builder options formated as GNU Make variables
 
@@ -645,16 +643,16 @@ class Builder:
 
     def build(
         self,
-        file_to_build,
-        output=None,
-        nomodlibs=None,
-        submodules=None,
-        mklib=None,
-        verbose=False,
-        log=False,
-        quiet=False,
-        track=False,
-    ):
+        file_to_build: Any,
+        output: str | None = None,
+        nomodlibs: list[str] | None = None,
+        submodules: list[str] | None = None,
+        mklib: str | None = None,
+        verbose: bool = False,
+        log: bool = False,
+        quiet: bool = False,
+        track: bool = False,
+    ) -> bool:
         """
         Build a file.
 
@@ -748,7 +746,7 @@ class Builder:
                     )
         return build_ok
 
-    def get_output_name(self, file_to_build, output=None, mklib=None):
+    def get_output_name(self, file_to_build: Any, output: str | None = None, mklib: str | None = None) -> str:
         """
         Return the output build file name.
 
@@ -777,7 +775,7 @@ class Builder:
                 build_name = os.path.join(self.build_dir, file_to_build.basename)
         return build_name
 
-    def get_track_build_file(self, file_to_build):
+    def get_track_build_file(self, file_to_build: Any) -> str:
         """
         Return the file name of the 'track build' file.
 
@@ -792,7 +790,7 @@ class Builder:
         """
         return os.path.join(self.build_dir, "." + os.path.basename(file_to_build.name) + ".track_build")
 
-    def verbose(self, quiet=False):
+    def verbose(self, quiet: bool = False) -> str:
         """
         The method verbose returns a verbose message containing builder infos.
 
