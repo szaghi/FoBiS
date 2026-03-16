@@ -30,9 +30,24 @@ trim = true
 
 [git]
 commit_preprocessors = [
-    { pattern = "^\\s+", replace = "" },
+    { pattern = "^\\s+",                 replace = ""           },
     { pattern = "^Merge pull request.*", replace = "chore: merge" },
-    { pattern = "^Merge branch.*", replace = "chore: merge" },
+    { pattern = "^Merge branch.*",       replace = "chore: merge" },
+    # Wrap <placeholder> tokens so VitePress does not treat them as HTML tags
+    { pattern = "<([^>]+)>",             replace = "`$1`"       },
+    # Normalise non-conventional commits so they parse cleanly (then get skipped as
+    # chore).  Three patterns cover all observed forms without touching valid
+    # conventional commits (which have `type:`, `type(`, or `type!` at the start):
+    #   1. Uppercase-start: "Add foo", "Remove bar", …
+    #   2. Flag-style: "--prefix now optional", …
+    #   3. Bare lowercase: "fixed", "g95 support added", "bugfix#88 …", "don't …"
+    #      The regex `[a-z]+[^:!( ]` backtracks so it matches the first word even
+    #      when that word is purely lowercase (e.g. "fixe"+"d") while failing on
+    #      conventional openers like "fix:" (`:` is excluded from `[^:!( ]`).
+    { pattern = "^([A-Z].*)",              replace = "chore: $1"  },
+    { pattern = "^(--.+)",                 replace = "chore: $1"  },
+    { pattern = "^([a-z]+[^:!(a-z].*)",     replace = "chore: $1"  },
+    { pattern = "^([a-z]+)$",               replace = "chore: $1"  },
 ]
 conventional_commits = true
 filter_unconventional = true
@@ -52,6 +67,7 @@ commit_parsers = [
     { message = "^test",               skip = true             },
     { message = "^build",              skip = true             },
     { message = "^init",               skip = true             },
+    { message = ".*",                  skip = true             },
 ]
 
 protect_breaking_commits = true

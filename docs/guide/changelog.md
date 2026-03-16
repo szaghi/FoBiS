@@ -37,10 +37,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - Flatten source layout to standard Python conventions
 
 
-### release
-- Modernise bump.sh and add git-cliff changelog
-
-
 ## [3.6.2] — 2026-03-15
 ### Fixed
 - **deps**: Remove deprecated typer[all] extra
@@ -97,7 +93,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [3.4.0] — 2026-02-27
 ### Added
-- **install**: Add GitHub-hosted project install via fobis install <repo>
+- **install**: Add GitHub-hosted project install via fobis install `repo`
 
 
 ## [3.3.4] — 2026-02-26
@@ -147,13 +143,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - Add AMD flang support
 
 - **fobos**: Refactor fobos templates handling
-
-
-## [3.0.6] — 2024-11-05
-### bugfix
-- Open file encoding options differences python 2.X vs 3.X
-
-- Fix bug of preprocessing parsed files
 
 
 
