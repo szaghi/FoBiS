@@ -18,8 +18,12 @@ def cmd_clean(
     lmodes: LmodesOpt = False,
     print_fobos_template: PrintFobosTemplateOpt = False,
     # clean-specific
-    only_obj: Annotated[bool, typer.Option("--only-obj", help="Clean only compiled objects and not built targets")] = False,
-    only_target: Annotated[bool, typer.Option("--only-target", help="Clean only built targets and not compiled objects")] = False,
+    only_obj: Annotated[
+        bool, typer.Option("--only-obj", help="Clean only compiled objects and not built targets")
+    ] = False,
+    only_target: Annotated[
+        bool, typer.Option("--only-target", help="Clean only built targets and not compiled objects")
+    ] = False,
     # compiler group
     compiler: CompilerOpt = "gnu",
     fc: FcOpt = None,

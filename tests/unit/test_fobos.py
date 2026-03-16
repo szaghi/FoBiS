@@ -85,11 +85,7 @@ def test_invalid_mode_raises_system_exit(tmp_path):
 
 def test_template_option_inherited(tmp_path):
     """Options from a template section are applied to a mode that uses it."""
-    content = (
-        "[modes]\nmodes = debug\n"
-        "[base]\ncompiler = gnu\n"
-        "[debug]\ntemplate = base\n"
-    )
+    content = "[modes]\nmodes = debug\n[base]\ncompiler = gnu\n[debug]\ntemplate = base\n"
     _write_fobos(tmp_path, content)
     fobos = Fobos(cliargs=_ns(tmp_path / "fobos", mode="debug"))
     # The template's compiler option should be merged into debug
@@ -98,11 +94,7 @@ def test_template_option_inherited(tmp_path):
 
 def test_mode_option_overrides_template(tmp_path):
     """Mode-specific option wins over the template value."""
-    content = (
-        "[modes]\nmodes = debug\n"
-        "[base]\ncompiler = gnu\n"
-        "[debug]\ntemplate = base\ncompiler = intel\n"
-    )
+    content = "[modes]\nmodes = debug\n[base]\ncompiler = gnu\n[debug]\ntemplate = base\ncompiler = intel\n"
     _write_fobos(tmp_path, content)
     fobos = Fobos(cliargs=_ns(tmp_path / "fobos", mode="debug"))
     assert fobos.fobos.get("debug", "compiler") == "intel"
@@ -110,11 +102,7 @@ def test_mode_option_overrides_template(tmp_path):
 
 def test_circular_template_raises_system_exit(tmp_path):
     """Circular template reference causes SystemExit."""
-    content = (
-        "[modes]\nmodes = a\n"
-        "[a]\ntemplate = b\n"
-        "[b]\ntemplate = a\n"
-    )
+    content = "[modes]\nmodes = a\n[a]\ntemplate = b\n[b]\ntemplate = a\n"
     _write_fobos(tmp_path, content)
     with pytest.raises(SystemExit):
         Fobos(cliargs=_ns(tmp_path / "fobos", mode="a"))
@@ -177,13 +165,7 @@ def test_get_returns_empty_when_no_fobos(tmp_path):
 def test_get_project_info_full(tmp_path):
     """get_project_info() parses all fields from [project]."""
     content = (
-        "[default]\n"
-        "[project]\n"
-        "name = MyProject\n"
-        "version = 1.2.3\n"
-        "authors = Alice\n"
-        "    Bob\n"
-        "summary = A test project\n"
+        "[default]\n[project]\nname = MyProject\nversion = 1.2.3\nauthors = Alice\n    Bob\nsummary = A test project\n"
     )
     _write_fobos(tmp_path, content)
     fobos = Fobos(cliargs=_ns(tmp_path / "fobos"))

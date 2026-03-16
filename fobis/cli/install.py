@@ -23,17 +23,29 @@ def cmd_install(
     print_fobos_template: PrintFobosTemplateOpt = False,
     # directories group (install variant)
     build_dir: BuildDirOpt = "./",
-    prefix: Annotated[str, typer.Option("--prefix", "-p", help="Prefix path where built objects are installed [default: ./]")] = "./",
+    prefix: Annotated[
+        str, typer.Option("--prefix", "-p", help="Prefix path where built objects are installed [default: ./]")
+    ] = "./",
     bin: Annotated[str, typer.Option("--bin", help="Sub-directory for executables [default: bin/]")] = "bin/",
     lib: Annotated[str, typer.Option("--lib", help="Sub-directory for libraries [default: lib/]")] = "lib/",
-    include: Annotated[str, typer.Option("--include", help="Sub-directory for include files [default: include/]")] = "include/",
+    include: Annotated[
+        str, typer.Option("--include", help="Sub-directory for include files [default: include/]")
+    ] = "include/",
     # GitHub install options
-    branch: Annotated[Optional[str], typer.Option("--branch", help="Branch to check out when installing from GitHub")] = None,
+    branch: Annotated[
+        Optional[str], typer.Option("--branch", help="Branch to check out when installing from GitHub")
+    ] = None,
     tag: Annotated[Optional[str], typer.Option("--tag", help="Tag to check out when installing from GitHub")] = None,
-    rev: Annotated[Optional[str], typer.Option("--rev", help="Commit revision to check out when installing from GitHub")] = None,
-    update: Annotated[bool, typer.Option("--update", help="Re-fetch (git pull) before building and installing")] = False,
+    rev: Annotated[
+        Optional[str], typer.Option("--rev", help="Commit revision to check out when installing from GitHub")
+    ] = None,
+    update: Annotated[
+        bool, typer.Option("--update", help="Re-fetch (git pull) before building and installing")
+    ] = False,
     no_build: Annotated[bool, typer.Option("--no-build", help="Clone only — skip building and installing")] = False,
-    deps_dir: Annotated[Optional[str], typer.Option("--deps-dir", help="Directory for cloning GitHub repositories [default: ~/.fobis/]")] = None,
+    deps_dir: Annotated[
+        Optional[str], typer.Option("--deps-dir", help="Directory for cloning GitHub repositories [default: ~/.fobis/]")
+    ] = None,
     # fancy group
     force_compile: ForceCompileOpt = False,
     colors: ColorsOpt = False,

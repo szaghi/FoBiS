@@ -26,7 +26,9 @@ def cmd_fetch(
             help="Directory for storing fetched dependencies [default: .fobis_deps or fobos [dependencies] setting]",
         ),
     ] = None,
-    update: Annotated[bool, typer.Option("--update", help="Update already-fetched dependencies (git fetch + re-checkout)")] = False,
+    update: Annotated[
+        bool, typer.Option("--update", help="Update already-fetched dependencies (git fetch + re-checkout)")
+    ] = False,
     no_build: Annotated[bool, typer.Option("--no-build", help="Only fetch dependencies, do not build them")] = False,
     # fancy group
     force_compile: ForceCompileOpt = False,
