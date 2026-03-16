@@ -1,6 +1,6 @@
 # Fetch Dependencies
 
-The `fetch` command provides a declarative way to pull in GitHub-hosted Fortran projects as dependencies. It clones each repository, checks out the requested revision, and wires everything into the build automatically so that `FoBiS.py build` picks it all up.
+The `fetch` command provides a declarative way to pull in GitHub-hosted Fortran projects as dependencies. It clones each repository, checks out the requested revision, and wires everything into the build automatically so that `fobis build` picks it all up.
 
 ## Quick start
 
@@ -15,13 +15,13 @@ jsonfort = https://github.com/jacobwilliams/json-fortran :: branch=main :: use=f
 2. Fetch dependencies:
 
 ```bash
-FoBiS.py fetch
+fobis fetch
 ```
 
 3. Build your project — dependencies are detected automatically:
 
 ```bash
-FoBiS.py build
+fobis build
 ```
 
 ## Dependency specification syntax
@@ -69,7 +69,7 @@ The dependency is built as a **separate library** using its own fobos file, and 
 jsonfort = https://github.com/jacobwilliams/json-fortran :: branch=main :: use=fobos :: mode=gnu
 ```
 
-- **`fobis fetch`**: clone + `FoBiS.py build` inside the dep directory
+- **`fobis fetch`**: clone + `fobis build` inside the dep directory
 - **`fobis build`**: dep's fobos path is added to `-dependon`; the dep directory is added to `exclude_dirs` automatically to prevent source-scan overlap; the dep's `mod_dir` and built library are added to your project's include and link paths
 
 The target repository **must** contain a `fobos` file.
@@ -97,11 +97,11 @@ The CLI `--deps-dir` flag takes precedence over the fobos value when both are gi
 
 ## Directory layout
 
-After `FoBiS.py fetch`, the project directory contains:
+After `fobis fetch`, the project directory contains:
 
 ```
 .fobis_deps/
-├── .deps_config.ini       ← auto-generated, read by FoBiS.py build
+├── .deps_config.ini       ← auto-generated, read by fobis build
 ├── penf/                  ← use=sources: only cloned, not pre-built
 │   ├── src/
 │   └── ...
@@ -119,7 +119,7 @@ dependon = .fobis_deps/jsonfort/fobos:gnu
 src      = .fobis_deps/penf
 ```
 
-`FoBiS.py build` reads this file: `dependon` entries are fed into the `-dependon` machinery (with the dep dir added to `exclude_dirs`); `src` entries are appended to the source search paths.
+`fobis build` reads this file: `dependon` entries are fed into the `-dependon` machinery (with the dep dir added to `exclude_dirs`); `src` entries are appended to the source search paths.
 
 ## `fetch` options
 
@@ -133,23 +133,23 @@ src      = .fobis_deps/penf
 
 ```bash
 # Initial setup
-FoBiS.py fetch
-FoBiS.py build
+fobis fetch
+fobis build
 
 # Update all deps to latest
-FoBiS.py fetch --update && FoBiS.py build
+fobis fetch --update && fobis build
 
 # Inspect before building
-FoBiS.py fetch --no-build
+fobis fetch --no-build
 ls .fobis_deps/
 
 # Use a custom storage directory (or set deps_dir in fobos instead)
-FoBiS.py fetch --deps-dir vendor/
+fobis fetch --deps-dir vendor/
 ```
 
 ## How auto-detection works
 
-`FoBiS.py build` calls `_load_fetched_deps()` during initialisation. If `.deps_config.ini` exists:
+`fobis build` calls `_load_fetched_deps()` during initialisation. If `.deps_config.ini` exists:
 
 - **`src` entries** are appended to `cliargs.src` when the dep directory is not already covered by an existing source path. The recursive scanner then finds and compiles the dep's Fortran files as part of your build.
 - **`dependon` entries** are appended to `cliargs.dependon`, and the dep directory is added to `cliargs.exclude_dirs` to prevent the source scanner from also picking up those files. The `-dependon` machinery then rebuilds the dep if needed, adds its `mod_dir` to the include path, and links the built library.

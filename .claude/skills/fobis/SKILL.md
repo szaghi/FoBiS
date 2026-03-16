@@ -1,7 +1,7 @@
 ---
 name: fobis
 description: >
-  Expert knowledge of FoBiS.py (Fortran Building System for poor men) — an automatic Fortran build tool that resolves module dependency hierarchies without manual makefiles. Use this skill whenever the user asks about: writing or editing a fobos file, running FoBiS.py build/clean/fetch/install/rule commands, Fortran project build configuration, diagnosing FoBiS build errors, adding GitHub dependencies to a Fortran project, the --json output flag, multi-mode builds, templates, variables, library builds (static/shared), MPI/OpenMP/coarray builds, the fetch command, the install command, the cflags-heritage feature, parallel compilation, or any question that mentions "fobos", "FoBiS", or building Fortran projects. When in doubt, trigger this skill — it is better to consult it unnecessarily than to miss it.
+  Expert knowledge of FoBiS.py (Fortran Building System for poor men) — an automatic Fortran build tool that resolves module dependency hierarchies without manual makefiles. Use this skill whenever the user asks about: writing or editing a fobos file, running fobis build/clean/fetch/install/rule commands, Fortran project build configuration, diagnosing FoBiS build errors, adding GitHub dependencies to a Fortran project, the --json output flag, multi-mode builds, templates, variables, library builds (static/shared), MPI/OpenMP/coarray builds, the fetch command, the install command, the cflags-heritage feature, parallel compilation, or any question that mentions "fobos", "FoBiS", or building Fortran projects. When in doubt, trigger this skill — it is better to consult it unnecessarily than to miss it.
 ---
 
 # FoBiS.py Expert Knowledge
@@ -15,12 +15,12 @@ FoBiS.py scans your source directories, parses every `.f90` (and related) file f
 ## CLI Commands
 
 ```bash
-FoBiS.py build              # compile and link
-FoBiS.py clean              # remove compiled objects/mods
-FoBiS.py fetch              # clone GitHub dependencies
-FoBiS.py install            # install built artifacts (or from GitHub)
-FoBiS.py rule -ex <name>    # run a custom shell rule from fobos
-FoBiS.py doctests           # run inline Fortran doctests
+fobis build              # compile and link
+fobis clean              # remove compiled objects/mods
+fobis fetch              # clone GitHub dependencies
+fobis install            # install built artifacts (or from GitHub)
+fobis rule -ex <name>    # run a custom shell rule from fobos
+fobis doctests           # run inline Fortran doctests
 ```
 
 Each command accepts `--fobos <path>` / `-f` to use a non-default fobos file, and `--mode <name>` to select a build mode.
@@ -70,8 +70,8 @@ target    = src/main.f90
 output    = myapp
 ```
 
-Select a mode: `FoBiS.py build -mode release`
-List modes: `FoBiS.py build -lmodes`
+Select a mode: `fobis build -mode release`
+List modes: `fobis build -lmodes`
 The first listed mode is used when `-mode` is omitted.
 
 ### Templates (DRY across modes)
@@ -133,8 +133,8 @@ rule_rm  = rm -f project.tar
 rule_mk  = tar cf project.tar src/ fobos
 ```
 
-Run: `FoBiS.py rule -ex makedoc`
-List: `FoBiS.py rule -ls`
+Run: `fobis rule -ex makedoc`
+List: `fobis rule -ls`
 Use unique names starting with `rule` (e.g. `rule`, `rule_rm`, `rule1`) for multiple commands in one rule.
 
 ---
@@ -194,18 +194,18 @@ Spec syntax: `name = URL [:: branch=X | tag=X | rev=X] [:: mode=X] [:: use=sourc
 | `use=` | fetch behaviour | build behaviour |
 |---|---|---|
 | `sources` (default) | clone only | dep dir added to source scan inline |
-| `fobos` | clone + `FoBiS.py build` in dep | dep fobos added to `dependon`; dep dir excluded from scan |
+| `fobos` | clone + `fobis build` in dep | dep fobos added to `dependon`; dep dir excluded from scan |
 
 Use `sources` for small/header-like deps. Use `fobos` for deps that need their own separate build (requires a `fobos` file in the dep repo).
 
 ### Typical workflow
 
 ```bash
-FoBiS.py fetch              # initial clone; pre-build use=fobos deps
-FoBiS.py build              # auto-reads .fobis_deps/.deps_config.ini
+fobis fetch              # initial clone; pre-build use=fobos deps
+fobis build              # auto-reads .fobis_deps/.deps_config.ini
 
-FoBiS.py fetch --update     # re-pull and re-build all deps
-FoBiS.py fetch --no-build   # clone only (skip build even for use=fobos)
+fobis fetch --update     # re-pull and re-build all deps
+fobis fetch --no-build   # clone only (skip build even for use=fobos)
 ```
 
 The auto-generated `.fobis_deps/.deps_config.ini` is read by `build` automatically — no extra flags needed.
@@ -297,17 +297,17 @@ This is the most common error. Causes and fixes:
 2. **Wrong `mod_dir`** — the `.mod` file was written to one directory but the compiler is looking elsewhere.
    Fix: make sure `mod_dir` is consistent across all modes and matches any `-I` include path.
 
-3. **Dependency not fetched** — if the module is from an external library, run `FoBiS.py fetch` first.
+3. **Dependency not fetched** — if the module is from an external library, run `fobis fetch` first.
 
 4. **Name case mismatch** — Fortran module names are case-insensitive in source but the `.mod` filename on disk depends on the compiler. Most compilers lowercase the `.mod` filename. Verify the filename on disk matches.
 
-5. **Circular or unresolvable dependency** — run `FoBiS.py build --verbose` to see the dependency resolution order and spot the missing link.
+5. **Circular or unresolvable dependency** — run `fobis build --verbose` to see the dependency resolution order and spot the missing link.
 
 6. **Wrong `dependon` path** — for `use=fobos` deps, the `dependon` entry must point to the dep's fobos file, not just its directory.
 
 ### Build produces no output / does nothing
 
-- All sources may be up-to-date. Use `FoBiS.py build --force-compile` to force a full rebuild.
+- All sources may be up-to-date. Use `fobis build --force-compile` to force a full rebuild.
 - Check that `target` points to a file that actually contains a `program` statement.
 - Verify `src` actually contains `.f90` files.
 
@@ -317,7 +317,7 @@ Enable `cflags_heritage = True` in your fobos to auto-detect flag changes and tr
 
 ### "The mode X is not defined into the fobos file"
 
-The `-mode` value must exactly match a name in `[modes] modes = ...`. Run `FoBiS.py build -lmodes` to see available modes.
+The `-mode` value must exactly match a name in `[modes] modes = ...`. Run `fobis build -lmodes` to see available modes.
 
 ### Library build not linking
 
@@ -334,7 +334,7 @@ FoBiS.py auto-parses:
 - Legacy: `.f .F .for .FOR .fpp .FPP .fortran .f77 .F77`
 - Include: `.inc .INC .h .H`
 
-Add custom include extensions: `FoBiS.py build --inc .cmn`
+Add custom include extensions: `fobis build --inc .cmn`
 
 ---
 
@@ -408,7 +408,7 @@ FoBiS.py will rebuild project A if needed, then add its `mod_dir` and built libr
 | `[modes]` | Lists all available named modes |
 | `[vars]` or any name | Variable definitions (`$NAME = value`) |
 | `[template-*]` or any name | Template for mode inheritance |
-| `[rule-NAME]` | Custom shell rule for `FoBiS.py rule -ex NAME` |
+| `[rule-NAME]` | Custom shell rule for `fobis rule -ex NAME` |
 | `[dependencies]` | GitHub-hosted build dependencies (used by `fetch`) |
 | `[project]` | Project metadata: name, authors, version |
 

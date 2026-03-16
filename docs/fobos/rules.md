@@ -1,6 +1,6 @@
 # Rules
 
-fobos rules let you define arbitrary shell commands to run as named tasks — documentation generation, archive creation, testing scripts, and so on. They are executed via `FoBiS.py rule -ex <name>`.
+fobos rules let you define arbitrary shell commands to run as named tasks — documentation generation, archive creation, testing scripts, and so on. They are executed via `fobis rule -ex <name>`.
 
 ## Defining rules
 
@@ -25,14 +25,14 @@ In standard INI files, duplicate option names in the same section overwrite each
 ## Executing a rule
 
 ```bash
-FoBiS.py rule -ex makedoc
-FoBiS.py rule -ex maketar
+fobis rule -ex makedoc
+fobis rule -ex maketar
 ```
 
 ## Listing rules
 
 ```bash
-FoBiS.py rule -ls
+fobis rule -ls
 ```
 
 Output:
@@ -50,7 +50,7 @@ The `-quiet` rule option suppresses the command printing from `--list` output.
 ## Invalid rule error
 
 ```bash
-FoBiS.py rule -ex unknown
+fobis rule -ex unknown
 ```
 
 ```

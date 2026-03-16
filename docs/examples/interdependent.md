@@ -91,12 +91,12 @@ dependon  = ./libs/lib_math/fobos:gnu ./libs/lib_io/fobos:gnu
 
 ```bash
 # From project/
-FoBiS.py build -mode gnu
+fobis build -mode gnu
 ```
 
 FoBiS.py:
-1. Enters `libs/lib_math/`, runs `FoBiS.py build -f fobos -mode gnu` — builds `libmath.a` if needed.
-2. Enters `libs/lib_io/`, runs `FoBiS.py build -f fobos -mode gnu` — builds `libio.a` if needed.
+1. Enters `libs/lib_math/`, runs `fobis build -f fobos -mode gnu` — builds `libmath.a` if needed.
+2. Enters `libs/lib_io/`, runs `fobis build -f fobos -mode gnu` — builds `libio.a` if needed.
 3. Returns to `project/`, compiles `main.f90` with both libraries linked, and produces `build/myapp`.
 
 If neither library has changed since the last build, step 1 and 2 are no-ops.
@@ -104,17 +104,17 @@ If neither library has changed since the last build, step 1 and 2 are no-ops.
 ## Cleaning
 
 ```bash
-FoBiS.py clean -mode gnu
+fobis clean -mode gnu
 ```
 
-Cleans only the main project artefacts. To also clean the libraries, run `FoBiS.py clean` in each library directory, or add a fobos rule:
+Cleans only the main project artefacts. To also clean the libraries, run `fobis clean` in each library directory, or add a fobos rule:
 
 ```ini
 [rule-clean-all]
 help    = Clean main project and all dependencies
-rule_1  = FoBiS.py clean -mode gnu -f ./libs/lib_math/fobos
-rule_2  = FoBiS.py clean -mode gnu -f ./libs/lib_io/fobos
-rule_3  = FoBiS.py clean -mode gnu
+rule_1  = fobis clean -mode gnu -f ./libs/lib_math/fobos
+rule_2  = fobis clean -mode gnu -f ./libs/lib_io/fobos
+rule_3  = fobis clean -mode gnu
 ```
 
 ## Direct vs indirect linking
@@ -144,8 +144,8 @@ lib_io   = https://github.com/user/lib_io   :: branch=main :: mode=gnu
 ```
 
 ```bash
-FoBiS.py fetch
-FoBiS.py build -mode gnu
+fobis fetch
+fobis build -mode gnu
 ```
 
 See [Fetch Dependencies](/advanced/fetch) for details.

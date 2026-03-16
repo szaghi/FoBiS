@@ -71,8 +71,8 @@ output    = libmylib.so
 ## Calling with a custom fobos name
 
 ```bash
-FoBiS.py build -f fobos.debug
-FoBiS.py clean -f fobos.debug
+fobis build -f fobos.debug
+fobis clean -f fobos.debug
 ```
 
 ::: tip Multiple fobos files

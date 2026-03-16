@@ -7,7 +7,7 @@ FoBiS.py supports two approaches for linking external libraries: direct linking 
 Use `-libs` to specify the full path to one or more library files:
 
 ```bash
-FoBiS.py build -libs /path/to/foo.a /path/to/bar.so
+fobis build -libs /path/to/foo.a /path/to/bar.so
 ```
 
 Multiple libraries can be listed separated by spaces.
@@ -17,7 +17,7 @@ Multiple libraries can be listed separated by spaces.
 Use `-ext_libs` together with `-dlib`/`--lib_dir` to link by library base-name:
 
 ```bash
-FoBiS.py build -ext_libs foo sao -dlib /path/to/my_libraries/
+fobis build -ext_libs foo sao -dlib /path/to/my_libraries/
 ```
 
 This is equivalent to passing `-L/path/to/my_libraries/ -lfoo -lsao` to the linker. The library files in `lib_dir` must follow the `lib<name>.[a|so]` naming convention.
@@ -27,7 +27,7 @@ This is equivalent to passing `-L/path/to/my_libraries/ -lfoo -lsao` to the link
 When an external library exposes Fortran modules (`.mod` files), the compiler needs to find those files during the compile phase. Add the directory containing the `.mod` files with `-i`/`--include`:
 
 ```bash
-FoBiS.py build -libs /path/to/libmylib.a -i /path/to/mylib/mod/
+fobis build -libs /path/to/libmylib.a -i /path/to/mylib/mod/
 ```
 
 ## fobos options

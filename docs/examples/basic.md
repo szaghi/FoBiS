@@ -21,7 +21,7 @@ src/
 ## Step 1: Build all programs
 
 ```bash
-FoBiS.py build
+fobis build
 ```
 
 FoBiS.py:
@@ -42,7 +42,7 @@ src/
 ## Step 2: Custom directories
 
 ```bash
-FoBiS.py build -dobj my-objs -dmod my-mods -dbld my-build
+fobis build -dobj my-objs -dmod my-mods -dbld my-build
 ```
 
 The `obj` and `mod` directories are always placed **relative to the build directory**:
@@ -58,7 +58,7 @@ src/
 ## Step 3: Specify compiler and flags
 
 ```bash
-FoBiS.py build -compiler gnu -cflags " -c -O2 -Wall" -j 4
+fobis build -compiler gnu -cflags " -c -O2 -Wall" -j 4
 ```
 
 Note the leading space before `-c` — this avoids an `argparse` quirk with quoted strings that start with `-`.
@@ -66,7 +66,7 @@ Note the leading space before `-c` — this avoids an `argparse` quirk with quot
 ## Step 4: Build a specific target
 
 ```bash
-FoBiS.py build -t src/cumbersome.f90 -o myapp
+fobis build -t src/cumbersome.f90 -o myapp
 ```
 
 Builds only `cumbersome.f90` (and its dependencies), naming the executable `myapp`.
@@ -74,20 +74,20 @@ Builds only `cumbersome.f90` (and its dependencies), naming the executable `myap
 ## Step 5: Clean
 
 ```bash
-FoBiS.py clean
+fobis clean
 ```
 
 Removes `obj/`, `mod/`, and the built executable. If you used custom directories, pass them again:
 
 ```bash
-FoBiS.py clean -dobj my-objs -dmod my-mods -dbld my-build
+fobis clean -dobj my-objs -dmod my-mods -dbld my-build
 ```
 
 Or clean selectively:
 
 ```bash
-FoBiS.py clean -only_obj      # remove objects, keep executable
-FoBiS.py clean -only_target   # remove executable, keep objects
+fobis clean -only_obj      # remove objects, keep executable
+fobis clean -only_target   # remove executable, keep objects
 ```
 
 ## Using a fobos file
@@ -122,15 +122,15 @@ cflags_heritage = True
 ```
 
 ```bash
-FoBiS.py build -mode debug
-FoBiS.py build -mode release
-FoBiS.py clean -mode release
+fobis build -mode debug
+fobis build -mode release
+fobis clean -mode release
 ```
 
 ## Excluding files
 
 ```bash
-FoBiS.py build -e src/experimental.f90
+fobis build -e src/experimental.f90
 ```
 
 Or in fobos:
@@ -146,5 +146,5 @@ exclude = ./src/experimental.f90
 Generate a graphviz `.dot` file to visualise dependencies:
 
 ```bash
-FoBiS.py build -graph
+fobis build -graph
 ```

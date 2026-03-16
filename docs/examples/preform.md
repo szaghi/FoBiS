@@ -51,16 +51,16 @@ $:VECTOR_TYPE('real32', 'real(kind=4)')
 
 ```bash
 # Preprocess all files, delete intermediates after compilation
-FoBiS.py build -preprocessor
+fobis build -preprocessor
 
 # Keep preprocessed sources in ./preprocessed/
-FoBiS.py build -preprocessor -dpp ./preprocessed/
+fobis build -preprocessor -dpp ./preprocessed/
 
 # Preprocess only .pfm files, pass the rest directly to the compiler
-FoBiS.py build -preprocessor -dpp ./preprocessed/ -epp .pfm
+fobis build -preprocessor -dpp ./preprocessed/ -epp .pfm
 
 # Pass extra flags to PreForM.py
-FoBiS.py build -preprocessor -app "-DNDEBUG"
+fobis build -preprocessor -app "-DNDEBUG"
 ```
 
 ## fobos configuration
@@ -84,7 +84,7 @@ preprocessor_ext = .pfm .F90
 ```
 
 ```bash
-FoBiS.py build -mode gnu
+fobis build -mode gnu
 ```
 
 ## What happens
@@ -128,10 +128,10 @@ preprocessor_ext = .pfm
 
 ```bash
 # Build without preprocessing
-FoBiS.py build -mode gnu
+fobis build -mode gnu
 
 # Build with preprocessing
-FoBiS.py build -mode gnu-preform
+fobis build -mode gnu-preform
 ```
 
 ## Preprocessor option reference

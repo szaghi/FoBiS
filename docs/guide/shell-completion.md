@@ -9,23 +9,23 @@ Run the one-time installation command for your shell:
 ::: code-group
 
 ```bash [bash]
-FoBiS.py --install-completion bash
+fobis --install-completion bash
 # then reload your shell (or open a new terminal)
 source ~/.bashrc
 ```
 
 ```bash [zsh]
-FoBiS.py --install-completion zsh
+fobis --install-completion zsh
 source ~/.zshrc
 ```
 
 ```bash [fish]
-FoBiS.py --install-completion fish
+fobis --install-completion fish
 # fish picks up completions from ~/.config/fish/completions/ automatically
 ```
 
 ```powershell [PowerShell]
-FoBiS.py --install-completion powershell
+fobis --install-completion powershell
 # follow any additional instructions printed by the command
 ```
 
@@ -34,7 +34,7 @@ FoBiS.py --install-completion powershell
 To preview the completion script without installing it:
 
 ```bash
-FoBiS.py --show-completion bash    # or zsh / fish / powershell
+fobis --show-completion bash    # or zsh / fish / powershell
 ```
 
 ## What gets completed
@@ -42,7 +42,7 @@ FoBiS.py --show-completion bash    # or zsh / fish / powershell
 ### Subcommands
 
 ```
-FoBiS.py <Tab>
+fobis <Tab>
 build    clean    rule    doctests    fetch    install
 ```
 
@@ -51,7 +51,7 @@ build    clean    rule    doctests    fetch    install
 All long option names complete after `--`:
 
 ```
-FoBiS.py build --<Tab>
+fobis build --<Tab>
 --compiler   --cflags   --lflags   --mode   --mklib   --src   ...
 ```
 
@@ -71,10 +71,10 @@ Several options offer *value* completion — the completions are filtered as you
 #### `--compiler` completion example
 
 ```
-FoBiS.py build --compiler <Tab>
+fobis build --compiler <Tab>
 gnu   intel   intel_nextgen   g95   opencoarrays-gnu   pgi   ibm   nag   nvfortran   amd   custom
 
-FoBiS.py build --compiler in<Tab>
+fobis build --compiler in<Tab>
 intel   intel_nextgen
 ```
 
@@ -83,10 +83,10 @@ intel   intel_nextgen
 Given a fobos file with modes `debug`, `release`, and `coverage`:
 
 ```
-FoBiS.py build --mode <Tab>
+fobis build --mode <Tab>
 debug   release   coverage
 
-FoBiS.py build --mode r<Tab>
+fobis build --mode r<Tab>
 release
 ```
 

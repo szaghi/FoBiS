@@ -18,8 +18,12 @@ where `main.f90` contains a Fortran `program` that `use`s `nested_1`, and `first
 Just run:
 
 ```bash
-FoBiS.py build
+fobis build
 ```
+
+::: tip Legacy command name
+The `FoBiS.py` command is preserved as a backward-compatible alias. Both `fobis` and `FoBiS.py` invoke the same tool — existing scripts using `FoBiS.py` continue to work without changes.
+:::
 
 FoBiS.py will:
 1. Recursively scan `./` for all Fortran source files
@@ -50,7 +54,7 @@ After the build your tree looks like:
 Override any directory with CLI flags:
 
 ```bash
-FoBiS.py build --obj-dir my-objs --mod-dir my-mods --build-dir my-build
+fobis build --obj-dir my-objs --mod-dir my-mods --build-dir my-build
 ```
 
 The `obj` and `mod` directories are always relative to the build directory, so the tree becomes:
@@ -65,25 +69,25 @@ The `obj` and `mod` directories are always relative to the build directory, so t
 ## Cleaning the project
 
 ```bash
-FoBiS.py clean
+fobis clean
 ```
 
 This removes all compiled objects (`*.o`) and module files (`*.mod`) from the `obj/` and `mod/` directories. If you used custom paths during the build, repeat them:
 
 ```bash
-FoBiS.py clean --obj-dir my-objs --mod-dir my-mods --build-dir my-build
+fobis clean --obj-dir my-objs --mod-dir my-mods --build-dir my-build
 ```
 
 Clean only compiled objects (keep executable):
 
 ```bash
-FoBiS.py clean --only-obj
+fobis clean --only-obj
 ```
 
 Clean only the executable (keep objects for faster incremental rebuild):
 
 ```bash
-FoBiS.py clean --only-target
+fobis clean --only-target
 ```
 
 ## Parsed file extensions
@@ -99,7 +103,7 @@ By default FoBiS.py parses files with these extensions:
 Add custom include extensions (tab-completable):
 
 ```bash
-FoBiS.py build --inc .cmn .icp
+fobis build --inc .cmn .icp
 ```
 
 ## Selecting a specific target
@@ -107,13 +111,13 @@ FoBiS.py build --inc .cmn .icp
 Build only one program instead of all programs found:
 
 ```bash
-FoBiS.py build -t src/main.f90
+fobis build -t src/main.f90
 ```
 
 With a custom output name:
 
 ```bash
-FoBiS.py build -t src/main.f90 -o myapp
+fobis build -t src/main.f90 -o myapp
 ```
 
 ## Using a fobos configuration file
@@ -135,8 +139,8 @@ output    = myapp
 Then simply:
 
 ```bash
-FoBiS.py build
-FoBiS.py clean
+fobis build
+fobis clean
 ```
 
 See the [fobos section](/fobos/) for the full reference.
@@ -146,9 +150,9 @@ Flag values that start with `-` should be prefixed with a leading space to preve
 
 ```bash
 # problematic:
-FoBiS.py build --cflags "-c -fPIC"
+fobis build --cflags "-c -fPIC"
 
 # correct:
-FoBiS.py build --cflags " -c -fPIC"
+fobis build --cflags " -c -fPIC"
 ```
 :::

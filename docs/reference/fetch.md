@@ -3,10 +3,10 @@
 Fetch GitHub-hosted Fortran dependencies listed in the fobos `[dependencies]` section and wire them into the build automatically.
 
 ```bash
-FoBiS.py fetch [options]
+fobis fetch [options]
 ```
 
-After fetching, run `FoBiS.py build` as usual — it automatically picks up the fetched dependencies.
+After fetching, run `fobis build` as usual — it automatically picks up the fetched dependencies.
 
 ## Options
 
@@ -77,7 +77,7 @@ Setting `deps_dir` in the `[dependencies]` section is equivalent to passing `--d
 | `use=` | `fobis fetch` behaviour | `fobis build` behaviour |
 |--------|------------------------|------------------------|
 | `sources` (default) | Clone only, no pre-build | Dep directory added to source scan; sources compiled inline with your project |
-| `fobos` | Clone + `FoBiS.py build` inside dep | Dep fobos path added to `--dependon`; dep dir excluded from source scan; dep library linked |
+| `fobos` | Clone + `fobis build` inside dep | Dep fobos path added to `--dependon`; dep dir excluded from source scan; dep library linked |
 
 For `use=fobos` the target repository **must** contain a `fobos` file.
 For `use=sources` no `fobos` file is required.
@@ -86,11 +86,11 @@ For `use=sources` no `fobos` file is required.
 
 1. For each entry in `[dependencies]`, `fetch` clones the repository into `<deps-dir>/<name>/`.
 2. If `branch`, `tag`, or `rev` is specified, the corresponding revision is checked out.
-3. For `use=fobos` dependencies (and when `--no-build` is not set), `FoBiS.py build` is invoked inside the dependency directory using the specified `mode`.
+3. For `use=fobos` dependencies (and when `--no-build` is not set), `fobis build` is invoked inside the dependency directory using the specified `mode`.
 4. A config file `<deps-dir>/.deps_config.ini` is written:
    - `use=sources` deps → listed under the `src` key
    - `use=fobos` deps → listed under the `dependon` key
-5. When you run `FoBiS.py build`, it reads `.deps_config.ini`:
+5. When you run `fobis build`, it reads `.deps_config.ini`:
    - `src` entries are appended to the source search paths (skipped if already covered)
    - `dependon` entries are added to `--dependon`, and the dep directory is added to `--exclude-dirs` to prevent double-compilation
 
@@ -100,36 +100,36 @@ For `use=sources` no `fobos` file is required.
 # 1. Add [dependencies] to your fobos file (see above)
 
 # 2. Fetch all dependencies
-FoBiS.py fetch
+fobis fetch
 
 # 3. Build your project — dependencies are auto-detected
-FoBiS.py build
+fobis build
 
 # 4. Update dependencies to their latest version
-FoBiS.py fetch --update
+fobis fetch --update
 
 # 5. Clone only (inspect before building)
-FoBiS.py fetch --no-build
-FoBiS.py fetch --no-build --update   # re-fetch without rebuilding
+fobis fetch --no-build
+fobis fetch --no-build --update   # re-fetch without rebuilding
 ```
 
 ## Examples
 
 ```bash
 # Fetch all dependencies defined in the fobos file
-FoBiS.py fetch
+fobis fetch
 
 # Fetch into a custom directory
-FoBiS.py fetch --deps-dir vendor/
+fobis fetch --deps-dir vendor/
 
 # Re-fetch and rebuild
-FoBiS.py fetch --update
+fobis fetch --update
 
 # Clone only, do not build
-FoBiS.py fetch --no-build
+fobis fetch --no-build
 
 # Use a custom fobos file
-FoBiS.py fetch -f my.fobos
+fobis fetch -f my.fobos
 ```
 
 See the [Fetch Dependencies](/advanced/fetch) advanced guide for the full workflow and integration mode details.

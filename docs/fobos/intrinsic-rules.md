@@ -1,6 +1,6 @@
 # Intrinsic Rules
 
-Besides user-defined rules, FoBiS.py ships four built-in *intrinsic rules* accessible via `FoBiS.py rule`:
+Besides user-defined rules, FoBiS.py ships four built-in *intrinsic rules* accessible via `fobis rule`:
 
 | Rule | Description |
 |---|---|
@@ -14,15 +14,15 @@ Besides user-defined rules, FoBiS.py ships four built-in *intrinsic rules* acces
 Print the value of any option defined in the selected mode:
 
 ```bash
-FoBiS.py rule -get build_dir
-FoBiS.py rule -mode release -get build_dir
-FoBiS.py rule -f my_fobos -get obj_dir
+fobis rule -get build_dir
+fobis rule -mode release -get build_dir
+fobis rule -f my_fobos -get obj_dir
 ```
 
 This is useful in shell scripts that need to locate build artefacts:
 
 ```bash
-BUILD=$(FoBiS.py rule -mode release -get build_dir)
+BUILD=$(fobis rule -mode release -get build_dir)
 echo "Build directory: $BUILD"
 ```
 
@@ -31,8 +31,8 @@ echo "Build directory: $BUILD"
 Print the full path of the final output (executable or library):
 
 ```bash
-FoBiS.py rule -get_output_name
-FoBiS.py rule -mode release -get_output_name
+fobis rule -get_output_name
+fobis rule -mode release -get_output_name
 ```
 
 The path is constructed from `build_dir` + `output` (or derived from `target` + `mklib`) as defined in the fobos mode.
@@ -42,7 +42,7 @@ The path is constructed from `build_dir` + `output` (or derived from `target` + 
 Run the [FORD](https://github.com/Fortran-FOSS-Programmers/ford) documentation generator on a project file:
 
 ```bash
-FoBiS.py rule -ford doc/ford-project.md
+fobis rule -ford doc/ford-project.md
 ```
 
 Equivalent to `ford doc/ford-project.md` but integrated into the fobos workflow. Combine with a user rule for a one-command build + document workflow:
@@ -51,7 +51,7 @@ Equivalent to `ford doc/ford-project.md` but integrated into the fobos workflow.
 [rule-doc]
 help  = Build with FORD
 quiet = True
-rule  = FoBiS.py rule -ford doc/ford-project.md
+rule  = fobis rule -ford doc/ford-project.md
 ```
 
 ## `-gcov_analyzer` — coverage analysis
@@ -60,10 +60,10 @@ Parse all `.gcov` files found under the current directory, generate a Markdown r
 
 ```bash
 # Reports saved to ./reports/, no summary
-FoBiS.py rule -gcov_analyzer reports/
+fobis rule -gcov_analyzer reports/
 
 # Reports + summary Markdown file
-FoBiS.py rule -gcov_analyzer reports/ coverage-summary
+fobis rule -gcov_analyzer reports/ coverage-summary
 ```
 
 The analyser generates:
@@ -74,7 +74,7 @@ The analyser generates:
 
 ```bash
 # 1. Build with coverage instrumentation
-FoBiS.py build -coverage
+fobis build -coverage
 
 # 2. Run the program (generates .gcov data)
 ./myapp
@@ -83,5 +83,5 @@ FoBiS.py build -coverage
 gcov -o obj/ src/*.f90
 
 # 4. Analyse
-FoBiS.py rule -gcov_analyzer reports/ summary
+fobis rule -gcov_analyzer reports/ summary
 ```

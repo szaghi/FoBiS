@@ -3,7 +3,7 @@
 Find, compile, and run inline doctest snippets embedded in Fortran source comments.
 
 ```bash
-FoBiS.py doctests [options]
+fobis doctests [options]
 ```
 
 The `doctests` command accepts the same compiler, directory, file, fobos, and preprocessor options as [`build`](/reference/build), plus the doctest-specific options listed below.
@@ -48,19 +48,19 @@ Same as [`build`](/reference/build#directory-options): `-s`, `--build-dir`, `--o
 
 ```bash
 # Run all doctests found in the source tree
-FoBiS.py doctests
+fobis doctests
 
 # Run doctests using a fobos mode
-FoBiS.py doctests -f project.fobos --mode gnu
+fobis doctests -f project.fobos --mode gnu
 
 # Keep volatile test programs for inspection
-FoBiS.py doctests --keep-volatile-doctests
+fobis doctests --keep-volatile-doctests
 
 # Exclude a file from doctest scanning
-FoBiS.py doctests --exclude-from-doctests src/legacy.f90
+fobis doctests --exclude-from-doctests src/legacy.f90
 
 # Store doctests build output under ./build/
-FoBiS.py doctests --build-dir ./build/
+fobis doctests --build-dir ./build/
 ```
 
 ## Doctest syntax

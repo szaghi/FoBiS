@@ -1,6 +1,6 @@
 # Doctests
 
-FoBiS.py doctests let you write micro-unit-tests directly inside Fortran comment docstrings — no separate test harness needed. The idea is inspired by Python's `doctest` module.
+fobis doctests let you write micro-unit-tests directly inside Fortran comment docstrings — no separate test harness needed. The idea is inspired by Python's `doctest` module.
 
 ## How it works
 
@@ -109,16 +109,16 @@ end module simple
 
 ```bash
 # Run all doctests found in the source tree
-FoBiS.py doctests
+fobis doctests
 
 # Keep volatile programs for inspection
-FoBiS.py doctests -keep_volatile_doctests
+fobis doctests -keep_volatile_doctests
 
 # Store build output in ./build/
-FoBiS.py doctests -dbld ./build/
+fobis doctests -dbld ./build/
 
 # Use a fobos mode
-FoBiS.py doctests -f project.fobos -mode gnu
+fobis doctests -f project.fobos -mode gnu
 ```
 
 ## Output

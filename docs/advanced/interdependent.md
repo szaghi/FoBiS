@@ -5,7 +5,7 @@ When a program depends on one or more separately-managed library projects, FoBiS
 ## The `-dependon` option
 
 ```bash
-FoBiS.py build -t program.f90 \
+fobis build -t program.f90 \
   -dependon ./libs/foo/fobos:static ./libs/bar/fobos:static \
   -o myprogram
 ```
@@ -99,7 +99,7 @@ output   = myprogram
 dependon = ./libs/lib_a/fobos:gnu ./libs/lib_b/fobos:gnu
 ```
 
-Running `FoBiS.py build -mode gnu` from `project/` builds `lib_a`, then `lib_b`, then links `myprogram` against both.
+Running `fobis build -mode gnu` from `project/` builds `lib_a`, then `lib_b`, then links `myprogram` against both.
 
 ## Relationship with `fetch`
 

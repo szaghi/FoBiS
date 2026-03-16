@@ -3,7 +3,7 @@
 Execute user-defined rules from a fobos file, or run one of the built-in intrinsic rules.
 
 ```bash
-FoBiS.py rule [options]
+fobis rule [options]
 ```
 
 ## Rule options
@@ -50,36 +50,36 @@ FoBiS.py rule [options]
 
 ```bash
 # List all rules in the fobos file
-FoBiS.py rule --ls
+fobis rule --ls
 
 # Execute a rule named "makedoc"
-FoBiS.py rule --ex makedoc
+fobis rule --ex makedoc
 
 # Execute a rule in a specific fobos mode
-FoBiS.py rule -f project.fobos --mode release --ex package
+fobis rule -f project.fobos --mode release --ex package
 ```
 
 ### Intrinsic rules
 
 ```bash
 # Print the build_dir value for a given mode
-FoBiS.py rule --mode release --get build_dir
+fobis rule --mode release --get build_dir
 
 # Print the full output path (executable or library)
-FoBiS.py rule --mode release --get-output-name
+fobis rule --mode release --get-output-name
 
 # Build FORD documentation
-FoBiS.py rule --ford doc/ford-project.md
+fobis rule --ford doc/ford-project.md
 
 # Analyse coverage files and write a summary
-FoBiS.py rule --gcov-analyzer reports/ coverage-summary
+fobis rule --gcov-analyzer reports/ coverage-summary
 ```
 
 ### Shell script integration
 
 ```bash
 # Locate built artefacts in a script
-EXE=$(FoBiS.py rule --mode release --get-output-name)
+EXE=$(fobis rule --mode release --get-output-name)
 strip "$EXE"
 ```
 

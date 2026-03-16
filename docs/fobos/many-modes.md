@@ -32,8 +32,8 @@ build_dir = ./build/debug-intel/
 ## Selecting a mode
 
 ```bash
-FoBiS.py build -mode release-gnu
-FoBiS.py clean -mode release-gnu
+fobis build -mode release-gnu
+fobis clean -mode release-gnu
 ```
 
 If `-mode` is omitted, the **first mode listed** in `[modes]` is used.
@@ -41,7 +41,7 @@ If `-mode` is omitted, the **first mode listed** in `[modes]` is used.
 ## Listing modes
 
 ```bash
-FoBiS.py build -lmodes
+fobis build -lmodes
 ```
 
 Output:
@@ -56,7 +56,7 @@ The fobos file defines the following modes:
 ## Invalid mode error
 
 ```bash
-FoBiS.py build -mode unknown-mode
+fobis build -mode unknown-mode
 ```
 
 ```

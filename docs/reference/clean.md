@@ -3,7 +3,7 @@
 Remove compiled objects, module files, and built targets from a previous build.
 
 ```bash
-FoBiS.py clean [options]
+fobis clean [options]
 ```
 
 ## Scope options
@@ -89,19 +89,19 @@ FoBiS.py clean [options]
 
 ```bash
 # Clean everything (objects + targets)
-FoBiS.py clean
+fobis clean
 
 # Clean only compiled objects, keep the executable
-FoBiS.py clean --only-obj
+fobis clean --only-obj
 
 # Clean only the built executable, keep objects
-FoBiS.py clean --only-target
+fobis clean --only-target
 
 # Clean using settings from a fobos mode
-FoBiS.py clean -f project.fobos --mode release
+fobis clean -f project.fobos --mode release
 
 # Clean a specific build directory
-FoBiS.py clean --build-dir ./build/ --obj-dir ./build/obj/ --mod-dir ./build/mod/
+fobis clean --build-dir ./build/ --obj-dir ./build/obj/ --mod-dir ./build/mod/
 ```
 
 ::: tip fobos integration

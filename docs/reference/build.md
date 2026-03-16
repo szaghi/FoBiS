@@ -3,7 +3,7 @@
 Build all programs found in the source tree, or a specific target.
 
 ```bash
-FoBiS.py build [options]
+fobis build [options]
 ```
 
 ## Compiler options
@@ -96,37 +96,37 @@ FoBiS.py build [options]
 
 ```bash
 # Build all programs with defaults
-FoBiS.py build
+fobis build
 
 # Build with GNU gfortran, parallel, debug flags
-FoBiS.py build --compiler gnu --cflags " -c -O0 -g" -j 4
+fobis build --compiler gnu --cflags " -c -O0 -g" -j 4
 
 # Build a specific target
-FoBiS.py build -t src/solver.f90 -o solver
+fobis build -t src/solver.f90 -o solver
 
 # Build a static library
-FoBiS.py build -t src/mylib.f90 --mklib static -o libmylib.a
+fobis build -t src/mylib.f90 --mklib static -o libmylib.a
 
 # Build a static library with LLVM tools
-FoBiS.py build -t src/mylib.f90 --mklib static --ar llvm-ar --ranlib llvm-ranlib
+fobis build -t src/mylib.f90 --mklib static --ar llvm-ar --ranlib llvm-ranlib
 
 # Build a static library skipping ranlib (llvm-ar updates the symbol table itself)
-FoBiS.py build -t src/mylib.f90 --mklib static --ar llvm-ar --ranlib ""
+fobis build -t src/mylib.f90 --mklib static --ar llvm-ar --ranlib ""
 
 # Use a fobos file and a specific mode
-FoBiS.py build -f project.fobos --mode release
+fobis build -f project.fobos --mode release
 
 # Force full recompile
-FoBiS.py build --force-compile
+fobis build --force-compile
 
 # Multiple source directories
-FoBiS.py build --src ./src --src ./vendor/mylib/src
+fobis build --src ./src --src ./vendor/mylib/src
 ```
 
 ::: tip Legacy single-dash options
 All single-dash multi-character options from older versions (`-compiler`, `-mode`, `-force_compile`, etc.) are still accepted and normalised automatically. Both forms are equivalent:
 ```bash
-FoBiS.py build -compiler intel -mode release   # legacy style
-FoBiS.py build --compiler intel --mode release  # current style
+fobis build -compiler intel -mode release   # legacy style
+fobis build --compiler intel --mode release  # current style
 ```
 :::

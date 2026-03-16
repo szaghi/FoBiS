@@ -20,7 +20,7 @@ Writing a correct `Makefile` for this requires knowing the full compilation orde
 **FoBiS.py parses sources on every invocation, builds the complete dependency graph, and compiles in the correct order automatically:**
 
 ```bash
-FoBiS.py build
+fobis build
 ```
 
 That single command:
@@ -39,7 +39,7 @@ That single command:
 - **Parallel compilation** — independent translation units compiled concurrently with `-j N`
 - **fobos configuration file** — INI-style makefile replacement with modes, templates, variables, and custom rules
 - **Advanced auto-rebuild triggers** — recompile when flags change (`cflags_heritage`), when libraries change (volatile libs), or when upstream projects change (`dependon`)
-- **GitHub dependency fetching** — `FoBiS.py fetch` clones and builds external FoBiS projects declared in the fobos `[dependencies]` section
+- **GitHub dependency fetching** — `fobis fetch` clones and builds external FoBiS projects declared in the fobos `[dependencies]` section
 - **Doctests** — introspective micro unit tests embedded in Fortran doc comments, Python-doctest style
 - **GNU Makefile export** — generate a standard `Makefile` from the resolved dependency graph
 
@@ -65,7 +65,7 @@ dependency_hiearchy()  ← resolves module/include graph, orders compilation
 
 FoBiS.py follows the KISS principle throughout:
 
-- **Configuration-file-free by default** — `FoBiS.py build` works without any configuration for most projects
+- **Configuration-file-free by default** — `fobis build` works without any configuration for most projects
 - **INI-style fobos** — when configuration is needed, the fobos file uses a simple, human-readable format with no special syntax
 - **Same options everywhere** — fobos option names are identical to their CLI switch names; there is no separate concept to learn
 - **Composable** — fobos modes, templates, variables, and rules compose cleanly without hidden interactions

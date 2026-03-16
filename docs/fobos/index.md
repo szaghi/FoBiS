@@ -48,16 +48,16 @@ build_dir = ./build/release/
 | Scenario | Command |
 |---|---|
 | Default name and location | Loaded automatically |
-| Custom name or path | `FoBiS.py build -f /path/to/my_fobos` |
-| Select a specific mode | `FoBiS.py build -mode release` |
-| List available modes | `FoBiS.py build -lmodes` |
+| Custom name or path | `fobis build -f /path/to/my_fobos` |
+| Select a specific mode | `fobis build -mode release` |
+| List available modes | `fobis build -lmodes` |
 
 ## Case sensitivity
 
 By default fobos option names are case-sensitive. To make them case-insensitive:
 
 ```bash
-FoBiS.py build -fci
+fobis build -fci
 ```
 
 Or in the fobos file itself, this is implicit for the option names (values remain as written).

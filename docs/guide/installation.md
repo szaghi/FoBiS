@@ -24,20 +24,24 @@ pipx install FoBiS.py
 Verify the installation:
 
 ```bash
-FoBiS.py -v
-FoBiS.py --help
+fobis -v
+fobis --help
 ```
 
 Enable shell tab completion (bash / zsh / fish / PowerShell):
 
 ```bash
-FoBiS.py --install-completion bash   # or zsh / fish / powershell
+fobis --install-completion bash   # or zsh / fish / powershell
 ```
 
 See [Shell Completion](/guide/shell-completion) for the full setup guide.
 
 ::: tip Windows
 On Windows the entry point is created as `FoBiS.py.exe` in the Python `Scripts` directory. Use PowerShell (the default shell) rather than Git Bash, or invoke via `fobis` (the lower-case console entry point that resolves correctly in all shells).
+:::
+
+::: tip Legacy command name
+The `FoBiS.py` command is preserved as a backward-compatible alias. Both `fobis` and `FoBiS.py` invoke the same tool — existing scripts using `FoBiS.py` continue to work without changes.
 :::
 
 ## From source
@@ -61,7 +65,7 @@ FoBiS.py can be invoked from Python code without the CLI:
 ```python
 from fobis.fobis import run_fobis
 
-# Equivalent to: FoBiS.py build --mode release
+# Equivalent to: fobis build --mode release
 run_fobis(fake_args=['build', '--mode', 'release'])
 ```
 

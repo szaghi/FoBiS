@@ -5,7 +5,7 @@ FoBiS.py can compile independent source files concurrently, giving a significant
 ## The `-j` flag
 
 ```bash
-FoBiS.py build -j 4
+fobis build -j 4
 ```
 
 The `-j N` (or `--jobs N`) flag enables a pool of `N` concurrent compile jobs. Files that have no dependency on each other are compiled simultaneously; files that depend on others are compiled after their dependencies are ready.
@@ -14,10 +14,10 @@ The pool size should roughly match the number of physical CPU cores available:
 
 ```bash
 # 8-core machine
-FoBiS.py build -j 8
+fobis build -j 8
 
 # Use all available cores (Linux/macOS)
-FoBiS.py build -j $(nproc)
+fobis build -j $(nproc)
 ```
 
 ## fobos option
@@ -41,10 +41,10 @@ The pool is not dynamically balanced based on file count — it simply submits a
 
 ```bash
 # Debug build, single job (default)
-FoBiS.py build -compiler gnu -cflags "-c -O0 -g"
+fobis build -compiler gnu -cflags "-c -O0 -g"
 
 # Release build, parallel
-FoBiS.py build -compiler gnu -cflags "-c -O3" -j 8
+fobis build -compiler gnu -cflags "-c -O3" -j 8
 ```
 
 With a fobos file:
@@ -65,6 +65,6 @@ jobs     = 8
 ```
 
 ```bash
-FoBiS.py build -mode debug
-FoBiS.py build -mode release
+fobis build -mode debug
+fobis build -mode release
 ```

@@ -7,7 +7,7 @@ FoBiS.py integrates seamlessly with [PreForM.py](https://github.com/szaghi/PreFo
 Activate preprocessing with `-preprocessor` (or the legacy `-pfm`/`--preform` alias):
 
 ```bash
-FoBiS.py build -preprocessor
+fobis build -preprocessor
 ```
 
 By default, `PreForM.py` is invoked as the preprocessor. Each source file is passed through PreForM.py before compilation. The intermediate preprocessed files are deleted immediately after compilation.
@@ -15,7 +15,7 @@ By default, `PreForM.py` is invoked as the preprocessor. Each source file is pas
 To use a different preprocessor, specify its command:
 
 ```bash
-FoBiS.py build -preprocessor my_preprocessor
+fobis build -preprocessor my_preprocessor
 ```
 
 ## Keeping preprocessed files
@@ -23,7 +23,7 @@ FoBiS.py build -preprocessor my_preprocessor
 To retain the preprocessed sources (useful for debugging or distribution), specify an output directory with `-dpp`/`--preprocessor_dir`:
 
 ```bash
-FoBiS.py build -preprocessor -dpp ./preprocessed/
+fobis build -preprocessor -dpp ./preprocessed/
 ```
 
 The directory is relative to the build path, similar to `obj/` and `mod/`.
@@ -33,7 +33,7 @@ The directory is relative to the build path, similar to `obj/` and `mod/`.
 To preprocess only files with certain extensions (rather than all sources), use `-epp`/`--preprocessor_ext`:
 
 ```bash
-FoBiS.py build -preprocessor -dpp ./preprocessed/ -epp .F90 .F95 .F03
+fobis build -preprocessor -dpp ./preprocessed/ -epp .F90 .F95 .F03
 ```
 
 Only files ending in `.F90`, `.F95`, or `.F03` are passed through PreForM.py; all other files are compiled directly.
@@ -43,19 +43,19 @@ Only files ending in `.F90`, `.F95`, or `.F03` are passed through PreForM.py; al
 Pass extra flags to the preprocessor command with `-app`/`--preprocessor_args`:
 
 ```bash
-FoBiS.py build -preprocessor -app "-DDEBUG=1"
+fobis build -preprocessor -app "-DDEBUG=1"
 ```
 
 Compiler-level preprocessor flags (e.g. `-DFEATURE`) go to `-p`/`--preproc`:
 
 ```bash
-FoBiS.py build -preprocessor -p "-DUSE_MPI"
+fobis build -preprocessor -p "-DUSE_MPI"
 ```
 
 To suppress the `-o` output flag in the preprocessor invocation:
 
 ```bash
-FoBiS.py build -preprocessor -npp
+fobis build -preprocessor -npp
 ```
 
 ## fobos options
@@ -98,7 +98,7 @@ src/
 ```
 
 ```bash
-FoBiS.py build \
+fobis build \
   -preprocessor \
   -dpp ./preprocessed/ \
   -epp .pfm \
@@ -107,3 +107,4 @@ FoBiS.py build \
 ```
 
 FoBiS.py expands `vector.pfm` and `matrix.pfm` through PreForM.py, saves the results in `./preprocessed/`, then compiles everything together.
+

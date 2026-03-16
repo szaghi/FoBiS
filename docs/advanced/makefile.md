@@ -7,7 +7,7 @@ FoBiS.py can export a valid GNU Makefile instead of building the project. This i
 Use the `-m`/`--makefile` flag with the `build` command:
 
 ```bash
-FoBiS.py build -m makefile
+fobis build -m makefile
 ```
 
 The project is **not** actually compiled — only the Makefile is written. All the usual build options apply and are encoded into the generated Makefile.
@@ -17,7 +17,7 @@ The project is **not** actually compiled — only the Makefile is written. All t
 Combine `-m` with a fobos file to translate from fobos syntax to GNU Make syntax:
 
 ```bash
-FoBiS.py build -m makefile -f project.fobos -mode release
+fobis build -m makefile -f project.fobos -mode release
 ```
 
 This is a convenient workflow for distributing a project: maintain the build configuration in a concise fobos file and generate the Makefile on demand.
@@ -36,20 +36,20 @@ Add a rule to your fobos file to generate the Makefile in one command:
 ```ini
 [rule-genmakefile]
 help = Generate a GNU Makefile from fobos settings
-rule = FoBiS.py build -m makefile
+rule = fobis build -m makefile
 ```
 
 Then:
 
 ```bash
-FoBiS.py rule -ex genmakefile
+fobis rule -ex genmakefile
 ```
 
 ## Example
 
 ```bash
 # Inspect build settings in fobos, generate a Makefile
-FoBiS.py build -m Makefile -f project.fobos -mode release
+fobis build -m Makefile -f project.fobos -mode release
 
 # Hand the Makefile to a user without FoBiS.py
 make

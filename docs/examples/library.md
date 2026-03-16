@@ -34,7 +34,7 @@ end module mylib
 ## Static library
 
 ```bash
-FoBiS.py build -t src/mylib.f90 -mklib static -o libmylib.a
+fobis build -t src/mylib.f90 -mklib static -o libmylib.a
 ```
 
 Result: `libmylib.a` in the build directory, plus `*.mod` files in `mod/`.
@@ -42,7 +42,7 @@ Result: `libmylib.a` in the build directory, plus `*.mod` files in `mod/`.
 ## Shared library
 
 ```bash
-FoBiS.py build -t src/mylib.f90 -mklib shared -o libmylib.so \
+fobis build -t src/mylib.f90 -mklib shared -o libmylib.so \
   -cflags " -c -fPIC" -lflags " -shared"
 ```
 
@@ -53,13 +53,13 @@ Result: `libmylib.so` in the build directory.
 Once built, the library can be linked into another project. With `-libs` (full path):
 
 ```bash
-FoBiS.py build -libs /path/to/libmylib.a -i /path/to/mod/
+fobis build -libs /path/to/libmylib.a -i /path/to/mod/
 ```
 
 Or with `-ext_libs` (by name):
 
 ```bash
-FoBiS.py build -ext_libs mylib -dlib /path/to/ -i /path/to/mod/
+fobis build -ext_libs mylib -dlib /path/to/ -i /path/to/mod/
 ```
 
 ## fobos examples
@@ -95,8 +95,8 @@ output    = libmylib.so
 ```
 
 ```bash
-FoBiS.py build -mode static
-FoBiS.py build -mode shared
+fobis build -mode static
+fobis build -mode shared
 ```
 
 ### Consumer project fobos
@@ -118,14 +118,14 @@ output    = myapp
 If the library is rebuilt externally (e.g. by CI), use `-vlibs` so that your project recompiles when the library changes:
 
 ```bash
-FoBiS.py build -vlibs /shared/build/libmylib.a -i /shared/build/mod/
+fobis build -vlibs /shared/build/libmylib.a -i /shared/build/mod/
 ```
 
 See [Volatile Libraries](/advanced/volatile-libs) for details.
 
 ## Interdependent build
 
-For a more automated approach — where `FoBiS.py build` on the consumer project also rebuilds the library if its sources have changed — use `-dependon`:
+For a more automated approach — where `fobis build` on the consumer project also rebuilds the library if its sources have changed — use `-dependon`:
 
 ```ini
 [default]
