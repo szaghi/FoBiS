@@ -26,6 +26,7 @@ export default defineConfig({
           { text: 'Quick Start',       link: '/guide/quickstart' },
           { text: 'Shell Completion',  link: '/guide/shell-completion' },
           { text: 'Compilers',         link: '/guide/compilers' },
+          { text: 'Claude Skill',      link: '/guide/claude-skill' },
           { text: 'Changelog',         link: '/guide/changelog' },
           { text: 'Contributing',      link: '/guide/contributing' },
         ],
@@ -52,6 +53,12 @@ export default defineConfig({
           text: 'Compilers',
           items: [
             { text: 'Supported Compilers', link: '/guide/compilers' },
+          ],
+        },
+        {
+          text: 'Tooling',
+          items: [
+            { text: 'Claude Code Skill', link: '/guide/claude-skill' },
           ],
         },
         {
