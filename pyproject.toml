@@ -33,7 +33,7 @@ dependencies = [
 PreForM = ["PreForM.py>=v1.1.1"]
 FORD    = ["FORD>=1.1.0"]
 graphviz = ["graphviz>=0.4.2"]
-dev = ["build", "twine", "ruff"]
+dev = ["build", "twine", "ruff", "pytest", "pytest-cov"]
 
 [project.scripts]
 fobis    = "fobis.fobis:main"
@@ -73,6 +73,14 @@ ignore = [
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v"
+
+[tool.coverage.run]
+source = ["fobis"]
+omit = ["tests/*"]
 
 [tool.setuptools.dynamic]
 version = { attr = "fobis.__version__" }

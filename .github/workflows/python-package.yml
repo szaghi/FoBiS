@@ -18,9 +18,23 @@ jobs:
     - name: Install ruff
       run: pip install ruff
     - name: Lint
-      run: ruff check fobis/ tests/suite_tests.py
+      run: ruff check fobis/ tests/
     - name: Format check
-      run: ruff format --check fobis/ tests/suite_tests.py
+      run: ruff format --check fobis/ tests/
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4.2.2
+    - uses: actions/setup-python@v5.6.0
+      with:
+        python-version: "3.12"
+    - name: Install gfortran
+      run: sudo apt-get install -y gfortran
+    - name: Install package + test deps
+      run: pip install -e ".[dev]"
+    - name: Run pytest
+      run: pytest
 
   build:
     runs-on: ${{ matrix.os }}

@@ -23,10 +23,16 @@ python -m build
 ### Testing
 ```bash
 # Run the full test suite
-python tests/suite_tests.py
+pytest
 
-# Run a single test class
-python -m unittest tests.suite_tests.SuiteTest.test_buildings
+# Run a single test file
+pytest tests/test_build.py
+
+# Run a specific parametrized case
+pytest tests/test_build.py::test_build[1]
+
+# Run with coverage
+pytest --cov=fobis --cov-report=term-missing
 
 # Tests require gfortran to be available in PATH
 ```
@@ -34,16 +40,16 @@ python -m unittest tests.suite_tests.SuiteTest.test_buildings
 ### Linting
 ```bash
 # Check for lint issues
-ruff check fobis/ tests/suite_tests.py
+ruff check fobis/ tests/
 
 # Check formatting
-ruff format --check fobis/ tests/suite_tests.py
+ruff format --check fobis/ tests/
 
 # Auto-fix lint issues
-ruff check --fix fobis/ tests/suite_tests.py
+ruff check --fix fobis/ tests/
 
 # Apply formatting
-ruff format fobis/ tests/suite_tests.py
+ruff format fobis/ tests/
 ```
 
 ## Architecture
@@ -165,12 +171,29 @@ fobis install szaghi/FLAP --update              # re-pull before building
 
 ## Test Structure
 
-Tests are in `tests/` with subdirectories for each test type:
+Tests use **pytest** and live in `tests/`:
+
+| File | Description |
+|------|-------------|
+| `tests/helpers.py` | Shared helpers: `run_build`, `run_clean`, `make_makefile`, `run_install`, `run_doctest`, `run_rule`, `TESTS_DIR`, `OPENCOARRAYS` |
+| `tests/conftest.py` | pytest configuration/fixtures |
+| `tests/test_build.py` | 32 parametrized build scenarios |
+| `tests/test_clean.py` | 1 clean scenario |
+| `tests/test_makefile.py` | 2 Makefile generation scenarios |
+| `tests/test_install.py` | 4 install scenarios |
+| `tests/test_doctest.py` | 3 doctest scenarios |
+| `tests/test_rules.py` | 1 custom rule scenario |
+| `tests/test_template.py` | Circular template detection |
+| `tests/test_fetch.py` | Fetcher unit tests + 4 integration scenarios |
+
+Fixture directories in `tests/`:
 - `build-test{1-32}/`: Build scenarios with fobos files
 - `clean-test1/`: Clean functionality
 - `makefile-test{1-2}/`: Makefile generation
 - `install-test{1-4}/`: Install functionality
 - `doctest-test{1-3}/`: Doctest functionality
 - `rule-test1/`: Custom rule execution
+- `fetch-dep-test{1-4}/`: Fetch dependency integration
+- `template-circular-test1/`: Circular template detection
 
-Each test directory contains a `fobos` file and Fortran sources.
+Each fixture directory contains a `fobos` file and Fortran sources.
