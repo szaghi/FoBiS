@@ -63,6 +63,15 @@ esac
 [[ -f "$FOBIS_INIT" ]]          || die "$FOBIS_INIT not found — run from the repo root"
 command -v git-cliff >/dev/null || die "'git-cliff' not found (install: pipx install git-cliff)"
 
+# Resolve the build command: prefer 'python -m build', fall back to 'pyproject-build' (pipx)
+if python -m build --version >/dev/null 2>&1; then
+  BUILD_CMD="python -m build"
+elif command -v pyproject-build >/dev/null 2>&1; then
+  BUILD_CMD="pyproject-build"
+else
+  die "'build' not found — install it: pipx install build  OR  pip install build"
+fi
+
 CURRENT_BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || true)
 [[ "$CURRENT_BRANCH" == "develop" ]] \
   || die "must be on 'develop' branch (currently on '$CURRENT_BRANCH')"
@@ -107,8 +116,8 @@ git add "$FOBIS_INIT" CHANGELOG.md
 git commit -m "chore(release): bump version to v${NEW_VER}"
 
 # ── build distribution ────────────────────────────────────────────────────────
-info "Building distribution with python -m build"
-python -m build
+info "Building distribution with $BUILD_CMD"
+$BUILD_CMD
 
 # ── merge to master, tag, push ────────────────────────────────────────────────
 info "Merging to master and tagging v${NEW_VER}"
