@@ -18,3 +18,11 @@ venv/
 # VitePress
 docs/.vitepress/dist/
 docs/.vitepress/cache/
+docs/node_modules/
+
+# Coverage
+.coverage
+*.coverage
+
+# Generated test artefacts
+tests/**/makefile_check
