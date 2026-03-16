@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.7.3] — 2026-03-16
+### Added
+- **skill**: Add /fobis Claude Code skill for expert FoBiS.py assistance
+
+
 ## [3.7.2] — 2026-03-16
 ### Added
 - **cli**: Add --json structured output flag to build, clean, and fetch
