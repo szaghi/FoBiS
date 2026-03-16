@@ -2,7 +2,7 @@ name: Deploy docs to GitHub Pages
 
 on:
   push:
-    branches: [master]
+    branches: [master, develop]
     paths:
       - 'docs/**'
       - '.github/workflows/docs.yml'
