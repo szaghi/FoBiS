@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.6.10] — 2026-03-16
+### Fixed
+- Replace X | None union syntax with Optional for Python 3.9 compat
+
+
 ## [3.6.9] — 2026-03-16
 ### Changed
 - Remove Python 2 dead code, add type hints, and enable coverage

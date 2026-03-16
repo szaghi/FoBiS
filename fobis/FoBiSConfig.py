@@ -24,7 +24,7 @@ import hashlib
 import os
 import re
 import sys
-from typing import Any
+from typing import Any, Optional
 
 from typer.testing import CliRunner as _CliRunner
 
@@ -49,7 +49,7 @@ class FoBiSConfig:
     FoBiS configuration class handling.
     """
 
-    def __init__(self, fake_args: list[str] | None = None) -> None:
+    def __init__(self, fake_args: Optional[list[str]] = None) -> None:
         """
         Attributes
         ----------

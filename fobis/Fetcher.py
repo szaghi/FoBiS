@@ -25,7 +25,7 @@ import configparser
 import os
 import shutil
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Optional
 
 from .utils import print_fake, syswork
 
@@ -40,8 +40,8 @@ class Fetcher:
     def __init__(
         self,
         deps_dir: str,
-        print_n: Callable[..., None] | None = None,
-        print_w: Callable[..., None] | None = None,
+        print_n: Optional[Callable[..., None]] = None,
+        print_w: Optional[Callable[..., None]] = None,
     ) -> None:
         """
         Parameters
@@ -85,9 +85,9 @@ class Fetcher:
         self,
         name: str,
         url: str,
-        branch: str | None = None,
-        tag: str | None = None,
-        rev: str | None = None,
+        branch: Optional[str] = None,
+        tag: Optional[str] = None,
+        rev: Optional[str] = None,
         update: bool = False,
     ) -> str:
         """
@@ -141,7 +141,7 @@ class Fetcher:
                 self.print_w("Error merging updates for " + name + ":\n" + result[1])
         return dep_dir
 
-    def build_dep(self, name: str, dep_dir: str, mode: str | None = None) -> None:
+    def build_dep(self, name: str, dep_dir: str, mode: Optional[str] = None) -> None:
         """
         Build a dependency using FoBiS.py build.
 
@@ -226,10 +226,10 @@ class Fetcher:
     def install_from_github(
         self,
         repo: str,
-        branch: str | None = None,
-        tag: str | None = None,
-        rev: str | None = None,
-        mode: str | None = None,
+        branch: Optional[str] = None,
+        tag: Optional[str] = None,
+        rev: Optional[str] = None,
+        mode: Optional[str] = None,
         update: bool = False,
         no_build: bool = False,
         prefix: str = "./",
@@ -276,7 +276,7 @@ class Fetcher:
         self._build_dep_tracked(name, dep_dir, mode=mode)
         self._install_artifacts(dep_dir, prefix, bin_dir, lib_dir, include_dir)
 
-    def _build_dep_tracked(self, name: str, dep_dir: str, mode: str | None = None) -> None:
+    def _build_dep_tracked(self, name: str, dep_dir: str, mode: Optional[str] = None) -> None:
         """
         Build a dependency using 'fobis build --track_build'.
 

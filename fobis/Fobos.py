@@ -31,7 +31,7 @@ import re
 import sys
 from collections.abc import Callable
 from copy import deepcopy
-from typing import Any
+from typing import Any, Optional
 
 from .utils import check_results, print_fake, syswork
 
@@ -44,8 +44,8 @@ class Fobos:
     def __init__(
         self,
         cliargs: Any,
-        print_n: Callable[..., None] | None = None,
-        print_w: Callable[..., None] | None = None,
+        print_n: Optional[Callable[..., None]] = None,
+        print_w: Optional[Callable[..., None]] = None,
     ) -> None:
         """
         Parameters
@@ -277,7 +277,7 @@ class Fobos:
             self._check_cliargs_cflags(cliargs=cliargs, cliargs_dict=cliargs_dict)
         return
 
-    def get(self, option: str, mode: str | None = None, toprint: bool = True) -> str | None:
+    def get(self, option: str, mode: Optional[str] = None, toprint: bool = True) -> Optional[str]:
         """
         Get options defined into the fobos file.
 
@@ -302,7 +302,7 @@ class Fobos:
         else:
             return value
 
-    def get_output_name(self, mode: str | None = None, toprint: bool = True) -> str | None:
+    def get_output_name(self, mode: Optional[str] = None, toprint: bool = True) -> Optional[str]:
         """
         Method for building the output name accordingly to the fobos options.
 
