@@ -96,7 +96,8 @@ app = typer.Typer(
 def _version_callback(value: bool):
     if value:
         # lazy import avoids circular dependency
-        from .FoBiSConfig import __appname__, __version__
+        from . import __version__
+        from .FoBiSConfig import __appname__
 
         typer.echo(f"{__appname__} {__version__}")
         raise typer.Exit()
