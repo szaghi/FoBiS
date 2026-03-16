@@ -33,7 +33,7 @@ dependencies = [
 PreForM = ["PreForM.py>=v1.1.1"]
 FORD    = ["FORD>=1.1.0"]
 graphviz = ["graphviz>=0.4.2"]
-dev = ["build", "twine"]
+dev = ["build", "twine", "ruff"]
 
 [project.scripts]
 fobis    = "fobis.fobis:main"
@@ -41,6 +41,38 @@ fobis    = "fobis.fobis:main"
 
 [project.urls]
 Homepage = "https://github.com/szaghi/FoBiS"
+
+[tool.ruff]
+target-version = "py39"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "N", "UP", "B", "SIM", "RUF"]
+ignore = [
+  "E501",   # line too long — existing codebase has long lines
+  "N999",   # invalid-module-name — PascalCase filenames are a project convention
+  "SIM102", # collapsible-if — style preference
+  "SIM108", # ternary operator — style preference
+  "SIM115", # open-file-with-context-handler — separate cleanup
+  "UP006",  # non-pep585-annotation — separate type-hint cleanup
+  "UP031",  # printf-string-formatting — separate cleanup
+  "UP035",  # deprecated-import — separate cleanup
+  "UP036",  # outdated-version-block — sys.version_info checks
+  "B006",   # mutable-argument-default — needs review
+  "B020",   # loop-variable-overrides-iterator — needs review
+  "E741",   # ambiguous-variable-name — existing code convention
+  "N802",   # invalid-function-name — existing code
+  "RUF012", # mutable-class-default — needs review
+  "RUF046", # unnecessary-cast-to-int — needs review
+  "SIM201", # negate-equal-op — style preference
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["N"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
 
 [tool.setuptools.dynamic]
 version = { attr = "fobis.__version__" }

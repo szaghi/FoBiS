@@ -33,11 +33,17 @@ python -m unittest tests.suite_tests.SuiteTest.test_buildings
 
 ### Linting
 ```bash
-# flake8
-flake8 fobis/
+# Check for lint issues
+ruff check fobis/ tests/suite_tests.py
 
-# pylint
-pylint fobis/
+# Check formatting
+ruff format --check fobis/ tests/suite_tests.py
+
+# Auto-fix lint issues
+ruff check --fix fobis/ tests/suite_tests.py
+
+# Apply formatting
+ruff format fobis/ tests/suite_tests.py
 ```
 
 ## Architecture

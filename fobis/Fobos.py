@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # File: /home/stefano/python/FoBiS/src/main/python/fobis/Fobos.py
 # Author: Stefano Zaghi <stefano.zaghi@gmail.com>
 # Date: 28.08.2017
@@ -9,6 +8,7 @@
 fobos.py, module definition of fobos class.
 This is a class aimed at fobos file handling.
 """
+
 # Copyright (C) 2015  Stefano Zaghi
 #
 # This file is part of FoBiS.py.
@@ -35,533 +35,535 @@ This is a class aimed at fobos file handling.
 # from builtins import *
 # from builtins import object
 try:
-  import configparser as configparser
+    import configparser as configparser
 except ImportError:
-  import configparser
-from copy import deepcopy
+    import configparser
 import os
 import re
 import sys
+from copy import deepcopy
+
 from .utils import check_results, print_fake, syswork
 
 
-class Fobos(object):
-  """
-  Fobos is an object that handles fobos file, its attributes and methods.
-  """
-  def __init__(self, cliargs, print_n=None, print_w=None):
+class Fobos:
     """
-    Parameters
-    ----------
-    cliargs : argparse object
-    print_n : {None}
-      function for printing normal message
-    print_w : {None}
-      function for printing emphized warning message
+    Fobos is an object that handles fobos file, its attributes and methods.
     """
-    if print_n is None:
-      self.print_n = print_fake
-    else:
-      self.print_n = print_n
 
-    if print_w is None:
-      self.print_w = print_fake
-    else:
-      self.print_w = print_w
-
-    self.fobos = None
-    self.mode = None
-    self.local_variables = {}
-    if cliargs.fobos:
-      filename = cliargs.fobos
-    else:
-      filename = 'fobos'
-    if os.path.exists(filename):
-      self.fobos = configparser.RawConfigParser()
-      if not cliargs.fobos_case_insensitive:
-        self.fobos.optionxform = str  # case sensitive
-      self.fobos.read(filename)
-      self._set_cliargs(cliargs=cliargs)
-    return
-
-  def _check_mode(self, mode):
-    """
-    Function for checking the presence of the selected mode into the set defined inside the fobos.
-
-    Parameters
-    ----------
-    mode : str
-      name of the selcted mode
-    """
-    if self.fobos:
-      if self.fobos.has_option('modes', 'modes'):
-        if mode in self.fobos.get('modes', 'modes'):
-          self.mode = mode
+    def __init__(self, cliargs, print_n=None, print_w=None):
+        """
+        Parameters
+        ----------
+        cliargs : argparse object
+        print_n : {None}
+          function for printing normal message
+        print_w : {None}
+          function for printing emphized warning message
+        """
+        if print_n is None:
+            self.print_n = print_fake
         else:
-          self.print_w('Error: the mode "' + mode + '" is not defined into the fobos file.')
-          self.modes_list()
-          sys.exit(1)
-      else:
-        self.print_w('Error: fobos file has not "modes" section.')
-        sys.exit(1)
-    return
+            self.print_n = print_n
 
-  def _set_mode(self, mode=None):
-    """
-    Function for setting the selected mode.
-
-    Parameters
-    ----------
-    mode : {None}
-      selected mode
-    """
-    if self.fobos:
-      if mode:
-        self._check_mode(mode=mode)
-      else:
-        if self.fobos.has_option('modes', 'modes'):
-          self.mode = self.fobos.get('modes', 'modes').split()[0]  # first mode selected
+        if print_w is None:
+            self.print_w = print_fake
         else:
-          if self.fobos.has_section('default'):
-            self.mode = 'default'
-          else:
-            self.print_w('Warning: fobos file has not "modes" section neither "default" one')
-    return
+            self.print_w = print_w
 
-  def _check_template(self):
-    """
-    Check and apply template sections.
+        self.fobos = None
+        self.mode = None
+        self.local_variables = {}
+        if cliargs.fobos:
+            filename = cliargs.fobos
+        else:
+            filename = "fobos"
+        if os.path.exists(filename):
+            self.fobos = configparser.RawConfigParser()
+            if not cliargs.fobos_case_insensitive:
+                self.fobos.optionxform = str  # case sensitive
+            self.fobos.read(filename)
+            self._set_cliargs(cliargs=cliargs)
+        return
 
-    Each mode may specify one or more template names as a space-separated
-    list.  Templates are applied left-to-right: the mode itself always
-    wins, and earlier templates take precedence over later ones.
-    Template-of-template inheritance is expanded depth-first.
-    Circular references are detected and cause an error.
-    """
-    if not self.fobos:
-      return
+    def _check_mode(self, mode):
+        """
+        Function for checking the presence of the selected mode into the set defined inside the fobos.
 
-    def _template_names(section):
-      if self.fobos.has_option(section, 'template'):
-        return self.fobos.get(section, 'template').split()
-      return []
-
-    def _resolve(section, visiting):
-      """Return ordered list of template names to apply for section."""
-      if section in visiting:
-        self.print_w('Error: circular template reference detected involving "' + section + '"')
-        sys.exit(1)
-      visiting = visiting | {section}
-      resolved = []
-      for name in _template_names(section):
-        if not self.fobos.has_section(name):
-          self.print_w('Error: mode "' + section + '" uses template "' + name + '" that is NOT defined')
-          sys.exit(1)
-        if name not in resolved:
-          resolved.append(name)
-        for sub in _resolve(name, visiting):
-          if sub not in resolved:
-            resolved.append(sub)
-      return resolved
-
-    for section in self.fobos.sections():
-      if not self.fobos.has_option(section, 'template'):
-        continue
-      for template in _resolve(section, set()):
-        for item in self.fobos.items(template):
-          if item[0] == 'template':
-            continue
-          if not self.fobos.has_option(section, item[0]):
-            self.fobos.set(section, item[0], item[1])
-    return
-
-  def _get_local_variables(self):
-    """
-    Get the definition of local variables defined into any sections (modes).
-    """
-    if self.fobos:
-      for section in self.fobos.sections():
-        for item in self.fobos.items(section):
-          if item[0].startswith('$'):
-            self.local_variables[item[0]] = item[1].replace('\n', ' ')
-    return
-
-  def _substitute_local_variables_mode(self):
-    """
-    Substitute the definition of local variables defined into the mode (section) selected.
-    """
-    if self.fobos and self.mode:
-      self._substitute_local_variables_section(section=self.mode)
-    return
-
-  def _substitute_local_variables_section(self, section):
-    """
-    Substitute the definition of local variables defined into a section.
-    """
-    if self.fobos:
-      if self.fobos.has_section(section):
-        for item in self.fobos.items(section):
-          item_val = item[1]
-          for key, value in list(self.local_variables.items()):
-            item_val = re.sub(re.escape(key), value, item_val)
-            # item_val = re.sub(r"(?!" + re.escape(key) + r"[aZ_-])\s*" + re.escape(key) + r"\s*", value, item_val)
-          self.fobos.set(section, item[0], item_val)
-    return
-
-  def _check_local_variables(self):
-    """
-    Get and substitute the definition of local variables defined into any sections (modes).
-    """
-    if self.fobos:
-      self._get_local_variables()
-      if len(self.local_variables) > 0:
-        self._substitute_local_variables_mode()
-    return
-
-  def _set_cliargs_attributes(self, cliargs, cliargs_dict):
-    """
-    Set attributes of cliargs from fobos options.
-
-    Parameters
-    ----------
-    cliargs : argparse object
-    cliargs_dict : argparse object attributes dictionary
-    """
-    if self.mode:
-      for item in self.fobos.items(self.mode):
-        if item[0] in cliargs_dict:
-          if isinstance(cliargs_dict[item[0]], bool):
-            setattr(cliargs, item[0], self.fobos.getboolean(self.mode, item[0]))
-          elif isinstance(cliargs_dict[item[0]], int):
-            setattr(cliargs, item[0], int(item[1]))
-          elif isinstance(cliargs_dict[item[0]], list):
-            setattr(cliargs, item[0], item[1].split())
-          else:
-            setattr(cliargs, item[0], item[1])
-    return
-
-  @staticmethod
-  def _check_cliargs_cflags(cliargs, cliargs_dict):
-    """
-    Method for setting attribute of cliargs.
-
-    Parameters
-    ----------
-    cliargs : argparse object
-    cliargs_dict : argparse object attributes dictionary
-    """
-    for item in cliargs_dict:
-      if item in ['cflags', 'lflags', 'preproc']:
-        val_cli = cliargs_dict[item]
-        val_fobos = getattr(cliargs, item)
-        if item == 'cflags':
-          if val_cli == '-c':
-            match = re.search(r'(-c\s+|-c$)', val_fobos)
-            if match:
-              val_cli = ''  # avoid multiple -c flags
-        if val_fobos and val_cli:
-          setattr(cliargs, item, val_fobos + ' ' + val_cli)
-    return
-
-  def _set_cliargs(self, cliargs):
-    """
-    Set cliargs from fobos options.
-
-    Parameters
-    ----------
-    cliargs : argparse object
-    """
-    if self.fobos:
-      cliargs_dict = deepcopy(cliargs.__dict__)
-      self._set_mode(mode=cliargs.mode)
-      self._check_template()
-      self._check_local_variables()
-      self._set_cliargs_attributes(cliargs=cliargs, cliargs_dict=cliargs_dict)
-      self._check_cliargs_cflags(cliargs=cliargs, cliargs_dict=cliargs_dict)
-    return
-
-  def get(self, option, mode=None, toprint=True):
-    """
-    Get options defined into the fobos file.
-
-    Parameters
-    ----------
-    option : str
-      option name
-    mode : {None}
-      eventual mode name
-    toprint : {True}
-      return of the value: if toprint==False the value is return otherwise is printed to stdout
-    """
-    value = ''
-    if self.fobos:
-      self._set_mode(mode=mode)
-      if self.fobos.has_option(self.mode, option):
-        value = self.fobos.get(self.mode, option)
-    if toprint:
-      # self.print_w(value)
-      print(value)
-      return
-    else:
-      return value
-
-  def get_output_name(self, mode=None, toprint=True):
-    """
-    Method for building the output name accordingly to the fobos options.
-
-    Parameters
-    ----------
-    mode : {None}
-      eventual mode name
-    toprint : {True}
-      return of the value: if toprint==False the value is return otherwise is printed to stdout
-    """
-    output = ''
-    build_dir = self.get(option='build_dir', mode=mode, toprint=False)
-    mklib = self.get(option='mklib', mode=mode, toprint=False)
-    if self.fobos:
-      self._set_mode(mode=mode)
-      if self.fobos.has_option(self.mode, 'output'):
-        output = self.fobos.get(self.mode, 'output')
-        output = os.path.normpath(os.path.join(build_dir, output))
-      elif self.fobos.has_option(self.mode, 'target'):
-        output = self.fobos.get(self.mode, 'target')
-        output = os.path.splitext(os.path.basename(output))[0]
-        if mklib.lower() == 'shared':
-          output = output + '.so'
-        elif mklib.lower() == 'static':
-          output = output + '.a'
-        output = os.path.normpath(os.path.join(build_dir, output))
-    if toprint:
-      # self.print_w(output)
-      print(output)
-      return
-    else:
-      return output
-
-  def modes_list(self):
-    """List defined modes."""
-    if self.fobos:
-      self.print_n('The fobos file defines the following modes:')
-      if self.fobos.has_option('modes', 'modes'):
-        modes = self.fobos.get('modes', 'modes').split()
-        for mode in modes:
-          if self.fobos.has_section(mode):
-            if self.fobos.has_option(mode, 'help'):
-              helpmsg = self.fobos.get(mode, 'help')
+        Parameters
+        ----------
+        mode : str
+          name of the selcted mode
+        """
+        if self.fobos:
+            if self.fobos.has_option("modes", "modes"):
+                if mode in self.fobos.get("modes", "modes"):
+                    self.mode = mode
+                else:
+                    self.print_w('Error: the mode "' + mode + '" is not defined into the fobos file.')
+                    self.modes_list()
+                    sys.exit(1)
             else:
-              helpmsg = ''
-            self.print_n('  - "' + mode + '" ' + helpmsg)
-      else:
-        self.print_w('Error: no modes are defined into the fobos file!')
-        sys.exit(1)
-    sys.exit(0)
-    return
+                self.print_w('Error: fobos file has not "modes" section.')
+                sys.exit(1)
+        return
 
-  @staticmethod
-  def print_template(cliargs):
-    """
-    Print fobos template.
+    def _set_mode(self, mode=None):
+        """
+        Function for setting the selected mode.
 
-    Parameters
-    ----------
-    cliargs : argparse object
-    """
-    print("[default]")
-    for argument in vars(cliargs):
-      attribute = getattr(cliargs, argument)
-      if isinstance(attribute, list):
-        attribute = ' '.join(attribute)
-      print(str(argument) + " = " + str(attribute))
+        Parameters
+        ----------
+        mode : {None}
+          selected mode
+        """
+        if self.fobos:
+            if mode:
+                self._check_mode(mode=mode)
+            else:
+                if self.fobos.has_option("modes", "modes"):
+                    self.mode = self.fobos.get("modes", "modes").split()[0]  # first mode selected
+                else:
+                    if self.fobos.has_section("default"):
+                        self.mode = "default"
+                    else:
+                        self.print_w('Warning: fobos file has not "modes" section neither "default" one')
+        return
 
-  def get_project_info(self):
-    """
-    Parse [project] section and return project metadata.
+    def _check_template(self):
+        """
+        Check and apply template sections.
 
-    Returns
-    -------
-    dict
-      dict with keys 'name' (str), 'authors' (list of str),
-      'version' (str, raw value as written in fobos — not resolved),
-      'summary' (str), 'repository' (str), 'website' (str), and 'email' (str).
-      All values are empty/empty-list if the section or option is absent.
-    """
-    info = {'name': '', 'authors': [], 'version': '', 'summary': '', 'repository': '', 'website': '', 'email': ''}
-    if self.fobos and self.fobos.has_section('project'):
-      if self.fobos.has_option('project', 'name'):
-        info['name'] = self.fobos.get('project', 'name').strip()
-      if self.fobos.has_option('project', 'authors'):
-        raw = self.fobos.get('project', 'authors')
-        info['authors'] = [a.strip() for a in raw.splitlines() if a.strip()]
-      if self.fobos.has_option('project', 'version'):
-        info['version'] = self.fobos.get('project', 'version').strip()
-      if self.fobos.has_option('project', 'summary'):
-        info['summary'] = self.fobos.get('project', 'summary').strip()
-      if self.fobos.has_option('project', 'repository'):
-        info['repository'] = self.fobos.get('project', 'repository').strip()
-      if self.fobos.has_option('project', 'website'):
-        info['website'] = self.fobos.get('project', 'website').strip()
-      if self.fobos.has_option('project', 'email'):
-        info['email'] = self.fobos.get('project', 'email').strip()
-    return info
+        Each mode may specify one or more template names as a space-separated
+        list.  Templates are applied left-to-right: the mode itself always
+        wins, and earlier templates take precedence over later ones.
+        Template-of-template inheritance is expanded depth-first.
+        Circular references are detected and cause an error.
+        """
+        if not self.fobos:
+            return
 
-  def get_version(self):
-    """
-    Resolve the project version from [project] and/or git tags.
+        def _template_names(section):
+            if self.fobos.has_option(section, "template"):
+                return self.fobos.get(section, "template").split()
+            return []
 
-    Resolution steps
-    ----------------
-    1. Read 'version' from [project] in fobos.  If the value is a
-       file path (relative to the git repository root), the version
-       string is read from that file.
-    2. Query the most recent git tag via ``git describe --tags --abbrev=0``.
-    3. If both sources provide a version and they disagree, emit a
-       warning with a suggested fix.
-    4. Return the fobos version when available; fall back to the git
-       tag; return '' when neither source is determinable.
+        def _resolve(section, visiting):
+            """Return ordered list of template names to apply for section."""
+            if section in visiting:
+                self.print_w('Error: circular template reference detected involving "' + section + '"')
+                sys.exit(1)
+            visiting = visiting | {section}
+            resolved = []
+            for name in _template_names(section):
+                if not self.fobos.has_section(name):
+                    self.print_w('Error: mode "' + section + '" uses template "' + name + '" that is NOT defined')
+                    sys.exit(1)
+                if name not in resolved:
+                    resolved.append(name)
+                for sub in _resolve(name, visiting):
+                    if sub not in resolved:
+                        resolved.append(sub)
+            return resolved
 
-    Returns
-    -------
-    str
-      Resolved version string, or '' if not determinable.
-    """
-    fobos_version = ''
-    if self.fobos and self.fobos.has_section('project'):
-      if self.fobos.has_option('project', 'version'):
-        raw = self.fobos.get('project', 'version').strip()
-        # try to resolve as a file path relative to the git repo root
-        git_root_result = syswork('git rev-parse --show-toplevel')
-        if git_root_result[0] == 0:
-          candidate = os.path.join(git_root_result[1].strip(), raw)
-          if os.path.isfile(candidate):
-            with open(candidate) as ver_file:
-              fobos_version = ver_file.read().strip()
-          else:
-            fobos_version = raw
+        for section in self.fobos.sections():
+            if not self.fobos.has_option(section, "template"):
+                continue
+            for template in _resolve(section, set()):
+                for item in self.fobos.items(template):
+                    if item[0] == "template":
+                        continue
+                    if not self.fobos.has_option(section, item[0]):
+                        self.fobos.set(section, item[0], item[1])
+        return
+
+    def _get_local_variables(self):
+        """
+        Get the definition of local variables defined into any sections (modes).
+        """
+        if self.fobos:
+            for section in self.fobos.sections():
+                for item in self.fobos.items(section):
+                    if item[0].startswith("$"):
+                        self.local_variables[item[0]] = item[1].replace("\n", " ")
+        return
+
+    def _substitute_local_variables_mode(self):
+        """
+        Substitute the definition of local variables defined into the mode (section) selected.
+        """
+        if self.fobos and self.mode:
+            self._substitute_local_variables_section(section=self.mode)
+        return
+
+    def _substitute_local_variables_section(self, section):
+        """
+        Substitute the definition of local variables defined into a section.
+        """
+        if self.fobos:
+            if self.fobos.has_section(section):
+                for item in self.fobos.items(section):
+                    item_val = item[1]
+                    for key, value in list(self.local_variables.items()):
+                        item_val = re.sub(re.escape(key), value, item_val)
+                        # item_val = re.sub(r"(?!" + re.escape(key) + r"[aZ_-])\s*" + re.escape(key) + r"\s*", value, item_val)
+                    self.fobos.set(section, item[0], item_val)
+        return
+
+    def _check_local_variables(self):
+        """
+        Get and substitute the definition of local variables defined into any sections (modes).
+        """
+        if self.fobos:
+            self._get_local_variables()
+            if len(self.local_variables) > 0:
+                self._substitute_local_variables_mode()
+        return
+
+    def _set_cliargs_attributes(self, cliargs, cliargs_dict):
+        """
+        Set attributes of cliargs from fobos options.
+
+        Parameters
+        ----------
+        cliargs : argparse object
+        cliargs_dict : argparse object attributes dictionary
+        """
+        if self.mode:
+            for item in self.fobos.items(self.mode):
+                if item[0] in cliargs_dict:
+                    if isinstance(cliargs_dict[item[0]], bool):
+                        setattr(cliargs, item[0], self.fobos.getboolean(self.mode, item[0]))
+                    elif isinstance(cliargs_dict[item[0]], int):
+                        setattr(cliargs, item[0], int(item[1]))
+                    elif isinstance(cliargs_dict[item[0]], list):
+                        setattr(cliargs, item[0], item[1].split())
+                    else:
+                        setattr(cliargs, item[0], item[1])
+        return
+
+    @staticmethod
+    def _check_cliargs_cflags(cliargs, cliargs_dict):
+        """
+        Method for setting attribute of cliargs.
+
+        Parameters
+        ----------
+        cliargs : argparse object
+        cliargs_dict : argparse object attributes dictionary
+        """
+        for item in cliargs_dict:
+            if item in ["cflags", "lflags", "preproc"]:
+                val_cli = cliargs_dict[item]
+                val_fobos = getattr(cliargs, item)
+                if item == "cflags":
+                    if val_cli == "-c":
+                        match = re.search(r"(-c\s+|-c$)", val_fobos)
+                        if match:
+                            val_cli = ""  # avoid multiple -c flags
+                if val_fobos and val_cli:
+                    setattr(cliargs, item, val_fobos + " " + val_cli)
+        return
+
+    def _set_cliargs(self, cliargs):
+        """
+        Set cliargs from fobos options.
+
+        Parameters
+        ----------
+        cliargs : argparse object
+        """
+        if self.fobos:
+            cliargs_dict = deepcopy(cliargs.__dict__)
+            self._set_mode(mode=cliargs.mode)
+            self._check_template()
+            self._check_local_variables()
+            self._set_cliargs_attributes(cliargs=cliargs, cliargs_dict=cliargs_dict)
+            self._check_cliargs_cflags(cliargs=cliargs, cliargs_dict=cliargs_dict)
+        return
+
+    def get(self, option, mode=None, toprint=True):
+        """
+        Get options defined into the fobos file.
+
+        Parameters
+        ----------
+        option : str
+          option name
+        mode : {None}
+          eventual mode name
+        toprint : {True}
+          return of the value: if toprint==False the value is return otherwise is printed to stdout
+        """
+        value = ""
+        if self.fobos:
+            self._set_mode(mode=mode)
+            if self.fobos.has_option(self.mode, option):
+                value = self.fobos.get(self.mode, option)
+        if toprint:
+            # self.print_w(value)
+            print(value)
+            return
         else:
-          fobos_version = raw  # not inside a git repo; treat as literal
-        if fobos_version and not fobos_version.startswith('v'):
-          fobos_version = 'v' + fobos_version
+            return value
 
-    # query the most recent git tag
-    git_version = ''
-    git_result = syswork('git describe --tags --abbrev=0')
-    if git_result[0] == 0:
-      git_version = git_result[1].strip()
+    def get_output_name(self, mode=None, toprint=True):
+        """
+        Method for building the output name accordingly to the fobos options.
 
-    # warn on mismatch
-    if fobos_version and git_version and fobos_version != git_version:
-      git_version_v = git_version if git_version.startswith('v') else 'v' + git_version
-      self.print_w('Warning: project version mismatch!')
-      self.print_w('  fobos [project] version : ' + fobos_version)
-      self.print_w('  git tag version         : ' + git_version)
-      self.print_w('  To fix, either:')
-      self.print_w('    - update fobos: set  version = ' + git_version_v + '  under [project]')
-      self.print_w('    - create a matching tag: git tag ' + fobos_version + ' && git push --tags')
-
-    return fobos_version or git_version
-
-  def get_dependencies(self):
-    """
-    Parse [dependencies] section and return dict of {name: spec_string}.
-
-    Returns
-    -------
-    dict
-      mapping of dependency name to its spec string, or empty dict if no section
-    """
-    deps = {}
-    if self.fobos and self.fobos.has_section('dependencies'):
-      for name, spec in self.fobos.items('dependencies'):
-        if name == 'deps_dir':
-          continue
-        deps[name] = spec
-    return deps
-
-  def get_deps_dir(self, default='.fobis_deps'):
-    """
-    Read deps_dir from [dependencies] section of fobos.
-
-    Parameters
-    ----------
-    default : str
-      value returned when the option is absent [default: '.fobis_deps']
-
-    Returns
-    -------
-    str
-      deps_dir value from fobos, or default if not set
-    """
-    if self.fobos and self.fobos.has_section('dependencies'):
-      if self.fobos.has_option('dependencies', 'deps_dir'):
-        return self.fobos.get('dependencies', 'deps_dir').strip()
-    return default
-
-  def rules_list(self, quiet=False):
-    """
-    Function for listing defined rules.
-
-    Parameters
-    ----------
-    quiet : {False}
-      less verbose outputs than default
-    """
-    if self.fobos:
-      self.print_n('The fobos file defines the following rules:')
-      for rule in self.fobos.sections():
-        if rule.startswith('rule-'):
-          if self.fobos.has_option(rule, 'help'):
-            helpmsg = self.fobos.get(rule, 'help')
-          else:
-            helpmsg = ''
-          self.print_n('  - "' + rule.split('rule-')[1] + '" ' + helpmsg)
-          if self.fobos.has_option(rule, 'quiet'):
-            quiet = self.fobos.getboolean(rule, 'quiet')
-          for rul in self.fobos.options(rule):
-            if rul.startswith('rule'):
-              if not quiet:
-                self.print_n('       Command => ' + self.fobos.get(rule, rul))
-    sys.exit(0)
-    return
-
-  def rule_execute(self, rule, quiet=False, log=False):
-    """
-    Function for executing selected rule.
-
-    Parameters
-    ----------
-    rule : str
-      rule name
-    quiet : {False}
-      less verbose outputs than default
-    log : {False}
-      bool for activate errors log saving
-    """
-    if self.fobos:
-      self.print_n('Executing rule "' + rule + '"')
-      rule_name = 'rule-' + rule
-      if self.fobos.has_section(rule_name):
-        self._get_local_variables()
-        self._substitute_local_variables_section(section=rule_name)
-        results = []
-        quiet = False
-        log = False
-        if self.fobos.has_option(rule_name, 'quiet'):
-          quiet = self.fobos.getboolean(rule_name, 'quiet')
-        if self.fobos.has_option(rule_name, 'log'):
-          log = self.fobos.getboolean(rule_name, 'log')
-        for rul in self.fobos.options(rule_name):
-          if rul.startswith('rule'):
-            if not quiet:
-              self.print_n('   Command => ' + self.fobos.get(rule_name, rul))
-            result = syswork(self.fobos.get(rule_name, rul))
-            results.append(result)
-        if log:
-          check_results(results=results, log='rules_errors.log', print_w=self.print_w)
+        Parameters
+        ----------
+        mode : {None}
+          eventual mode name
+        toprint : {True}
+          return of the value: if toprint==False the value is return otherwise is printed to stdout
+        """
+        output = ""
+        build_dir = self.get(option="build_dir", mode=mode, toprint=False)
+        mklib = self.get(option="mklib", mode=mode, toprint=False)
+        if self.fobos:
+            self._set_mode(mode=mode)
+            if self.fobos.has_option(self.mode, "output"):
+                output = self.fobos.get(self.mode, "output")
+                output = os.path.normpath(os.path.join(build_dir, output))
+            elif self.fobos.has_option(self.mode, "target"):
+                output = self.fobos.get(self.mode, "target")
+                output = os.path.splitext(os.path.basename(output))[0]
+                if mklib.lower() == "shared":
+                    output = output + ".so"
+                elif mklib.lower() == "static":
+                    output = output + ".a"
+                output = os.path.normpath(os.path.join(build_dir, output))
+        if toprint:
+            # self.print_w(output)
+            print(output)
+            return
         else:
-          check_results(results=results, print_w=self.print_w)
-      else:
-        self.print_w('Error: the rule "' + rule + '" is not defined into the fobos file. Defined rules are:')
-        self.rules_list(quiet=quiet)
-        sys.exit(1)
-    return
+            return output
+
+    def modes_list(self):
+        """List defined modes."""
+        if self.fobos:
+            self.print_n("The fobos file defines the following modes:")
+            if self.fobos.has_option("modes", "modes"):
+                modes = self.fobos.get("modes", "modes").split()
+                for mode in modes:
+                    if self.fobos.has_section(mode):
+                        if self.fobos.has_option(mode, "help"):
+                            helpmsg = self.fobos.get(mode, "help")
+                        else:
+                            helpmsg = ""
+                        self.print_n('  - "' + mode + '" ' + helpmsg)
+            else:
+                self.print_w("Error: no modes are defined into the fobos file!")
+                sys.exit(1)
+        sys.exit(0)
+        return
+
+    @staticmethod
+    def print_template(cliargs):
+        """
+        Print fobos template.
+
+        Parameters
+        ----------
+        cliargs : argparse object
+        """
+        print("[default]")
+        for argument in vars(cliargs):
+            attribute = getattr(cliargs, argument)
+            if isinstance(attribute, list):
+                attribute = " ".join(attribute)
+            print(str(argument) + " = " + str(attribute))
+
+    def get_project_info(self):
+        """
+        Parse [project] section and return project metadata.
+
+        Returns
+        -------
+        dict
+          dict with keys 'name' (str), 'authors' (list of str),
+          'version' (str, raw value as written in fobos — not resolved),
+          'summary' (str), 'repository' (str), 'website' (str), and 'email' (str).
+          All values are empty/empty-list if the section or option is absent.
+        """
+        info = {"name": "", "authors": [], "version": "", "summary": "", "repository": "", "website": "", "email": ""}
+        if self.fobos and self.fobos.has_section("project"):
+            if self.fobos.has_option("project", "name"):
+                info["name"] = self.fobos.get("project", "name").strip()
+            if self.fobos.has_option("project", "authors"):
+                raw = self.fobos.get("project", "authors")
+                info["authors"] = [a.strip() for a in raw.splitlines() if a.strip()]
+            if self.fobos.has_option("project", "version"):
+                info["version"] = self.fobos.get("project", "version").strip()
+            if self.fobos.has_option("project", "summary"):
+                info["summary"] = self.fobos.get("project", "summary").strip()
+            if self.fobos.has_option("project", "repository"):
+                info["repository"] = self.fobos.get("project", "repository").strip()
+            if self.fobos.has_option("project", "website"):
+                info["website"] = self.fobos.get("project", "website").strip()
+            if self.fobos.has_option("project", "email"):
+                info["email"] = self.fobos.get("project", "email").strip()
+        return info
+
+    def get_version(self):
+        """
+        Resolve the project version from [project] and/or git tags.
+
+        Resolution steps
+        ----------------
+        1. Read 'version' from [project] in fobos.  If the value is a
+           file path (relative to the git repository root), the version
+           string is read from that file.
+        2. Query the most recent git tag via ``git describe --tags --abbrev=0``.
+        3. If both sources provide a version and they disagree, emit a
+           warning with a suggested fix.
+        4. Return the fobos version when available; fall back to the git
+           tag; return '' when neither source is determinable.
+
+        Returns
+        -------
+        str
+          Resolved version string, or '' if not determinable.
+        """
+        fobos_version = ""
+        if self.fobos and self.fobos.has_section("project"):
+            if self.fobos.has_option("project", "version"):
+                raw = self.fobos.get("project", "version").strip()
+                # try to resolve as a file path relative to the git repo root
+                git_root_result = syswork("git rev-parse --show-toplevel")
+                if git_root_result[0] == 0:
+                    candidate = os.path.join(git_root_result[1].strip(), raw)
+                    if os.path.isfile(candidate):
+                        with open(candidate) as ver_file:
+                            fobos_version = ver_file.read().strip()
+                    else:
+                        fobos_version = raw
+                else:
+                    fobos_version = raw  # not inside a git repo; treat as literal
+                if fobos_version and not fobos_version.startswith("v"):
+                    fobos_version = "v" + fobos_version
+
+        # query the most recent git tag
+        git_version = ""
+        git_result = syswork("git describe --tags --abbrev=0")
+        if git_result[0] == 0:
+            git_version = git_result[1].strip()
+
+        # warn on mismatch
+        if fobos_version and git_version and fobos_version != git_version:
+            git_version_v = git_version if git_version.startswith("v") else "v" + git_version
+            self.print_w("Warning: project version mismatch!")
+            self.print_w("  fobos [project] version : " + fobos_version)
+            self.print_w("  git tag version         : " + git_version)
+            self.print_w("  To fix, either:")
+            self.print_w("    - update fobos: set  version = " + git_version_v + "  under [project]")
+            self.print_w("    - create a matching tag: git tag " + fobos_version + " && git push --tags")
+
+        return fobos_version or git_version
+
+    def get_dependencies(self):
+        """
+        Parse [dependencies] section and return dict of {name: spec_string}.
+
+        Returns
+        -------
+        dict
+          mapping of dependency name to its spec string, or empty dict if no section
+        """
+        deps = {}
+        if self.fobos and self.fobos.has_section("dependencies"):
+            for name, spec in self.fobos.items("dependencies"):
+                if name == "deps_dir":
+                    continue
+                deps[name] = spec
+        return deps
+
+    def get_deps_dir(self, default=".fobis_deps"):
+        """
+        Read deps_dir from [dependencies] section of fobos.
+
+        Parameters
+        ----------
+        default : str
+          value returned when the option is absent [default: '.fobis_deps']
+
+        Returns
+        -------
+        str
+          deps_dir value from fobos, or default if not set
+        """
+        if self.fobos and self.fobos.has_section("dependencies"):
+            if self.fobos.has_option("dependencies", "deps_dir"):
+                return self.fobos.get("dependencies", "deps_dir").strip()
+        return default
+
+    def rules_list(self, quiet=False):
+        """
+        Function for listing defined rules.
+
+        Parameters
+        ----------
+        quiet : {False}
+          less verbose outputs than default
+        """
+        if self.fobos:
+            self.print_n("The fobos file defines the following rules:")
+            for rule in self.fobos.sections():
+                if rule.startswith("rule-"):
+                    if self.fobos.has_option(rule, "help"):
+                        helpmsg = self.fobos.get(rule, "help")
+                    else:
+                        helpmsg = ""
+                    self.print_n('  - "' + rule.split("rule-")[1] + '" ' + helpmsg)
+                    if self.fobos.has_option(rule, "quiet"):
+                        quiet = self.fobos.getboolean(rule, "quiet")
+                    for rul in self.fobos.options(rule):
+                        if rul.startswith("rule"):
+                            if not quiet:
+                                self.print_n("       Command => " + self.fobos.get(rule, rul))
+        sys.exit(0)
+        return
+
+    def rule_execute(self, rule, quiet=False, log=False):
+        """
+        Function for executing selected rule.
+
+        Parameters
+        ----------
+        rule : str
+          rule name
+        quiet : {False}
+          less verbose outputs than default
+        log : {False}
+          bool for activate errors log saving
+        """
+        if self.fobos:
+            self.print_n('Executing rule "' + rule + '"')
+            rule_name = "rule-" + rule
+            if self.fobos.has_section(rule_name):
+                self._get_local_variables()
+                self._substitute_local_variables_section(section=rule_name)
+                results = []
+                quiet = False
+                log = False
+                if self.fobos.has_option(rule_name, "quiet"):
+                    quiet = self.fobos.getboolean(rule_name, "quiet")
+                if self.fobos.has_option(rule_name, "log"):
+                    log = self.fobos.getboolean(rule_name, "log")
+                for rul in self.fobos.options(rule_name):
+                    if rul.startswith("rule"):
+                        if not quiet:
+                            self.print_n("   Command => " + self.fobos.get(rule_name, rul))
+                        result = syswork(self.fobos.get(rule_name, rul))
+                        results.append(result)
+                if log:
+                    check_results(results=results, log="rules_errors.log", print_w=self.print_w)
+                else:
+                    check_results(results=results, print_w=self.print_w)
+            else:
+                self.print_w('Error: the rule "' + rule + '" is not defined into the fobos file. Defined rules are:')
+                self.rules_list(quiet=quiet)
+                sys.exit(1)
+        return

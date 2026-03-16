@@ -8,6 +8,20 @@ on:
     branches: [ master ]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4.2.2
+    - uses: actions/setup-python@v5.6.0
+      with:
+        python-version: "3.12"
+    - name: Install ruff
+      run: pip install ruff
+    - name: Lint
+      run: ruff check fobis/ tests/suite_tests.py
+    - name: Format check
+      run: ruff format --check fobis/ tests/suite_tests.py
+
   build:
     runs-on: ${{ matrix.os }}
     strategy:
