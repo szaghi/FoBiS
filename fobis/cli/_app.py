@@ -21,9 +21,9 @@ _app.py — Typer application instance, arg normaliser, and namespace factory.
 
 import argparse
 import re
+from typing import Annotated
 
 import typer
-from typing_extensions import Annotated
 
 # ---------------------------------------------------------------------------
 # Argument normaliser — preserves backward compat with argparse-style options

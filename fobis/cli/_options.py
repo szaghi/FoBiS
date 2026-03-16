@@ -23,10 +23,9 @@ the default value is still declared at the call site so Typer can inspect it.
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import List, Optional
+from typing import Annotated
 
 import typer
-from typing_extensions import Annotated
 
 from ._completions import (
     _complete_compiler,
@@ -40,11 +39,11 @@ from ._completions import (
 # ---------------------------------------------------------------------------
 
 FobosOpt = Annotated[
-    Optional[str], typer.Option("--fobos", "-f", help='Specify a "fobos" file named differently from "fobos"')
+    str | None, typer.Option("--fobos", "-f", help='Specify a "fobos" file named differently from "fobos"')
 ]
 FciOpt = Annotated[bool, typer.Option("--fci", help="Assume fobos inputs as case insensitive")]
 ModeOpt = Annotated[
-    Optional[str],
+    str | None,
     typer.Option("--mode", help="Select a mode defined into a fobos file", autocompletion=_complete_fobos_mode),
 ]
 LmodesOpt = Annotated[bool, typer.Option("--lmodes", help="List the modes defined into a fobos file")]
@@ -60,10 +59,10 @@ CompilerOpt = Annotated[
     str,
     typer.Option("--compiler", help="Compiler used (case insensitive, default gnu)", autocompletion=_complete_compiler),
 ]
-FcOpt = Annotated[Optional[str], typer.Option("--fc", help="Fortran compiler statement (for --compiler custom)")]
-CflagsOpt = Annotated[Optional[str], typer.Option("--cflags", help="Compile flags")]
-LflagsOpt = Annotated[Optional[str], typer.Option("--lflags", help="Link flags")]
-ModswOpt = Annotated[Optional[str], typer.Option("--modsw", help="Module search path switch (for --compiler custom)")]
+FcOpt = Annotated[str | None, typer.Option("--fc", help="Fortran compiler statement (for --compiler custom)")]
+CflagsOpt = Annotated[str | None, typer.Option("--cflags", help="Compile flags")]
+LflagsOpt = Annotated[str | None, typer.Option("--lflags", help="Link flags")]
+ModswOpt = Annotated[str | None, typer.Option("--modsw", help="Module search path switch (for --compiler custom)")]
 MpiOpt = Annotated[bool, typer.Option("--mpi", help="Use MPI enabled version of compiler")]
 OpenmpOpt = Annotated[bool, typer.Option("--openmp", help="Use OpenMP pragmas")]
 OpenmpOffloadOpt = Annotated[bool, typer.Option("--openmp-offload", help="Use OpenMP Offload pragmas")]
@@ -71,7 +70,7 @@ CoarrayOpt = Annotated[bool, typer.Option("--coarray", help="Use coarrays")]
 CoverageOpt = Annotated[bool, typer.Option("--coverage", help="Instrument for coverage analysis")]
 ProfileOpt = Annotated[bool, typer.Option("--profile", help="Instrument for profiling analysis")]
 MklibOpt = Annotated[
-    Optional[str],
+    str | None,
     typer.Option("--mklib", help="Build library instead of program (static|shared)", autocompletion=_complete_mklib),
 ]
 ArOpt = Annotated[str, typer.Option("--ar", help="Archiver executable for static libraries [default: ar]")]
@@ -87,9 +86,7 @@ TrackBuildOpt = Annotated[bool, typer.Option("--track-build", "--tb", help="Stor
 # Directories group  (build, clean, rule, doctests)
 # ---------------------------------------------------------------------------
 
-SrcOpt = Annotated[
-    Optional[List[str]], typer.Option("--src", "-s", help="Root-directory of source files [default: ./]")
-]
+SrcOpt = Annotated[list[str] | None, typer.Option("--src", "-s", help="Root-directory of source files [default: ./]")]
 BuildDirOpt = Annotated[
     str, typer.Option("--build-dir", "--dbld", help="Directory containing built objects [default: ./]")
 ]
@@ -99,14 +96,12 @@ ObjDirOpt = Annotated[
 ModDirOpt = Annotated[
     str, typer.Option("--mod-dir", "--dmod", help="Directory containing .mod files [default: ./mod/]")
 ]
-LibDirOpt = Annotated[
-    Optional[List[str]], typer.Option("--lib-dir", "--dlib", help="Directories searched for libraries")
-]
+LibDirOpt = Annotated[list[str] | None, typer.Option("--lib-dir", "--dlib", help="Directories searched for libraries")]
 IncludeListOpt = Annotated[
-    Optional[List[str]], typer.Option("--include", "-i", help="Directories for searching included files")
+    list[str] | None, typer.Option("--include", "-i", help="Directories for searching included files")
 ]
 ExcludeDirsOpt = Annotated[
-    Optional[List[str]],
+    list[str] | None,
     typer.Option("--exclude-dirs", "--ed", help="Exclude directories from the building process"),
 ]
 DisableRecursiveSearchOpt = Annotated[
@@ -118,28 +113,28 @@ DisableRecursiveSearchOpt = Annotated[
 # ---------------------------------------------------------------------------
 
 TargetOpt = Annotated[
-    Optional[str], typer.Option("--target", "-t", help="Specify a target file [default: all programs found]")
+    str | None, typer.Option("--target", "-t", help="Specify a target file [default: all programs found]")
 ]
-OutputOpt = Annotated[Optional[str], typer.Option("--output", "-o", help="Output file name (used with --target)")]
+OutputOpt = Annotated[str | None, typer.Option("--output", "-o", help="Output file name (used with --target)")]
 ExcludeOpt = Annotated[
-    Optional[List[str]], typer.Option("--exclude", "-e", help="Exclude files from the building process")
+    list[str] | None, typer.Option("--exclude", "-e", help="Exclude files from the building process")
 ]
-LibsOpt = Annotated[Optional[List[str]], typer.Option("--libs", help="External libraries with full paths")]
-VlibsOpt = Annotated[Optional[List[str]], typer.Option("--vlibs", help="Volatile external libraries with full paths")]
-ExtLibsOpt = Annotated[Optional[List[str]], typer.Option("--ext-libs", help="External libraries in compiler path")]
+LibsOpt = Annotated[list[str] | None, typer.Option("--libs", help="External libraries with full paths")]
+VlibsOpt = Annotated[list[str] | None, typer.Option("--vlibs", help="Volatile external libraries with full paths")]
+ExtLibsOpt = Annotated[list[str] | None, typer.Option("--ext-libs", help="External libraries in compiler path")]
 ExtVlibsOpt = Annotated[
-    Optional[List[str]], typer.Option("--ext-vlibs", help="Volatile external libraries in compiler path")
+    list[str] | None, typer.Option("--ext-vlibs", help="Volatile external libraries in compiler path")
 ]
 DependonOpt = Annotated[
-    Optional[List[str]],
+    list[str] | None,
     typer.Option("--dependon", help="Interdependent external fobos files for interdependent building"),
 ]
 IncOpt = Annotated[
-    Optional[List[str]],
+    list[str] | None,
     typer.Option("--inc", help="Extensions for include files", autocompletion=_complete_extensions),
 ]
 ExtensionsOpt = Annotated[
-    Optional[List[str]],
+    list[str] | None,
     typer.Option("--extensions", help="Extensions of parsed files", autocompletion=_complete_extensions),
 ]
 BuildAllOpt = Annotated[bool, typer.Option("--build-all", help="Build all sources parsed")]
@@ -149,20 +144,20 @@ BuildAllOpt = Annotated[bool, typer.Option("--build-all", help="Build all source
 # ---------------------------------------------------------------------------
 
 PreprocessorOpt = Annotated[
-    Optional[str],
+    str | None,
     typer.Option("--preprocessor", help="Preprocessor name for pre-processing sources (e.g. PreForM.py)"),
 ]
-PreprocOpt = Annotated[Optional[str], typer.Option("--preproc", help="Preprocessor flags for the main compiler")]
+PreprocOpt = Annotated[str | None, typer.Option("--preproc", help="Preprocessor flags for the main compiler")]
 PreprocessorArgsOpt = Annotated[str, typer.Option("--preprocessor-args", "--app", help="Preprocessor-specific flags")]
 PreprocessorNoOOpt = Annotated[
     bool,
     typer.Option("--preprocessor-no-o", "--npp", help="Do not add -o in front of output in preprocessor command"),
 ]
 PreprocessorDirOpt = Annotated[
-    Optional[str], typer.Option("--preprocessor-dir", "--dpp", help="Directory for preprocessed files")
+    str | None, typer.Option("--preprocessor-dir", "--dpp", help="Directory for preprocessed files")
 ]
 PreprocessorExtOpt = Annotated[
-    Optional[List[str]], typer.Option("--preprocessor-ext", "--epp", help="File extensions to preprocess")
+    list[str] | None, typer.Option("--preprocessor-ext", "--epp", help="File extensions to preprocess")
 ]
 
 # ---------------------------------------------------------------------------
@@ -177,7 +172,7 @@ QuietOpt = Annotated[bool, typer.Option("--quiet", "-q", help="Less verbose outp
 VerboseOpt = Annotated[bool, typer.Option("--verbose", help="Extremely verbose output for debugging")]
 JobsOpt = Annotated[int, typer.Option("--jobs", "-j", help="Number of concurrent compilation jobs [default: 1]")]
 MakefileOpt = Annotated[
-    Optional[str], typer.Option("--makefile", "-m", help="Generate a GNU Makefile for building the project")
+    str | None, typer.Option("--makefile", "-m", help="Generate a GNU Makefile for building the project")
 ]
 
 # ---------------------------------------------------------------------------
@@ -185,18 +180,16 @@ MakefileOpt = Annotated[
 # ---------------------------------------------------------------------------
 
 ExecuteOpt = Annotated[
-    Optional[str], typer.Option("--execute", "--ex", help="Specify a rule (defined in fobos) to execute")
+    str | None, typer.Option("--execute", "--ex", help="Specify a rule (defined in fobos) to execute")
 ]
 ListRulesOpt = Annotated[bool, typer.Option("--list", "--ls", help="List the rules defined in a fobos file")]
-GetOpt = Annotated[
-    Optional[str], typer.Option("--get", help="Get option value defined in fobos (e.g. --get build_dir)")
-]
+GetOpt = Annotated[str | None, typer.Option("--get", help="Get option value defined in fobos (e.g. --get build_dir)")]
 GetOutputNameOpt = Annotated[
     bool, typer.Option("--get-output-name", help="Get the final output name from fobos options")
 ]
-FordOpt = Annotated[Optional[str], typer.Option("--ford", help="Build docs with Ford tool (specify project-file.md)")]
+FordOpt = Annotated[str | None, typer.Option("--ford", help="Build docs with Ford tool (specify project-file.md)")]
 GcovAnalyzerOpt = Annotated[
-    Optional[List[str]],
+    list[str] | None,
     typer.Option("--gcov-analyzer", help="Analyse .gcov files; args: REPORTS_DIR [SUMMARY_FILE]"),
 ]
 IsAsciiKindSupportedOpt = Annotated[
@@ -217,5 +210,5 @@ KeepVolatileDoctestsOpt = Annotated[
     bool, typer.Option("--keep-volatile-doctests", help="Keep the volatile doctests programs")
 ]
 ExcludeFromDoctestsOpt = Annotated[
-    Optional[List[str]], typer.Option("--exclude-from-doctests", help="Exclude files from the doctests process")
+    list[str] | None, typer.Option("--exclude-from-doctests", help="Exclude files from the doctests process")
 ]

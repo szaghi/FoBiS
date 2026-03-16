@@ -1,9 +1,8 @@
 """install.py — FoBiS.py ``install`` subcommand."""
 
-from typing import Optional
+from typing import Annotated
 
 import typer
-from typing_extensions import Annotated
 
 from ._app import _ns, app
 from ._options import *
@@ -13,7 +12,7 @@ from ._options import *
 def cmd_install(
     ctx: typer.Context,
     repo: Annotated[
-        Optional[str], typer.Argument(help='GitHub repository: "user/repo" shorthand or full HTTPS URL')
+        str | None, typer.Argument(help='GitHub repository: "user/repo" shorthand or full HTTPS URL')
     ] = None,
     # fobos group
     fobos: FobosOpt = None,
@@ -33,18 +32,18 @@ def cmd_install(
     ] = "include/",
     # GitHub install options
     branch: Annotated[
-        Optional[str], typer.Option("--branch", help="Branch to check out when installing from GitHub")
+        str | None, typer.Option("--branch", help="Branch to check out when installing from GitHub")
     ] = None,
-    tag: Annotated[Optional[str], typer.Option("--tag", help="Tag to check out when installing from GitHub")] = None,
+    tag: Annotated[str | None, typer.Option("--tag", help="Tag to check out when installing from GitHub")] = None,
     rev: Annotated[
-        Optional[str], typer.Option("--rev", help="Commit revision to check out when installing from GitHub")
+        str | None, typer.Option("--rev", help="Commit revision to check out when installing from GitHub")
     ] = None,
     update: Annotated[
         bool, typer.Option("--update", help="Re-fetch (git pull) before building and installing")
     ] = False,
     no_build: Annotated[bool, typer.Option("--no-build", help="Clone only — skip building and installing")] = False,
     deps_dir: Annotated[
-        Optional[str], typer.Option("--deps-dir", help="Directory for cloning GitHub repositories [default: ~/.fobis/]")
+        str | None, typer.Option("--deps-dir", help="Directory for cloning GitHub repositories [default: ~/.fobis/]")
     ] = None,
     # fancy group
     force_compile: ForceCompileOpt = False,

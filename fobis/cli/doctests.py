@@ -1,7 +1,8 @@
 """doctests.py — FoBiS.py ``doctests`` subcommand."""
 
+from typing import Annotated
+
 import typer
-from typing_extensions import Annotated
 
 from ._app import _ns, app
 from ._completions import _complete_doctests_preprocessor

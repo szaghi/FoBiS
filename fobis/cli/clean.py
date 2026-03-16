@@ -1,7 +1,8 @@
 """clean.py — FoBiS.py ``clean`` subcommand."""
 
+from typing import Annotated
+
 import typer
-from typing_extensions import Annotated
 
 from ._app import _ns, app
 from ._constants import __extensions_inc__, __extensions_parsed__
