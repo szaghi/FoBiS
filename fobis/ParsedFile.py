@@ -20,7 +20,7 @@ This is a class designed for handling a single parsed file.
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
 
 import sys
-from typing import Any
+from typing import Any, Optional, Union
 
 try:
     import functools
@@ -283,7 +283,7 @@ class ParsedFile:
         include: bool = False,
         nomodlib: bool = False,
         to_compile: bool = False,
-        output: str | None = None,
+        output: Optional[str] = None,
         is_doctest: bool = False,
     ) -> None:
         """
@@ -374,7 +374,7 @@ class ParsedFile:
         inc: list[str] = [".INC", ".F", ".FOR", ".FPP", ".F77", ".F90", ".F95", ".F03", ".F08"],
         preprocessor: str = "cpp",
         preproc: str = "",
-        include: str | list[str] = "",
+        include: Union[str, list[str]] = "",
     ) -> None:
         """
         Parse the file creating its the dependencies list and the list of modules names that self eventually contains.
