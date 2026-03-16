@@ -4,6 +4,19 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.6.9] — 2026-03-16
+### Changed
+- Remove Python 2 dead code, add type hints, and enable coverage
+
+
+### Documentation
+- **changelog**: Make git-cliff write directly to docs/guide/changelog.md
+
+
+### Fixed
+- Eliminate shell injection, resource leaks, and stale test artifacts
+
+
 ## [3.6.8] — 2026-03-16
 ### Fixed
 - **cli**: Restore -v / --version flag broken since version migration
