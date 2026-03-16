@@ -1,13 +1,11 @@
 """Error-path integration tests for FoBiS.py — no Fortran compiler needed."""
 
 import argparse
-import os
 
 import pytest
 
-from fobis.Fobos import Fobos
 from fobis.fobis import run_fobis
-
+from fobis.Fobos import Fobos
 
 # ---------------------------------------------------------------------------
 # Helpers
