@@ -64,6 +64,6 @@ def test_fetch_load_config_empty():
 
 
 @pytest.mark.parametrize("n", range(1, 5))
-def test_fetch_dep_integration(n):
+def test_fetch_dep_integration(monkeypatch, n):
     """Test fetch dependency integration scenario n."""
-    assert run_build(f"fetch-dep-test{n}"), f"fetch-dep-test{n} failed"
+    assert run_build(monkeypatch, f"fetch-dep-test{n}"), f"fetch-dep-test{n} failed"

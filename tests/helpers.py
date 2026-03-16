@@ -16,11 +16,10 @@ OPENCOARRAYS = shutil.which("caf") is not None
 PREFORM = shutil.which("PreForM.py") is not None
 
 
-def run_build(directory):
+def run_build(monkeypatch, directory):
     """Run a build scenario. Returns True on success."""
     build_ok = False
-    old_pwd = os.getcwd()
-    os.chdir(os.path.join(TESTS_DIR, directory))
+    monkeypatch.chdir(os.path.join(TESTS_DIR, directory))
 
     run_fobis(fake_args=["clean", "-f", "fobos"])
 
@@ -36,27 +35,22 @@ def run_build(directory):
     run_fobis(fake_args=["rule", "-f", "fobos", "-ex", "finalize"])
     run_fobis(fake_args=["clean", "-f", "fobos"])
 
-    os.chdir(old_pwd)
     return build_ok
 
 
-def run_clean(directory):
+def run_clean(monkeypatch, directory):
     """Run build then clean. Returns True if clean removed all artifacts."""
-    old_pwd = os.getcwd()
-    os.chdir(os.path.join(TESTS_DIR, directory))
+    monkeypatch.chdir(os.path.join(TESTS_DIR, directory))
 
     run_fobis(fake_args=["build", "-f", "fobos"])
     run_fobis(fake_args=["clean", "-f", "fobos"])
 
-    clean_ok = not os.path.exists(directory)
-    os.chdir(old_pwd)
-    return clean_ok
+    return not os.path.exists(directory)
 
 
-def make_makefile(directory):
+def make_makefile(monkeypatch, directory):
     """Generate a Makefile and compare it against the golden file."""
-    old_pwd = os.getcwd()
-    os.chdir(os.path.join(TESTS_DIR, directory))
+    monkeypatch.chdir(os.path.join(TESTS_DIR, directory))
 
     run_fobis(fake_args=["build", "-f", "fobos", "-m", "makefile_check"])
     make_ok = filecmp.cmp("makefile_check", "makefile_ok")
@@ -67,14 +61,12 @@ def make_makefile(directory):
             print("generated makefile:\n" + mk_check.read())
 
     run_fobis(fake_args=["clean", "-f", "fobos"])
-    os.chdir(old_pwd)
     return make_ok
 
 
-def run_install(directory):
+def run_install(monkeypatch, directory):
     """Run build + install. Returns True if artifacts were installed."""
-    old_pwd = os.getcwd()
-    os.chdir(os.path.join(TESTS_DIR, directory))
+    monkeypatch.chdir(os.path.join(TESTS_DIR, directory))
 
     run_fobis(fake_args=["clean", "-f", "fobos"])
     run_fobis(fake_args=["build", "-f", "fobos"])
@@ -86,30 +78,25 @@ def run_install(directory):
     run_fobis(fake_args=["rule", "-f", "fobos", "-ex", "finalize"])
     run_fobis(fake_args=["clean", "-f", "fobos"])
 
-    os.chdir(old_pwd)
     return install_ok
 
 
-def run_doctest(directory):
+def run_doctest(monkeypatch, directory):
     """Run inline doctests. Returns True on success."""
-    old_pwd = os.getcwd()
-    os.chdir(os.path.join(TESTS_DIR, directory))
+    monkeypatch.chdir(os.path.join(TESTS_DIR, directory))
 
     run_fobis(fake_args=["clean", "-f", "fobos"])
     run_fobis(fake_args=["doctests", "-f", "fobos"])
     run_fobis(fake_args=["rule", "-f", "fobos", "-ex", "finalize"])
     run_fobis(fake_args=["clean", "-f", "fobos"])
 
-    os.chdir(old_pwd)
     return True
 
 
-def run_rule(directory):
+def run_rule(monkeypatch, directory):
     """Execute a custom rule. Returns True on success."""
-    old_pwd = os.getcwd()
-    os.chdir(os.path.join(TESTS_DIR, directory))
+    monkeypatch.chdir(os.path.join(TESTS_DIR, directory))
 
     run_fobis(fake_args=["rule", "-ex", "test"])
 
-    os.chdir(old_pwd)
     return True
