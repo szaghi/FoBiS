@@ -15,11 +15,22 @@
 > Package manger highly integrated with GitHub, install and fetch project dependencies.
 > Add instrospective doctests to your Fortran project and exploit AI-powered programmatic buildings with the provided AI skill.
 
-| ⚡ Zero-configuration builds | 📄 fobos — the FoBiS makefile | 🌐 GitHub integration | 🔬 Introspective doctests |
-|---|---|---|---|
-| Drop FoBiS into any Fortran project and run `fobis build`. It scans sources, resolves all `use`, `include`, and module dependencies automatically, and compiles in the correct order — no makefiles, no boilerplate. [Quick start](https://szaghi.github.io/FoBiS/guide/quickstart) | A concise INI-style configuration file replaces makefiles entirely. Define multiple build modes, templates, variables, and custom rules — all in one readable file. [fobos reference](https://szaghi.github.io/FoBiS/fobos/) | Declare dependencies in a `[dependencies]` fobos section — `fobis fetch` clones, pins to branch/tag/rev, and pre-builds them; `fobis build` picks them up automatically. Install any GitHub-hosted FoBiS project directly with `fobis install user/repo`. [Fetch deps](https://szaghi.github.io/FoBiS/advanced/fetch) · [GitHub install](https://szaghi.github.io/FoBiS/advanced/install) | Embed micro-unit-tests directly inside Fortran comment docstrings. FoBiS generates, compiles, and runs volatile test programs automatically — inspired by Python's doctest module, no test harness needed. [Doctests](https://szaghi.github.io/FoBiS/advanced/doctests) |
-| 🤖 JSON output & Claude Code skill | 🆓 Free and open source | | |
-| Pass `--json` to `fobis build`, `fobis clean`, or `fobis fetch` for machine-readable structured output — ideal for CI and AI agent workflows. Install the bundled `/fobis` Claude Code skill for expert AI assistance right in your editor. [JSON output](https://szaghi.github.io/FoBiS/advanced/json-output) · [Claude skill](https://szaghi.github.io/FoBiS/guide/claude-skill) | Released under the GNU GPL v3 license. Free to use, study, modify, and distribute. Contributions welcome — see the [contributing guidelines](CONTRIBUTING.md). | | |
+<div>
+<table>
+<tr>
+<td><b>⚡ Zero-configuration builds</b><br><sub>Drop FoBiS into any Fortran project and run <code>fobis build</code>. It scans sources, resolves all <code>use</code>, <code>include</code>, and module dependencies automatically, and compiles in the correct order — no makefiles, no boilerplate. <a href="https://szaghi.github.io/FoBiS/guide/quickstart">Quick start</a></sub></td>
+<td><b>📄 fobos — the FoBiS makefile</b><br><sub>A concise INI-style configuration file replaces makefiles entirely. Define multiple build modes, templates, variables, and custom rules — all in one readable file. <a href="https://szaghi.github.io/FoBiS/fobos/">fobos reference</a></sub></td>
+</tr>
+<tr>
+<td><b>🌐 GitHub integration</b><br><sub>Declare dependencies in a <code>[dependencies]</code> fobos section — <code>fobis fetch</code> clones, pins to branch/tag/rev, and pre-builds them; <code>fobis build</code> picks them up automatically. Install any GitHub-hosted FoBiS project directly with <code>fobis install user/repo</code>. <a href="https://szaghi.github.io/FoBiS/advanced/fetch">Fetch deps</a> · <a href="https://szaghi.github.io/FoBiS/advanced/install">GitHub install</a></sub></td>
+<td><b>🔬 Introspective doctests</b><br><sub>Embed micro-unit-tests directly inside Fortran comment docstrings. FoBiS generates, compiles, and runs volatile test programs automatically — inspired by Python's doctest module, no test harness needed. <a href="https://szaghi.github.io/FoBiS/advanced/doctests">Doctests</a></sub></td>
+</tr>
+<tr>
+<td><b>🤖 JSON output &amp; Claude Code skill</b><br><sub>Pass <code>--json</code> to <code>fobis build</code>, <code>fobis clean</code>, or <code>fobis fetch</code> for machine-readable structured output — ideal for CI and AI agent workflows. Install the bundled <code>/fobis</code> Claude Code skill for expert AI assistance right in your editor. <a href="https://szaghi.github.io/FoBiS/advanced/json-output">JSON output</a> · <a href="https://szaghi.github.io/FoBiS/guide/claude-skill">Claude skill</a></sub></td>
+<td><b>🆓 Free and open source</b><br><sub>Released under the GNU GPL v3 license. Free to use, study, modify, and distribute. Contributions welcome — see the <a href="CONTRIBUTING.md">contributing guidelines</a></sub></td>
+</tr>
+</table>
+</div>
 
 **[Full documentation](https://szaghi.github.io/FoBiS/)**
 
