@@ -11,4 +11,4 @@ colors    = True
 quiet     = True
 
 [dependencies]
-penf = https://github.com/szaghi/PENF :: tag=v1.5.0
+penf = https://github.com/szaghi/PENF :: tag=v1.3.0
