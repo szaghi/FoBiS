@@ -37,6 +37,18 @@ def main():
     """
     Main function.
     """
+    # Typer/Click completion runs by setting _<PROG>_COMPLETE in the environment,
+    # or by passing --install-completion / --show-completion.
+    # FoBiSConfig uses CliRunner which isolates os.environ, so the completion env
+    # var is never forwarded and tab-completion silently produces no output.
+    # Detect both cases here and invoke the Typer app directly.
+    _COMPLETION_FLAGS = frozenset({"--install-completion", "--show-completion"})
+    _prog = os.path.basename(sys.argv[0]).upper().replace(".", "_").replace("-", "_")
+    if os.environ.get(f"_{_prog}_COMPLETE") or _COMPLETION_FLAGS.intersection(sys.argv[1:]):
+        from .cli import app as _app
+
+        _app()
+        return
     run_fobis()
     sys.exit(0)
 

@@ -68,9 +68,15 @@ build_dir = ./build/release/
 fobis build -mode release
 ```
 
----
+| **zero-configuration build** | **simplify complex dependency** |
+|:---:|:---:|
+| ![basic build](docs/public/gifs/01_basic_build.gif) | ![complex dependancy](docs/public/gifs/04_dependent_build.gif) |
+| **GH integration, project install** | **GH integration, dependancies fetch** |
+| ![project install](docs/public/gifs/06_install.gif) | ![dependancies fetch](docs/public/gifs/07_fetch.gif) |
 
-## Projects using FoBiS
+## Showcases
+
+> Projects using FoBiS:
 
 - **[ADAM](https://szaghi.github.io/adam/)** — Accelerated fluid Dynamics on Adaptive Mesh refinement grids &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/adam)
 - **[BeFoR64](https://szaghi.github.io/BeFoR64/)** — Base64 encoding/decoding library for Fortran &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/BeFoR64)
@@ -86,16 +92,10 @@ fobis build -mode release
 - **[VecFor](https://szaghi.github.io/VecFor/)** — Vector algebra class for Fortran &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/VecFor)
 - **[VTKFortran](https://szaghi.github.io/VTKFortran/)** — pure Fortran VTK (XML) API &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/VTKFortran)
 
----
-
 ## Author
 
-**Stefano Zaghi** — [stefano.zaghi@cnr.it](mailto:stefano.zaghi@cnr.it) · [GitHub](https://github.com/szaghi)
+**Stefano Zaghi** — [stefano.zaghi@gmail.com](mailto:stefano.zaghi@gmail.com) · [GitHub](https://github.com/szaghi)
 
 ## Copyrights
 
 FoBiS is an open source project distributed under the [GPL v3](http://www.gnu.org/licenses/gpl-3.0.html) license. Anyone interested in using, developing, or contributing to FoBiS is welcome — see the [contributing guidelines](CONTRIBUTING.md).
-
----
-
-![Screencast](examples/cumbersome_dependency_program_interdepent/cumbersome-cast.gif)

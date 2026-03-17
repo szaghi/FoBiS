@@ -21,6 +21,8 @@ Just run:
 fobis build
 ```
 
+![Zero-config build demo](/gifs/01_basic_build.gif)
+
 ::: tip Legacy command name
 The `FoBiS.py` command is preserved as a backward-compatible alias. Both `fobis` and `FoBiS.py` invoke the same tool — existing scripts using `FoBiS.py` continue to work without changes.
 :::
@@ -90,6 +92,8 @@ Clean only the executable (keep objects for faster incremental rebuild):
 fobis clean --only-target
 ```
 
+![Clean and incremental rebuild demo](/gifs/05_clean.gif)
+
 ## Parsed file extensions
 
 By default FoBiS.py parses files with these extensions:
@@ -142,6 +146,8 @@ Then simply:
 fobis build
 fobis clean
 ```
+
+![fobos build modes demo](/gifs/02_fobos_build.gif)
 
 See the [fobos section](/fobos/) for the full reference.
 

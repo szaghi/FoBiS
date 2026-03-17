@@ -4,6 +4,23 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.7.4] — 2026-03-17
+### Documentation
+- Standardize all command examples to use fobis instead of FoBiS.py
+
+- Rework hero section in README and docs/index to highlight key features
+
+- **readme**: Replace pipe table with html table in hero section
+
+- Add animated GIF tutorials with VHS tapes and demo project
+
+- **fetch-demo**: Pin PENF to v1.3.0 and add use penf to main.f90
+
+
+### Fixed
+- **cli**: Restore tab-completion broken by CliRunner env isolation
+
+
 ## [3.7.3] — 2026-03-16
 ### Added
 - **skill**: Add /fobis Claude Code skill for expert FoBiS.py assistance

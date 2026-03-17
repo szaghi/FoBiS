@@ -1,6 +1,10 @@
-# About FoBiS.py
+# About FoBiS
 
-**FoBiS.py** is a KISS build tool for modern Fortran projects. It automatically resolves inter-module dependency hierarchies so you never have to track them manually in makefiles.
+**FoBiS** is a KISS build tool for modern Fortran projects. It automatically resolves inter-module dependency hierarchies so you never have to track them manually in makefiles.
+
+## Why FoBiS?
+
+![Basic build demo](/gifs/01_basic_build.gif)
 
 ## The problem it solves
 
@@ -17,7 +21,7 @@ Consider this project layout:
 
 Writing a correct `Makefile` for this requires knowing the full compilation order, tracking which `.mod` files exist and where, and updating every rule whenever the dependency graph changes. As project size grows, this becomes error-prone and tedious.
 
-**FoBiS.py parses sources on every invocation, builds the complete dependency graph, and compiles in the correct order automatically:**
+**FoBiS parses sources on every invocation, builds the complete dependency graph, and compiles in the correct order automatically:**
 
 ```bash
 fobis build
@@ -43,6 +47,8 @@ That single command:
 - **Doctests** — introspective micro unit tests embedded in Fortran doc comments, Python-doctest style
 - **GNU Makefile export** — generate a standard `Makefile` from the resolved dependency graph
 
+![GNU Makefile export demo](/gifs/08_makefile_export.gif)
+
 ## How it works
 
 ```
@@ -63,7 +69,7 @@ dependency_hiearchy()  ← resolves module/include graph, orders compilation
 
 ## Design philosophy
 
-FoBiS.py follows the KISS principle throughout:
+FoBiS follows the KISS principle throughout:
 
 - **Configuration-file-free by default** — `fobis build` works without any configuration for most projects
 - **INI-style fobos** — when configuration is needed, the fobos file uses a simple, human-readable format with no special syntax
