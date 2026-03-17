@@ -5,7 +5,7 @@
 [![Latest Version](https://img.shields.io/pypi/v/FoBiS.py.svg)](https://pypi.org/project/FoBiS.py/)
 [![GitHub tag](https://img.shields.io/github/tag/szaghi/FoBiS.svg)]()
 [![Build Status](https://github.com/szaghi/FoBiS/actions/workflows/python-package.yml/badge.svg)](https://github.com/szaghi/FoBiS/actions)
-[![codecov](https://codecov.io/gh/szaghi/FoBiS/graph/badge.svg)](https://codecov.io/gh/szaghi/FoBiS)
+[![Coverage](https://img.shields.io/endpoint?url=https://szaghi.github.io/FoBiS/coverage-badge.json)](https://szaghi.github.io/FoBiS/)
 [![GitHub issues](https://img.shields.io/github/issues/szaghi/FoBiS.svg)]()
 [![Supported Python versions](https://img.shields.io/badge/Py-%203.10,%203.11,%203.12-blue.svg)]()
 

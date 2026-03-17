@@ -35,11 +35,13 @@ jobs:
     - name: Install package + test deps
       run: pip install -e ".[dev]"
     - name: Run pytest with coverage
-      run: pytest --cov=fobis --cov-report=xml --cov-report=term-missing
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
+      run: pytest
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
       with:
-        files: coverage.xml
+        name: coverage-report
+        path: docs/public/coverage*.json
+        retention-days: 7
 
   build:
     runs-on: ${{ matrix.os }}

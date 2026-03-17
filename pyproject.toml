@@ -72,14 +72,19 @@ indent-style = "space"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v"
+addopts = "-v --cov=fobis --cov-report=term-missing"
 
 [tool.coverage.run]
 source = ["fobis"]
+branch = true
 omit = ["tests/*"]
 
 [tool.coverage.report]
 fail_under = 60
+exclude_lines = [
+  "pragma: no cover",
+  "if __name__ == .__main__.:",
+]
 
 [tool.setuptools.dynamic]
 version = { attr = "fobis.__version__" }
