@@ -79,9 +79,15 @@ build_dir = ./build/release/
 fobis build -mode release
 ```
 
-## Projects using FoBiS
+| **zero-configuration build** | **simplify complex dependency** |
+|:---:|:---:|
+| ![basic build](public/gifs/01_basic_build.gif) | ![complex dependancy](public/gifs/04_dependent_build.gif) |
+| **GH integration, project install** | **GH integration, dependancies fetch** |
+| ![project install](public/gifs/06_install.gif) | ![dependancies fetch](public/gifs/07_fetch.gif) |
 
-FoBiS is used to build a wide range of Fortran projects:
+## Showcases
+
+> Projects using FoBiS:
 
 - **[ADAM](https://szaghi.github.io/adam/)** — Accelerated fluid Dynamics on Adaptive Mesh refinement grids &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/adam)
 - **[BeFoR64](https://szaghi.github.io/BeFoR64/)** — Base64 encoding/decoding library for Fortran &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/BeFoR64)
