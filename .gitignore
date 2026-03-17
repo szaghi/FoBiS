@@ -23,6 +23,8 @@ docs/node_modules/
 # Coverage
 .coverage
 *.coverage
+docs/public/coverage.json
+docs/public/coverage-badge.json
 
 # Generated test artefacts
 tests/**/makefile_check

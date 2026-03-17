@@ -42,9 +42,9 @@ def main():
     # FoBiSConfig uses CliRunner which isolates os.environ, so the completion env
     # var is never forwarded and tab-completion silently produces no output.
     # Detect both cases here and invoke the Typer app directly.
-    _COMPLETION_FLAGS = frozenset({"--install-completion", "--show-completion"})
+    _completion_flags = frozenset({"--install-completion", "--show-completion"})
     _prog = os.path.basename(sys.argv[0]).upper().replace(".", "_").replace("-", "_")
-    if os.environ.get(f"_{_prog}_COMPLETE") or _COMPLETION_FLAGS.intersection(sys.argv[1:]):
+    if os.environ.get(f"_{_prog}_COMPLETE") or _completion_flags.intersection(sys.argv[1:]):
         from .cli import app as _app
 
         _app()
