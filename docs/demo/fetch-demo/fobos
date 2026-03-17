@@ -1,0 +1,14 @@
+[default]
+compiler  = gnu
+cflags    = -c
+src       = ./src/
+obj_dir   = ./obj/
+mod_dir   = ./mod/
+build_dir = ./
+target    = src/main.f90
+output    = main
+colors    = True
+quiet     = True
+
+[dependencies]
+penf = https://github.com/szaghi/PENF :: tag=v1.5.0

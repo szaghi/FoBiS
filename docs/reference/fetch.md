@@ -94,6 +94,8 @@ For `use=sources` no `fobos` file is required.
    - `src` entries are appended to the source search paths (skipped if already covered)
    - `dependon` entries are added to `--dependon`, and the dep directory is added to `--exclude-dirs` to prevent double-compilation
 
+![Fetch dependencies demo](/gifs/07_fetch.gif)
+
 ## Workflow
 
 ```bash

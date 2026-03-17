@@ -107,6 +107,8 @@ fobis build -t src/solver.f90 -o solver
 # Build a static library
 fobis build -t src/mylib.f90 --mklib static -o libmylib.a
 
+![Static library build demo](/gifs/03_static_library.gif)
+
 # Build a static library with LLVM tools
 fobis build -t src/mylib.f90 --mklib static --ar llvm-ar --ranlib llvm-ranlib
 
@@ -122,6 +124,8 @@ fobis build --force-compile
 # Multiple source directories
 fobis build --src ./src --src ./vendor/mylib/src
 ```
+
+![dependon build demo](/gifs/04_dependent_build.gif)
 
 ::: tip Legacy single-dash options
 All single-dash multi-character options from older versions (`-compiler`, `-mode`, `-force_compile`, etc.) are still accepted and normalised automatically. Both forms are equivalent:

@@ -1,0 +1,60 @@
+[modes]
+modes = default release static with-dep
+
+[common-variables]
+$src = ./src/
+$obj = ./obj/
+$mod = ./mod/
+$bld = ./
+
+[default]
+compiler  = gnu
+cflags    = -c
+src       = $src
+obj_dir   = $obj
+mod_dir   = $mod
+build_dir = $bld
+target    = src/main.f90
+output    = demo
+exclude   = main_dep.f90
+colors    = True
+
+[release]
+compiler  = gnu
+cflags    = -c -O3
+src       = $src
+obj_dir   = $obj
+mod_dir   = $mod
+build_dir = $bld
+target    = src/main.f90
+output    = demo
+exclude   = main_dep.f90
+colors    = True
+
+[static]
+compiler  = gnu
+cflags    = -c
+src       = $src
+obj_dir   = $obj
+mod_dir   = $mod
+build_dir = $bld
+target    = src/nested-1/first_dep.f90
+output    = libnested.a
+mklib     = static
+exclude   = main_dep.f90
+colors    = True
+
+[with-dep]
+compiler  = gnu
+cflags    = -c
+src       = $src
+obj_dir   = $obj
+mod_dir   = $mod
+build_dir = $bld
+target    = src/main_dep.f90
+output    = demo_dep
+ext_libs  = dep
+lib_dir   = ./dependency_lib/build/
+include   = ./dependency_lib/build/mod/
+dependon  = ./dependency_lib/fobos_lib:static
+colors    = True

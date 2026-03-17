@@ -102,4 +102,6 @@ The target repository **must** contain a `fobos` file.
 
 The local mode reads `.track_build` files produced by a previous `fobis build --track-build` run and copies the recorded artifacts to the prefix. Use `--tb` / `--track-build` on the `build` command to enable this.
 
+![Install demo](/gifs/06_install.gif)
+
 See the [GitHub Install](/advanced/install) advanced guide for a full workflow walkthrough.

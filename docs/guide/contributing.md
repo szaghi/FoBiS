@@ -179,6 +179,28 @@ git pull origin develop
 `git-cliff` must be installed: `pipx install git-cliff`
 :::
 
+## Regenerating GIF tutorials
+
+The documentation embeds animated GIF tutorials generated with [VHS](https://github.com/charmbracelet/vhs). GIF files are **not committed** (they are in `.gitignore`); the VHS tape sources in `docs/public/gifs/tapes/` are the source of truth.
+
+**Prerequisites:** `vhs` and `gfortran` must be in `PATH`.
+
+```bash
+# Install VHS (one-time)
+# macOS:   brew install vhs
+# Linux:   sudo apt install vhs   OR   go install github.com/charmbracelet/vhs@latest
+
+# Regenerate all 8 GIFs
+cd docs
+bash make_gifs.sh
+
+# Regenerate a single GIF (by tape number prefix)
+bash make_gifs.sh 01
+bash make_gifs.sh 01 05 08
+```
+
+The script copies `docs/demo/` (a self-contained Fortran project) to a temporary directory for each recording so the demo directory always stays clean.
+
 ## Project layout
 
 ```
@@ -190,6 +212,10 @@ docs/               VitePress documentation site
   reference/        CLI command reference
   advanced/         Advanced topics
   examples/         Worked examples
+  demo/             Self-contained Fortran demo project (used by GIF tutorials)
+  public/gifs/      GIF tutorial files (placeholder GIFs committed; regenerate with make_gifs.sh)
+  public/gifs/tapes/  VHS tape source files (committed)
+  make_gifs.sh      GIF generation script (requires VHS + gfortran)
 .github/workflows/  CI/CD (python-package.yml)
 pyproject.toml      Package metadata, ruff config, pytest config
 cliff.toml          git-cliff changelog configuration
