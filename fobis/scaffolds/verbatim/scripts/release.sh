@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# bump.sh — bump version in the project VERSION file
+# release.sh — bump version in the project VERSION file
 set -euo pipefail
 
 if [[ $# -ne 1 ]]; then

@@ -182,7 +182,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 ### Fixed
 - **gcov**: Remove unused past.utils import that broke CI
 
-- **bump.sh**: Prevent mid-release failure due to stale branches and PyPI filename change
+- **release.sh**: Prevent mid-release failure due to stale branches and PyPI filename change
 
 
 ## [3.2.0] — 2026-02-20

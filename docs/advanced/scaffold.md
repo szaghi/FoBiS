@@ -25,7 +25,7 @@ Output:
 ```
   OK       .github/workflows/docs.yml
   OUTDATED .github/actions/setup-build-env/action.yml
-  MISSING  scripts/bump.sh
+  MISSING  scripts/release.sh
   MISSING  scripts/compute-coverage.sh
   OK       CONTRIBUTING.md
   OK       LICENSE.gpl3.md
@@ -72,7 +72,7 @@ Verbatim files are copied as-is from the bundled canonical version. Drift detect
 | `.github/workflows/docs.yml` | VitePress documentation deployment workflow |
 | `.github/actions/setup-build-env/action.yml` | Composite action: install gfortran + FoBiS.py |
 | `.github/actions/run-coverage-analysis/action.yml` | Composite action: lcov coverage + JSON badge |
-| `scripts/bump.sh` | Bump the `VERSION` file |
+| `scripts/release.sh` | Bump the `VERSION` file |
 | `scripts/run_tests.sh` | Build and run the project test suite |
 | `scripts/install.sh` | Repo-agnostic install script |
 | `scripts/compute-coverage.sh` | Compute gcov coverage and emit JSON badge |
@@ -252,7 +252,7 @@ Verbatim files (copied as-is, SHA-256 drift detection):
   .github/workflows/docs.yml
   .github/actions/setup-build-env/action.yml
   .github/actions/run-coverage-analysis/action.yml
-  scripts/bump.sh
+  scripts/release.sh
   scripts/run_tests.sh
   scripts/install.sh
   scripts/compute-coverage.sh
@@ -321,7 +321,7 @@ fobis scaffold init --yes
 # .github/workflows/release.yml
 # .github/actions/setup-build-env/action.yml
 # .github/actions/run-coverage-analysis/action.yml
-# scripts/bump.sh
+# scripts/release.sh
 # scripts/run_tests.sh
 # scripts/install.sh
 # scripts/compute-coverage.sh

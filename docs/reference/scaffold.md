@@ -58,7 +58,7 @@ fobis scaffold <action> [options]
 - `.github/workflows/docs.yml`
 - `.github/actions/setup-build-env/action.yml`
 - `.github/actions/run-coverage-analysis/action.yml`
-- `scripts/bump.sh`
+- `scripts/release.sh`
 - `scripts/run_tests.sh`
 - `scripts/install.sh`
 - `scripts/compute-coverage.sh`
@@ -116,7 +116,7 @@ Output:
 ```
   OK       .github/workflows/docs.yml
   OUTDATED .github/actions/setup-build-env/action.yml
-  MISSING  scripts/bump.sh
+  MISSING  scripts/release.sh
   ...
 ```
 
