@@ -1,0 +1,12 @@
+name: Setup build environment
+description: Install gfortran and FoBiS.py
+
+runs:
+  using: composite
+  steps:
+    - name: Install gfortran
+      shell: bash
+      run: sudo apt-get install -y gfortran
+    - name: Install FoBiS.py
+      shell: bash
+      run: pip install FoBiS.py

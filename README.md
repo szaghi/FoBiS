@@ -29,6 +29,10 @@
 <td><b>🤖 JSON output &amp; Claude Code skill</b><br><sub>Pass <code>--json</code> to <code>fobis build</code>, <code>fobis clean</code>, or <code>fobis fetch</code> for machine-readable structured output — ideal for CI and AI agent workflows. Install the bundled <code>/fobis</code> Claude Code skill for expert AI assistance right in your editor. <a href="https://szaghi.github.io/FoBiS/advanced/json-output">JSON output</a> · <a href="https://szaghi.github.io/FoBiS/guide/claude-skill">Claude skill</a></sub></td>
 <td><b>🆓 Free and open source</b><br><sub>Released under the GNU GPL v3 license. Free to use, study, modify, and distribute. Contributions welcome — see the <a href="CONTRIBUTING.md">contributing guidelines</a></sub></td>
 </tr>
+<tr>
+<td><b>📋 Scaffold — boilerplate sync</b><br><sub>Keep CI workflows, docs configs, license files, and scripts identical across all your Fortran repos. <code>fobis scaffold status</code> shows drift; <code>fobis scaffold sync</code> fixes it; <code>fobis scaffold init</code> bootstraps new projects. All templates bundled inside FoBiS — no extra dependencies. <a href="https://szaghi.github.io/FoBiS/reference/scaffold">Scaffold reference</a></sub></td>
+<td></td>
+</tr>
 </table>
 </div>
 
@@ -73,6 +77,20 @@ fobis build -mode release
 | ![basic build](docs/public/gifs/01_basic_build.gif) | ![complex dependancy](docs/public/gifs/04_dependent_build.gif) |
 | **GH integration, project install** | **GH integration, dependancies fetch** |
 | ![project install](docs/public/gifs/06_install.gif) | ![dependancies fetch](docs/public/gifs/07_fetch.gif) |
+
+## Scaffold — boilerplate management
+
+`fobis scaffold` keeps CI workflows, docs configs, license files, and other boilerplate in sync across all your Fortran repos. All templates are bundled inside FoBiS — no external dependencies.
+
+```bash
+fobis scaffold status          # drift report: OK / OUTDATED / MISSING per file
+fobis scaffold sync --dry-run  # preview diffs without writing
+fobis scaffold sync --yes      # apply all updates silently
+fobis scaffold init            # bootstrap a new project (creates src/, docs/, .github/, …)
+fobis scaffold list            # list all managed files and their categories
+```
+
+Project variables (`{{NAME}}`, `{{AUTHORS}}`, `{{REPOSITORY}}`, …) are resolved from the fobos `[project]` section, the git remote URL, and `git config`. See the [scaffold reference](https://szaghi.github.io/FoBiS/reference/scaffold) for full details.
 
 ## Showcases
 

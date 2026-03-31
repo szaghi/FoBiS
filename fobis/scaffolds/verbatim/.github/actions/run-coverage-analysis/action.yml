@@ -1,0 +1,12 @@
+name: Run coverage analysis
+description: Compute Fortran code coverage with gcov and generate a JSON badge report
+
+runs:
+  using: composite
+  steps:
+    - name: Install lcov
+      shell: bash
+      run: sudo apt-get install -y lcov
+    - name: Compute coverage
+      shell: bash
+      run: bash scripts/compute-coverage.sh
