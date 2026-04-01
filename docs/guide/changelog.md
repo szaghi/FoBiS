@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.7.6] — 2026-04-01
+### Added
+- **commit**: Introduce LLM-assisted conventional commit messages ⚠ BREAKING CHANGE
+
+
 ## [3.7.5] — 2026-04-01
 ### Added
 - **scaffold**: Implement boilerplate synchronization across Fortran repos
