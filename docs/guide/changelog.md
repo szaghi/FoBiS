@@ -4,6 +4,25 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.7.5] — 2026-04-01
+### Added
+- **scaffold**: Implement boilerplate synchronization across Fortran repos
+
+- **scaffold**: Add init-only category and auto-discover fpm dependencies
+
+
+### Documentation
+- **index**: Add GIF showcase grid and rename projects section
+
+- **scaffold**: Rename bump.sh to release.sh in all references
+
+
+### Fixed
+- **cli**: Rename _COMPLETION_FLAGS to lowercase to satisfy ruff N806
+
+- **cli**: Rename app name from "FoBiS.py" to "fobis"
+
+
 ## [3.7.4] — 2026-03-17
 ### Documentation
 - Standardize all command examples to use fobis instead of FoBiS.py
@@ -182,7 +201,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 ### Fixed
 - **gcov**: Remove unused past.utils import that broke CI
 
-- **release.sh**: Prevent mid-release failure due to stale branches and PyPI filename change
+- **bump.sh**: Prevent mid-release failure due to stale branches and PyPI filename change
 
 
 ## [3.2.0] — 2026-02-20
