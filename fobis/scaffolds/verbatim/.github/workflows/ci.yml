@@ -2,25 +2,28 @@ name: CI
 
 on:
   push:
-    branches: [master, develop]
+    branches: ["**"]
+    tags-ignore: ["**"]   # tags are handled by release.yml
   pull_request:
-    branches: [master]
-  workflow_dispatch:
 
 jobs:
-  build-and-test:
+  test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-build-env
-      - name: Build
-        run: FoBiS.py build
-      - name: Run tests
-        run: bash scripts/run_tests.sh
-      - uses: ./.github/actions/run-coverage-analysis
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: docs/public/coverage*.json
-          retention-days: 7
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup build environment
+      uses: ./.github/actions/setup-build-env
+
+    - name: Fetch dependencies
+      if: hashFiles('**/.deps_config.ini') != ''
+      run: FoBiS.py fetch
+
+    - name: Run tests with coverage
+      id: cov
+      uses: ./.github/actions/run-coverage-analysis
