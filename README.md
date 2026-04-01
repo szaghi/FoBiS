@@ -31,7 +31,7 @@
 </tr>
 <tr>
 <td><b>📋 Scaffold — boilerplate sync</b><br><sub>Keep CI workflows, docs configs, license files, and scripts identical across all your Fortran repos. <code>fobis scaffold status</code> shows drift; <code>fobis scaffold sync</code> fixes it; <code>fobis scaffold init</code> bootstraps new projects. All templates bundled inside FoBiS — no extra dependencies. <a href="https://szaghi.github.io/FoBiS/reference/scaffold">Scaffold reference</a></sub></td>
-<td></td>
+<td><b>🧠 LLM commit messages</b><br><sub>Generate well-formed <a href="https://www.conventionalcommits.org/">Conventional Commits</a> messages for staged changes via a local LLM. Supports <a href="https://ollama.com">Ollama</a> and any OpenAI-compatible endpoint (LM Studio, vLLM, llama.cpp) — no cloud account, no API key, no data leaving your machine. <a href="https://szaghi.github.io/FoBiS/advanced/commit">LLM commit guide</a></sub></td>
 </tr>
 </table>
 </div>
@@ -91,6 +91,29 @@ fobis scaffold list            # list all managed files and their categories
 ```
 
 Project variables (`{{NAME}}`, `{{AUTHORS}}`, `{{REPOSITORY}}`, …) are resolved from the fobos `[project]` section, the git remote URL, and `git config`. See the [scaffold reference](https://szaghi.github.io/FoBiS/reference/scaffold) for full details.
+
+## LLM-assisted commit messages
+
+`fobis commit` generates [Conventional Commits](https://www.conventionalcommits.org/) messages for your staged changes using a local LLM — no cloud account, no API key, no data leaving your machine.
+
+```bash
+# Stage your changes as usual
+git add fobis/Commit.py fobis/cli/commit.py
+
+# Generate the message (print only — you review before committing)
+fobis commit
+
+# Generate and commit in one step after interactive review
+fobis commit --apply
+
+# Persist your LLM settings
+fobis commit --init-config     # creates ~/.config/fobis/config.ini
+fobis commit --show-config     # inspect effective settings
+```
+
+Works with [Ollama](https://ollama.com) (default) and any OpenAI-compatible server (LM Studio, vLLM, llama.cpp). The default model is `qwen3-coder:30b-a3b-q4_K_M` — a fast mixture-of-experts model that produces excellent commit messages.
+
+See the [LLM commit messages guide](https://szaghi.github.io/FoBiS/advanced/commit) for setup instructions, model recommendations, and worked examples.
 
 ## Showcases
 
