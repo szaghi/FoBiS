@@ -152,9 +152,7 @@ def staged_diff(max_chars: int) -> str:
 
 
 def current_branch() -> str:
-    result = subprocess.run(
-        ["git", "branch", "--show-current"], capture_output=True, text=True
-    )
+    result = subprocess.run(["git", "branch", "--show-current"], capture_output=True, text=True)
     return result.stdout.strip() if result.returncode == 0 else ""
 
 
@@ -204,10 +202,10 @@ def _post_stream(url: str, payload: dict, timeout: int = 120) -> str:
                 # OpenAI-compatible format
                 if not token:
                     token = (
-                        chunk.get("choices", [{}])[0]
-                        .get("delta", {})
-                        .get("content", "")
-                    ) if chunk.get("choices") else ""
+                        (chunk.get("choices", [{}])[0].get("delta", {}).get("content", ""))
+                        if chunk.get("choices")
+                        else ""
+                    )
                 if token:
                     collected.append(token)
                 if chunk.get("done"):  # Ollama end-of-stream marker
@@ -225,7 +223,7 @@ def ask_ollama(base_url: str, model: str, prompt: str) -> str:
         "model": model,
         "messages": [
             {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user",   "content": prompt},
+            {"role": "user", "content": prompt},
         ],
         "stream": True,
     }
@@ -239,7 +237,7 @@ def ask_openai(base_url: str, model: str, prompt: str) -> str:
         "model": model,
         "messages": [
             {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user",   "content": prompt},
+            {"role": "user", "content": prompt},
         ],
         "stream": True,
     }
@@ -271,16 +269,18 @@ def wrap_message(message: str, width: int = 90) -> str:
             continue
         n_indent = len(line) - len(line.lstrip())
         initial_indent = line[:n_indent]
-        bullet = re.match(r'^(\s*(?:[-*]|\d+\.)\s+)', line)
+        bullet = re.match(r"^(\s*(?:[-*]|\d+\.)\s+)", line)
         subsequent_indent = " " * len(bullet.group(1)) if bullet else initial_indent
-        wrapped.append(textwrap.fill(
-            line,
-            width=width,
-            initial_indent=initial_indent,
-            subsequent_indent=subsequent_indent,
-            break_long_words=False,
-            break_on_hyphens=False,
-        ))
+        wrapped.append(
+            textwrap.fill(
+                line,
+                width=width,
+                initial_indent=initial_indent,
+                subsequent_indent=subsequent_indent,
+                break_long_words=False,
+                break_on_hyphens=False,
+            )
+        )
     return "\n".join(wrapped)
 
 
