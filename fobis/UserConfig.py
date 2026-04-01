@@ -103,7 +103,7 @@ class UserConfig:
         """Return a human-readable summary of effective settings."""
         lines = [
             f"Config file : {self.path}",
-            f"  [llm]",
+            "  [llm]",
             f"  backend       = {self.llm_backend}",
             f"  url           = {self.llm_url}",
             f"  model         = {self.llm_model}",
