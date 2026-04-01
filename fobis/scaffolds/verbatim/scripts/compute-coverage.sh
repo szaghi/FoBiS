@@ -1,14 +1,15 @@
-#!/usr/bin/env bash
-# compute-coverage.sh — compute Fortran code coverage and emit JSON badge for VitePress
+#!/bin/bash
+
 set -euo pipefail
 
-lcov --capture --directory . --output-file coverage.info --no-external 2>/dev/null || true
-TOTAL=$(lcov --summary coverage.info 2>&1 | grep -oP '[\d.]+(?=%)' | tail -1 || echo "0")
+PCT=$(set +o pipefail
+      find . -name '*.gcda' | xargs -r gcov 2>/dev/null | \
+        awk '/^Lines executed:/{
+          match($0, /([0-9.]+)% of ([0-9]+)/, a)
+          total += a[2]; covered += a[1]/100 * a[2]
+        } END { if (total>0) printf "%.1f", covered/total*100; else print "0.0" }')
+
 mkdir -p docs/public
-INT_TOTAL="${TOTAL%.*}"
-COLOR="yellow"
-if [[ "$INT_TOTAL" -ge 80 ]]; then COLOR="green"; fi
-cat > docs/public/coverage.json <<EOF
-{"schemaVersion":1,"label":"coverage","message":"${TOTAL}%","color":"${COLOR}"}
-EOF
-echo "Coverage: ${TOTAL}%"
+printf '{"pct":"%s"}\n' "${PCT}" > docs/public/coverage.json
+
+echo "Coverage: ${PCT}%"
