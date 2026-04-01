@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.7.7] — 2026-04-01
+### Fixed
+- **scaffold**: Adjust ford.md src_dir path and update package.json dependencies
+
+
 ## [3.7.6] — 2026-04-01
 ### Added
 - **commit**: Introduce LLM-assisted conventional commit messages ⚠ BREAKING CHANGE
