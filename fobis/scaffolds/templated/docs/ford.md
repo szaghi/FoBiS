@@ -4,7 +4,7 @@ summary: {{SUMMARY}}
 project_url: {{WEBSITE}}
 author: {{AUTHORS}}
 email: {{EMAIL}}
-src_dir: ./src
+src_dir: ../src
 output_dir: ./docs/ford
 project_github: {{REPOSITORY}}
 display: public
