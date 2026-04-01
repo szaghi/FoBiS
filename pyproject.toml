@@ -91,3 +91,6 @@ version = { attr = "fobis.__version__" }
 
 [tool.setuptools.packages.find]
 include = ["fobis*"]
+
+[tool.setuptools.package-data]
+"fobis" = ["scaffolds/**/*", "scaffolds/manifest.ini"]

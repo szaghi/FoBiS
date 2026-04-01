@@ -62,7 +62,7 @@ def _normalize_args(args):
 # Typer application
 # ---------------------------------------------------------------------------
 app = typer.Typer(
-    name="FoBiS.py",
+    name="fobis",
     help="a Fortran Building System",
     no_args_is_help=True,
     add_completion=True,

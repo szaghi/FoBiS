@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+    tags-ignore: ["**"]   # tags are handled by release.yml
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup build environment
+      uses: ./.github/actions/setup-build-env
+
+    - name: Fetch dependencies
+      if: hashFiles('**/.deps_config.ini') != ''
+      run: FoBiS.py fetch
+
+    - name: Run tests with coverage
+      id: cov
+      uses: ./.github/actions/run-coverage-analysis

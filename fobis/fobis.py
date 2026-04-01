@@ -83,6 +83,8 @@ def run_fobis(fake_args=None):
             run_fobis_doctests(configuration)
         if configuration.cliargs.which == "fetch":
             run_fobis_fetch_json(configuration) if _json else run_fobis_fetch(configuration)
+        if configuration.cliargs.which == "scaffold":
+            run_fobis_scaffold(configuration)
     return
 
 
@@ -293,6 +295,43 @@ def run_fobis_fetch(configuration):
             fetcher.build_dep(name, dep_path, mode=parsed.get("mode"))
         deps_info.append({"name": name, "path": dep_path, "mode": parsed.get("mode", ""), "use": use_mode})
     fetcher.save_config(deps_info)
+
+
+def run_fobis_scaffold(configuration):
+    """
+    Run FoBiS in scaffold mode: manage project boilerplate templates.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    from .Scaffolder import Scaffolder, get_project_vars
+
+    project_vars = get_project_vars(fobos=configuration.fobos)
+    scaffolder = Scaffolder(
+        project_vars=project_vars,
+        print_n=configuration.print_b,
+        print_w=configuration.print_r,
+    )
+    action = configuration.cliargs.action
+    if action == "status":
+        scaffolder.status(
+            files_glob=configuration.cliargs.files,
+            strict=configuration.cliargs.strict,
+        )
+    elif action == "sync":
+        scaffolder.sync(
+            dry_run=configuration.cliargs.dry_run,
+            yes=configuration.cliargs.yes,
+            files_glob=configuration.cliargs.files,
+        )
+    elif action == "init":
+        scaffolder.init(yes=configuration.cliargs.yes)
+    elif action == "list":
+        scaffolder.list_files()
+    else:
+        configuration.print_r(f"Unknown scaffold action: {action}")
+        sys.exit(1)
 
 
 def run_fobis_build(configuration):

@@ -1,0 +1,21 @@
+name = "{{NAME}}"
+version = "0.1.0"
+license = "GPL-3.0"
+author = "{{AUTHORS}}"
+maintainer = "{{EMAIL}}"
+copyright = "Copyright {{YEAR}} {{AUTHORS}}"
+description = "{{SUMMARY}}"
+
+{{DEPENDENCIES}}
+
+[build]
+auto-executables = true
+auto-tests = true
+
+[fortran]
+implicit-typing = false
+implicit-external = false
+source-form = "free"
+
+[install]
+library = true
