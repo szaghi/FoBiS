@@ -85,6 +85,8 @@ def run_fobis(fake_args=None):
             run_fobis_fetch_json(configuration) if _json else run_fobis_fetch(configuration)
         if configuration.cliargs.which == "scaffold":
             run_fobis_scaffold(configuration)
+        if configuration.cliargs.which == "commit":
+            run_fobis_commit(configuration)
     return
 
 
@@ -295,6 +297,58 @@ def run_fobis_fetch(configuration):
             fetcher.build_dep(name, dep_path, mode=parsed.get("mode"))
         deps_info.append({"name": name, "path": dep_path, "mode": parsed.get("mode", ""), "use": use_mode})
     fetcher.save_config(deps_info)
+
+
+def run_fobis_commit(configuration):
+    """
+    Run FoBiS in commit mode: generate a Conventional Commits message via local LLM.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import subprocess
+
+    from .Commit import generate
+    from .UserConfig import UserConfig
+
+    cliargs = configuration.cliargs
+    ucfg = UserConfig(path=getattr(cliargs, "config", None))
+
+    if getattr(cliargs, "init_config", False):
+        ucfg.create_default()
+        configuration.print_b(f"Config file created: {ucfg.path}")
+        return
+
+    if getattr(cliargs, "show_config", False):
+        configuration.print_b(ucfg.show())
+        return
+
+    # CLI flags override config file values
+    backend = getattr(cliargs, "backend", None) or ucfg.llm_backend
+    url = getattr(cliargs, "url", None) or ucfg.llm_url
+    model = getattr(cliargs, "model", None) or ucfg.llm_model
+    max_diff = getattr(cliargs, "max_diff", None) or ucfg.llm_max_diff_chars
+
+    message = generate(
+        backend=backend,
+        url=url,
+        model=model,
+        max_diff_chars=max_diff,
+        print_n=configuration.print_b,
+        print_w=configuration.print_r,
+    )
+
+    configuration.print_b("")
+    configuration.print_b(message)
+
+    if getattr(cliargs, "apply", False):
+        configuration.print_b("")
+        answer = input("Commit with this message? [y/N] ").strip().lower()
+        if answer == "y":
+            subprocess.run(["git", "commit", "-m", message])
+        else:
+            configuration.print_r("Aborted.")
 
 
 def run_fobis_scaffold(configuration):

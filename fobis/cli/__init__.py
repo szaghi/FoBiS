@@ -24,7 +24,7 @@ FoBiS.py (and user code) previously imported from ``fobis.cli_parser``.
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
 
 # Import command modules to register their @app.command decorators
-from . import build, clean, doctests, fetch, install, rule, scaffold  # noqa: F401
+from . import build, clean, commit, doctests, fetch, install, rule, scaffold  # noqa: F401
 from ._app import _normalize_args, app
 from ._constants import (
     __compiler_supported__,
