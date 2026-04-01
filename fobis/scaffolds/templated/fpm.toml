@@ -6,6 +6,8 @@ maintainer = "{{EMAIL}}"
 copyright = "Copyright {{YEAR}} {{AUTHORS}}"
 description = "{{SUMMARY}}"
 
+{{DEPENDENCIES}}
+
 [build]
 auto-executables = true
 auto-tests = true

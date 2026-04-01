@@ -1,24 +1,44 @@
-import { defineConfig } from 'vitepress'
+import { withMermaid } from 'vitepress-plugin-mermaid'
 
-export default defineConfig({
+export default withMermaid({
   title: '{{NAME}}',
   description: '{{SUMMARY}}',
   base: '/{{REPOSITORY_NAME}}/',
+
+  markdown: {
+    math: true,
+    languages: ['fortran-free-form', 'fortran-fixed-form'],
+    languageAlias: {
+      fortran: 'fortran-free-form',
+      f90: 'fortran-free-form',
+      f03: 'fortran-free-form',
+      f08: 'fortran-free-form',
+    },
+  },
+
   themeConfig: {
     nav: [
-      { text: 'Home', link: '/' },
-      { text: 'Guide', link: '/guide/' },
+      { text: 'Home',   link: '/' },
+      { text: 'Guide',  link: '/guide/' },
       { text: 'GitHub', link: '{{REPOSITORY}}' },
     ],
 
+    // Add your guide pages here.
     sidebar: {
       '/guide/': [
         {
           text: 'Introduction',
           items: [
-            { text: 'About', link: '/guide/' },
+            { text: 'About',        link: '/guide/' },
             { text: 'Installation', link: '/guide/installation' },
-            { text: 'Quick Start', link: '/guide/quickstart' },
+            { text: 'Quick Start',  link: '/guide/quickstart' },
+          ],
+        },
+        {
+          text: 'Project',
+          items: [
+            { text: 'Contributing', link: '/guide/contributing' },
+            { text: 'Changelog',    link: '/guide/changelog' },
           ],
         },
       ],
@@ -37,4 +57,6 @@ export default defineConfig({
       copyright: 'Copyright © {{YEAR}} {{AUTHORS}}',
     },
   },
+
+  mermaid: {},
 })

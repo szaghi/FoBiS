@@ -34,6 +34,85 @@ import typer
 from .utils import print_fake, syswork
 
 
+def _parse_dep_spec(spec: str) -> dict:
+    """Parse a fobos dep spec string: URL [:: key=val ...]"""
+    parts = [p.strip() for p in spec.split("::")]
+    result = {"url": parts[0].strip()}
+    for part in parts[1:]:
+        if "=" in part:
+            key, _, value = part.partition("=")
+            result[key.strip()] = value.strip()
+    return result
+
+
+def _resolve_dep_url(url: str) -> str:
+    """Expand user/repo shorthand to full GitHub HTTPS URL and ensure .git suffix."""
+    if not url.startswith("http"):
+        url = f"https://github.com/{url}"
+    if not url.endswith(".git"):
+        url = url + ".git"
+    return url
+
+
+def _fobos_deps_to_fpm(deps: dict) -> str:
+    """Convert a fobos {name: spec} dict to an fpm.toml [dependencies] block."""
+    if not deps:
+        return ""
+    lines = ["[dependencies]"]
+    for name, spec in deps.items():
+        parsed = _parse_dep_spec(spec)
+        url = _resolve_dep_url(parsed["url"])
+        if "tag" in parsed:
+            pin = f', tag="{parsed["tag"]}"'
+        elif "rev" in parsed:
+            pin = f', rev="{parsed["rev"]}"'
+        elif "branch" in parsed:
+            pin = f', branch="{parsed["branch"]}"'
+        else:
+            pin = ""
+        lines.append(f'{name} = {{ git="{url}"{pin} }}')
+    return "\n".join(lines)
+
+
+def _git_submodule_deps_to_fpm(cwd: str = ".") -> str:
+    """Discover deps from .gitmodules + git submodule status as fpm.toml block."""
+    gitmodules = os.path.join(cwd, ".gitmodules")
+    if not os.path.exists(gitmodules):
+        return ""
+    cp = configparser.ConfigParser()
+    cp.read(gitmodules)
+    if not cp.sections():
+        return ""
+
+    # Build rev map: submodule path → commit SHA
+    rev_map = {}
+    result = syswork("git submodule status")
+    if result[0] == 0:
+        for line in result[1].splitlines():
+            # Format: [+- ]SHA path [(desc)]
+            stripped = line.strip().lstrip("+-U")
+            parts = stripped.split()
+            if len(parts) >= 2:
+                rev_map[parts[1]] = parts[0][:40]
+
+    lines = ["[dependencies]"]
+    for section in cp.sections():
+        # Section names look like: submodule "NAME"
+        if not section.lower().startswith("submodule"):
+            continue
+        name = section.split('"')[1] if '"' in section else section.split()[-1]
+        url = cp.get(section, "url", fallback="").strip()
+        path = cp.get(section, "path", fallback="").strip()
+        if not url:
+            continue
+        if not url.endswith(".git"):
+            url = url + ".git"
+        rev = rev_map.get(path, "")
+        pin = f', rev="{rev}"' if rev else ""
+        lines.append(f'{name} = {{ git="{url}"{pin} }}')
+    return "\n".join(lines)
+
+
 def get_project_vars(fobos=None, overrides=None):
     """
     Build the project variables dict from fobos metadata, git, and defaults.
@@ -72,6 +151,7 @@ def get_project_vars(fobos=None, overrides=None):
         "AUTHORS": "",
         "EMAIL": "",
         "YEAR": str(datetime.date.today().year),
+        "DEPENDENCIES": "",
     }
 
     if fobos is not None:
@@ -118,6 +198,14 @@ def get_project_vars(fobos=None, overrides=None):
 
     if not vars_dict["NAME"] and vars_dict["REPOSITORY_NAME"]:
         vars_dict["NAME"] = vars_dict["REPOSITORY_NAME"]
+
+    # DEPENDENCIES: fobos [dependencies] section first, git submodules as fallback
+    if fobos is not None:
+        raw_deps = fobos.get_dependencies()
+        if raw_deps:
+            vars_dict["DEPENDENCIES"] = _fobos_deps_to_fpm(raw_deps)
+    if not vars_dict["DEPENDENCIES"]:
+        vars_dict["DEPENDENCIES"] = _git_submodule_deps_to_fpm()
 
     if overrides:
         for key, val in overrides.items():
@@ -254,11 +342,13 @@ class Scaffolder:
             if not self._filter(dest, files_glob):
                 continue
             abs_dest = os.path.join(self.cwd, dest)
-            canonical = self._get_canonical(entry)
             if not os.path.exists(abs_dest):
                 self.print_w(f"  MISSING  {dest}")
                 any_drift = True
-            elif self._sha256(canonical) != self._file_sha256(abs_dest):
+            elif entry["category"] == "init-only":
+                # Present and init-only: never check for drift
+                self.print_n(f"  OK       {dest}")
+            elif self._sha256(self._get_canonical(entry)) != self._file_sha256(abs_dest):
                 self.print_n(f"  OUTDATED {dest}")
                 any_drift = True
             else:
@@ -282,6 +372,8 @@ class Scaffolder:
         changed = 0
         for dest, entry in self.manifest.items():
             if not self._filter(dest, files_glob):
+                continue
+            if entry["category"] == "init-only":
                 continue
             abs_dest = os.path.join(self.cwd, dest)
             canonical = self._get_canonical(entry)
