@@ -15,7 +15,8 @@ fobis commit [options]
 | `--backend TEXT` | `-b` | LLM backend: `ollama` (default) or `openai` |
 | `--url TEXT` | `-u` | Base URL of the LLM server (default: `http://localhost:11434`) |
 | `--model TEXT` | `-m` | Model identifier (default: `qwen3-coder:30b-a3b-q4_K_M`) |
-| `--max-diff INT` | | Maximum staged-diff characters sent to the model (default: 12 000) |
+| `--max-diff INT` | | Maximum staged-diff characters sent to the model (default: 12 000); truncation is file-boundary-aware — every file's metadata header is preserved |
+| `--refine-passes INT` | | Critique-and-rewrite iterations after the initial draft (default: 0 = single pass); 1–3 recommended for small/fast models |
 | `--apply` | | Run `git commit` with the generated message after interactive review |
 | `--config PATH` | `-c` | Path to a custom FoBiS user config file |
 | `--show-config` | | Print the effective LLM configuration and exit |
@@ -23,7 +24,15 @@ fobis commit [options]
 
 ## Description
 
-`fobis commit` reads the currently staged changes (`git diff --cached`), the recent commit history (last 15 commits, used as a style reference), and the current branch name, then sends all this context to a local LLM to generate a well-formed commit message following the Conventional Commits specification.
+`fobis commit` reads the currently staged changes and sends them to a local LLM to generate a well-formed commit message following the Conventional Commits specification.
+
+The prompt includes:
+
+- **Complete file list** — `git diff --cached --name-status`, always authoritative regardless of diff size
+- **Stat summary** — `git diff --cached --stat`
+- **Staged diff** — up to `max_diff_chars`; truncated at file boundaries (metadata headers preserved for all files even when hunks are cut)
+- **Recent commit history** — last 15 commits, used as a style reference
+- **Branch name** — gives the model deployment context
 
 The generated message is printed to standard output. Passing `--apply` prompts for confirmation and then runs `git commit -m <message>` automatically.
 
@@ -86,8 +95,14 @@ The generated file looks like:
 # Model to use for commit-message generation
 # model = qwen3-coder:30b-a3b-q4_K_M
 
-# Maximum staged-diff characters sent to the model (long diffs are truncated)
+# Maximum staged-diff characters sent to the model
+# Truncation is file-boundary-aware: every file's metadata header is preserved.
+# The complete file list is always sent separately and is never truncated.
 # max_diff_chars = 12000
+
+# Critique-and-rewrite passes after the initial draft (0 = single pass)
+# Increase to 1-3 for small/fast models that produce shallow first drafts
+# refine_passes = 0
 ```
 
 **Priority:** CLI flags → config file → hardcoded defaults.
@@ -96,6 +111,13 @@ Inspect effective settings at any time:
 
 ```bash
 fobis commit --show-config
+# Config file : /home/user/.config/fobis/config.ini
+#   [llm]
+#   backend       = ollama
+#   url           = http://localhost:11434
+#   model         = qwen3-coder:30b-a3b-q4_K_M
+#   max_diff_chars= 12000
+#   refine_passes = 0
 ```
 
 ## Examples

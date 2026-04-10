@@ -99,6 +99,7 @@ backend        = ollama
 url            = http://localhost:11434
 model          = qwen2.5-coder:7b
 max_diff_chars = 12000
+refine_passes  = 1
 ```
 
 Verify the effective configuration:
@@ -111,6 +112,7 @@ fobis commit --show-config
 #   url           = http://localhost:11434
 #   model         = qwen2.5-coder:7b
 #   max_diff_chars= 12000
+#   refine_passes = 1
 ```
 
 **Priority rule:** CLI flags always win over the config file, which wins over built-in defaults. This means you can keep a comfortable default in the config file and override per-run with `--model` or `--backend` without editing the file.
@@ -248,7 +250,7 @@ Commit messages require understanding code diffs. Models fine-tuned on code prod
 
 ### Increase `max_diff_chars` for large refactors
 
-The default limit of 12 000 characters is enough for most changes. For large refactors that touch many files, the diff may be truncated:
+The default limit of 12 000 characters is enough for most changes. For large refactors, raise it:
 
 ```bash
 fobis commit --max-diff 30000
@@ -260,6 +262,8 @@ Or set it permanently in the config file:
 [llm]
 max_diff_chars = 30000
 ```
+
+Even when the diff is truncated, `fobis commit` guarantees the model sees every staged file. It collects the complete file list separately via `git diff --cached --name-status` (which is always short, regardless of diff size) and embeds it as an authoritative section in the prompt. The model is explicitly instructed to account for all listed files — including those whose diff content was cut — by inferring their purpose from the file names and the stat block.
 
 ### Stage atomic commits before running
 
@@ -280,6 +284,25 @@ To disable thinking mode for faster output (Ollama-specific option):
 fobis commit --model qwen3-coder:30b-a3b-q4_K_M/no-think
 ```
 
+### Use refine passes with smaller models
+
+Smaller models (7B and below) sometimes produce shallow first drafts — a correct type and scope but a vague subject line, or a body that lists *what* changed rather than *why*. A critique-and-rewrite pass gives the model a second look at its own message:
+
+```bash
+fobis commit --refine-passes 1   # one critique-and-rewrite pass after the draft
+fobis commit --refine-passes 2   # two passes; diminishing returns beyond 3
+```
+
+Persist it in the config so every run benefits without an extra flag:
+
+```ini
+[llm]
+model         = qwen2.5-coder:7b
+refine_passes = 2
+```
+
+With large reasoning models (30B+) the initial draft is usually good enough — `refine_passes = 0` (the default) is fine. Use passes only when you observe consistently weak first drafts.
+
 ### Running Ollama on a remote machine
 
 If Ollama runs on a different host (e.g. a workstation with a GPU):
@@ -299,16 +322,23 @@ fobis commit --url http://192.168.1.100:11434
 
 ## How it works internally
 
-`fobis commit` builds a prompt with four sections:
+`fobis commit` builds a prompt with five sections:
 
 ```
 - Branch: develop
 
 ## Staged changes (stat)
  fobis/Scaffolder.py | 96 ++++++++++++++++++++++
+ fobis/scaffolds/manifest.ini |  12 ++-
+ tests/test_scaffold.py | 430 +++++++++++++++++++++++++++++++++++++++
  ...
 
-## Staged diff
+## Complete file list (authoritative — every staged file is here)
+M	fobis/Scaffolder.py
+M	fobis/scaffolds/manifest.ini
+A	tests/test_scaffold.py
+
+## Staged diff (may be truncated)
 diff --git a/fobis/Scaffolder.py ...
 ...
 
@@ -317,12 +347,35 @@ abc1234 feat(scaffold): add init-only category
 def5678 ci(scaffold): update ci.yml boilerplate
 ...
 
-Generate the semantic commit message for the staged changes above.
+Generate the semantic commit message for ALL staged files in the complete
+file list above.  Every entry in that list MUST be addressed — use file
+names and stat sizes for any file whose diff was omitted.
 ```
+
+### Authoritative file list
+
+The **complete file list** section comes from `git diff --cached --name-status`, which is always short and never truncated regardless of how large the diff is. Even when `--max-diff` causes diff content to be cut, the model still sees every staged file — added (`A`), modified (`M`), deleted (`D`), or renamed (`R`) — and is explicitly instructed to account for all of them.
+
+### Smart diff truncation
+
+When the staged diff exceeds `max_diff_chars`, `fobis commit` truncates at file boundaries rather than at an arbitrary byte position:
+
+1. It splits the diff at each `diff --git a/…` header.
+2. Files that fit entirely within the remaining budget are included verbatim.
+3. For files whose hunks exceed the budget, the metadata header (index line, `---`/`+++`) is preserved and a `@@ [+N chars not shown] @@` annotation marks the cut.
+4. Files for which not even the header fits are listed by name in a `[N file(s) not shown at all: …]` footer.
+
+This ensures the model always has at least the file path and diff-stat entry for every staged file, even when the full hunk content cannot fit.
+
+### Refine passes
+
+When `--refine-passes N` is used, the refine prompt carries the same authoritative file list so the model can self-critique against the complete change set — not just the files visible in the (possibly truncated) diff.
+
+### System prompt and post-processing
 
 The system prompt contains the full Conventional Commits specification, type-selection rules with good/bad examples, scope-inference guidance, body-writing guidance ("explain the *why*"), changelog-readiness rules, and three real FoBiS commit messages as few-shot examples.
 
-The response is streamed token-by-token, `<think>` blocks are stripped, and the final text is word-wrapped at 72 characters before display.
+The response is streamed token-by-token, `<think>` blocks are stripped, repeated messages (some models re-emit the message after a `---` separator) are deduplicated, and the final text is word-wrapped at 72 characters before display.
 
 ## Command reference
 
