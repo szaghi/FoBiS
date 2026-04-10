@@ -4,6 +4,21 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.7.10] — 2026-04-10
+### Added
+- **commit**: Enhance commit lifecycle logic and test coverage
+
+- **docs**: Improve commit message generation documentation
+
+
+### Fixed
+- **commit**: Streamline staged diff and prompt building logic
+
+
+### chore
+- **release**: Enforce structured argument parsing and failure recovery ⚠ BREAKING CHANGE
+
+
 ## [3.7.9] — 2026-04-10
 ### Added
 - **commit**: Enable iterative prompt refinement for commit generation
