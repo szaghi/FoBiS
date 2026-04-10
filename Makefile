@@ -17,14 +17,15 @@ test: dev
 
 ## Check linting (no fixes)
 lint: dev
-	$(VENV)/bin/ruff check .
-	$(VENV)/bin/ruff format --check .
+	$(VENV)/bin/ruff check fobis/ tests/
+	$(VENV)/bin/ruff format --check fobis/ tests/
 
 ## Auto-fix lint and format
 fmt: dev
-	$(VENV)/bin/ruff check --fix .
-	$(VENV)/bin/ruff format .
+	$(VENV)/bin/ruff check --fix fobis/ tests/
+	$(VENV)/bin/ruff format fobis/ tests/
 
 ## Remove build artifacts
 clean:
-	rm -rf dist/ *.egg-info/ .pytest_cache/ .ruff_cache/ __pycache__/
+	rm -rf dist/ build/ *.egg-info .pytest_cache .ruff_cache .coverage coverage.xml
+	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null; true

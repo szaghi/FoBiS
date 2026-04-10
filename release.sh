@@ -12,6 +12,7 @@
 set -euo pipefail
 
 FOBIS_INIT="fobis/__init__.py"
+TRUNK="master"
 
 die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
@@ -35,6 +36,39 @@ bump() {
     patch) echo "${major}.${minor}.$((patch + 1))" ;;
   esac
 }
+
+# ── stage tracking + recovery trap ───────────────────────────────────────────
+STAGE="preflight"
+NEW_VER=""
+
+on_error() {
+  echo ""
+  echo "================================================================"
+  echo "  release.sh FAILED at stage: $STAGE"
+  echo "================================================================"
+  case "$STAGE" in
+    preflight | lint | confirm)
+      echo "  Nothing was changed. Fix the issue above and re-run."
+      ;;
+    bumped)
+      echo "  Version bump and changelog were modified locally but not committed."
+      echo "  To discard and start over:"
+      echo "    git checkout -- $FOBIS_INIT docs/guide/changelog.md"
+      ;;
+    committed)
+      echo "  Version bump was committed but not tagged/pushed. To resume:"
+      echo "    git tag -a v${NEW_VER} -m \"Release v${NEW_VER}\""
+      echo "    git push origin ${TRUNK} --follow-tags"
+      ;;
+    tagged)
+      echo "  Tag v${NEW_VER} was created locally but not pushed. To resume:"
+      echo "    git push origin ${TRUNK} --follow-tags"
+      ;;
+  esac
+  echo "================================================================"
+}
+
+trap 'on_error' ERR
 
 # ── argument parsing ──────────────────────────────────────────────────────────
 [[ $# -ge 1 ]] || usage
@@ -60,68 +94,59 @@ case "$BUMP_ARG" in
 esac
 
 # ── pre-flight checks ─────────────────────────────────────────────────────────
+STAGE="preflight"
 [[ -f "$FOBIS_INIT" ]]          || die "$FOBIS_INIT not found — run from the repo root"
 command -v git-cliff >/dev/null || die "'git-cliff' not found (install: pipx install git-cliff)"
 
-# Resolve the build command: prefer 'python -m build', fall back to 'pyproject-build' (pipx)
-if python -m build --version >/dev/null 2>&1; then
-  BUILD_CMD="python -m build"
-elif command -v pyproject-build >/dev/null 2>&1; then
-  BUILD_CMD="pyproject-build"
-else
-  die "'build' not found — install it: pipx install build  OR  pip install build"
-fi
-
 CURRENT_BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || true)
-[[ "$CURRENT_BRANCH" == "master" ]] \
-  || die "must be on 'master' branch (currently on '$CURRENT_BRANCH')"
+[[ "$CURRENT_BRANCH" == "$TRUNK" ]] \
+  || die "must be on '$TRUNK' branch (currently on '$CURRENT_BRANCH')"
 [[ -z "$(git status --porcelain)" ]] \
   || die "working tree is not clean — commit or stash changes first"
 
 git fetch --tags --quiet
 [[ -z "$(git tag -l "v${NEW_VER}")" ]] || die "tag v${NEW_VER} already exists"
 
-MASTER_BEHIND=$(git rev-list --count HEAD..origin/master 2>/dev/null || echo 0)
-[[ "$MASTER_BEHIND" -eq 0 ]] || die "master is ${MASTER_BEHIND} commit(s) behind origin/master — run: git pull origin master"
+BEHIND=$(git rev-list --count HEAD..origin/${TRUNK} 2>/dev/null || echo 0)
+[[ "$BEHIND" -eq 0 ]] \
+  || die "${TRUNK} is ${BEHIND} commit(s) behind origin/${TRUNK} — run: git pull origin ${TRUNK}"
 
-# ── lint ──────────────────────────────────────────────────────────────────────
-info "Running lint checks"
-.venv/bin/ruff check . || die "lint failed — run 'make fmt' to fix"
-.venv/bin/ruff format --check . || die "formatting check failed — run 'make fmt' to fix"
+# ── lint / format check ───────────────────────────────────────────────────────
+STAGE="lint"
+info "Running ruff lint + format check"
+.venv/bin/ruff check fobis/ tests/        || die "lint failed — run 'make fmt' to fix, then retry"
+.venv/bin/ruff format --check fobis/ tests/ || die "format check failed — run 'make fmt' to fix, then retry"
 
 # ── confirm ───────────────────────────────────────────────────────────────────
+STAGE="confirm"
 echo "  Current version : $CUR_VER"
 echo "  New version     : $NEW_VER"
 echo
 read -r -p "Proceed? [y/N] " confirm
 [[ "$confirm" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 0; }
 
-# ── bump version ──────────────────────────────────────────────────────────────
+# ── bump version + changelog ──────────────────────────────────────────────────
+STAGE="bumped"
 info "Bumping version ($CUR_VER → $NEW_VER)"
 sed -i "s/__version__ = \"${CUR_VER}\"/__version__ = \"${NEW_VER}\"/" "$FOBIS_INIT"
 grep -q "__version__ = \"${NEW_VER}\"" "$FOBIS_INIT" || die "version bump in $FOBIS_INIT failed"
 
-# ── generate changelog ────────────────────────────────────────────────────────
 info "Generating docs/guide/changelog.md with git-cliff"
+mkdir -p docs/guide
 git-cliff --tag "v${NEW_VER}" -o docs/guide/changelog.md
 
-# ── run tests ─────────────────────────────────────────────────────────────────
 info "Running test suite"
 .venv/bin/pytest
 
-# ── commit, tag ───────────────────────────────────────────────────────────────
-info "Committing version bump and tagging v${NEW_VER}"
+# ── commit, tag, push ─────────────────────────────────────────────────────────
+STAGE="committed"
 git add "$FOBIS_INIT" docs/guide/changelog.md
 git commit -m "chore(release): bump version to v${NEW_VER}"
+
+STAGE="tagged"
 git tag -a "v${NEW_VER}" -m "Release v${NEW_VER}"
 
-# ── build distribution ────────────────────────────────────────────────────────
-info "Building distribution with $BUILD_CMD"
-$BUILD_CMD
+info "Pushing ${TRUNK} + tag to origin (CI will publish to PyPI)"
+git push origin "${TRUNK}" --follow-tags
 
-# ── push master + tag ─────────────────────────────────────────────────────────
-info "Pushing master + tag to origin"
-git push --follow-tags origin master
-
-# ── PyPI upload is triggered by the tag push via CI ───────────────────────────
-info "Done — v${NEW_VER} released (PyPI upload triggered by tag push via CI)"
+info "Done — v${NEW_VER} released"
