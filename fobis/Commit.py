@@ -174,6 +174,28 @@ def build_prompt(stat: str, diff: str, commits: str, branch: str = "") -> str:
     )
 
 
+def build_refine_prompt(draft: str, stat: str, diff: str, commits: str) -> str:
+    """Build a critique-and-rewrite prompt that feeds the draft back to the model."""
+    return (
+        "You produced this commit message for the staged diff:\n\n"
+        f"{draft}\n\n"
+        "## Staged changes (stat)\n\n"
+        f"{stat}\n\n"
+        "## Staged diff\n\n"
+        f"{diff}\n\n"
+        "## Recent commits (style reference)\n\n"
+        f"{commits}\n\n"
+        "Critique the draft against these questions, then rewrite it:\n"
+        "1. Does the subject line accurately name the primary change type and scope?\n"
+        "2. Does it cover ALL changed files — not just the most obvious one?\n"
+        "3. Does the body explain *why* this change was made, not just *what* changed?\n"
+        "4. Is there a breaking change that was missed or an issue reference that should be added?\n"
+        "5. Is the style consistent with the recent commit history?\n\n"
+        "Output ONLY the final improved commit message — no preamble, no critique text, "
+        "no markdown fences."
+    )
+
+
 # ── LLM backends ──────────────────────────────────────────────────────────────
 
 
@@ -292,6 +314,7 @@ def generate(
     url: str,
     model: str,
     max_diff_chars: int,
+    refine_passes: int = 0,
     print_n=print,
     print_w=print,
 ) -> str:
@@ -308,6 +331,9 @@ def generate(
         Model identifier.
     max_diff_chars : int
         Maximum diff characters to include in the prompt.
+    refine_passes : int
+        Number of critique-and-rewrite iterations after the initial draft.
+        0 = single pass (default). 1–3 recommended for small models.
     print_n, print_w : callable
         Normal / warning message printers.
 
@@ -324,13 +350,21 @@ def generate(
     diff = staged_diff(max_diff_chars)
     commits = recent_commits()
     branch = current_branch()
-    prompt = build_prompt(stat, diff, commits, branch=branch)
+
+    def _ask(prompt: str) -> str:
+        if backend == "openai":
+            return ask_openai(url, model, prompt)
+        return ask_ollama(url, model, prompt)
 
     print_n(f"[{backend}:{model}] Generating commit message…")
+    prompt = build_prompt(stat, diff, commits, branch=branch)
+    raw = _ask(prompt)
+    draft = wrap_message(_take_first_message(_strip_think_tags(raw)))
 
-    if backend == "openai":
-        raw = ask_openai(url, model, prompt)
-    else:
-        raw = ask_ollama(url, model, prompt)
+    for i in range(refine_passes):
+        print_n(f"[{backend}:{model}] Refining… (pass {i + 1}/{refine_passes})")
+        refine_prompt = build_refine_prompt(draft, stat, diff, commits)
+        raw = _ask(refine_prompt)
+        draft = wrap_message(_take_first_message(_strip_think_tags(raw)))
 
-    return wrap_message(_take_first_message(_strip_think_tags(raw)))
+    return draft

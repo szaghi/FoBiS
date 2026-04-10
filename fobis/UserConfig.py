@@ -46,6 +46,10 @@ _TEMPLATE = """\
 
 # Maximum staged-diff characters sent to the model (long diffs are truncated)
 # max_diff_chars = 12000
+
+# Critique-and-rewrite passes after the initial draft (0 = single pass)
+# Increase to 1–3 for small/fast models that produce shallow first drafts
+# refine_passes = 0
 """
 
 _BACKENDS = ("ollama", "openai")
@@ -61,6 +65,7 @@ class UserConfig:
     DEFAULT_URL = "http://localhost:11434"
     DEFAULT_MODEL = "qwen3-coder:30b-a3b-q4_K_M"
     DEFAULT_MAX_DIFF_CHARS = 12_000
+    DEFAULT_REFINE_PASSES = 0
 
     def __init__(self, path: str | None = None) -> None:
         self.path = path or _DEFAULT_CONFIG_PATH
@@ -89,6 +94,10 @@ class UserConfig:
     def llm_max_diff_chars(self) -> int:
         return int(self._get("llm", "max_diff_chars", str(self.DEFAULT_MAX_DIFF_CHARS)))
 
+    @property
+    def llm_refine_passes(self) -> int:
+        return int(self._get("llm", "refine_passes", str(self.DEFAULT_REFINE_PASSES)))
+
     # ── Helpers ───────────────────────────────────────────────────────────────
 
     def create_default(self) -> None:
@@ -108,5 +117,6 @@ class UserConfig:
             f"  url           = {self.llm_url}",
             f"  model         = {self.llm_model}",
             f"  max_diff_chars= {self.llm_max_diff_chars}",
+            f"  refine_passes = {self.llm_refine_passes}",
         ]
         return "\n".join(lines)

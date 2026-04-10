@@ -329,12 +329,15 @@ def run_fobis_commit(configuration):
     url = getattr(cliargs, "url", None) or ucfg.llm_url
     model = getattr(cliargs, "model", None) or ucfg.llm_model
     max_diff = getattr(cliargs, "max_diff", None) or ucfg.llm_max_diff_chars
+    refine_passes_cli = getattr(cliargs, "refine_passes", None)
+    refine_passes = refine_passes_cli if refine_passes_cli is not None else ucfg.llm_refine_passes
 
     message = generate(
         backend=backend,
         url=url,
         model=model,
         max_diff_chars=max_diff,
+        refine_passes=refine_passes,
         print_n=configuration.print_b,
         print_w=configuration.print_r,
     )

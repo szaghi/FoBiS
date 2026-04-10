@@ -22,6 +22,14 @@ _MaxDiffOpt = Annotated[
     int | None,
     typer.Option("--max-diff", help="Maximum staged-diff characters sent to the model."),
 ]
+_RefinePasses = Annotated[
+    int | None,
+    typer.Option(
+        "--refine-passes",
+        help="Critique-and-rewrite iterations after the initial draft (0 = single pass). "
+        "Recommended: 1–3 for small/fast models.",
+    ),
+]
 _ApplyOpt = Annotated[
     bool,
     typer.Option("--apply", help="Run `git commit` with the generated message after review."),
@@ -47,6 +55,7 @@ def cmd_commit(
     url: _UrlOpt = None,
     model: _ModelOpt = None,
     max_diff: _MaxDiffOpt = None,
+    refine_passes: _RefinePasses = None,
     apply: _ApplyOpt = False,
     config: _ConfigOpt = None,
     show_config: _ShowConfigOpt = False,
@@ -60,6 +69,7 @@ def cmd_commit(
         url=url,
         model=model,
         max_diff=max_diff,
+        refine_passes=refine_passes,
         apply=apply,
         config=config,
         show_config=show_config,
