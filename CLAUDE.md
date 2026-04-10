@@ -25,13 +25,13 @@ make clean  # remove dist/, *.egg-info/, .pytest_cache/, .ruff_cache/, __pycache
 ./release.sh --major    # X.Y.Z → X+1.0.0
 ./release.sh 3.7.0      # explicit version
 
-# What release.sh does:
-# 1. Creates release/vX.Y.Z branch
+# What release.sh does (trunk-based — must be on master):
+# 1. Runs ruff lint + format checks (abort if failing)
 # 2. Bumps __version__ in fobis/__init__.py
 # 3. Regenerates docs/guide/changelog.md via git-cliff (CHANGELOG.md is a symlink to it)
 # 4. Runs pytest
-# 5. Commits + merges to master + tags vX.Y.Z + pushes
-# 6. Merges master back to develop + pushes
+# 5. Commits version bump + tags vX.Y.Z
+# 6. git push --follow-tags origin master
 # 7. Tag push triggers CI: lint → test → build → publish (PyPI via OIDC)
 ```
 
