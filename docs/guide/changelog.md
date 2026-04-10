@@ -4,6 +4,19 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.7.9] — 2026-04-10
+### Added
+- **commit**: Enable iterative prompt refinement for commit generation
+
+
+### Performance
+- **doc**: Normalize en dash to hyphen in docstrings
+
+
+### chore
+- **release**: Adopt trunk-based workflow for versioning ⚠ BREAKING CHANGE
+
+
 ## [3.7.7] — 2026-04-01
 ### Fixed
 - **scaffold**: Adjust ford.md src_dir path and update package.json dependencies
