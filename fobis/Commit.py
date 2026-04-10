@@ -97,6 +97,16 @@ Changelog readiness:
   - Use BREAKING CHANGE: footer (not inline) so git-cliff/release-please detect it
   - Reference issues in footers for traceability
 
+All-files coverage (critical — violations are the most common mistake):
+  - The stat section lists EVERY staged file. Your message MUST account for all of them.
+  - Never write a message that focuses on one file and silently omits the others.
+  - When the diff is truncated, the stat and the "[files not shown]" note tell you what
+    was cut. Infer the purpose of those files from their names and sizes, then describe
+    them — do not pretend they do not exist.
+  - If several files belong to the same logical change, group them under one type/scope.
+    If they represent genuinely separate concerns, prefer a scope that covers the whole
+    (e.g. "tests") over one that names only a single module.
+
 Never add co-authors. Output ONLY the raw commit message — no explanations,
 no markdown fences, no "here is your commit message" preamble.
 Output EXACTLY ONE commit message and then stop. Do not output multiple messages.
@@ -144,11 +154,57 @@ def staged_stat() -> str:
     return _git("diff", "--cached", "--stat")
 
 
+def staged_files() -> str:
+    """Return a complete list of all staged files with their status (A/M/D/R)."""
+    return _git("diff", "--cached", "--name-status")
+
+
 def staged_diff(max_chars: int) -> str:
+    """Return the staged unified diff, truncated at file boundaries when needed.
+
+    When the full diff exceeds *max_chars*, each file's metadata header is
+    preserved so the model can see every changed file, even if its hunks are
+    omitted.  Files for which not even the header fits are listed explicitly at
+    the end.
+    """
     diff = _git("diff", "--cached", "--unified=3")
-    if len(diff) > max_chars:
-        diff = diff[:max_chars] + f"\n\n[diff truncated — showing first {max_chars} chars]"
-    return diff
+    if len(diff) <= max_chars:
+        return diff
+
+    # Locate the start position of every per-file section.
+    boundaries = [m.start() for m in re.finditer(r"^diff --git ", diff, re.MULTILINE)]
+    boundaries.append(len(diff))  # sentinel
+
+    parts: list[str] = []
+    budget = max_chars
+    fully_omitted: list[str] = []
+
+    for i in range(len(boundaries) - 1):
+        chunk = diff[boundaries[i] : boundaries[i + 1]]
+        fname_match = re.match(r"diff --git a/\S+ b/(\S+)", chunk)
+        fname = fname_match.group(1) if fname_match else "?"
+
+        if len(chunk) <= budget:
+            parts.append(chunk)
+            budget -= len(chunk)
+        else:
+            # Always show the metadata header (everything before the first hunk).
+            hunk = re.search(r"^@@", chunk, re.MULTILINE)
+            header_end = hunk.start() if hunk else len(chunk)
+            header = chunk[:header_end]
+            if budget >= len(header) + 40:
+                omitted = len(chunk) - len(header)
+                parts.append(header + f"@@ [+{omitted} chars not shown] @@\n")
+                budget -= len(header) + 40
+            else:
+                fully_omitted.append(fname)
+
+    if fully_omitted:
+        parts.append(
+            f"\n[{len(fully_omitted)} file(s) not shown at all: {', '.join(fully_omitted)}]\n"
+        )
+
+    return "".join(parts)
 
 
 def current_branch() -> str:
@@ -160,34 +216,46 @@ def recent_commits(n: int = 15) -> str:
     return _git("log", "--oneline", f"-{n}")
 
 
-def build_prompt(stat: str, diff: str, commits: str, branch: str = "") -> str:
+def build_prompt(stat: str, diff: str, commits: str, branch: str = "", files: str = "") -> str:
     branch_line = f"- Branch: {branch}\n" if branch else ""
+    files_section = (
+        "## Complete file list (authoritative — every staged file is here)\n\n"
+        f"{files}\n\n"
+    ) if files else ""
     return (
         f"{branch_line}"
         "## Staged changes (stat)\n\n"
         f"{stat}\n\n"
-        "## Staged diff\n\n"
+        f"{files_section}"
+        "## Staged diff (may be truncated)\n\n"
         f"{diff}\n\n"
         "## Recent commits (style reference)\n\n"
         f"{commits}\n\n"
-        "Generate the semantic commit message for the staged changes above."
+        "Generate the semantic commit message for ALL staged files in the complete file list above.\n"
+        "Every entry in that list MUST be addressed — use file names and stat sizes for any file\n"
+        "whose diff was omitted."
     )
 
 
-def build_refine_prompt(draft: str, stat: str, diff: str, commits: str) -> str:
+def build_refine_prompt(draft: str, stat: str, diff: str, commits: str, files: str = "") -> str:
     """Build a critique-and-rewrite prompt that feeds the draft back to the model."""
+    files_section = (
+        "## Complete file list (authoritative — every staged file is here)\n\n"
+        f"{files}\n\n"
+    ) if files else ""
     return (
         "You produced this commit message for the staged diff:\n\n"
         f"{draft}\n\n"
         "## Staged changes (stat)\n\n"
         f"{stat}\n\n"
-        "## Staged diff\n\n"
+        f"{files_section}"
+        "## Staged diff (may be truncated)\n\n"
         f"{diff}\n\n"
         "## Recent commits (style reference)\n\n"
         f"{commits}\n\n"
         "Critique the draft against these questions, then rewrite it:\n"
         "1. Does the subject line accurately name the primary change type and scope?\n"
-        "2. Does it cover ALL changed files — not just the most obvious one?\n"
+        "2. Does it account for EVERY file in the complete file list — not just the most visible one?\n"
         "3. Does the body explain *why* this change was made, not just *what* changed?\n"
         "4. Is there a breaking change that was missed or an issue reference that should be added?\n"
         "5. Is the style consistent with the recent commit history?\n\n"
@@ -347,6 +415,7 @@ def generate(
         print_w("Nothing staged. Run `git add <files>` first.")
         sys.exit(1)
 
+    files = staged_files()
     diff = staged_diff(max_diff_chars)
     commits = recent_commits()
     branch = current_branch()
@@ -357,13 +426,13 @@ def generate(
         return ask_ollama(url, model, prompt)
 
     print_n(f"[{backend}:{model}] Generating commit message…")
-    prompt = build_prompt(stat, diff, commits, branch=branch)
+    prompt = build_prompt(stat, diff, commits, branch=branch, files=files)
     raw = _ask(prompt)
     draft = wrap_message(_take_first_message(_strip_think_tags(raw)))
 
     for i in range(refine_passes):
         print_n(f"[{backend}:{model}] Refining… (pass {i + 1}/{refine_passes})")
-        refine_prompt = build_refine_prompt(draft, stat, diff, commits)
+        refine_prompt = build_refine_prompt(draft, stat, diff, commits, files=files)
         raw = _ask(refine_prompt)
         draft = wrap_message(_take_first_message(_strip_think_tags(raw)))
 
