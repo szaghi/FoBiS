@@ -10,11 +10,11 @@
     "debug": "^4.4.3",
     "markdown-it-mathjax3": "^4.3.2",
     "mermaid": "^11.0.0",
-    "vitepress": "^1.6.3",
-    "vitepress-plugin-mermaid": "^2.0.0"
+    "vitepress": "^2.0.0-alpha.17"
   },
   "overrides": {
     "esbuild": ">=0.25.0",
-    "@xmldom/xmldom": ">=0.9.9"
+    "@xmldom/xmldom": ">=0.9.9",
+    "lodash-es": ">=4.18.1"
   }
 }
