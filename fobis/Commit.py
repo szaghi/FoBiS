@@ -333,7 +333,7 @@ def generate(
         Maximum diff characters to include in the prompt.
     refine_passes : int
         Number of critique-and-rewrite iterations after the initial draft.
-        0 = single pass (default). 1–3 recommended for small models.
+        0 = single pass (default). 1-3 recommended for small models.
     print_n, print_w : callable
         Normal / warning message printers.
 

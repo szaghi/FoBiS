@@ -48,7 +48,7 @@ _TEMPLATE = """\
 # max_diff_chars = 12000
 
 # Critique-and-rewrite passes after the initial draft (0 = single pass)
-# Increase to 1–3 for small/fast models that produce shallow first drafts
+# Increase to 1-3 for small/fast models that produce shallow first drafts
 # refine_passes = 0
 """
 

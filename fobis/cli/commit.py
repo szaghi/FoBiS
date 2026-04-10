@@ -27,7 +27,7 @@ _RefinePasses = Annotated[
     typer.Option(
         "--refine-passes",
         help="Critique-and-rewrite iterations after the initial draft (0 = single pass). "
-        "Recommended: 1–3 for small/fast models.",
+        "Recommended: 1-3 for small/fast models.",
     ),
 ]
 _ApplyOpt = Annotated[
