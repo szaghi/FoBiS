@@ -200,9 +200,7 @@ def staged_diff(max_chars: int) -> str:
                 fully_omitted.append(fname)
 
     if fully_omitted:
-        parts.append(
-            f"\n[{len(fully_omitted)} file(s) not shown at all: {', '.join(fully_omitted)}]\n"
-        )
+        parts.append(f"\n[{len(fully_omitted)} file(s) not shown at all: {', '.join(fully_omitted)}]\n")
 
     return "".join(parts)
 
@@ -219,9 +217,8 @@ def recent_commits(n: int = 15) -> str:
 def build_prompt(stat: str, diff: str, commits: str, branch: str = "", files: str = "") -> str:
     branch_line = f"- Branch: {branch}\n" if branch else ""
     files_section = (
-        "## Complete file list (authoritative — every staged file is here)\n\n"
-        f"{files}\n\n"
-    ) if files else ""
+        (f"## Complete file list (authoritative — every staged file is here)\n\n{files}\n\n") if files else ""
+    )
     return (
         f"{branch_line}"
         "## Staged changes (stat)\n\n"
@@ -240,9 +237,8 @@ def build_prompt(stat: str, diff: str, commits: str, branch: str = "", files: st
 def build_refine_prompt(draft: str, stat: str, diff: str, commits: str, files: str = "") -> str:
     """Build a critique-and-rewrite prompt that feeds the draft back to the model."""
     files_section = (
-        "## Complete file list (authoritative — every staged file is here)\n\n"
-        f"{files}\n\n"
-    ) if files else ""
+        (f"## Complete file list (authoritative — every staged file is here)\n\n{files}\n\n") if files else ""
+    )
     return (
         "You produced this commit message for the staged diff:\n\n"
         f"{draft}\n\n"

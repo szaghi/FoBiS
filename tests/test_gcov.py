@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
-
 from fobis.Gcov import Gcov, _mermaid_pie
-
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -151,7 +148,7 @@ def test_gcov_parse_lcov_excl_line(tmp_path):
     g.parse()
     # Line 1 is normal unexecuted → 0; line 2 has LCOV_EXCL_LINE → None
     # Coverage list index 0 = line 1, index 1 = line 2
-    assert g.coverage[0] == 0   # normal #####
+    assert g.coverage[0] == 0  # normal #####
     assert g.coverage[1] is None  # LCOV_EXCL_LINE suppressed
 
 
@@ -181,10 +178,7 @@ def test_gcov_parse_lcov_nested_start_warns(tmp_path, capsys):
 
 def test_gcov_parse_lcov_end_outside_zone_warns(tmp_path, capsys):
     """LCOV_EXCL_END without a matching START emits a warning to stderr."""
-    content = (
-        "        -:    0:Source:x.f90\n"
-        "       10:    1:  end !LCOV_EXCL_END\n"
-    )
+    content = "        -:    0:Source:x.f90\n       10:    1:  end !LCOV_EXCL_END\n"
     path = _write_gcov(tmp_path, "stray_end.gcov", content)
     g = Gcov(filename=path)
     g.parse()
@@ -201,7 +195,8 @@ def test_gcov_save_markdown_report(tmp_path):
     g.parse()
     out_path = str(tmp_path / "report.md")
     g.save(output=out_path)
-    text = open(out_path).read()
+    with open(out_path) as fh:
+        text = fh.read()
     assert "Coverage" in text or "coverage" in text.lower()
     assert "Executed" in text
     assert "Unexecuted" in text
@@ -214,7 +209,8 @@ def test_gcov_save_includes_procedure_tables(tmp_path):
     g.parse()
     out_path = str(tmp_path / "report.md")
     g.save(output=out_path)
-    text = open(out_path).read()
+    with open(out_path) as fh:
+        text = fh.read()
     assert "executed_sub" in text or "Executed procedures" in text
     assert "unexecuted_sub" in text or "Unexecuted procedures" in text
 

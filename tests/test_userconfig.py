@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from fobis.UserConfig import UserConfig
 
 
@@ -19,12 +17,7 @@ def test_defaults_with_no_file(tmp_path):
 def test_custom_values_from_file(tmp_path):
     cfg_path = tmp_path / "config.ini"
     cfg_path.write_text(
-        "[llm]\n"
-        "backend = openai\n"
-        "url = http://localhost:1234\n"
-        "model = gpt4\n"
-        "max_diff_chars = 5000\n"
-        "refine_passes = 2\n"
+        "[llm]\nbackend = openai\nurl = http://localhost:1234\nmodel = gpt4\nmax_diff_chars = 5000\nrefine_passes = 2\n"
     )
     cfg = UserConfig(path=str(cfg_path))
     assert cfg.llm_backend == "openai"

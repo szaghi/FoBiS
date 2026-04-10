@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -15,7 +14,6 @@ from fobis.Scaffolder import (
     _resolve_dep_url,
     get_project_vars,
 )
-
 
 # ── Fixtures ───────────────────────────────────────────────────────────────────
 
@@ -122,9 +120,7 @@ def test_git_submodule_deps_to_fpm_empty_gitmodules(tmp_path):
 
 def test_git_submodule_deps_to_fpm_with_submodule(tmp_path):
     (tmp_path / ".gitmodules").write_text(
-        '[submodule "PENF"]\n'
-        "    path = vendor/PENF\n"
-        "    url = https://github.com/szaghi/PENF\n"
+        '[submodule "PENF"]\n    path = vendor/PENF\n    url = https://github.com/szaghi/PENF\n'
     )
     with patch("fobis.Scaffolder.syswork", return_value=(0, " abc1234 vendor/PENF (v1.0)\n")):
         result = _git_submodule_deps_to_fpm(cwd=str(tmp_path))
@@ -137,9 +133,7 @@ def test_git_submodule_deps_to_fpm_with_submodule(tmp_path):
 def test_git_submodule_deps_to_fpm_git_failure(tmp_path):
     """When git submodule status fails, URLs are still emitted without rev."""
     (tmp_path / ".gitmodules").write_text(
-        '[submodule "mylib"]\n'
-        "    path = vendor/mylib\n"
-        "    url = https://github.com/user/mylib\n"
+        '[submodule "mylib"]\n    path = vendor/mylib\n    url = https://github.com/user/mylib\n'
     )
     with patch("fobis.Scaffolder.syswork", return_value=(1, "")):
         result = _git_submodule_deps_to_fpm(cwd=str(tmp_path))
@@ -218,7 +212,7 @@ def test_scaffolder_loads_manifest(tmp_path):
     s, _ = _make_scaffolder(tmp_path)
     manifest = s.manifest
     assert len(manifest) > 0
-    for dest, entry in manifest.items():
+    for _dest, entry in manifest.items():
         assert "source" in entry
         assert "category" in entry
         assert entry["category"] in ("verbatim", "templated", "init-only")
@@ -258,13 +252,9 @@ def test_status_reports_missing_files(tmp_path):
 def test_status_reports_ok_for_up_to_date_verbatim(tmp_path):
     s, messages = _make_scaffolder(tmp_path)
     # Pick a verbatim entry and write its canonical content
-    verbatim_entry = next(
-        (dest, entry)
-        for dest, entry in s.manifest.items()
-        if entry["category"] == "verbatim"
-    )
-    dest, entry = verbatim_entry
-    canonical = s._get_canonical(entry)
+    verbatim_entry = next((dest, entry) for dest, entry in s.manifest.items() if entry["category"] == "verbatim")
+    dest, _entry = verbatim_entry
+    canonical = s._get_canonical(_entry)
     abs_path = tmp_path / dest
     abs_path.parent.mkdir(parents=True, exist_ok=True)
     abs_path.write_text(canonical, encoding="utf-8")
@@ -276,12 +266,8 @@ def test_status_reports_ok_for_up_to_date_verbatim(tmp_path):
 
 def test_status_reports_outdated_for_modified_file(tmp_path):
     s, messages = _make_scaffolder(tmp_path)
-    verbatim_entry = next(
-        (dest, entry)
-        for dest, entry in s.manifest.items()
-        if entry["category"] == "verbatim"
-    )
-    dest, entry = verbatim_entry
+    verbatim_entry = next((dest, entry) for dest, entry in s.manifest.items() if entry["category"] == "verbatim")
+    dest, _entry = verbatim_entry
     abs_path = tmp_path / dest
     abs_path.parent.mkdir(parents=True, exist_ok=True)
     abs_path.write_text("wrong content that differs from template", encoding="utf-8")
@@ -293,12 +279,8 @@ def test_status_reports_outdated_for_modified_file(tmp_path):
 
 def test_status_init_only_present_reports_ok(tmp_path):
     s, messages = _make_scaffolder(tmp_path)
-    init_only_entry = next(
-        (dest, entry)
-        for dest, entry in s.manifest.items()
-        if entry["category"] == "init-only"
-    )
-    dest, entry = init_only_entry
+    init_only_entry = next((dest, entry) for dest, entry in s.manifest.items() if entry["category"] == "init-only")
+    dest, _entry = init_only_entry
     abs_path = tmp_path / dest
     abs_path.parent.mkdir(parents=True, exist_ok=True)
     abs_path.write_text("anything — init-only files are never OUTDATED", encoding="utf-8")
@@ -319,7 +301,7 @@ def test_status_strict_exits_when_drift(tmp_path):
 
 
 def test_sync_dry_run_does_not_write_files(tmp_path):
-    s, messages = _make_scaffolder(tmp_path)
+    s, _ = _make_scaffolder(tmp_path)
     s.sync(dry_run=True, yes=True)
     # No files should have been created under cwd
     created = [f for f in tmp_path.rglob("*") if f.is_file()]
@@ -331,10 +313,6 @@ def test_sync_yes_writes_missing_files(tmp_path):
     s.sync(yes=True)
     assert any("Written" in m for m in messages)
     # At least some non-init-only files should now exist
-    non_init = [
-        dest for dest, entry in s.manifest.items()
-        if entry["category"] != "init-only"
-    ]
     created = [f for f in tmp_path.rglob("*") if f.is_file()]
     assert len(created) > 0
 
@@ -343,8 +321,6 @@ def test_sync_skips_up_to_date_files(tmp_path):
     s, messages = _make_scaffolder(tmp_path)
     # First sync: creates everything
     s.sync(yes=True)
-    written_count_1 = sum(1 for m in messages if "Written" in m)
-
     messages.clear()
     # Second sync: nothing should change
     s.sync(yes=True)
@@ -355,10 +331,7 @@ def test_sync_skips_up_to_date_files(tmp_path):
 def test_sync_skips_init_only_files(tmp_path):
     s, messages = _make_scaffolder(tmp_path)
     # Write wrong content to an init-only file
-    init_only_dest = next(
-        dest for dest, entry in s.manifest.items()
-        if entry["category"] == "init-only"
-    )
+    init_only_dest = next(dest for dest, entry in s.manifest.items() if entry["category"] == "init-only")
     abs_path = tmp_path / init_only_dest
     abs_path.parent.mkdir(parents=True, exist_ok=True)
     abs_path.write_text("custom content that sync must not touch", encoding="utf-8")
@@ -393,8 +366,7 @@ def test_init_skips_existing_files(tmp_path):
     # Run init twice: second run must not overwrite
     s.init(yes=True)
     first_contents = {
-        str(f.relative_to(tmp_path)): f.read_text(encoding="utf-8")
-        for f in tmp_path.rglob("*") if f.is_file()
+        str(f.relative_to(tmp_path)): f.read_text(encoding="utf-8") for f in tmp_path.rglob("*") if f.is_file()
     }
     messages.clear()
     s.init(yes=True)

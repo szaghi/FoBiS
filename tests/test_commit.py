@@ -9,7 +9,6 @@ import pytest
 
 import fobis.Commit as Commit
 
-
 # ── Pure utility functions ─────────────────────────────────────────────────────
 
 
@@ -147,9 +146,8 @@ def test_post_stream_url_error_exits():
     ctx = MagicMock()
     ctx.__enter__.side_effect = urllib.error.URLError("connection refused")
     ctx.__exit__.return_value = False
-    with patch("urllib.request.urlopen", return_value=ctx):
-        with pytest.raises(SystemExit):
-            Commit._post_stream("http://localhost", {})
+    with patch("urllib.request.urlopen", return_value=ctx), pytest.raises(SystemExit):
+        Commit._post_stream("http://localhost", {})
 
 
 # ── ask_ollama / ask_openai ────────────────────────────────────────────────────
@@ -195,9 +193,8 @@ def _proc(returncode=0, stdout="", stderr=""):
 
 
 def test_git_helper_exits_on_nonzero():
-    with patch("subprocess.run", return_value=_proc(returncode=1, stderr="fatal")):
-        with pytest.raises(SystemExit):
-            Commit._git("status")
+    with patch("subprocess.run", return_value=_proc(returncode=1, stderr="fatal")), pytest.raises(SystemExit):
+        Commit._git("status")
 
 
 def test_staged_stat_returns_stripped_output():
@@ -251,13 +248,7 @@ def test_staged_diff_fits_entirely():
 def test_staged_diff_smart_truncation_shows_header():
     """When a file's diff is too large, its metadata header is preserved."""
     big_hunk = "@@ -1,100 +1,100 @@\n" + ("+" + "x" * 70 + "\n") * 50
-    big_diff = (
-        "diff --git a/big.py b/big.py\n"
-        "index aaa..bbb 100644\n"
-        "--- a/big.py\n"
-        "+++ b/big.py\n"
-        + big_hunk
-    )
+    big_diff = "diff --git a/big.py b/big.py\nindex aaa..bbb 100644\n--- a/big.py\n+++ b/big.py\n" + big_hunk
     with patch("subprocess.run", return_value=_proc(stdout=big_diff)):
         # Budget too small for the full diff but large enough for the header
         result = Commit.staged_diff(200)
@@ -272,8 +263,7 @@ def test_staged_diff_fully_omitted_files_listed():
         "index aaa..bbb 100644\n"
         "--- a/huge.py\n"
         "+++ b/huge.py\n"
-        "@@ -1,500 +1,500 @@\n"
-        + ("+" + "x" * 70 + "\n") * 200
+        "@@ -1,500 +1,500 @@\n" + ("+" + "x" * 70 + "\n") * 200
     )
     with patch("subprocess.run", return_value=_proc(stdout=big_diff)):
         result = Commit.staged_diff(10)  # impossibly small budget
@@ -304,9 +294,8 @@ _STAGED_FILES = "M\tfobis/Commit.py\nA\ttests/test_commit.py"
 
 
 def test_generate_nothing_staged_exits():
-    with patch("fobis.Commit.staged_stat", return_value=""):
-        with pytest.raises(SystemExit):
-            Commit.generate("ollama", "http://localhost", "model", 1000)
+    with patch("fobis.Commit.staged_stat", return_value=""), pytest.raises(SystemExit):
+        Commit.generate("ollama", "http://localhost", "model", 1000)
 
 
 def test_generate_ollama_single_pass():
