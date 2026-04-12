@@ -52,10 +52,7 @@ def test_get_targets_empty_no_sections():
 def test_get_targets_source_and_output():
     """Target dict must contain 'source', 'output', and 'name'."""
     with tempfile.TemporaryDirectory() as root:
-        content = (
-            "[default]\ncompiler=Gnu\n\n"
-            "[target.solver]\nsource=src/solver.F90\noutput=mysolver\n"
-        )
+        content = "[default]\ncompiler=Gnu\n\n[target.solver]\nsource=src/solver.F90\noutput=mysolver\n"
         fobos = _make_fobos_with_targets(root, content)
         targets = fobos.get_targets()
         assert targets[0]["name"] == "solver"
@@ -66,10 +63,7 @@ def test_get_targets_source_and_output():
 def test_get_targets_extra_overrides():
     """Extra keys in [target.X] are included as overrides."""
     with tempfile.TemporaryDirectory() as root:
-        content = (
-            "[default]\ncompiler=Gnu\n\n"
-            "[target.solver]\nsource=src/solver.F90\noutput=solver\ncflags=-O0\n"
-        )
+        content = "[default]\ncompiler=Gnu\n\n[target.solver]\nsource=src/solver.F90\noutput=solver\ncflags=-O0\n"
         fobos = _make_fobos_with_targets(root, content)
         targets = fobos.get_targets()
         assert targets[0].get("cflags") == "-O0"
@@ -78,10 +72,7 @@ def test_get_targets_extra_overrides():
 def test_get_targets_example_prefix():
     """Section prefix 'example' finds [example.X] sections."""
     with tempfile.TemporaryDirectory() as root:
-        content = (
-            "[default]\ncompiler=Gnu\n\n"
-            "[example.demo]\nsource=examples/demo.F90\noutput=demo\n"
-        )
+        content = "[default]\ncompiler=Gnu\n\n[example.demo]\nsource=examples/demo.F90\noutput=demo\n"
         fobos = _make_fobos_with_targets(root, content)
         examples = fobos.get_targets("example")
         targets = fobos.get_targets("target")

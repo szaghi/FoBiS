@@ -53,6 +53,7 @@ def cmd_cache_clean(
     else:
         import os
         import shutil
+
         if os.path.isdir(bc.cache_dir):
             shutil.rmtree(bc.cache_dir)
             typer.echo(f"Cache directory removed: {bc.cache_dir}")

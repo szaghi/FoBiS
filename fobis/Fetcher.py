@@ -127,7 +127,7 @@ class Fetcher:
             if ref.endswith("^{}"):
                 continue
             if ref.startswith("refs/tags/"):
-                tags.append(ref[len("refs/tags/"):])
+                tags.append(ref[len("refs/tags/") :])
         return tags
 
     def resolve_semver(self, name: str, url: str, constraint: str) -> str:

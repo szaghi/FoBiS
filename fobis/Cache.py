@@ -236,11 +236,7 @@ class BuildCache:
                     continue
                 cfg = configparser.RawConfigParser()
                 cfg.read(meta_path)
-                size = sum(
-                    os.path.getsize(os.path.join(r, f))
-                    for r, _, files in os.walk(entry_path)
-                    for f in files
-                )
+                size = sum(os.path.getsize(os.path.join(r, f)) for r, _, files in os.walk(entry_path) for f in files)
                 ts = float(cfg.get("cache", "timestamp", fallback="0"))
                 entries.append(
                     CacheEntry(

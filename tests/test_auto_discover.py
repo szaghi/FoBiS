@@ -93,12 +93,7 @@ def test_explicit_src_in_fobos_disables_discovery():
             fobos_path = os.path.join(root, "fobos")
             with open(fobos_path, "w") as f:
                 f.write(
-                    "[default]\n"
-                    "compiler = Gnu\n"
-                    "src      = ./\n"
-                    "target   = main.F90\n"
-                    "output   = myprog\n"
-                    "build_dir = ./\n"
+                    "[default]\ncompiler = Gnu\nsrc      = ./\ntarget   = main.F90\noutput   = myprog\nbuild_dir = ./\n"
                 )
             prev = os.getcwd()
             os.chdir(root)
@@ -125,13 +120,7 @@ def test_verbose_output_when_discovered(capsys):
             f.write("program main\nimplicit none\nend program main\n")
         fobos_path = os.path.join(root, "fobos")
         with open(fobos_path, "w") as f:
-            f.write(
-                "[default]\n"
-                "compiler = Gnu\n"
-                "target   = main.F90\n"
-                "output   = myprog\n"
-                "build_dir = ./\n"
-            )
+            f.write("[default]\ncompiler = Gnu\ntarget   = main.F90\noutput   = myprog\nbuild_dir = ./\n")
         prev = os.getcwd()
         os.chdir(root)
         try:

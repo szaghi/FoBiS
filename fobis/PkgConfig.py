@@ -89,7 +89,7 @@ class PkgConfigGenerator:
         lname = lib_name
         for prefix_strip in ("lib",):
             if lname.startswith(prefix_strip):
-                lname = lname[len(prefix_strip):]
+                lname = lname[len(prefix_strip) :]
                 break
         # Also strip common suffixes
         for suffix in (".a", ".so", ".dylib"):

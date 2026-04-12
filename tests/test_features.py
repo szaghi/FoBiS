@@ -90,13 +90,7 @@ def test_features_explicit():
     """--features hdf5 must add -DUSE_HDF5 even when not in default."""
     with tempfile.TemporaryDirectory() as root:
         content = (
-            "[features]\n"
-            "hdf5 = -DUSE_HDF5\n\n"
-            "[default]\n"
-            "compiler = Gnu\n"
-            "cflags   = -c\n"
-            "lflags   =\n"
-            "build_profile =\n"
+            "[features]\nhdf5 = -DUSE_HDF5\n\n[default]\ncompiler = Gnu\ncflags   = -c\nlflags   =\nbuild_profile =\n"
         )
         _fobos, cliargs = _make_fobos(root, content, {"features": "hdf5"})
         assert "-DUSE_HDF5" in cliargs.cflags
@@ -134,9 +128,7 @@ def test_features_no_default_plus_explicit():
             "lflags   =\n"
             "build_profile =\n"
         )
-        _fobos, cliargs = _make_fobos(
-            root, content, {"features": "hdf5", "no_default_features": True}
-        )
+        _fobos, cliargs = _make_fobos(root, content, {"features": "hdf5", "no_default_features": True})
         assert "-DUSE_HDF5" in cliargs.cflags
         assert "-DUSE_MPI" not in cliargs.cflags
 
@@ -145,13 +137,7 @@ def test_features_unknown_warns():
     """Unknown feature name → warning emitted, no abort."""
     with tempfile.TemporaryDirectory() as root:
         content = (
-            "[features]\n"
-            "mpi = -DUSE_MPI\n\n"
-            "[default]\n"
-            "compiler = Gnu\n"
-            "cflags   = -c\n"
-            "lflags   =\n"
-            "build_profile =\n"
+            "[features]\nmpi = -DUSE_MPI\n\n[default]\ncompiler = Gnu\ncflags   = -c\nlflags   =\nbuild_profile =\n"
         )
         warnings = []
         path = os.path.join(root, "fobos")
@@ -175,13 +161,7 @@ def test_features_unknown_warns():
 def test_features_no_section_warns_with_unknown_flag():
     """fobos without [features] + --features foo (non-implicit) → warning, no crash."""
     with tempfile.TemporaryDirectory() as root:
-        content = (
-            "[default]\n"
-            "compiler = Gnu\n"
-            "cflags   = -c\n"
-            "lflags   =\n"
-            "build_profile =\n"
-        )
+        content = "[default]\ncompiler = Gnu\ncflags   = -c\nlflags   =\nbuild_profile =\n"
         warnings = []
         path = os.path.join(root, "fobos")
         with open(path, "w") as f:
@@ -279,13 +259,7 @@ def test_features_linker_only_flags():
 def test_no_features_no_extra_flags():
     """fobos mode with no feature flags → cflags unchanged."""
     with tempfile.TemporaryDirectory() as root:
-        content = (
-            "[default]\n"
-            "compiler = Gnu\n"
-            "cflags   = -c\n"
-            "lflags   =\n"
-            "build_profile =\n"
-        )
+        content = "[default]\ncompiler = Gnu\ncflags   = -c\nlflags   =\nbuild_profile =\n"
         _fobos, cliargs = _make_fobos(root, content)
         assert cliargs.cflags.strip() == "-c"
 
@@ -364,13 +338,7 @@ def test_get_default_features_returns_list():
 def test_implicit_openmp_sets_cliarg():
     """--features openmp with no [features] section sets cliargs.openmp = True."""
     with tempfile.TemporaryDirectory() as root:
-        content = (
-            "[default]\n"
-            "compiler = Gnu\n"
-            "cflags   = -c\n"
-            "lflags   =\n"
-            "build_profile =\n"
-        )
+        content = "[default]\ncompiler = Gnu\ncflags   = -c\nlflags   =\nbuild_profile =\n"
         _fobos, cliargs = _make_fobos(root, content, {"features": "openmp"})
         assert cliargs.openmp is True
 
@@ -378,13 +346,7 @@ def test_implicit_openmp_sets_cliarg():
 def test_implicit_omp_alias_sets_cliarg():
     """Short alias 'omp' is equivalent to 'openmp'."""
     with tempfile.TemporaryDirectory() as root:
-        content = (
-            "[default]\n"
-            "compiler = Gnu\n"
-            "cflags   = -c\n"
-            "lflags   =\n"
-            "build_profile =\n"
-        )
+        content = "[default]\ncompiler = Gnu\ncflags   = -c\nlflags   =\nbuild_profile =\n"
         _fobos, cliargs = _make_fobos(root, content, {"features": "omp"})
         assert cliargs.openmp is True
 
@@ -392,13 +354,7 @@ def test_implicit_omp_alias_sets_cliarg():
 def test_implicit_mpi_sets_cliarg():
     """--features mpi sets cliargs.mpi = True."""
     with tempfile.TemporaryDirectory() as root:
-        content = (
-            "[default]\n"
-            "compiler = Gnu\n"
-            "cflags   = -c\n"
-            "lflags   =\n"
-            "build_profile =\n"
-        )
+        content = "[default]\ncompiler = Gnu\ncflags   = -c\nlflags   =\nbuild_profile =\n"
         _fobos, cliargs = _make_fobos(root, content, {"features": "mpi"})
         assert cliargs.mpi is True
 
@@ -406,13 +362,7 @@ def test_implicit_mpi_sets_cliarg():
 def test_implicit_coarray_sets_cliarg():
     """--features coarray sets cliargs.coarray = True."""
     with tempfile.TemporaryDirectory() as root:
-        content = (
-            "[default]\n"
-            "compiler = Gnu\n"
-            "cflags   = -c\n"
-            "lflags   =\n"
-            "build_profile =\n"
-        )
+        content = "[default]\ncompiler = Gnu\ncflags   = -c\nlflags   =\nbuild_profile =\n"
         _fobos, cliargs = _make_fobos(root, content, {"features": "coarray"})
         assert cliargs.coarray is True
 
@@ -420,13 +370,7 @@ def test_implicit_coarray_sets_cliarg():
 def test_implicit_coverage_sets_cliarg():
     """--features coverage sets cliargs.coverage = True."""
     with tempfile.TemporaryDirectory() as root:
-        content = (
-            "[default]\n"
-            "compiler = Gnu\n"
-            "cflags   = -c\n"
-            "lflags   =\n"
-            "build_profile =\n"
-        )
+        content = "[default]\ncompiler = Gnu\ncflags   = -c\nlflags   =\nbuild_profile =\n"
         _fobos, cliargs = _make_fobos(root, content, {"features": "coverage"})
         assert cliargs.coverage is True
 
@@ -434,13 +378,7 @@ def test_implicit_coverage_sets_cliarg():
 def test_implicit_no_section_needed():
     """Implicit features work even when [features] section is absent."""
     with tempfile.TemporaryDirectory() as root:
-        content = (
-            "[default]\n"
-            "compiler = Gnu\n"
-            "cflags   = -c\n"
-            "lflags   =\n"
-            "build_profile =\n"
-        )
+        content = "[default]\ncompiler = Gnu\ncflags   = -c\nlflags   =\nbuild_profile =\n"
         _fobos, cliargs = _make_fobos(root, content, {"features": "openmp"})
         assert cliargs.openmp is True
         # no warning should have been emitted (openmp is a known implicit feature)
@@ -449,13 +387,7 @@ def test_implicit_no_section_needed():
 def test_implicit_no_section_unknown_warns():
     """Unknown feature with no [features] section still emits a warning."""
     with tempfile.TemporaryDirectory() as root:
-        content = (
-            "[default]\n"
-            "compiler = Gnu\n"
-            "cflags   = -c\n"
-            "lflags   =\n"
-            "build_profile =\n"
-        )
+        content = "[default]\ncompiler = Gnu\ncflags   = -c\nlflags   =\nbuild_profile =\n"
         warnings = []
         path = os.path.join(root, "fobos")
         with open(path, "w") as f:

@@ -280,6 +280,7 @@ class TestRunner:
             filtered = [t for t in filtered if t.get("suite") == suite_filter]
         if name_filter:
             import fnmatch
+
             filtered = [t for t in filtered if fnmatch.fnmatch(t["name"], name_filter)]
 
         suite = TestSuite()
@@ -325,8 +326,6 @@ class TestRunner:
                     for line in r.stderr.strip().splitlines():
                         lines.append(f"        {line}")
         lines.append("")
-        lines.append(
-            f"  Results: {suite.passed} passed, {suite.failed} failed, 0 skipped"
-        )
+        lines.append(f"  Results: {suite.passed} passed, {suite.failed} failed, 0 skipped")
         lines.append(f"  Total:   {suite.duration:.2f} s")
         return "\n".join(lines)

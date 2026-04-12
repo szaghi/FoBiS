@@ -155,28 +155,34 @@ def test_run_test_timeout():
 
 
 def test_suite_all_pass():
-    suite = TestSuite(results=[
-        TestResult("a", True, 0, 0.1),
-        TestResult("b", True, 0, 0.2),
-    ])
+    suite = TestSuite(
+        results=[
+            TestResult("a", True, 0, 0.1),
+            TestResult("b", True, 0, 0.2),
+        ]
+    )
     assert suite.passed == 2
     assert suite.failed == 0
     assert suite.total == 2
 
 
 def test_suite_any_fail():
-    suite = TestSuite(results=[
-        TestResult("a", True, 0, 0.1),
-        TestResult("b", False, 1, 0.2),
-    ])
+    suite = TestSuite(
+        results=[
+            TestResult("a", True, 0, 0.1),
+            TestResult("b", False, 1, 0.2),
+        ]
+    )
     assert suite.failed == 1
 
 
 def test_suite_duration():
-    suite = TestSuite(results=[
-        TestResult("a", True, 0, 1.0),
-        TestResult("b", True, 0, 2.0),
-    ])
+    suite = TestSuite(
+        results=[
+            TestResult("a", True, 0, 1.0),
+            TestResult("b", True, 0, 2.0),
+        ]
+    )
     assert abs(suite.duration - 3.0) < 1e-6
 
 

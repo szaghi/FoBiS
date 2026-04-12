@@ -39,6 +39,7 @@ def test_external_flags_merge_deduplicates_includes():
 
 def test_probe_mpi_openmpi():
     """mpifort --showme:compile returns valid flags → ExternalFlags populated."""
+
     def which_side(cmd):
         return "/usr/bin/mpifort" if cmd == "mpifort" else None
 
@@ -49,8 +50,7 @@ def test_probe_mpi_openmpi():
             return (0, "-L/usr/lib/mpi -lmpi")
         return (1, "")
 
-    with patch("shutil.which", side_effect=which_side), \
-         patch("fobis.Externals.syswork", side_effect=sw_side):
+    with patch("shutil.which", side_effect=which_side), patch("fobis.Externals.syswork", side_effect=sw_side):
         result = _probe_mpi()
 
     assert result is not None
@@ -71,6 +71,7 @@ def test_probe_mpi_not_available():
 
 def test_probe_pkgconfig_success():
     """pkg-config succeeds → ExternalFlags with parsed flags."""
+
     def sw_side(cmd):
         if "--cflags" in cmd:
             return (0, "-I/opt/blas/include")
@@ -78,8 +79,10 @@ def test_probe_pkgconfig_success():
             return (0, "-L/opt/blas/lib -lblas")
         return (1, "")
 
-    with patch("shutil.which", return_value="/usr/bin/pkg-config"), \
-         patch("fobis.Externals.syswork", side_effect=sw_side):
+    with (
+        patch("shutil.which", return_value="/usr/bin/pkg-config"),
+        patch("fobis.Externals.syswork", side_effect=sw_side),
+    ):
         result = _pkg_config("blas")
 
     assert result is not None
@@ -89,8 +92,10 @@ def test_probe_pkgconfig_success():
 
 def test_probe_pkgconfig_failure_returns_none():
     """pkg-config returns non-zero → None."""
-    with patch("shutil.which", return_value="/usr/bin/pkg-config"), \
-         patch("fobis.Externals.syswork", return_value=(1, "not found")):
+    with (
+        patch("shutil.which", return_value="/usr/bin/pkg-config"),
+        patch("fobis.Externals.syswork", return_value=(1, "not found")),
+    ):
         result = _pkg_config("nonexistent_lib")
     assert result is None
 

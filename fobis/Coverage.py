@@ -97,8 +97,10 @@ class CoverageReporter:
         obj_dir = os.path.join(self.build_dir, "obj")
         cmd_parts = [
             "gcovr",
-            "--root", self.src_dir,
-            "--object-directory", obj_dir,
+            "--root",
+            self.src_dir,
+            "--object-directory",
+            obj_dir,
         ]
         if "html" in formats:
             cmd_parts += ["--html-details", os.path.join(output_dir, "index.html")]
@@ -108,7 +110,7 @@ class CoverageReporter:
             cmd_parts += ["--txt", os.path.join(output_dir, "coverage.txt")]
         if "json" in formats:
             cmd_parts += ["--json", os.path.join(output_dir, "coverage.json")]
-        for pat in (exclude or []):
+        for pat in exclude or []:
             cmd_parts += ["--exclude", pat]
         if fail_under is not None:
             cmd_parts += ["--fail-under-line", str(int(fail_under))]
@@ -197,9 +199,7 @@ class CoverageReporter:
         if tool is None:
             tool = self.detect_tool()
         if tool is None:
-            self.print_w(
-                "No coverage tool found. Install gcovr (pip install gcovr) or lcov."
-            )
+            self.print_w("No coverage tool found. Install gcovr (pip install gcovr) or lcov.")
             return 1
 
         self.print_n(f"Using backend: {tool}")

@@ -134,12 +134,15 @@ def cmd_build(
     ] = False,
     target_filter: Annotated[
         str | None,
-        typer.Option("--target-filter", help="Build only the named target(s) from [[target.*]] sections (comma-separated)"),
+        typer.Option(
+            "--target-filter", help="Build only the named target(s) from [[target.*]] sections (comma-separated)"
+        ),
     ] = None,
 ):
     """Build all programs found or specific target(s)."""
     if list_profiles:
         from ..Profiles import list_profiles as _list_profiles
+
         typer.echo(_list_profiles())
         raise typer.Exit()
 

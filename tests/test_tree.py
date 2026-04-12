@@ -132,11 +132,7 @@ def test_dep_tree_dep_not_fetched():
     with tempfile.TemporaryDirectory() as root:
         fobos_path = os.path.join(root, "fobos")
         with open(fobos_path, "w") as f:
-            f.write(
-                "[default]\ncompiler=Gnu\n\n"
-                "[dependencies]\n"
-                "PENF = https://github.com/szaghi/PENF :: tag=v1.5.0\n"
-            )
+            f.write("[default]\ncompiler=Gnu\n\n[dependencies]\nPENF = https://github.com/szaghi/PENF :: tag=v1.5.0\n")
         import argparse
 
         from fobis.Fobos import Fobos
@@ -162,11 +158,7 @@ def test_dep_tree_dep_fetched_no_fobos():
         os.makedirs(dep_dir)
         fobos_path = os.path.join(root, "fobos")
         with open(fobos_path, "w") as f:
-            f.write(
-                "[default]\ncompiler=Gnu\n\n"
-                "[dependencies]\n"
-                "PENF = https://github.com/szaghi/PENF :: tag=v1.5.0\n"
-            )
+            f.write("[default]\ncompiler=Gnu\n\n[dependencies]\nPENF = https://github.com/szaghi/PENF :: tag=v1.5.0\n")
         import argparse
 
         from fobis.Fobos import Fobos

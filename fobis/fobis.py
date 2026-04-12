@@ -512,12 +512,8 @@ def run_fobis_build(configuration):
                 print_w=configuration.print_r,
                 force_compile=t_cliargs.force_compile,
             )
-            nomodlibs = build_nomodlibs(
-                configuration=configuration, pfiles=pfiles_all, builder=t_builder
-            )
-            submodules = build_submodules(
-                configuration=configuration, pfiles=pfiles_all, builder=t_builder
-            )
+            nomodlibs = build_nomodlibs(configuration=configuration, pfiles=pfiles_all, builder=t_builder)
+            submodules = build_submodules(configuration=configuration, pfiles=pfiles_all, builder=t_builder)
             # pre_build hooks
             pre_rules = getattr(t_cliargs, "pre_build", []) or []
             if isinstance(pre_rules, str):
@@ -1460,8 +1456,7 @@ def run_fobis_run(configuration):
 
     if not dry_run and not os.path.isfile(output_path):
         configuration.print_r(
-            f"Error: binary not found at '{output_path}'. "
-            "Check the fobos 'output' or 'target' setting."
+            f"Error: binary not found at '{output_path}'. Check the fobos 'output' or 'target' setting."
         )
         sys.exit(1)
 
@@ -1500,9 +1495,7 @@ def run_fobis_check(configuration):
     for pfile in pfiles:
         for dep in pfile.dependencies:
             if not dep.file:
-                configuration.print_r(
-                    f"  Unresolved: '{pfile.name}' depends on '{dep.name}' ({dep.type}) — not found"
-                )
+                configuration.print_r(f"  Unresolved: '{pfile.name}' depends on '{dep.name}' ({dep.type}) — not found")
                 errors += 1
     if errors:
         configuration.print_r(f"\nDependency check: {errors} unresolved dependency(-ies).")
@@ -1538,9 +1531,7 @@ def run_fobis_test(configuration):
     do_coverage = getattr(cliargs, "test_coverage", False)
 
     if not os.path.isdir(test_dir):
-        configuration.print_b(
-            f"No '{test_dir}' directory found. Create it and add Fortran program files."
-        )
+        configuration.print_b(f"No '{test_dir}' directory found. Create it and add Fortran program files.")
         return
 
     tests = discover_tests(test_dir)
@@ -1663,6 +1654,7 @@ def run_fobis_introspect(configuration):
         lock = {}
         try:
             from .Fetcher import Fetcher
+
             deps_dir = fobos.get_deps_dir()
             fetcher = Fetcher(deps_dir=deps_dir)
             lock = fetcher.load_lock()
@@ -1671,6 +1663,7 @@ def run_fobis_introspect(configuration):
         data["dependencies"] = {}
         for name, spec in deps.items():
             from .Fetcher import Fetcher
+
             fetcher_tmp = Fetcher(deps_dir=fobos.get_deps_dir())
             parsed = fetcher_tmp.parse_dep_spec(spec)
             dep_dir = os.path.join(fobos.get_deps_dir(), name)

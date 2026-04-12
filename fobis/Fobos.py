@@ -46,14 +46,16 @@ from .utils import check_results, print_fake, syswork
 # correct.  The only exception is intel_nextgen, which uses -qopenmp for
 # cflags and -fiopenmp for lflags; both are included here so either one
 # written in a feature value lands in both phases.
-_DUAL_PHASE_FLAGS: frozenset[str] = frozenset({
-    "-fopenmp",   # gnu, opencoarrays-gnu, amd
-    "-qopenmp",   # intel, intel_nextgen (cflags variant)
-    "-fiopenmp",  # intel_nextgen (lflags variant)
-    "-mp",        # nvfortran, pgi
-    "-qsmp=omp",  # ibm
-    "-openmp",    # nag
-})
+_DUAL_PHASE_FLAGS: frozenset[str] = frozenset(
+    {
+        "-fopenmp",  # gnu, opencoarrays-gnu, amd
+        "-qopenmp",  # intel, intel_nextgen (cflags variant)
+        "-fiopenmp",  # intel_nextgen (lflags variant)
+        "-mp",  # nvfortran, pgi
+        "-qsmp=omp",  # ibm
+        "-openmp",  # nag
+    }
+)
 
 # ---------------------------------------------------------------------------
 # Implicit (well-known) features
@@ -68,14 +70,14 @@ _DUAL_PHASE_FLAGS: frozenset[str] = frozenset({
 # does NOT add a preprocessor define.  Add a separate explicit feature for
 # that if needed (e.g. [features] omp_defs = -DUSE_OMP).
 _IMPLICIT_FEATURES: dict[str, str] = {
-    "openmp":        "openmp",
-    "omp":           "openmp",        # short alias
-    "mpi":           "mpi",
-    "coarray":       "coarray",
-    "coverage":      "coverage",
-    "profile":       "profile",
+    "openmp": "openmp",
+    "omp": "openmp",  # short alias
+    "mpi": "mpi",
+    "coarray": "coarray",
+    "coverage": "coverage",
+    "profile": "profile",
     "openmp_offload": "openmp_offload",
-    "omp_offload":   "openmp_offload", # short alias
+    "omp_offload": "openmp_offload",  # short alias
 }
 
 
@@ -403,10 +405,7 @@ class Fobos:
             for rule_name in rules:
                 section = "rule-" + rule_name
                 if not self.fobos.has_section(section):
-                    self.print_w(
-                        f"Error: {attr} references rule '{rule_name}' "
-                        f"which is not defined in the fobos file."
-                    )
+                    self.print_w(f"Error: {attr} references rule '{rule_name}' which is not defined in the fobos file.")
                     sys.exit(1)
 
     def get(self, option: str, mode: str | None = None, toprint: bool = True) -> str | None:
@@ -721,13 +720,8 @@ class Fobos:
                 attr = _IMPLICIT_FEATURES[feat]
                 setattr(cliargs, attr, True)
             else:
-                known = sorted(features_map) + sorted(
-                    k for k in _IMPLICIT_FEATURES if k not in features_map
-                )
-                self.print_w(
-                    f"Warning: unknown feature '{feat}'. "
-                    f"Known features: {', '.join(known)}. Ignored."
-                )
+                known = sorted(features_map) + sorted(k for k in _IMPLICIT_FEATURES if k not in features_map)
+                self.print_w(f"Warning: unknown feature '{feat}'. Known features: {', '.join(known)}. Ignored.")
 
         if extra_cflags:
             existing = getattr(cliargs, "cflags", "") or ""
@@ -843,7 +837,7 @@ class Fobos:
         prefix = section_prefix + "."
         for section in self.fobos.sections():
             if section.lower().startswith(prefix.lower()):
-                name = section[len(prefix):]
+                name = section[len(prefix) :]
                 target_dict: dict[str, Any] = {"name": name}
                 for key, value in self.fobos.items(section):
                     if key == "source":
@@ -925,6 +919,7 @@ class Fobos:
             if has_fobos:
                 try:
                     import argparse
+
                     dummy_args = argparse.Namespace(
                         fobos=fobos_file,
                         fobos_case_insensitive=False,

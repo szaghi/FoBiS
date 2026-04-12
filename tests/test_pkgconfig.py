@@ -98,8 +98,9 @@ def test_write_creates_file():
     spec = PkgConfigSpec(name="mylib", version="1.0.0", description="A test lib")
     with tempfile.TemporaryDirectory() as tmpdir:
         output_path = os.path.join(tmpdir, "pkgconfig", "mylib.pc")
-        gen.write(spec, lib_name="mylib", prefix="/usr/local",
-                  lib_dir="lib", include_dir="include", output_path=output_path)
+        gen.write(
+            spec, lib_name="mylib", prefix="/usr/local", lib_dir="lib", include_dir="include", output_path=output_path
+        )
         assert os.path.isfile(output_path)
         with open(output_path) as fh:
             content = fh.read()
@@ -113,8 +114,7 @@ def test_write_creates_parent_dirs():
     with tempfile.TemporaryDirectory() as tmpdir:
         # Nested directory that doesn't exist yet
         output_path = os.path.join(tmpdir, "a", "b", "c", "mylib.pc")
-        gen.write(spec, lib_name="mylib", prefix="/usr",
-                  lib_dir="lib", include_dir="include", output_path=output_path)
+        gen.write(spec, lib_name="mylib", prefix="/usr", lib_dir="lib", include_dir="include", output_path=output_path)
         assert os.path.isfile(output_path)
 
 
@@ -155,14 +155,7 @@ def test_get_pkgconfig_spec_none_when_disabled():
     with tempfile.TemporaryDirectory() as root:
         fobos_path = os.path.join(root, "fobos")
         with open(fobos_path, "w") as f:
-            f.write(
-                "[project]\n"
-                "name = myfortranlib\n"
-                "version = 2.0.0\n\n"
-                "[default]\n"
-                "compiler = Gnu\n"
-                "pkgconfig = false\n"
-            )
+            f.write("[project]\nname = myfortranlib\nversion = 2.0.0\n\n[default]\ncompiler = Gnu\npkgconfig = false\n")
         import argparse
 
         from fobis.Fobos import Fobos

@@ -49,8 +49,10 @@ def test_run_builds_and_executes(tmp_path):
     exe.write_text("")  # create file so isfile check passes
     config = _make_config(output_path=str(exe))
 
-    with patch("fobis.fobis.run_fobis") as mock_build, \
-         patch("subprocess.run", return_value=MagicMock(returncode=0)) as mock_exec:
+    with (
+        patch("fobis.fobis.run_fobis") as mock_build,
+        patch("subprocess.run", return_value=MagicMock(returncode=0)) as mock_exec,
+    ):
         try:
             run_fobis_run(config)
         except SystemExit as e:
@@ -119,8 +121,7 @@ def test_run_dry_run_no_execution(tmp_path):
     exe.write_text("")
     config = _make_config(output_path=str(exe), dry_run=True)
 
-    with patch("fobis.fobis.run_fobis") as mock_build, \
-         patch("subprocess.run") as mock_exec:
+    with patch("fobis.fobis.run_fobis") as mock_build, patch("subprocess.run") as mock_exec:
         run_fobis_run(config)  # should return without SystemExit in dry-run
 
     mock_build.assert_not_called()

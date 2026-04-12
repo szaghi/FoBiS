@@ -375,12 +375,14 @@ def test_fetch_writes_lock():
                 if "archive" in cmd:
                     return (0, "")
                 return (0, "")
+
             mock_sw.side_effect = sw_side
             _dep_dir, commit = fetcher.fetch("mylib", "https://github.com/user/mylib")
 
         # Save a lock with the returned commit
-        fetcher.save_lock([{"name": "mylib", "url": "https://github.com/user/mylib",
-                            "commit": commit, "sha256": "fake_sha256"}])
+        fetcher.save_lock(
+            [{"name": "mylib", "url": "https://github.com/user/mylib", "commit": commit, "sha256": "fake_sha256"}]
+        )
         lock = fetcher.load_lock()
         assert "mylib" in lock
         assert lock["mylib"]["commit"] == commit
