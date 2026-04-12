@@ -4,6 +4,13 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.8.0] — 2026-04-12
+### Added
+- **core**: Implement build profiles, feature flags, and caching
+
+- Add new subcommands, build profiles, and feature flags ⚠ BREAKING CHANGE
+
+
 ## [3.7.10] — 2026-04-10
 ### Added
 - **commit**: Enhance commit lifecycle logic and test coverage
