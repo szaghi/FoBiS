@@ -73,7 +73,7 @@ def cmd_build(
     jobs: JobsOpt = 1,
     makefile: MakefileOpt = None,
     json_output: JsonOpt = False,
-    # --- new options (issues #165–#180) ---
+    # --- new options (issues #165-#180) ---
     build_profile: Annotated[
         str | None,
         typer.Option(

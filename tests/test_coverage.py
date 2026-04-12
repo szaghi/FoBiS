@@ -4,12 +4,9 @@ from __future__ import annotations
 
 import os
 import tempfile
-from unittest.mock import call, patch
-
-import pytest
+from unittest.mock import patch
 
 from fobis.Coverage import CoverageReporter
-
 
 # ── detect_tool() ────────────────────────────────────────────────────────────
 
@@ -63,9 +60,11 @@ def test_gcovr_html_command_correct():
         _make_gcda(build_dir)
         output_dir = os.path.join(build_dir, "coverage")
         reporter = CoverageReporter(build_dir=build_dir)
-        with patch("fobis.Coverage.syswork", return_value=(0, "")) as mock_sw:
-            with patch("shutil.which", return_value="/usr/bin/gcovr"):
-                reporter.run_gcovr(formats=["html"], output_dir=output_dir)
+        with (
+            patch("fobis.Coverage.syswork", return_value=(0, "")) as mock_sw,
+            patch("shutil.which", return_value="/usr/bin/gcovr"),
+        ):
+            reporter.run_gcovr(formats=["html"], output_dir=output_dir)
         cmd = mock_sw.call_args[0][0]
         assert "gcovr" in cmd
         assert "--html-details" in cmd
@@ -113,9 +112,11 @@ def test_format_all_runs_both_html_and_xml():
         _make_gcda(build_dir)
         output_dir = os.path.join(build_dir, "coverage")
         reporter = CoverageReporter(build_dir=build_dir)
-        with patch("fobis.Coverage.syswork", return_value=(0, "")) as mock_sw:
-            with patch("shutil.which", return_value="/usr/bin/gcovr"):
-                reporter.generate(formats=["all"], output_dir=output_dir, tool="gcovr")
+        with (
+            patch("fobis.Coverage.syswork", return_value=(0, "")) as mock_sw,
+            patch("shutil.which", return_value="/usr/bin/gcovr"),
+        ):
+            reporter.generate(formats=["all"], output_dir=output_dir, tool="gcovr")
         cmd = mock_sw.call_args[0][0]
         assert "--html-details" in cmd
         assert "--xml" in cmd

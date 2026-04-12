@@ -6,8 +6,6 @@ import argparse
 import os
 import tempfile
 
-import pytest
-
 from fobis.Fobos import Fobos
 
 
@@ -67,7 +65,7 @@ def test_features_default_activated():
             "lflags   =\n"
             "build_profile =\n"
         )
-        fobos, cliargs = _make_fobos(root, content)
+        _fobos, cliargs = _make_fobos(root, content)
         assert "-DUSE_MPI" in cliargs.cflags
 
 
@@ -84,7 +82,7 @@ def test_features_no_default():
             "lflags   =\n"
             "build_profile =\n"
         )
-        fobos, cliargs = _make_fobos(root, content, {"no_default_features": True})
+        _fobos, cliargs = _make_fobos(root, content, {"no_default_features": True})
         assert "-DUSE_MPI" not in cliargs.cflags
 
 
@@ -100,7 +98,7 @@ def test_features_explicit():
             "lflags   =\n"
             "build_profile =\n"
         )
-        fobos, cliargs = _make_fobos(root, content, {"features": "hdf5"})
+        _fobos, cliargs = _make_fobos(root, content, {"features": "hdf5"})
         assert "-DUSE_HDF5" in cliargs.cflags
 
 
@@ -117,7 +115,7 @@ def test_features_multiple():
             "lflags   =\n"
             "build_profile =\n"
         )
-        fobos, cliargs = _make_fobos(root, content, {"features": "mpi,hdf5"})
+        _fobos, cliargs = _make_fobos(root, content, {"features": "mpi,hdf5"})
         assert "-DUSE_MPI" in cliargs.cflags
         assert "-DUSE_HDF5" in cliargs.cflags
 
@@ -136,7 +134,7 @@ def test_features_no_default_plus_explicit():
             "lflags   =\n"
             "build_profile =\n"
         )
-        fobos, cliargs = _make_fobos(
+        _fobos, cliargs = _make_fobos(
             root, content, {"features": "hdf5", "no_default_features": True}
         )
         assert "-DUSE_HDF5" in cliargs.cflags
@@ -215,7 +213,7 @@ def test_features_gnu_openmp_routes_to_both():
             "lflags   =\n"
             "build_profile =\n"
         )
-        fobos, cliargs = _make_fobos(root, content, {"features": "omp"})
+        _fobos, cliargs = _make_fobos(root, content, {"features": "omp"})
         assert "-DUSE_OMP" in cliargs.cflags
         assert "-fopenmp" in cliargs.cflags
         assert "-fopenmp" in cliargs.lflags
@@ -233,7 +231,7 @@ def test_features_intel_openmp_routes_to_both():
             "lflags   =\n"
             "build_profile =\n"
         )
-        fobos, cliargs = _make_fobos(root, content, {"features": "omp"})
+        _fobos, cliargs = _make_fobos(root, content, {"features": "omp"})
         assert "-DUSE_OMP" in cliargs.cflags
         assert "-qopenmp" in cliargs.cflags
         assert "-qopenmp" in cliargs.lflags
@@ -251,7 +249,7 @@ def test_features_nvfortran_openmp_routes_to_both():
             "lflags   =\n"
             "build_profile =\n"
         )
-        fobos, cliargs = _make_fobos(root, content, {"features": "omp"})
+        _fobos, cliargs = _make_fobos(root, content, {"features": "omp"})
         assert "-DUSE_OMP" in cliargs.cflags
         assert "-mp" in cliargs.cflags
         assert "-mp" in cliargs.lflags
@@ -269,7 +267,7 @@ def test_features_linker_only_flags():
             "lflags   =\n"
             "build_profile =\n"
         )
-        fobos, cliargs = _make_fobos(root, content, {"features": "hdf5"})
+        _fobos, cliargs = _make_fobos(root, content, {"features": "hdf5"})
         assert "-L/opt/hdf5/lib" not in cliargs.cflags
         assert "-lhdf5" not in cliargs.cflags
         assert "-L/opt/hdf5/lib" in cliargs.lflags
@@ -288,7 +286,7 @@ def test_no_features_no_extra_flags():
             "lflags   =\n"
             "build_profile =\n"
         )
-        fobos, cliargs = _make_fobos(root, content)
+        _fobos, cliargs = _make_fobos(root, content)
         assert cliargs.cflags.strip() == "-c"
 
 
@@ -373,7 +371,7 @@ def test_implicit_openmp_sets_cliarg():
             "lflags   =\n"
             "build_profile =\n"
         )
-        fobos, cliargs = _make_fobos(root, content, {"features": "openmp"})
+        _fobos, cliargs = _make_fobos(root, content, {"features": "openmp"})
         assert cliargs.openmp is True
 
 
@@ -387,7 +385,7 @@ def test_implicit_omp_alias_sets_cliarg():
             "lflags   =\n"
             "build_profile =\n"
         )
-        fobos, cliargs = _make_fobos(root, content, {"features": "omp"})
+        _fobos, cliargs = _make_fobos(root, content, {"features": "omp"})
         assert cliargs.openmp is True
 
 
@@ -401,7 +399,7 @@ def test_implicit_mpi_sets_cliarg():
             "lflags   =\n"
             "build_profile =\n"
         )
-        fobos, cliargs = _make_fobos(root, content, {"features": "mpi"})
+        _fobos, cliargs = _make_fobos(root, content, {"features": "mpi"})
         assert cliargs.mpi is True
 
 
@@ -415,7 +413,7 @@ def test_implicit_coarray_sets_cliarg():
             "lflags   =\n"
             "build_profile =\n"
         )
-        fobos, cliargs = _make_fobos(root, content, {"features": "coarray"})
+        _fobos, cliargs = _make_fobos(root, content, {"features": "coarray"})
         assert cliargs.coarray is True
 
 
@@ -429,7 +427,7 @@ def test_implicit_coverage_sets_cliarg():
             "lflags   =\n"
             "build_profile =\n"
         )
-        fobos, cliargs = _make_fobos(root, content, {"features": "coverage"})
+        _fobos, cliargs = _make_fobos(root, content, {"features": "coverage"})
         assert cliargs.coverage is True
 
 
@@ -443,7 +441,7 @@ def test_implicit_no_section_needed():
             "lflags   =\n"
             "build_profile =\n"
         )
-        fobos, cliargs = _make_fobos(root, content, {"features": "openmp"})
+        _fobos, cliargs = _make_fobos(root, content, {"features": "openmp"})
         assert cliargs.openmp is True
         # no warning should have been emitted (openmp is a known implicit feature)
 
@@ -490,7 +488,7 @@ def test_explicit_overrides_implicit():
             "lflags   =\n"
             "build_profile =\n"
         )
-        fobos, cliargs = _make_fobos(root, content, {"features": "openmp"})
+        _fobos, cliargs = _make_fobos(root, content, {"features": "openmp"})
         # Explicit definition routes -fopenmp via flag routing, not implicit
         assert "-DUSE_OMP" in cliargs.cflags
         assert "-fopenmp" in cliargs.cflags
@@ -511,7 +509,7 @@ def test_implicit_combined_with_explicit_feature():
             "lflags   =\n"
             "build_profile =\n"
         )
-        fobos, cliargs = _make_fobos(root, content, {"features": "openmp,hdf5"})
+        _fobos, cliargs = _make_fobos(root, content, {"features": "openmp,hdf5"})
         assert cliargs.openmp is True
         assert "-DUSE_HDF5" in cliargs.cflags
         assert "-I/opt/hdf5/include" in cliargs.cflags

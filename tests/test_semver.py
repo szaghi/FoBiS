@@ -6,7 +6,6 @@ import pytest
 
 from fobis.SemVer import Version, parse_constraint, resolve, satisfies
 
-
 # ── Version parsing ──────────────────────────────────────────────────────────
 
 

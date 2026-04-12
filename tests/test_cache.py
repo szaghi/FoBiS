@@ -6,12 +6,9 @@ import configparser
 import os
 import tempfile
 import time
-from unittest.mock import MagicMock, call, patch
-
-import pytest
+from unittest.mock import patch
 
 from fobis.Cache import BuildCache, CacheKey, normalise_cflags
-
 
 # ── normalise_cflags ─────────────────────────────────────────────────────────
 

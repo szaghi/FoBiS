@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from fobis.Profiles import get_profile_flags, list_profiles
 
-
 # ── Positive lookup ──────────────────────────────────────────────────────────
 
 

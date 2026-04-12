@@ -42,11 +42,6 @@ from . import (  # noqa: F401
     tree,
 )
 from ._app import _normalize_args, app
-
-# Register the ``cache`` sub-application
-from .cache_cmd import cache_app as _cache_app  # noqa: F401
-
-app.add_typer(_cache_app, name="cache")
 from ._constants import (
     __compiler_supported__,
     __extensions_inc__,
@@ -54,6 +49,11 @@ from ._constants import (
     __extensions_old__,
     __extensions_parsed__,
 )
+
+# Register the ``cache`` sub-application
+from .cache_cmd import cache_app as _cache_app
+
+app.add_typer(_cache_app, name="cache")
 
 __all__ = [
     "__compiler_supported__",

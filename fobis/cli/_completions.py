@@ -52,13 +52,13 @@ def _complete_fobos_mode(ctx: typer.Context, incomplete: str):
     if cp.has_option("modes", "modes"):
         modes = [m.strip() for m in cp.get("modes", "modes").split()]
         return [m for m in modes if m.startswith(incomplete)]
-    _NON_MODE_SECTIONS = frozenset(
+    _non_mode_sections = frozenset(
         ("modes", "rules", "dependencies", "project", "features", "externals", "test", "coverage")
     )
     return [
         s
         for s in cp.sections()
         if s.startswith(incomplete)
-        and s not in _NON_MODE_SECTIONS
+        and s not in _non_mode_sections
         and not s.startswith(("target.", "example.", "rule-"))
     ]

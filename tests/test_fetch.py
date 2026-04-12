@@ -121,7 +121,7 @@ def test_fetch_clones_new_dependency():
         dep_dir = os.path.join(tmpdir, "newdep")
         # dep_dir does not yet exist → clone path
         with patch("fobis.Fetcher.syswork", return_value=(0, "")) as mock_sw:
-            result, commit = fetcher.fetch("newdep", "https://github.com/user/newdep")
+            result, _commit = fetcher.fetch("newdep", "https://github.com/user/newdep")
         assert result == dep_dir
         assert any("clone" in call[0][0] for call in mock_sw.call_args_list)
 
@@ -130,7 +130,7 @@ def test_fetch_clone_failure_returns_dep_dir():
     with tempfile.TemporaryDirectory() as tmpdir:
         fetcher = Fetcher(deps_dir=tmpdir)
         with patch("fobis.Fetcher.syswork", return_value=(1, "error: not found")):
-            result, commit = fetcher.fetch("baddep", "https://github.com/user/baddep")
+            result, _commit = fetcher.fetch("baddep", "https://github.com/user/baddep")
         assert result == os.path.join(tmpdir, "baddep")
 
 
@@ -140,8 +140,8 @@ def test_fetch_existing_dep_no_update():
         os.makedirs(dep_dir)
         fetcher = Fetcher(deps_dir=tmpdir)
         # rev-parse HEAD is called even when already cloned
-        with patch("fobis.Fetcher.syswork", return_value=(0, "")) as mock_sw:
-            result, commit = fetcher.fetch("existingdep", "https://github.com/user/existingdep")
+        with patch("fobis.Fetcher.syswork", return_value=(0, "")):
+            result, _commit = fetcher.fetch("existingdep", "https://github.com/user/existingdep")
         assert result == dep_dir
 
 
@@ -376,7 +376,7 @@ def test_fetch_writes_lock():
                     return (0, "")
                 return (0, "")
             mock_sw.side_effect = sw_side
-            dep_dir, commit = fetcher.fetch("mylib", "https://github.com/user/mylib")
+            _dep_dir, commit = fetcher.fetch("mylib", "https://github.com/user/mylib")
 
         # Save a lock with the returned commit
         fetcher.save_lock([{"name": "mylib", "url": "https://github.com/user/mylib",

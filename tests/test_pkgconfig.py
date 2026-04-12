@@ -5,10 +5,7 @@ from __future__ import annotations
 import os
 import tempfile
 
-import pytest
-
 from fobis.PkgConfig import PkgConfigGenerator, PkgConfigSpec
-
 
 # ── PkgConfigGenerator.generate() ───────────────────────────────────────────
 
@@ -104,7 +101,8 @@ def test_write_creates_file():
         gen.write(spec, lib_name="mylib", prefix="/usr/local",
                   lib_dir="lib", include_dir="include", output_path=output_path)
         assert os.path.isfile(output_path)
-        content = open(output_path).read()
+        with open(output_path) as fh:
+            content = fh.read()
         assert "Name: mylib" in content
         assert "Version: 1.0.0" in content
 
@@ -137,8 +135,9 @@ def test_get_pkgconfig_spec_from_fobos():
                 "pkgconfig = true\n"
                 "build_dir = ./\n"
             )
-        from fobis.Fobos import Fobos
         import argparse
+
+        from fobis.Fobos import Fobos
 
         cliargs = argparse.Namespace(
             fobos=fobos_path,
@@ -164,8 +163,9 @@ def test_get_pkgconfig_spec_none_when_disabled():
                 "compiler = Gnu\n"
                 "pkgconfig = false\n"
             )
-        from fobis.Fobos import Fobos
         import argparse
+
+        from fobis.Fobos import Fobos
 
         cliargs = argparse.Namespace(
             fobos=fobos_path,

@@ -15,11 +15,9 @@ import os
 import shutil
 import time
 from collections.abc import Callable
-from dataclasses import dataclass, field
-from typing import Any
+from dataclasses import dataclass
 
 from .utils import print_fake
-
 
 # ---------------------------------------------------------------------------
 # Helpers

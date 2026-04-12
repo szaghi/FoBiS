@@ -2,13 +2,9 @@
 
 from __future__ import annotations
 
-import os
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from fobis.Externals import ExternalFlags, ExternalResolver, _pkg_config, _probe_mpi
-
 
 # ── ExternalFlags.merge() and is_empty() ─────────────────────────────────────
 

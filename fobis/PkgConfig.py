@@ -9,10 +9,9 @@ downstream pkg-config users.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from . import __version__
-
 
 # ---------------------------------------------------------------------------
 # Spec dataclass
@@ -101,7 +100,7 @@ class PkgConfigGenerator:
         lines += [
             f"Libs: -L${{libdir}} -{'' if lname.startswith('l') else 'l'}{lname}",
             "Libs.private:",
-            f"Cflags: -I${{includedir}}",
+            "Cflags: -I${includedir}",
         ]
         return "\n".join(lines) + "\n"
 

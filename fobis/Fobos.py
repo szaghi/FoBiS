@@ -26,6 +26,7 @@ This is a class aimed at fobos file handling.
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
 import configparser
+import contextlib
 import os
 import re
 import sys
@@ -1041,10 +1042,8 @@ class Fobos:
         if self.fobos.has_option("coverage", "exclude"):
             config["exclude"] = self.fobos.get("coverage", "exclude").split()
         if self.fobos.has_option("coverage", "fail_under"):
-            try:
+            with contextlib.suppress(ValueError):
                 config["fail_under"] = float(self.fobos.get("coverage", "fail_under"))
-            except ValueError:
-                pass
         return config
 
     # ------------------------------------------------------------------
@@ -1073,10 +1072,8 @@ class Fobos:
             if self.fobos.has_option("test", key):
                 config[key] = self.fobos.get("test", key).strip()
         if self.fobos.has_option("test", "timeout"):
-            try:
+            with contextlib.suppress(ValueError):
                 config["timeout"] = int(self.fobos.get("test", "timeout"))
-            except ValueError:
-                pass
         return config
 
     def rules_list(self, quiet: bool = False) -> None:

@@ -13,7 +13,6 @@ from collections.abc import Callable
 
 from .utils import print_fake, syswork
 
-
 # ---------------------------------------------------------------------------
 # CoverageReporter
 # ---------------------------------------------------------------------------

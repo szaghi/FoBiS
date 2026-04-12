@@ -5,9 +5,6 @@ from __future__ import annotations
 import argparse
 import os
 import tempfile
-from copy import deepcopy
-
-import pytest
 
 from fobis.Fobos import Fobos
 
@@ -111,6 +108,7 @@ def test_get_targets_no_fobos_file():
 def test_cliargs_clone_applies_override():
     """target dict cflags=-O0 overrides mode cflags=-O2 in the clone."""
     import argparse
+
     from fobis.fobis import _cliargs_for_target
 
     base = argparse.Namespace(cflags="-O2", lflags="", build_dir="./", src=["./"])

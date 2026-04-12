@@ -21,6 +21,7 @@ FoBiS.py, Fortran Building System
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
 # modules loading
 import configparser
+import contextlib
 import os
 import shutil
 import sys
@@ -466,7 +467,6 @@ def run_fobis_build(configuration):
     ----------
     configuration : FoBiSConfig()
     """
-    from copy import deepcopy
 
     fobos = configuration.fobos
     cliargs = configuration.cliargs
@@ -624,7 +624,6 @@ def _cliargs_for_target(base_cliargs, target_dict):
     argparse.Namespace
     """
     from copy import deepcopy
-    import argparse
 
     t_cliargs = deepcopy(base_cliargs)
     # Apply source -> target
@@ -642,10 +641,8 @@ def _cliargs_for_target(base_cliargs, target_dict):
             if isinstance(attr, bool):
                 setattr(t_cliargs, key, value.lower() in ("true", "1", "yes"))
             elif isinstance(attr, int):
-                try:
+                with contextlib.suppress(ValueError):
                     setattr(t_cliargs, key, int(value))
-                except ValueError:
-                    pass
             elif isinstance(attr, list):
                 setattr(t_cliargs, key, value.split())
             else:
@@ -1473,7 +1470,7 @@ def run_fobis_run(configuration):
         return
 
     # Execute
-    result = subprocess.run([output_path] + extra_args)
+    result = subprocess.run([output_path, *extra_args])
     sys.exit(result.returncode)
 
 
@@ -1719,13 +1716,8 @@ def run_fobis_introspect(configuration):
     # Default: print to stdout
     output_format = getattr(cliargs, "introspect_format", "json")
     if output_format == "toml":
-        try:
-            import tomllib
-            # Python 3.11+ has tomllib but no tomli writer; use basic serialisation
-            pass
-        except ImportError:
-            pass
-        # Fallback to JSON if toml writer unavailable
+        # Python 3.11+ has tomllib but no tomli writer; fallback to JSON
+        pass
     print(json.dumps(data, indent=2))
 
 

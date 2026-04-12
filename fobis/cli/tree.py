@@ -10,7 +10,7 @@ from typing import Annotated
 import typer
 
 from ._app import _ns, app
-from ._options import FobosOpt, FciOpt, ModeOpt
+from ._options import FciOpt, FobosOpt, ModeOpt
 
 
 @app.command("tree")

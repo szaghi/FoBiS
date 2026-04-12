@@ -5,10 +5,7 @@ from __future__ import annotations
 import os
 import tempfile
 
-import pytest
-
 from fobis.Fobos import DepNode, render_tree
-
 
 # ── render_tree() unit tests ─────────────────────────────────────────────────
 
@@ -115,8 +112,9 @@ def test_dep_tree_no_deps():
         fobos_path = os.path.join(root, "fobos")
         with open(fobos_path, "w") as f:
             f.write("[default]\ncompiler=Gnu\n\n[dependencies]\n")
-        from fobis.Fobos import Fobos
         import argparse
+
+        from fobis.Fobos import Fobos
 
         cliargs = argparse.Namespace(
             fobos=fobos_path,
@@ -139,8 +137,9 @@ def test_dep_tree_dep_not_fetched():
                 "[dependencies]\n"
                 "PENF = https://github.com/szaghi/PENF :: tag=v1.5.0\n"
             )
-        from fobis.Fobos import Fobos
         import argparse
+
+        from fobis.Fobos import Fobos
 
         cliargs = argparse.Namespace(
             fobos=fobos_path,
@@ -168,8 +167,9 @@ def test_dep_tree_dep_fetched_no_fobos():
                 "[dependencies]\n"
                 "PENF = https://github.com/szaghi/PENF :: tag=v1.5.0\n"
             )
-        from fobis.Fobos import Fobos
         import argparse
+
+        from fobis.Fobos import Fobos
 
         cliargs = argparse.Namespace(
             fobos=fobos_path,

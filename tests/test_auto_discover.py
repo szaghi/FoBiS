@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
+import contextlib
 import os
 import tempfile
 from unittest.mock import patch
 
-import pytest
-
 from fobis.utils import auto_discover_src
-
 
 # ── auto_discover_src() unit tests ───────────────────────────────────────────
 
@@ -31,7 +29,7 @@ def test_auto_discover_finds_source_fallback():
         _make_fortran_file(os.path.join(root, "source"))
         result = auto_discover_src(root)
         assert any("source" in d for d in result)
-        assert not any("src" == os.path.basename(d) for d in result)
+        assert not any(os.path.basename(d) == "src" for d in result)
 
 
 def test_auto_discover_finds_app():
@@ -109,10 +107,8 @@ def test_explicit_src_in_fobos_disables_discovery():
 
                 # Just parse config; build may fail (no gfortran needed here),
                 # but the key is that auto_discover_src is NOT called.
-                try:
+                with contextlib.suppress(SystemExit, Exception):
                     run_fobis(fake_args=["build", "-f", "fobos", "--dry-run"])
-                except (SystemExit, Exception):
-                    pass
             finally:
                 os.chdir(prev)
 
@@ -141,10 +137,8 @@ def test_verbose_output_when_discovered(capsys):
         try:
             from fobis.fobis import run_fobis
 
-            try:
+            with contextlib.suppress(SystemExit, Exception):
                 run_fobis(fake_args=["build", "-f", "fobos"])
-            except (SystemExit, Exception):
-                pass
         finally:
             os.chdir(prev)
 

@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import os
-import subprocess
-import sys
-import tempfile
+import contextlib
 from argparse import Namespace
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -71,12 +68,12 @@ def test_run_no_build_skips_build(tmp_path):
     exe.write_text("")
     config = _make_config(output_path=str(exe), no_build=True)
 
-    with patch("fobis.fobis.run_fobis") as mock_build, \
-         patch("subprocess.run", return_value=MagicMock(returncode=0)) as mock_exec:
-        try:
-            run_fobis_run(config)
-        except SystemExit:
-            pass
+    with (
+        patch("fobis.fobis.run_fobis") as mock_build,
+        patch("subprocess.run", return_value=MagicMock(returncode=0)) as mock_exec,
+        contextlib.suppress(SystemExit),
+    ):
+        run_fobis_run(config)
 
     mock_build.assert_not_called()
     mock_exec.assert_called_once()
@@ -88,9 +85,8 @@ def test_run_forwards_exit_code(tmp_path):
     exe.write_text("")
     config = _make_config(output_path=str(exe), no_build=True)
 
-    with patch("subprocess.run", return_value=MagicMock(returncode=42)):
-        with pytest.raises(SystemExit) as exc_info:
-            run_fobis_run(config)
+    with patch("subprocess.run", return_value=MagicMock(returncode=42)), pytest.raises(SystemExit) as exc_info:
+        run_fobis_run(config)
     assert exc_info.value.code == 42
 
 
@@ -101,11 +97,11 @@ def test_run_forwards_args(tmp_path):
     extra = ["-n", "100", "--file", "data.dat"]
     config = _make_config(output_path=str(exe), no_build=True, extra_args=extra)
 
-    with patch("subprocess.run", return_value=MagicMock(returncode=0)) as mock_exec:
-        try:
-            run_fobis_run(config)
-        except SystemExit:
-            pass
+    with (
+        patch("subprocess.run", return_value=MagicMock(returncode=0)) as mock_exec,
+        contextlib.suppress(SystemExit),
+    ):
+        run_fobis_run(config)
 
     call_args = mock_exec.call_args[0][0]  # first positional arg = argv list
     assert "-n" in call_args

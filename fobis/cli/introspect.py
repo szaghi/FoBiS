@@ -6,15 +6,13 @@ tooling integration.
 
 from __future__ import annotations
 
-import json
-import os
 from typing import Annotated
 
 import typer
 
 from ._app import _ns, app
-from ._options import FobosOpt, FciOpt, ModeOpt
 from ._constants import __extensions_inc__, __extensions_parsed__
+from ._options import FciOpt, FobosOpt, ModeOpt
 
 
 @app.command("introspect")

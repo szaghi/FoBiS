@@ -14,7 +14,6 @@ from dataclasses import dataclass, field
 
 from .utils import print_fake, syswork
 
-
 # ---------------------------------------------------------------------------
 # Result dataclass
 # ---------------------------------------------------------------------------
@@ -29,7 +28,7 @@ class ExternalFlags:
     includes: list[str] = field(default_factory=list)
     lib_dirs: list[str] = field(default_factory=list)
 
-    def merge(self, other: "ExternalFlags") -> "ExternalFlags":
+    def merge(self, other: ExternalFlags) -> ExternalFlags:
         """Return a new ExternalFlags that is the union of self and other."""
         return ExternalFlags(
             cflags=" ".join(filter(None, [self.cflags, other.cflags])).strip(),

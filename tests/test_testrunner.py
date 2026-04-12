@@ -7,10 +7,7 @@ import subprocess
 import tempfile
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from fobis.TestRunner import TestResult, TestSuite, discover_tests, extract_suite_tag
-
 
 # ── extract_suite_tag() ──────────────────────────────────────────────────────
 

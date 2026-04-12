@@ -5,13 +5,13 @@ Implements issue #170: validate the dependency graph without building.
 
 from __future__ import annotations
 
-import typer
-
 from typing import Annotated
 
+import typer
+
 from ._app import _ns, app
-from ._options import FobosOpt, FciOpt, ModeOpt, SrcOpt
 from ._constants import __extensions_inc__, __extensions_parsed__
+from ._options import FciOpt, FobosOpt, ModeOpt, SrcOpt
 
 
 @app.command("check")

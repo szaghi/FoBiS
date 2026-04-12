@@ -10,7 +10,7 @@ from typing import Annotated
 import typer
 
 from ._app import _ns, app
-from ._options import FobosOpt, FciOpt, ModeOpt, CompilerOpt
+from ._options import CompilerOpt, FciOpt, FobosOpt, ModeOpt
 
 
 @app.command("test", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})

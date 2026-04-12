@@ -51,7 +51,8 @@ def cmd_cache_clean(
         deleted = bc.evict_older_than(older_than)
         typer.echo(f"Deleted {deleted} cache entries older than {older_than} days.")
     else:
-        import shutil, os
+        import os
+        import shutil
         if os.path.isdir(bc.cache_dir):
             shutil.rmtree(bc.cache_dir)
             typer.echo(f"Cache directory removed: {bc.cache_dir}")

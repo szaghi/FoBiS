@@ -12,7 +12,6 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 
-
 # ---------------------------------------------------------------------------
 # Version triple
 # ---------------------------------------------------------------------------
@@ -46,16 +45,16 @@ class Version:
             return NotImplemented
         return (self.major, self.minor, self.patch) == (other.major, other.minor, other.patch)
 
-    def __lt__(self, other: "Version") -> bool:
+    def __lt__(self, other: Version) -> bool:
         return (self.major, self.minor, self.patch) < (other.major, other.minor, other.patch)
 
-    def __le__(self, other: "Version") -> bool:
+    def __le__(self, other: Version) -> bool:
         return self == other or self < other
 
-    def __gt__(self, other: "Version") -> bool:
+    def __gt__(self, other: Version) -> bool:
         return not self <= other
 
-    def __ge__(self, other: "Version") -> bool:
+    def __ge__(self, other: Version) -> bool:
         return not self < other
 
 
