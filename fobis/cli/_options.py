@@ -47,9 +47,6 @@ ModeOpt = Annotated[
     typer.Option("--mode", help="Select a mode defined into a fobos file", autocompletion=_complete_fobos_mode),
 ]
 LmodesOpt = Annotated[bool, typer.Option("--lmodes", help="List the modes defined into a fobos file")]
-PrintFobosTemplateOpt = Annotated[
-    bool, typer.Option("--print-fobos-template", help="Print a comprehensive fobos template")
-]
 
 # ---------------------------------------------------------------------------
 # Compiler group  (build, clean, rule, doctests)

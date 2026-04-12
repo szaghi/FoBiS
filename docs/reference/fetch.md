@@ -15,6 +15,8 @@ After fetching, run `fobis build` as usual — it automatically picks up the fet
 | `--deps-dir DIR` | `.fobis_deps` | Directory where dependencies are cloned (overrides `deps_dir` in fobos `[dependencies]`) |
 | `--update` | `False` | Re-fetch (git pull / checkout) and rebuild existing dependencies |
 | `--no-build` | `False` | Clone only — skip building even for `use=fobos` dependencies |
+| `--frozen` | `False` | Abort if `fobos.lock` is missing; pin every dep to its locked commit (see [Lock File](/advanced/lock-file)) |
+| `--no-cache` | `False` | Disable build cache when pre-building `use=fobos` deps |
 
 ## fobos options
 
@@ -24,7 +26,6 @@ After fetching, run `fobis build` as usual — it automatically picks up the fet
 | `--fci`, `--fobos-case-insensitive` | Case-insensitive fobos option parsing |
 | `--mode` | Select a fobos mode — tab-completable from the active fobos file |
 | `--lmodes` | List available modes and exit |
-| `--print-fobos-template` | Print a fobos template |
 
 ## Fancy options
 
@@ -53,20 +54,44 @@ simple   = https://github.com/user/repo
 Each dependency entry has the form:
 
 ```
-name = URL [:: branch=X] [:: tag=X] [:: rev=X] [:: mode=X] [:: use=sources|fobos]
+name = URL [:: branch=X | tag=X | rev=X | semver=X] [:: mode=X] [:: use=sources|fobos]
 ```
 
 | Part | Description |
 |---|---|
 | `name` | Short identifier — used as the subdirectory name under `deps_dir` |
-| `URL` | Full HTTPS URL of the Git repository |
+| `URL` | Full HTTPS URL of the Git repository; `user/repo` shorthand resolves to GitHub |
 | `branch=X` | Checkout a specific branch |
 | `tag=X` | Checkout a specific tag |
 | `rev=X` | Checkout a specific commit SHA |
+| `semver=X` | Resolve the highest remote tag satisfying the version constraint (see below) |
 | `mode=X` | fobos mode to use when building the dependency (only for `use=fobos`) |
 | `use=X` | Integration mode: `sources` (default) or `fobos` |
 
-Only one of `branch`, `tag`, or `rev` may be specified. If none is given, the default branch is used.
+Only one of `branch`, `tag`, `rev`, or `semver` may be specified — they are mutually exclusive. If none is given, the default branch is used.
+
+### Semver version constraints
+
+Instead of pinning to an exact tag, declare a version constraint with `semver=`:
+
+```ini
+[dependencies]
+PENF   = https://github.com/szaghi/PENF :: semver=^1.5
+stdlib = https://github.com/fortran-lang/stdlib :: semver=>=0.5,<1.0
+```
+
+| Constraint | Meaning |
+|---|---|
+| `^1.5` | `>=1.5.0, <2.0.0` (compatible release) |
+| `^1.5.2` | `>=1.5.2, <2.0.0` |
+| `~1.5.2` | `>=1.5.2, <1.6.0` (patch-level) |
+| `>=1.0,<2.0` | explicit range |
+| `=1.5.0` | exact version |
+| `*` | any version |
+
+`fobis fetch` queries the remote tags, resolves the highest satisfying tag, clones at that tag, and writes the resolved version to `fobos.lock`. On subsequent non-`--update` runs the locked tag is used directly.
+
+See [Lock File & Semver](/advanced/lock-file) for the full workflow.
 
 ### `deps_dir` key
 

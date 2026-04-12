@@ -32,7 +32,6 @@ Same as [`build`](/reference/build#directory-options): `-s`, `--build-dir`, `--o
 | `--fci`, `--fobos-case-insensitive` | Case-insensitive parsing |
 | `--mode` | Select a fobos mode — tab-completable from the active fobos file |
 | `--lmodes` | List available modes |
-| `--print-fobos-template` | Print a fobos template |
 
 ## Fancy options
 

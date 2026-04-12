@@ -79,7 +79,6 @@ def cmd_commit(
         fobos_case_insensitive=False,
         mode=None,
         lmodes=False,
-        print_fobos_template=False,
         colors=False,
         log=False,
         quiet=False,

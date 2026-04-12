@@ -31,9 +31,107 @@ import re
 import sys
 from collections.abc import Callable
 from copy import deepcopy
+from dataclasses import dataclass, field
 from typing import Any
 
 from .utils import check_results, print_fake, syswork
+
+# ---------------------------------------------------------------------------
+# Feature flag routing
+# ---------------------------------------------------------------------------
+# Flags that belong to both the compilation phase (cflags) and the linking
+# phase (lflags).  Every supported compiler uses the same flag for both phases
+# (confirmed from Compiler.py _openmp table), so duplicating into both is
+# correct.  The only exception is intel_nextgen, which uses -qopenmp for
+# cflags and -fiopenmp for lflags; both are included here so either one
+# written in a feature value lands in both phases.
+_DUAL_PHASE_FLAGS: frozenset[str] = frozenset({
+    "-fopenmp",   # gnu, opencoarrays-gnu, amd
+    "-qopenmp",   # intel, intel_nextgen (cflags variant)
+    "-fiopenmp",  # intel_nextgen (lflags variant)
+    "-mp",        # nvfortran, pgi
+    "-qsmp=omp",  # ibm
+    "-openmp",    # nag
+})
+
+# ---------------------------------------------------------------------------
+# Implicit (well-known) features
+# ---------------------------------------------------------------------------
+# These names are resolved through the compiler's existing capability flags
+# rather than raw flag strings in [features].  An explicit [features] entry
+# with the same name always takes precedence — implicit resolution is the
+# fallback when no explicit definition is found.
+#
+# Activating an implicit feature is equivalent to passing the corresponding
+# CLI flag (e.g. --features openmp  ≡  --openmp), with one difference: it
+# does NOT add a preprocessor define.  Add a separate explicit feature for
+# that if needed (e.g. [features] omp_defs = -DUSE_OMP).
+_IMPLICIT_FEATURES: dict[str, str] = {
+    "openmp":        "openmp",
+    "omp":           "openmp",        # short alias
+    "mpi":           "mpi",
+    "coarray":       "coarray",
+    "coverage":      "coverage",
+    "profile":       "profile",
+    "openmp_offload": "openmp_offload",
+    "omp_offload":   "openmp_offload", # short alias
+}
+
+
+# ---------------------------------------------------------------------------
+# DepNode dataclass for fobis tree
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class DepNode:
+    """Node in the inter-project dependency tree (issue #167)."""
+
+    name: str
+    spec: str
+    fetched: bool
+    has_fobos: bool
+    children: list["DepNode"] = field(default_factory=list)
+    duplicate: bool = False
+    version: str = ""
+
+
+def render_tree(nodes: list[DepNode], prefix: str = "") -> str:
+    """
+    Render a list of DepNode objects as an ASCII dependency tree.
+
+    Parameters
+    ----------
+    nodes : list[DepNode]
+    prefix : str
+        Indentation prefix for recursive calls.
+
+    Returns
+    -------
+    str
+    """
+    lines: list[str] = []
+    for i, node in enumerate(nodes):
+        is_last = i == len(nodes) - 1
+        connector = "└── " if is_last else "├── "
+        child_prefix = prefix + ("    " if is_last else "│   ")
+
+        label = node.name
+        if node.version:
+            label += f" {node.version}"
+        if node.spec:
+            label += f" ({node.spec})"
+        if node.duplicate:
+            label += " (*) [already shown]"
+        elif not node.fetched:
+            label += " [not fetched — run fobis fetch]"
+        elif not node.has_fobos:
+            label += " [no fobos — cannot read transitive deps]"
+
+        lines.append(prefix + connector + label)
+        if node.children and not node.duplicate:
+            lines.append(render_tree(node.children, child_prefix))
+    return "\n".join(l for l in lines if l)
 
 
 class Fobos:
@@ -275,7 +373,40 @@ class Fobos:
             self._check_local_variables()
             self._set_cliargs_attributes(cliargs=cliargs, cliargs_dict=cliargs_dict)
             self._check_cliargs_cflags(cliargs=cliargs, cliargs_dict=cliargs_dict)
+            # Apply build profile flags (prepended so user flags win)
+            self._apply_build_profile(cliargs)
+            # Apply feature flags (appended after profile)
+            self._apply_features(cliargs)
+            # Apply external library detection
+            self._apply_externals(cliargs)
+            # Validate pre_build / post_build rule names
+            self._validate_lifecycle_hooks(cliargs)
         return
+
+    def _validate_lifecycle_hooks(self, cliargs: Any) -> None:
+        """
+        Verify that rule names in pre_build / post_build exist in the fobos file.
+
+        Exits with code 1 if any named rule is undefined.
+
+        Parameters
+        ----------
+        cliargs : argparse.Namespace
+        """
+        if not self.fobos or not self.mode:
+            return
+        for attr in ("pre_build", "post_build"):
+            rules = getattr(cliargs, attr, None) or []
+            if isinstance(rules, str):
+                rules = rules.split()
+            for rule_name in rules:
+                section = "rule-" + rule_name
+                if not self.fobos.has_section(section):
+                    self.print_w(
+                        f"Error: {attr} references rule '{rule_name}' "
+                        f"which is not defined in the fobos file."
+                    )
+                    sys.exit(1)
 
     def get(self, option: str, mode: str | None = None, toprint: bool = True) -> str | None:
         """
@@ -354,22 +485,6 @@ class Fobos:
                 sys.exit(1)
         sys.exit(0)
         return
-
-    @staticmethod
-    def print_template(cliargs: Any) -> None:
-        """
-        Print fobos template.
-
-        Parameters
-        ----------
-        cliargs : argparse object
-        """
-        print("[default]")
-        for argument in vars(cliargs):
-            attribute = getattr(cliargs, argument)
-            if isinstance(attribute, list):
-                attribute = " ".join(attribute)
-            print(str(argument) + " = " + str(attribute))
 
     def get_project_info(self) -> dict[str, Any]:
         """
@@ -505,6 +620,464 @@ class Fobos:
             if self.fobos.has_option("dependencies", "deps_dir"):
                 return self.fobos.get("dependencies", "deps_dir").strip()
         return default
+
+    # ------------------------------------------------------------------
+    # Feature flags (issue #168)
+    # ------------------------------------------------------------------
+
+    def get_features(self) -> dict[str, str]:
+        """
+        Return ``{feature_name: flag_string}`` from ``[features]`` section.
+
+        The reserved ``default`` key is excluded from the returned dict.
+
+        Returns
+        -------
+        dict[str, str]
+            Empty dict if the section is absent.
+        """
+        features: dict[str, str] = {}
+        if self.fobos and self.fobos.has_section("features"):
+            for name, value in self.fobos.items("features"):
+                if name.lower() != "default":
+                    features[name] = value.strip()
+        return features
+
+    def get_default_features(self) -> list[str]:
+        """
+        Return the space-split list of default features from ``[features] default``.
+
+        Returns
+        -------
+        list[str]
+        """
+        if self.fobos and self.fobos.has_section("features"):
+            if self.fobos.has_option("features", "default"):
+                return self.fobos.get("features", "default").split()
+        return []
+
+    def _apply_features(self, cliargs: Any) -> None:
+        """
+        Resolve active features and append their flags to cliargs.
+
+        Resolution order for each active feature name:
+
+        1. Explicit definition in ``[features]`` section — raw flags, routed
+           to cflags/lflags by pattern.
+        2. Implicit (well-known) feature in ``_IMPLICIT_FEATURES`` — activates
+           the corresponding compiler capability flag (e.g. openmp → sets
+           ``cliargs.openmp = True``), which Compiler handles per-compiler.
+        3. Neither → warning emitted, feature ignored.
+
+        Called from ``_set_cliargs`` after ``_set_cliargs_attributes``.
+
+        Parameters
+        ----------
+        cliargs : argparse.Namespace
+        """
+        features_map = self.get_features() if (self.fobos and self.fobos.has_section("features")) else {}
+        default_features = self.get_default_features() if (self.fobos and self.fobos.has_section("features")) else []
+
+        no_default = getattr(cliargs, "no_default_features", False)
+        requested_raw = getattr(cliargs, "features", "") or ""
+        requested_names = [n.strip() for n in requested_raw.replace(",", " ").split() if n.strip()]
+
+        # Warn when --features is given but there is no [features] section and
+        # none of the requested names are implicit features.
+        if requested_names and not features_map:
+            non_implicit = [n for n in requested_names if n not in _IMPLICIT_FEATURES]
+            if non_implicit:
+                self.print_w(
+                    "Warning: --features given but fobos has no [features] section. "
+                    f"Unknown feature(s): {', '.join(non_implicit)}. Ignored."
+                )
+
+        # Build active set
+        active: list[str] = []
+        if not no_default:
+            active.extend(default_features)
+        for n in requested_names:
+            if n not in active:
+                active.append(n)
+
+        # Resolve flags
+        extra_cflags: list[str] = []
+        extra_lflags: list[str] = []
+        for feat in active:
+            if feat in features_map:
+                # Explicit definition wins — route raw flags by pattern.
+                flag_str = features_map[feat]
+                for tok in flag_str.split():
+                    if tok in _DUAL_PHASE_FLAGS:
+                        extra_cflags.append(tok)
+                        extra_lflags.append(tok)
+                    elif tok.startswith("-l") or tok.startswith("-L") or tok.startswith("-Wl"):
+                        extra_lflags.append(tok)
+                    else:
+                        extra_cflags.append(tok)
+            elif feat in _IMPLICIT_FEATURES:
+                # Implicit feature — delegate to the compiler capability system.
+                attr = _IMPLICIT_FEATURES[feat]
+                setattr(cliargs, attr, True)
+            else:
+                known = sorted(features_map) + sorted(
+                    k for k in _IMPLICIT_FEATURES if k not in features_map
+                )
+                self.print_w(
+                    f"Warning: unknown feature '{feat}'. "
+                    f"Known features: {', '.join(known)}. Ignored."
+                )
+
+        if extra_cflags:
+            existing = getattr(cliargs, "cflags", "") or ""
+            cliargs.cflags = (existing + " " + " ".join(extra_cflags)).strip()
+        if extra_lflags:
+            existing = getattr(cliargs, "lflags", "") or ""
+            cliargs.lflags = (existing + " " + " ".join(extra_lflags)).strip()
+
+        cliargs.active_features = active if active else []
+
+    # ------------------------------------------------------------------
+    # Build profiles (issue #176)
+    # ------------------------------------------------------------------
+
+    def _apply_build_profile(self, cliargs: Any) -> None:
+        """
+        Apply built-in build profile flags (debug/release/asan/coverage).
+
+        Prepends profile flags so user cflags/lflags override them.
+
+        Parameters
+        ----------
+        cliargs : argparse.Namespace
+        """
+        build_profile = getattr(cliargs, "build_profile", "") or ""
+        if not build_profile:
+            return
+        from .Profiles import get_profile_flags
+
+        compiler = getattr(cliargs, "compiler", "gnu") or "gnu"
+        flags = get_profile_flags(compiler, build_profile, print_w=self.print_w)
+        if flags["cflags"]:
+            existing = getattr(cliargs, "cflags", "") or ""
+            cliargs.cflags = (flags["cflags"] + " " + existing).strip()
+        if flags["lflags"]:
+            existing = getattr(cliargs, "lflags", "") or ""
+            cliargs.lflags = (flags["lflags"] + " " + existing).strip()
+
+    # ------------------------------------------------------------------
+    # External library detection (issue #169)
+    # ------------------------------------------------------------------
+
+    def get_externals_map(self) -> dict[str, str]:
+        """
+        Return ``{name: spec}`` from ``[externals]`` section.
+
+        Returns
+        -------
+        dict[str, str]
+            Empty dict if section absent.
+        """
+        ext: dict[str, str] = {}
+        if self.fobos and self.fobos.has_section("externals"):
+            for name, spec in self.fobos.items("externals"):
+                ext[name] = spec.strip()
+        return ext
+
+    def _apply_externals(self, cliargs: Any) -> None:
+        """
+        Probe and apply external system library flags to cliargs.
+
+        Reads ``externals = name1 name2`` from the active mode and resolves
+        each entry via the ``[externals]`` section.
+
+        Parameters
+        ----------
+        cliargs : argparse.Namespace
+        """
+        if not self.fobos or not self.mode:
+            return
+        if not self.fobos.has_option(self.mode, "externals"):
+            return
+        active_names = self.fobos.get(self.mode, "externals").split()
+        if not active_names:
+            return
+        externals_map = self.get_externals_map()
+        from .Externals import ExternalResolver
+
+        resolver = ExternalResolver(print_n=self.print_n, print_w=self.print_w)
+        flags = resolver.resolve_all(active_names, externals_map)
+        if flags.cflags:
+            existing = getattr(cliargs, "cflags", "") or ""
+            cliargs.cflags = (existing + " " + flags.cflags).strip()
+        if flags.lflags:
+            existing = getattr(cliargs, "lflags", "") or ""
+            cliargs.lflags = (existing + " " + flags.lflags).strip()
+        if flags.includes:
+            cliargs.include = list(getattr(cliargs, "include", []) or []) + flags.includes
+        if flags.lib_dirs:
+            cliargs.lib_dir = list(getattr(cliargs, "lib_dir", []) or []) + flags.lib_dirs
+
+    # ------------------------------------------------------------------
+    # Multiple targets (issue #175)
+    # ------------------------------------------------------------------
+
+    def get_targets(self, section_prefix: str = "target") -> list[dict[str, Any]]:
+        """
+        Return list of target dicts from ``[target.NAME]`` sections.
+
+        Parameters
+        ----------
+        section_prefix : str
+            Section prefix to search for (``'target'`` or ``'example'``).
+
+        Returns
+        -------
+        list[dict]
+            Each dict: ``{'name': str, 'source': str, 'output': str, **overrides}``
+        """
+        targets: list[dict[str, Any]] = []
+        if not self.fobos:
+            return targets
+        prefix = section_prefix + "."
+        for section in self.fobos.sections():
+            if section.lower().startswith(prefix.lower()):
+                name = section[len(prefix):]
+                target_dict: dict[str, Any] = {"name": name}
+                for key, value in self.fobos.items(section):
+                    if key == "source":
+                        target_dict["source"] = value.strip()
+                    elif key == "output":
+                        target_dict["output"] = value.strip()
+                    else:
+                        target_dict[key] = value.strip()
+                targets.append(target_dict)
+        return targets
+
+    # ------------------------------------------------------------------
+    # Dependency tree (issue #167)
+    # ------------------------------------------------------------------
+
+    def get_dep_tree(
+        self,
+        deps_dir: str,
+        depth: int = 0,
+        max_depth: int | None = None,
+        visited: set[str] | None = None,
+        dedupe: bool = True,
+    ) -> list[DepNode]:
+        """
+        Recursively build the inter-project dependency tree.
+
+        Parameters
+        ----------
+        deps_dir : str
+        depth : int
+        max_depth : int or None
+        visited : set, optional
+        dedupe : bool
+
+        Returns
+        -------
+        list[DepNode]
+        """
+        if visited is None:
+            visited = set()
+        if max_depth is not None and depth >= max_depth:
+            return []
+        deps = self.get_dependencies()
+        nodes: list[DepNode] = []
+        for name, spec in deps.items():
+            dep_dir = os.path.join(deps_dir, name)
+            fetched = os.path.isdir(dep_dir)
+            fobos_file = os.path.join(dep_dir, "fobos")
+            has_fobos = fetched and os.path.isfile(fobos_file)
+
+            # version from spec (tag/branch/semver)
+            version = ""
+            for part in spec.split("::"):
+                part = part.strip()
+                for key in ("tag", "semver", "branch", "rev"):
+                    if part.startswith(key + "="):
+                        version = part.split("=", 1)[1]
+                        break
+
+            # deduplication key
+            dedup_key = spec.split("::")[0].strip() + "#" + name
+
+            if dedup_key in visited:
+                node = DepNode(
+                    name=name,
+                    spec=spec,
+                    fetched=fetched,
+                    has_fobos=has_fobos,
+                    version=version,
+                    duplicate=True,
+                )
+                nodes.append(node)
+                continue
+
+            if dedupe:
+                visited.add(dedup_key)
+
+            children: list[DepNode] = []
+            if has_fobos:
+                try:
+                    import argparse
+                    dummy_args = argparse.Namespace(
+                        fobos=fobos_file,
+                        fobos_case_insensitive=False,
+                        mode=None,
+                    )
+                    child_fobos = Fobos(cliargs=dummy_args)
+                    child_version = child_fobos.get_version() or version
+                    children = child_fobos.get_dep_tree(
+                        deps_dir=deps_dir,
+                        depth=depth + 1,
+                        max_depth=max_depth,
+                        visited=visited,
+                        dedupe=dedupe,
+                    )
+                except Exception:
+                    child_version = version
+            else:
+                child_version = version
+
+            node = DepNode(
+                name=name,
+                spec=spec,
+                fetched=fetched,
+                has_fobos=has_fobos,
+                version=child_version if has_fobos else version,
+                children=children,
+                duplicate=False,
+            )
+            nodes.append(node)
+        return nodes
+
+    # ------------------------------------------------------------------
+    # pkg-config spec (issue #179)
+    # ------------------------------------------------------------------
+
+    def get_pkgconfig_spec(self) -> Any | None:
+        """
+        Return a PkgConfigSpec built from fobos options, or None if disabled.
+
+        Returns
+        -------
+        PkgConfigSpec or None
+        """
+        if not self.fobos or not self.mode:
+            return None
+        if not self.fobos.has_option(self.mode, "pkgconfig"):
+            return None
+        enabled = self.fobos.getboolean(self.mode, "pkgconfig", fallback=False)
+        if not enabled:
+            return None
+        from .PkgConfig import PkgConfigSpec
+
+        proj = self.get_project_info()
+        name = (
+            self.fobos.get(self.mode, "pkgconfig_name").strip()
+            if self.fobos.has_option(self.mode, "pkgconfig_name")
+            else proj.get("name", "")
+        )
+        description = (
+            self.fobos.get(self.mode, "pkgconfig_desc").strip()
+            if self.fobos.has_option(self.mode, "pkgconfig_desc")
+            else proj.get("summary", "")
+        )
+        url = (
+            self.fobos.get(self.mode, "pkgconfig_url").strip()
+            if self.fobos.has_option(self.mode, "pkgconfig_url")
+            else proj.get("repository", "")
+        )
+        requires = (
+            self.fobos.get(self.mode, "pkgconfig_req").strip()
+            if self.fobos.has_option(self.mode, "pkgconfig_req")
+            else ""
+        )
+        requires_priv = (
+            self.fobos.get(self.mode, "pkgconfig_req_priv").strip()
+            if self.fobos.has_option(self.mode, "pkgconfig_req_priv")
+            else ""
+        )
+        version = self.get_version()
+        return PkgConfigSpec(
+            name=name,
+            version=version,
+            description=description,
+            url=url,
+            requires=requires,
+            requires_priv=requires_priv,
+        )
+
+    # ------------------------------------------------------------------
+    # Coverage config (issue #180)
+    # ------------------------------------------------------------------
+
+    def get_coverage_config(self) -> dict[str, Any]:
+        """
+        Read the optional ``[coverage]`` section and return config dict.
+
+        Returns
+        -------
+        dict
+            Keys: ``format`` (list[str]), ``output_dir`` (str),
+            ``exclude`` (list[str]), ``fail_under`` (float or None).
+        """
+        config: dict[str, Any] = {
+            "format": ["html"],
+            "output_dir": "coverage",
+            "exclude": [],
+            "fail_under": None,
+        }
+        if not self.fobos or not self.fobos.has_section("coverage"):
+            return config
+        if self.fobos.has_option("coverage", "format"):
+            config["format"] = self.fobos.get("coverage", "format").split()
+        if self.fobos.has_option("coverage", "output_dir"):
+            config["output_dir"] = self.fobos.get("coverage", "output_dir").strip()
+        if self.fobos.has_option("coverage", "exclude"):
+            config["exclude"] = self.fobos.get("coverage", "exclude").split()
+        if self.fobos.has_option("coverage", "fail_under"):
+            try:
+                config["fail_under"] = float(self.fobos.get("coverage", "fail_under"))
+            except ValueError:
+                pass
+        return config
+
+    # ------------------------------------------------------------------
+    # Test config (issue #173)
+    # ------------------------------------------------------------------
+
+    def get_test_config(self) -> dict[str, Any]:
+        """
+        Read the optional ``[test]`` section and return test config dict.
+
+        Returns
+        -------
+        dict
+            Keys: ``test_dir``, ``suite``, ``timeout``, ``compiler``, ``cflags``.
+        """
+        config: dict[str, Any] = {
+            "test_dir": "test",
+            "suite": "",
+            "timeout": 60,
+            "compiler": "",
+            "cflags": "",
+        }
+        if not self.fobos or not self.fobos.has_section("test"):
+            return config
+        for key in ("test_dir", "suite", "compiler", "cflags"):
+            if self.fobos.has_option("test", key):
+                config[key] = self.fobos.get("test", key).strip()
+        if self.fobos.has_option("test", "timeout"):
+            try:
+                config["timeout"] = int(self.fobos.get("test", "timeout"))
+            except ValueError:
+                pass
+        return config
 
     def rules_list(self, quiet: bool = False) -> None:
         """

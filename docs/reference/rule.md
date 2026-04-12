@@ -33,7 +33,6 @@ fobis rule [options]
 | `--fci`, `--fobos-case-insensitive` | Case-insensitive fobos option parsing |
 | `--mode` | Select a fobos mode — tab-completable from the active fobos file |
 | `--lmodes` | List available modes and exit |
-| `--print-fobos-template` | Print a fobos template |
 
 ## Fancy options
 

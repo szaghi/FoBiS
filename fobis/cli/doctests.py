@@ -18,7 +18,6 @@ def cmd_doctests(
     fobos_case_insensitive: FciOpt = False,
     mode: ModeOpt = None,
     lmodes: LmodesOpt = False,
-    print_fobos_template: PrintFobosTemplateOpt = False,
     # compiler group
     compiler: CompilerOpt = "gnu",
     fc: FcOpt = None,
@@ -93,7 +92,6 @@ def cmd_doctests(
         fobos_case_insensitive=fobos_case_insensitive,
         mode=mode,
         lmodes=lmodes,
-        print_fobos_template=print_fobos_template,
         compiler=compiler.lower(),
         fc=fc,
         cflags=cflags,

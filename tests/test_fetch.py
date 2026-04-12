@@ -121,7 +121,7 @@ def test_fetch_clones_new_dependency():
         dep_dir = os.path.join(tmpdir, "newdep")
         # dep_dir does not yet exist → clone path
         with patch("fobis.Fetcher.syswork", return_value=(0, "")) as mock_sw:
-            result = fetcher.fetch("newdep", "https://github.com/user/newdep")
+            result, commit = fetcher.fetch("newdep", "https://github.com/user/newdep")
         assert result == dep_dir
         assert any("clone" in call[0][0] for call in mock_sw.call_args_list)
 
@@ -130,7 +130,7 @@ def test_fetch_clone_failure_returns_dep_dir():
     with tempfile.TemporaryDirectory() as tmpdir:
         fetcher = Fetcher(deps_dir=tmpdir)
         with patch("fobis.Fetcher.syswork", return_value=(1, "error: not found")):
-            result = fetcher.fetch("baddep", "https://github.com/user/baddep")
+            result, commit = fetcher.fetch("baddep", "https://github.com/user/baddep")
         assert result == os.path.join(tmpdir, "baddep")
 
 
@@ -139,10 +139,9 @@ def test_fetch_existing_dep_no_update():
         dep_dir = os.path.join(tmpdir, "existingdep")
         os.makedirs(dep_dir)
         fetcher = Fetcher(deps_dir=tmpdir)
-        # No syswork call expected (already cloned, no update)
-        with patch("fobis.Fetcher.syswork") as mock_sw:
-            result = fetcher.fetch("existingdep", "https://github.com/user/existingdep")
-        mock_sw.assert_not_called()
+        # rev-parse HEAD is called even when already cloned
+        with patch("fobis.Fetcher.syswork", return_value=(0, "")) as mock_sw:
+            result, commit = fetcher.fetch("existingdep", "https://github.com/user/existingdep")
         assert result == dep_dir
 
 
@@ -358,6 +357,104 @@ def test_install_artifacts_skips_track_without_output_key(tmp_path):
     fetcher = Fetcher(deps_dir="/fake", print_w=warnings.append)
     fetcher._install_artifacts(str(dep_dir), str(prefix), "bin/", "lib/", "include/")
     assert any("No installable" in w for w in warnings)
+
+
+# ── lock file: save_lock / load_lock / verify_lock ───────────────────────────
+
+
+def test_fetch_writes_lock():
+    """fetch() should commit+sha256 end up in fobos.lock."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fetcher = Fetcher(deps_dir=tmpdir)
+        # Simulate a successful clone that returns a commit sha
+        with patch("fobis.Fetcher.syswork") as mock_sw:
+            # git clone → success; rev-parse HEAD → commit sha
+            def sw_side(cmd):
+                if "rev-parse" in cmd:
+                    return (0, "abc123deadbeef\n")
+                if "archive" in cmd:
+                    return (0, "")
+                return (0, "")
+            mock_sw.side_effect = sw_side
+            dep_dir, commit = fetcher.fetch("mylib", "https://github.com/user/mylib")
+
+        # Save a lock with the returned commit
+        fetcher.save_lock([{"name": "mylib", "url": "https://github.com/user/mylib",
+                            "commit": commit, "sha256": "fake_sha256"}])
+        lock = fetcher.load_lock()
+        assert "mylib" in lock
+        assert lock["mylib"]["commit"] == commit
+
+
+def test_fetch_load_lock_missing_returns_empty():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fetcher = Fetcher(deps_dir=tmpdir)
+        assert fetcher.load_lock() == {}
+
+
+def test_fetch_verify_lock_pass():
+    """Lock commit matches HEAD → no warning."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        dep_dir = os.path.join(tmpdir, "dep")
+        os.makedirs(dep_dir)
+        fetcher = Fetcher(deps_dir=tmpdir)
+        lock = {"dep": {"commit": "abc123", "url": "https://github.com/user/dep"}}
+        with patch("fobis.Fetcher.syswork", return_value=(0, "abc123\n")):
+            warnings = []
+            fetcher.print_w = warnings.append
+            result = fetcher.verify_lock("dep", dep_dir, lock)
+        assert result is True
+        assert warnings == []
+
+
+def test_fetch_verify_lock_mismatch():
+    """Lock commit ≠ HEAD → warning emitted, returns False."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        dep_dir = os.path.join(tmpdir, "dep")
+        os.makedirs(dep_dir)
+        fetcher = Fetcher(deps_dir=tmpdir)
+        lock = {"dep": {"commit": "abc123", "url": "https://github.com/user/dep"}}
+        with patch("fobis.Fetcher.syswork", return_value=(0, "deadbeef\n")):
+            warnings = []
+            fetcher.print_w = warnings.append
+            result = fetcher.verify_lock("dep", dep_dir, lock)
+        assert result is False
+        assert any("abc123" in w or "deadbeef" in w or "does not match" in w for w in warnings)
+
+
+def test_fetch_verify_lock_name_not_in_lock():
+    """Dependency not in lockfile → True (no check)."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fetcher = Fetcher(deps_dir=tmpdir)
+        lock = {}
+        result = fetcher.verify_lock("unknown", "/fake/dep", lock)
+        assert result is True
+
+
+# ── semver spec parsing ───────────────────────────────────────────────────────
+
+
+def test_fetch_semver_conflicts_with_tag_errors():
+    """Spec with both semver= and tag= must raise ValueError at parse time."""
+    fetcher = Fetcher(deps_dir="/fake")
+    with pytest.raises(ValueError):
+        fetcher.parse_dep_spec("https://github.com/user/repo :: tag=v1.2 :: semver=^1")
+
+
+def test_fetch_semver_conflicts_with_branch_errors():
+    """Spec with both semver= and branch= must raise ValueError at parse time."""
+    fetcher = Fetcher(deps_dir="/fake")
+    with pytest.raises(ValueError):
+        fetcher.parse_dep_spec("https://github.com/user/repo :: branch=main :: semver=^1")
+
+
+def test_parse_dep_spec_semver_only():
+    """Spec with semver= and no other pin → parsed correctly."""
+    fetcher = Fetcher(deps_dir="/fake")
+    result = fetcher.parse_dep_spec("https://github.com/user/repo :: semver=^1.5")
+    assert result["semver"] == "^1.5"
+    assert "tag" not in result
+    assert "branch" not in result
 
 
 # ── integration tests ─────────────────────────────────────────────────────────

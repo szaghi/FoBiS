@@ -69,9 +69,6 @@ def run_fobis(fake_args=None):
         if configuration.cliargs.lmodes:
             configuration.fobos.modes_list()
             sys.exit(0)
-        if configuration.cliargs.print_fobos_template:
-            configuration.fobos.print_template(configuration.cliargs)
-            sys.exit(0)
         _json = getattr(configuration.cliargs, "json_output", False)
         if configuration.cliargs.which == "clean":
             run_fobis_clean_json(configuration) if _json else run_fobis_clean(configuration)
@@ -87,6 +84,18 @@ def run_fobis(fake_args=None):
             run_fobis_scaffold(configuration)
         if configuration.cliargs.which == "commit":
             run_fobis_commit(configuration)
+        if configuration.cliargs.which == "tree":
+            run_fobis_tree(configuration)
+        if configuration.cliargs.which == "run":
+            run_fobis_run(configuration)
+        if configuration.cliargs.which == "check":
+            run_fobis_check(configuration)
+        if configuration.cliargs.which == "test":
+            run_fobis_test(configuration)
+        if configuration.cliargs.which == "introspect":
+            run_fobis_introspect(configuration)
+        if configuration.cliargs.which == "coverage":
+            run_fobis_coverage(configuration)
     return
 
 
@@ -232,7 +241,7 @@ def run_fobis_fetch_json(configuration):
             for name, spec in deps.items():
                 parsed = fetcher.parse_dep_spec(spec)
                 use_mode = parsed.get("use", "sources")
-                dep_path = fetcher.fetch(
+                dep_path, _commit = fetcher.fetch(
                     name,
                     parsed["url"],
                     branch=parsed.get("branch"),
@@ -276,27 +285,85 @@ def run_fobis_fetch(configuration):
     from .Fetcher import Fetcher
 
     deps_dir = configuration.cliargs.deps_dir or configuration.fobos.get_deps_dir()
+    frozen = getattr(configuration.cliargs, "frozen", False)
     fetcher = Fetcher(deps_dir=deps_dir, print_n=configuration.print_b, print_w=configuration.print_r)
     deps = configuration.fobos.get_dependencies()
     if not deps:
         configuration.print_r("No [dependencies] section found in fobos file")
         return
+
+    # Load existing lock file for frozen mode or verification
+    lock = fetcher.load_lock()
+
+    if frozen and not lock:
+        configuration.print_r(
+            "Error: --frozen requires fobos.lock to be present but none was found. "
+            "Run 'fobis fetch' first to generate it."
+        )
+        sys.exit(1)
+
     deps_info = []
+    lock_entries = []
     for name, spec in deps.items():
         parsed = fetcher.parse_dep_spec(spec)
         use_mode = parsed.get("use", "sources")
-        dep_path = fetcher.fetch(
+
+        # Semver resolution
+        if "semver" in parsed:
+            constraint = parsed["semver"]
+            # In frozen mode: use locked resolved tag
+            if frozen and name in lock and lock[name].get("resolved"):
+                resolved_tag = lock[name]["resolved"]
+                configuration.print_b(f"[frozen] {name}: using locked resolved tag {resolved_tag}")
+                parsed["tag"] = resolved_tag
+            elif not configuration.cliargs.update and name in lock and lock[name].get("resolved"):
+                parsed["tag"] = lock[name]["resolved"]
+            else:
+                resolved_tag = fetcher.resolve_semver(name, parsed["url"], constraint)
+                parsed["tag"] = resolved_tag
+
+        # Frozen mode: pin to lockfile commit
+        frozen_commit = None
+        if frozen and name in lock:
+            frozen_commit = lock[name].get("commit")
+
+        dep_path, commit_sha = fetcher.fetch(
             name,
             parsed["url"],
             branch=parsed.get("branch"),
             tag=parsed.get("tag"),
             rev=parsed.get("rev"),
             update=configuration.cliargs.update,
+            frozen_commit=frozen_commit,
         )
+
+        # Verify against lockfile (non-frozen: warn only)
+        if lock and not frozen:
+            fetcher.verify_lock(name, dep_path, lock)
+
         if not configuration.cliargs.no_build and use_mode == "fobos":
             fetcher.build_dep(name, dep_path, mode=parsed.get("mode"))
+
         deps_info.append({"name": name, "path": dep_path, "mode": parsed.get("mode", ""), "use": use_mode})
+
+        # Build lock entry
+        lock_entry: dict[str, str] = {
+            "name": name,
+            "url": parsed["url"],
+            "commit": commit_sha,
+            "sha256": fetcher._compute_sha256(dep_path),
+        }
+        for pin_key in ("branch", "tag", "rev", "semver"):
+            if pin_key in parsed:
+                lock_entry[pin_key] = parsed[pin_key]
+        if "semver" in parsed and parsed.get("tag"):
+            lock_entry["resolved"] = parsed["tag"]
+        lock_entries.append(lock_entry)
+
     fetcher.save_config(deps_info)
+    # Write / update lock file (not in frozen mode)
+    if not frozen:
+        fetcher.save_lock(lock_entries)
 
 
 def run_fobis_commit(configuration):
@@ -399,20 +466,108 @@ def run_fobis_build(configuration):
     ----------
     configuration : FoBiSConfig()
     """
+    from copy import deepcopy
 
-    builder = Builder(cliargs=configuration.cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
+    fobos = configuration.fobos
+    cliargs = configuration.cliargs
+
+    # Print active features if any
+    active_features = getattr(cliargs, "active_features", [])
+    if active_features:
+        configuration.print_b("Active features: " + ", ".join(active_features))
+
+    # Check for multi-target [[target.*]] sections
+    multi_targets = fobos.get_targets("target") if fobos.fobos else []
+    example_targets = fobos.get_targets("example") if fobos.fobos else []
+    examples_flag = getattr(cliargs, "examples", False)
+    target_filter = getattr(cliargs, "target_filter", [])
+
+    if multi_targets:
+        # Validate: mode-level 'target' and [[target.*]] sections are mutually exclusive
+        if cliargs.target and multi_targets:
+            configuration.print_r(
+                "Error: fobos has both a mode-level 'target' key and [[target.*]] sections. "
+                "They are mutually exclusive."
+            )
+            sys.exit(1)
+
+        all_build_targets = list(multi_targets)
+        if examples_flag:
+            all_build_targets += example_targets
+
+        if target_filter:
+            all_build_targets = [t for t in all_build_targets if t["name"] in target_filter]
+            if not all_build_targets:
+                configuration.print_r(f"Error: no targets match filter {target_filter}")
+                sys.exit(1)
+
+        # Scan source files once for all targets
+        pfiles_all = parse_files(configuration=configuration)
+        for t_dict in all_build_targets:
+            t_cliargs = _cliargs_for_target(cliargs, t_dict)
+            t_builder = Builder(cliargs=t_cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
+            dependency_hiearchy(
+                builder=t_builder,
+                pfiles=pfiles_all,
+                print_w=configuration.print_r,
+                force_compile=t_cliargs.force_compile,
+            )
+            nomodlibs = build_nomodlibs(
+                configuration=configuration, pfiles=pfiles_all, builder=t_builder
+            )
+            submodules = build_submodules(
+                configuration=configuration, pfiles=pfiles_all, builder=t_builder
+            )
+            # pre_build hooks
+            pre_rules = getattr(t_cliargs, "pre_build", []) or []
+            if isinstance(pre_rules, str):
+                pre_rules = pre_rules.split()
+            for rule_name in pre_rules:
+                fobos.rule_execute(rule_name)
+
+            source = t_dict.get("source") or t_dict.get("target", "")
+            for pfile in pfiles_all:
+                if os.path.basename(pfile.name) == os.path.basename(source):
+                    build_pfile(
+                        configuration=configuration,
+                        pfile=pfile,
+                        pfiles=pfiles_all,
+                        nomodlibs=nomodlibs,
+                        submodules=submodules,
+                        builder=t_builder,
+                    )
+                    # post_build hooks
+                    post_rules = getattr(t_cliargs, "post_build", []) or []
+                    if isinstance(post_rules, str):
+                        post_rules = post_rules.split()
+                    for rule_name in post_rules:
+                        fobos.rule_execute(rule_name)
+                    break
+        return
+
+    # Standard (single-target) build path
+    builder = Builder(cliargs=cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
     pfiles = parse_files(configuration=configuration)
     dependency_hiearchy(
-        builder=builder, pfiles=pfiles, print_w=configuration.print_r, force_compile=configuration.cliargs.force_compile
+        builder=builder, pfiles=pfiles, print_w=configuration.print_r, force_compile=cliargs.force_compile
     )
-    if configuration.cliargs.makefile:
+    if cliargs.makefile:
         save_makefile(configuration=configuration, pfiles=pfiles, builder=builder)
         return
     nomodlibs = build_nomodlibs(configuration=configuration, pfiles=pfiles, builder=builder)
     submodules = build_submodules(configuration=configuration, pfiles=pfiles, builder=builder)
+
+    # Execute pre_build lifecycle hooks
+    pre_rules = getattr(cliargs, "pre_build", []) or []
+    if isinstance(pre_rules, str):
+        pre_rules = pre_rules.split()
+    for rule_name in pre_rules:
+        fobos.rule_execute(rule_name)
+
+    build_succeeded = False
     # building target or all programs found
     for pfile in pfiles:
-        if configuration.cliargs.build_all:
+        if cliargs.build_all:
             build_pfile(
                 configuration=configuration,
                 pfile=pfile,
@@ -421,9 +576,10 @@ def run_fobis_build(configuration):
                 submodules=submodules,
                 builder=builder,
             )
+            build_succeeded = True
         else:
-            if configuration.cliargs.target:
-                if os.path.basename(configuration.cliargs.target) == os.path.basename(pfile.name):
+            if cliargs.target:
+                if os.path.basename(cliargs.target) == os.path.basename(pfile.name):
                     build_pfile(
                         configuration=configuration,
                         pfile=pfile,
@@ -432,6 +588,7 @@ def run_fobis_build(configuration):
                         submodules=submodules,
                         builder=builder,
                     )
+                    build_succeeded = True
             else:
                 if pfile.program:
                     build_pfile(
@@ -442,6 +599,58 @@ def run_fobis_build(configuration):
                         submodules=submodules,
                         builder=builder,
                     )
+                    build_succeeded = True
+
+    # Execute post_build lifecycle hooks (only on success)
+    if build_succeeded:
+        post_rules = getattr(cliargs, "post_build", []) or []
+        if isinstance(post_rules, str):
+            post_rules = post_rules.split()
+        for rule_name in post_rules:
+            fobos.rule_execute(rule_name)
+
+
+def _cliargs_for_target(base_cliargs, target_dict):
+    """
+    Create a per-target cliargs by deep-copying base and applying overrides.
+
+    Parameters
+    ----------
+    base_cliargs : argparse.Namespace
+    target_dict : dict
+
+    Returns
+    -------
+    argparse.Namespace
+    """
+    from copy import deepcopy
+    import argparse
+
+    t_cliargs = deepcopy(base_cliargs)
+    # Apply source -> target
+    if "source" in target_dict:
+        t_cliargs.target = target_dict["source"]
+    # Apply output
+    if "output" in target_dict:
+        t_cliargs.output = target_dict["output"]
+    # Apply per-target overrides (cflags, lflags, etc.)
+    for key, value in target_dict.items():
+        if key in ("name", "source", "output"):
+            continue
+        if hasattr(t_cliargs, key):
+            attr = getattr(t_cliargs, key)
+            if isinstance(attr, bool):
+                setattr(t_cliargs, key, value.lower() in ("true", "1", "yes"))
+            elif isinstance(attr, int):
+                try:
+                    setattr(t_cliargs, key, int(value))
+                except ValueError:
+                    pass
+            elif isinstance(attr, list):
+                setattr(t_cliargs, key, value.split())
+            else:
+                setattr(t_cliargs, key, value)
+    return t_cliargs
 
 
 def run_fobis_clean(configuration):
@@ -1152,6 +1361,413 @@ def is_float128_kind_supported(configuration):
             is_supported = True
     print("Compiler '" + builder.compiler.compiler + "' support float128 kind:", is_supported)
     return is_supported
+
+
+def run_fobis_tree(configuration):
+    """
+    Run FoBiS in tree mode: print the inter-project dependency tree.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    from .Fobos import render_tree
+
+    fobos = configuration.fobos
+    cliargs = configuration.cliargs
+    deps_dir = fobos.get_deps_dir()
+    max_depth = getattr(cliargs, "tree_depth", None)
+    dedupe = not getattr(cliargs, "tree_no_dedupe", False)
+
+    # Root node
+    proj_info = fobos.get_project_info()
+    root_name = proj_info.get("name") or "unnamed project"
+    root_version = fobos.get_version() or ""
+    root_label = root_name
+    if root_version:
+        root_label += " " + root_version
+    configuration.print_b(root_label)
+
+    nodes = fobos.get_dep_tree(
+        deps_dir=deps_dir,
+        depth=0,
+        max_depth=max_depth,
+        visited=set(),
+        dedupe=dedupe,
+    )
+    if nodes:
+        configuration.print_b(render_tree(nodes))
+    else:
+        configuration.print_b("  (no dependencies declared)")
+
+
+def run_fobis_run(configuration):
+    """
+    Run FoBiS in run mode: build a target and execute it.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import subprocess
+
+    cliargs = configuration.cliargs
+    target_name = getattr(cliargs, "run_target", None)
+    no_build = getattr(cliargs, "run_no_build", False)
+    dry_run = getattr(cliargs, "run_dry_run", False)
+    extra_args = getattr(cliargs, "run_extra_args", []) or []
+    example_name = getattr(cliargs, "run_example", None)
+
+    # Resolve output binary path
+    fobos = configuration.fobos
+    mode = getattr(cliargs, "mode", None)
+
+    if example_name:
+        targets = fobos.get_targets("example")
+        matched = [t for t in targets if t["name"] == example_name]
+        if not matched:
+            configuration.print_r(f"Error: no [[example.{example_name}]] section found in fobos.")
+            sys.exit(1)
+        t_dict = matched[0]
+        output_path = os.path.join(
+            getattr(cliargs, "build_dir", "build"),
+            "example",
+            t_dict.get("output", example_name),
+        )
+        build_mode = mode or "default"
+    elif target_name:
+        # Try to find matching mode output
+        output_path = target_name
+        build_mode = mode
+    else:
+        output_path = fobos.get_output_name(mode=mode, toprint=False) or ""
+        build_mode = mode
+
+    # Build step
+    if not no_build:
+        build_args = ["build"]
+        if build_mode:
+            build_args += ["-mode", build_mode]
+        if dry_run:
+            configuration.print_b("[build]  fobis build " + " ".join(build_args[1:]))
+        else:
+            run_fobis(fake_args=build_args)
+
+    # Resolve binary if needed
+    if output_path and not os.path.isfile(output_path):
+        # Try inside build_dir
+        bd = getattr(cliargs, "build_dir", "build")
+        candidate = os.path.join(bd, os.path.basename(output_path))
+        if os.path.isfile(candidate):
+            output_path = candidate
+
+    if not dry_run and not os.path.isfile(output_path):
+        configuration.print_r(
+            f"Error: binary not found at '{output_path}'. "
+            "Check the fobos 'output' or 'target' setting."
+        )
+        sys.exit(1)
+
+    if dry_run:
+        configuration.print_b("[run]    " + output_path + " " + " ".join(extra_args))
+        return
+
+    # Execute
+    result = subprocess.run([output_path] + extra_args)
+    sys.exit(result.returncode)
+
+
+def run_fobis_check(configuration):
+    """
+    Run FoBiS in check mode: validate the dependency graph without building.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    pfiles = parse_files(configuration=configuration)
+    # Create a dummy builder just to resolve includes
+    builder = Builder(
+        cliargs=configuration.cliargs,
+        print_n=configuration.print_b,
+        print_w=configuration.print_r,
+    )
+    dependency_hiearchy(
+        builder=builder,
+        pfiles=pfiles,
+        print_w=configuration.print_r,
+        force_compile=False,
+    )
+    # Check for unresolved dependencies
+    errors = 0
+    for pfile in pfiles:
+        for dep in pfile.dependencies:
+            if not dep.file:
+                configuration.print_r(
+                    f"  Unresolved: '{pfile.name}' depends on '{dep.name}' ({dep.type}) — not found"
+                )
+                errors += 1
+    if errors:
+        configuration.print_r(f"\nDependency check: {errors} unresolved dependency(-ies).")
+        sys.exit(1)
+    else:
+        configuration.print_b(f"Dependency check: OK ({len(pfiles)} files scanned, 0 errors)")
+
+
+def run_fobis_test(configuration):
+    """
+    Run FoBiS in test mode: discover, build, and run Fortran test programs.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    from .TestRunner import TestRunner, discover_tests
+
+    cliargs = configuration.cliargs
+    fobos = configuration.fobos
+
+    # Read [test] fobos section for defaults
+    test_config = fobos.get_test_config() if fobos.fobos else {}
+    test_dir = test_config.get("test_dir", "test")
+    default_timeout = float(test_config.get("timeout", 60))
+
+    suite_filter = getattr(cliargs, "test_suite", None)
+    filter_pattern = getattr(cliargs, "test_filter", None)
+    timeout = getattr(cliargs, "test_timeout", default_timeout)
+    no_build = getattr(cliargs, "test_no_build", False)
+    list_only = getattr(cliargs, "test_list", False)
+    extra_args = getattr(cliargs, "test_extra_args", []) or []
+    do_coverage = getattr(cliargs, "test_coverage", False)
+
+    if not os.path.isdir(test_dir):
+        configuration.print_b(
+            f"No '{test_dir}' directory found. Create it and add Fortran program files."
+        )
+        return
+
+    tests = discover_tests(test_dir)
+    if not tests:
+        configuration.print_b(f"No test programs found in '{test_dir}'.")
+        return
+
+    if list_only:
+        configuration.print_b(f"Discovered tests in '{test_dir}':")
+        for t in tests:
+            suite_tag = f"  [{t['suite']}]" if t.get("suite") else ""
+            configuration.print_b(f"  {t['name']:<30} {t['source']}{suite_tag}")
+        return
+
+    build_dir = getattr(cliargs, "build_dir", "build")
+    runner = TestRunner(
+        build_dir=build_dir,
+        print_n=configuration.print_b,
+        print_w=configuration.print_r,
+    )
+
+    configuration.print_b(f"\nBuilding test suite ({len(tests)} target(s))...\n")
+
+    def build_test(test):
+        """Build a single test program and return the binary path."""
+        src = test["source"]
+        out_dir = os.path.join(build_dir, "test")
+        os.makedirs(out_dir, exist_ok=True)
+        binary = os.path.join(out_dir, test["name"])
+        build_args = ["build", "-target", src, "-output", binary]
+        mode_val = getattr(cliargs, "mode", None)
+        if mode_val:
+            build_args += ["-mode", mode_val]
+        try:
+            run_fobis(fake_args=build_args)
+            return binary if os.path.isfile(binary) else None
+        except SystemExit as e:
+            if e.code != 0:
+                return None
+            return binary if os.path.isfile(binary) else None
+
+    suite = runner.run_suite(
+        tests=tests,
+        build_fn=build_test,
+        suite_filter=suite_filter,
+        name_filter=filter_pattern,
+        timeout=timeout,
+        extra_args=extra_args,
+        no_build=no_build,
+    )
+    configuration.print_b(runner.format_results(suite))
+
+    # Optionally run coverage after tests
+    if do_coverage:
+        run_fobis_coverage(configuration)
+
+    if suite.failed:
+        sys.exit(1)
+
+
+def run_fobis_introspect(configuration):
+    """
+    Run FoBiS in introspect mode: emit machine-readable project metadata.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import json
+
+    cliargs = configuration.cliargs
+    fobos = configuration.fobos
+
+    data = {}
+
+    # Project info
+    if getattr(cliargs, "introspect_projectinfo", False):
+        proj = fobos.get_project_info()
+        version = fobos.get_version()
+        data["projectinfo"] = {
+            "name": proj.get("name", ""),
+            "version": version,
+            "authors": proj.get("authors", []),
+            "summary": proj.get("summary", ""),
+            "repository": proj.get("repository", ""),
+        }
+
+    # Compiler info
+    if getattr(cliargs, "introspect_compiler", False):
+        data["compiler"] = {
+            "name": getattr(cliargs, "compiler", "gnu"),
+            "binary": getattr(cliargs, "fc", "") or "",
+            "cflags": getattr(cliargs, "cflags", "") or "",
+            "lflags": getattr(cliargs, "lflags", "") or "",
+        }
+
+    # Source files
+    if getattr(cliargs, "introspect_sources", False):
+        pfiles = parse_files(configuration=configuration)
+        data["sources"] = [
+            {
+                "file": pf.name,
+                "modules": list(pf.module_names) if pf.module_names else [],
+                "uses": [d.name for d in pf.dependencies if d.type == "module"],
+                "program": pf.program,
+            }
+            for pf in pfiles
+        ]
+
+    # Targets
+    if getattr(cliargs, "introspect_targets", False):
+        output = fobos.get_output_name(toprint=False) or ""
+        mklib = getattr(cliargs, "mklib", "") or ""
+        target_type = "library" if mklib else "executable"
+        data["targets"] = [{"name": os.path.basename(output), "type": target_type, "output": output}]
+
+    # Dependencies
+    if getattr(cliargs, "introspect_dependencies", False):
+        deps = fobos.get_dependencies()
+        lock = {}
+        try:
+            from .Fetcher import Fetcher
+            deps_dir = fobos.get_deps_dir()
+            fetcher = Fetcher(deps_dir=deps_dir)
+            lock = fetcher.load_lock()
+        except Exception:
+            pass
+        data["dependencies"] = {}
+        for name, spec in deps.items():
+            from .Fetcher import Fetcher
+            fetcher_tmp = Fetcher(deps_dir=fobos.get_deps_dir())
+            parsed = fetcher_tmp.parse_dep_spec(spec)
+            dep_dir = os.path.join(fobos.get_deps_dir(), name)
+            dep_info = {
+                "url": parsed.get("url", ""),
+                "use": parsed.get("use", "sources"),
+                "path": dep_dir,
+                "locked": name in lock,
+            }
+            for pin in ("tag", "branch", "rev", "semver"):
+                if pin in parsed:
+                    dep_info[pin] = parsed[pin]
+            if name in lock:
+                dep_info["commit"] = lock[name].get("commit", "")
+            data["dependencies"][name] = dep_info
+
+    # Build options
+    if getattr(cliargs, "introspect_buildoptions", False):
+        data["buildoptions"] = {
+            "mode": getattr(cliargs, "mode", "") or "",
+            "build_dir": getattr(cliargs, "build_dir", "./"),
+            "obj_dir": getattr(cliargs, "obj_dir", "./obj/"),
+            "mod_dir": getattr(cliargs, "mod_dir", "./mod/"),
+            "mklib": getattr(cliargs, "mklib", "") or "",
+            "jobs": getattr(cliargs, "jobs", 1),
+        }
+
+    # Include dirs
+    if getattr(cliargs, "introspect_include_dirs", False):
+        data["include_dirs"] = getattr(cliargs, "include", []) or []
+
+    # Write mode
+    if getattr(cliargs, "introspect_write", False):
+        info_dir = ".fobis-info"
+        os.makedirs(info_dir, exist_ok=True)
+        for key, value in data.items():
+            fname = os.path.join(info_dir, f"intro-{key}.json")
+            with open(fname, "w") as f:
+                json.dump(value, f, indent=2)
+            configuration.print_b(f"[introspect] wrote {fname}")
+        return
+
+    # Default: print to stdout
+    output_format = getattr(cliargs, "introspect_format", "json")
+    if output_format == "toml":
+        try:
+            import tomllib
+            # Python 3.11+ has tomllib but no tomli writer; use basic serialisation
+            pass
+        except ImportError:
+            pass
+        # Fallback to JSON if toml writer unavailable
+    print(json.dumps(data, indent=2))
+
+
+def run_fobis_coverage(configuration):
+    """
+    Run FoBiS in coverage mode: generate coverage reports.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    from .Coverage import CoverageReporter
+
+    cliargs = configuration.cliargs
+    fobos = configuration.fobos
+
+    # Read [coverage] fobos section for defaults
+    fobos_config = fobos.get_coverage_config() if fobos.fobos else {}
+    formats = getattr(cliargs, "coverage_formats", None) or fobos_config.get("format", ["html"])
+    output_dir = getattr(cliargs, "coverage_output_dir", None) or fobos_config.get("output_dir", "coverage")
+    source_dir = getattr(cliargs, "coverage_source_dir", None) or "."
+    exclude = getattr(cliargs, "coverage_exclude", None) or fobos_config.get("exclude", [])
+    fail_under = getattr(cliargs, "coverage_fail_under", None) or fobos_config.get("fail_under")
+    tool = getattr(cliargs, "coverage_tool", None)
+    build_dir = getattr(cliargs, "build_dir", "./")
+
+    reporter = CoverageReporter(
+        build_dir=build_dir,
+        src_dir=source_dir,
+        print_n=configuration.print_b,
+        print_w=configuration.print_r,
+    )
+
+    exit_code = reporter.generate(
+        formats=formats,
+        output_dir=output_dir,
+        exclude=exclude,
+        fail_under=fail_under,
+        tool=tool,
+    )
+    if exit_code != 0:
+        sys.exit(exit_code)
 
 
 if __name__ == "__main__":

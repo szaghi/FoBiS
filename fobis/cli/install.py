@@ -19,7 +19,6 @@ def cmd_install(
     fobos_case_insensitive: FciOpt = False,
     mode: ModeOpt = None,
     lmodes: LmodesOpt = False,
-    print_fobos_template: PrintFobosTemplateOpt = False,
     # directories group (install variant)
     build_dir: BuildDirOpt = "./",
     prefix: Annotated[
@@ -64,7 +63,6 @@ def cmd_install(
         fobos_case_insensitive=fobos_case_insensitive,
         mode=mode,
         lmodes=lmodes,
-        print_fobos_template=print_fobos_template,
         build_dir=build_dir,
         prefix=prefix,
         bin=bin,

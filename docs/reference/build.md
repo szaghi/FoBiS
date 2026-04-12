@@ -65,7 +65,6 @@ fobis build [options]
 | `--fci`, `--fobos-case-insensitive` | Case-insensitive fobos option parsing |
 | `--mode` | Select a fobos mode — tab-completable from the active fobos file |
 | `--lmodes` | List available modes and exit |
-| `--print-fobos-template` | Print a fobos template with all current option values |
 
 ## Preprocessor options
 
@@ -77,6 +76,54 @@ fobis build [options]
 | `--npp`, `--preprocessor-no-o` | Omit `-o` from the preprocessor command line |
 | `--dpp`, `--preprocessor-dir` | Directory for preprocessed sources (kept if set) |
 | `--epp`, `--preprocessor-ext` | File extensions to preprocess (repeatable) |
+
+## Build profile options
+
+| Option | Description |
+|---|---|
+| `--build-profile {debug,release,asan,coverage}` | Apply a named compiler flag preset (see [Build Profiles](/advanced/build-profiles)) |
+| `--list-profiles` | Print the full built-in flag table and exit |
+
+## Feature flag options
+
+| Option | Description |
+|---|---|
+| `--features NAMES` | Comma- or space-separated list of features to activate (see [Feature Flags](/advanced/features)) |
+| `--no-default-features` | Suppress the `default =` entry in `[features]`; activate only explicitly listed features |
+
+## Build cache options
+
+| Option | Description |
+|---|---|
+| `--no-cache` | Disable the build cache for this invocation |
+| `--cache-dir DIR` | Override the cache directory (default: `.fobis_cache`) |
+
+## Multi-target options
+
+| Option | Description |
+|---|---|
+| `--target-filter NAME` | Build only the named `[target.NAME]` or `[example.NAME]` section |
+| `--examples` | Build all `[example.*]` sections defined in the fobos file |
+
+## Hook options
+
+| Option | Description |
+|---|---|
+| `--pre-build CMD` | Shell command to run before the build starts |
+| `--post-build CMD` | Shell command to run after a successful build |
+
+## Auto-discovery options
+
+| Option | Description |
+|---|---|
+| `--no-auto-discover` | Disable convention-based source directory detection (`src/`, `source/`, `app/`) |
+
+## External library options
+
+| Option | Description |
+|---|---|
+| `--pkg-config NAMES` | `pkg-config` package names to query for flags (repeatable) |
+| `--with-mpi-auto` | Auto-detect MPI compiler wrapper and flags |
 
 ## Fancy options
 

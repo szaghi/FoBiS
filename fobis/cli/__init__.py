@@ -24,8 +24,29 @@ FoBiS.py (and user code) previously imported from ``fobis.cli_parser``.
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
 
 # Import command modules to register their @app.command decorators
-from . import build, clean, commit, doctests, fetch, install, rule, scaffold  # noqa: F401
+from . import (  # noqa: F401
+    build,
+    cache_cmd,
+    check,
+    clean,
+    commit,
+    coverage_cmd,
+    doctests,
+    fetch,
+    install,
+    introspect,
+    rule,
+    run,
+    scaffold,
+    test_cmd,
+    tree,
+)
 from ._app import _normalize_args, app
+
+# Register the ``cache`` sub-application
+from .cache_cmd import cache_app as _cache_app  # noqa: F401
+
+app.add_typer(_cache_app, name="cache")
 from ._constants import (
     __compiler_supported__,
     __extensions_inc__,

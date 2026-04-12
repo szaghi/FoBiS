@@ -16,7 +16,6 @@ def cmd_fetch(
     fobos_case_insensitive: FciOpt = False,
     mode: ModeOpt = None,
     lmodes: LmodesOpt = False,
-    print_fobos_template: PrintFobosTemplateOpt = False,
     # fetch-specific options
     deps_dir: Annotated[
         str | None,
@@ -29,6 +28,17 @@ def cmd_fetch(
         bool, typer.Option("--update", help="Update already-fetched dependencies (git fetch + re-checkout)")
     ] = False,
     no_build: Annotated[bool, typer.Option("--no-build", help="Only fetch dependencies, do not build them")] = False,
+    frozen: Annotated[
+        bool,
+        typer.Option(
+            "--frozen",
+            help="Enforce exact lockfile state; abort if fobos.lock is absent or any dep mismatches",
+        ),
+    ] = False,
+    no_cache: Annotated[
+        bool,
+        typer.Option("--no-cache", help="Disable build artifact cache for fetched dependencies"),
+    ] = False,
     # fancy group
     force_compile: ForceCompileOpt = False,
     colors: ColorsOpt = False,
@@ -48,10 +58,11 @@ def cmd_fetch(
         fobos_case_insensitive=fobos_case_insensitive,
         mode=mode,
         lmodes=lmodes,
-        print_fobos_template=print_fobos_template,
         deps_dir=deps_dir,
         update=update,
         no_build=no_build,
+        frozen=frozen,
+        no_cache=no_cache,
         force_compile=force_compile,
         colors=colors,
         log=log,

@@ -274,6 +274,43 @@ def check_results(results, log=None, print_w=None):
         sys.exit(1)
 
 
+def auto_discover_src(root: str = ".") -> list[str]:
+    """
+    Apply convention-based source directory discovery.
+
+    Checks ``src/``, ``source/``, and ``app/`` under *root* for Fortran source files.
+    Returns a list of directories to use as scan roots, or an empty list if none found
+    (caller should fall back to the current directory).
+
+    Parameters
+    ----------
+    root : str
+        Project root to search under [default: ``'.'``].
+
+    Returns
+    -------
+    list[str]
+        Directories containing Fortran sources (may be empty).
+    """
+    candidates = ["src", "source", "app"]
+    found: list[str] = []
+    for name in candidates:
+        path = os.path.join(root, name)
+        if os.path.isdir(path) and _has_fortran_sources(path):
+            found.append(path)
+    return found
+
+
+def _has_fortran_sources(directory: str) -> bool:
+    """Return True if *directory* contains at least one Fortran source file."""
+    fortran_exts = {".f90", ".F90", ".f", ".F", ".f95", ".F95", ".f03", ".F03", ".f08", ".F08"}
+    for _, _, files in os.walk(directory):
+        for f in files:
+            if os.path.splitext(f)[1] in fortran_exts:
+                return True
+    return False
+
+
 def safe_mkdir(directory, print_w=None):
     """
     Create directory via safe checkings.

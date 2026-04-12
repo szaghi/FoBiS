@@ -74,6 +74,13 @@ fobis scaffold <action> [options]
 - `docs/ford.md`
 - `fpm.toml`
 
+**Init-only** files are created by `fobis scaffold init` if absent, but are never overwritten by `fobis scaffold sync` — they are yours to customise:
+
+- `fobos` — a minimal annotated multi-mode fobos skeleton with `debug` and `release` modes
+- `docs/.vitepress/config.mts`
+- `docs/ford.md`
+- `fpm.toml`
+
 ### Variable resolution
 
 Each template variable is resolved in a fixed priority order:

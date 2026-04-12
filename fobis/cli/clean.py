@@ -17,7 +17,6 @@ def cmd_clean(
     fobos_case_insensitive: FciOpt = False,
     mode: ModeOpt = None,
     lmodes: LmodesOpt = False,
-    print_fobos_template: PrintFobosTemplateOpt = False,
     # clean-specific
     only_obj: Annotated[
         bool, typer.Option("--only-obj", help="Clean only compiled objects and not built targets")
@@ -86,7 +85,6 @@ def cmd_clean(
         fobos_case_insensitive=fobos_case_insensitive,
         mode=mode,
         lmodes=lmodes,
-        print_fobos_template=print_fobos_template,
         only_obj=only_obj,
         only_target=only_target,
         compiler=compiler.lower(),

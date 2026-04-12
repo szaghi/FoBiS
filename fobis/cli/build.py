@@ -1,5 +1,7 @@
 """build.py — FoBiS.py ``build`` subcommand."""
 
+from typing import Annotated
+
 import typer
 
 from ._app import _ns, app
@@ -15,7 +17,6 @@ def cmd_build(
     fobos_case_insensitive: FciOpt = False,
     mode: ModeOpt = None,
     lmodes: LmodesOpt = False,
-    print_fobos_template: PrintFobosTemplateOpt = False,
     # compiler group
     compiler: CompilerOpt = "gnu",
     fc: FcOpt = None,
@@ -72,8 +73,76 @@ def cmd_build(
     jobs: JobsOpt = 1,
     makefile: MakefileOpt = None,
     json_output: JsonOpt = False,
+    # --- new options (issues #165–#180) ---
+    build_profile: Annotated[
+        str | None,
+        typer.Option(
+            "--build-profile",
+            help="Named build profile: debug, release, asan, coverage",
+        ),
+    ] = None,
+    features: Annotated[
+        str | None,
+        typer.Option(
+            "--features",
+            help="Comma-separated list of feature flags to activate (defined in [features] section)",
+        ),
+    ] = None,
+    no_default_features: Annotated[
+        bool,
+        typer.Option(
+            "--no-default-features",
+            help="Disable the default feature set defined in [features] default",
+        ),
+    ] = False,
+    pre_build: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--pre-build",
+            help="Rule(s) to execute before compilation (defined in [rule-X] sections)",
+        ),
+    ] = None,
+    post_build: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--post-build",
+            help="Rule(s) to execute after successful linking (defined in [rule-X] sections)",
+        ),
+    ] = None,
+    no_auto_discover: Annotated[
+        bool,
+        typer.Option(
+            "--no-auto-discover",
+            help="Disable convention-based source directory auto-discovery",
+        ),
+    ] = False,
+    no_cache: Annotated[
+        bool,
+        typer.Option("--no-cache", help="Disable the build artifact cache"),
+    ] = False,
+    cache_dir: Annotated[
+        str | None,
+        typer.Option("--cache-dir", help="Override the default cache directory"),
+    ] = None,
+    list_profiles: Annotated[
+        bool,
+        typer.Option("--list-profiles", help="Print all known build profile flag sets and exit"),
+    ] = False,
+    examples: Annotated[
+        bool,
+        typer.Option("--examples", help="Also build [[example.*]] sections"),
+    ] = False,
+    target_filter: Annotated[
+        str | None,
+        typer.Option("--target-filter", help="Build only the named target(s) from [[target.*]] sections (comma-separated)"),
+    ] = None,
 ):
     """Build all programs found or specific target(s)."""
+    if list_profiles:
+        from ..Profiles import list_profiles as _list_profiles
+        typer.echo(_list_profiles())
+        raise typer.Exit()
+
     ctx.ensure_object(dict)
     ctx.obj["cliargs"] = _ns(
         which="build",
@@ -81,7 +150,6 @@ def cmd_build(
         fobos_case_insensitive=fobos_case_insensitive,
         mode=mode,
         lmodes=lmodes,
-        print_fobos_template=print_fobos_template,
         compiler=compiler.lower(),
         fc=fc,
         cflags=cflags,
@@ -93,6 +161,16 @@ def cmd_build(
         coarray=coarray,
         coverage=coverage,
         profile=profile,
+        build_profile=build_profile or "",
+        features=features or "",
+        no_default_features=no_default_features,
+        pre_build=pre_build or [],
+        post_build=post_build or [],
+        no_auto_discover=no_auto_discover,
+        no_cache=no_cache,
+        cache_dir=cache_dir,
+        examples=examples,
+        target_filter=[t.strip() for t in (target_filter or "").split(",") if t.strip()],
         mklib=mklib,
         ar=ar,
         arflags=arflags,
@@ -133,4 +211,5 @@ def cmd_build(
         jobs=jobs,
         makefile=makefile,
         json_output=json_output,
+        active_features=[],
     )

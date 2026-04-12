@@ -28,7 +28,6 @@ def _scaffold_ns(action, fobos=None, dry_run=False, yes=False, files=None, stric
         fobos_case_insensitive=False,
         mode=None,
         lmodes=False,
-        print_fobos_template=False,
         dry_run=dry_run,
         yes=yes,
         files=files,

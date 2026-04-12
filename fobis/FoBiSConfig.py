@@ -138,6 +138,7 @@ class FoBiSConfig:
         """
         self._update_extensions()
         self._sanitize_paths()
+        self._auto_discover_src()
         self._check_cflags_heritage()
         if self.cliargs.which == "build" or self.cliargs.which == "rule":
             if len(self.cliargs.vlibs) > 0:
@@ -146,6 +147,36 @@ class FoBiSConfig:
                 self._check_ext_vlibs_md5sum()
         self._load_fetched_deps()
         self._check_interdependent_fobos()
+
+    def _auto_discover_src(self) -> None:
+        """
+        Apply convention-based source directory auto-discovery (issue #177).
+
+        When ``src`` is not explicitly set and ``no_auto_discover`` is False,
+        scan for ``src/``, ``source/``, and ``app/`` directories.
+        """
+        if self.cliargs.which not in ("build", "rule"):
+            return
+        if getattr(self.cliargs, "no_auto_discover", False):
+            return
+        # If src was explicitly set in the fobos file, honour it as-is
+        if (
+            self.fobos is not None
+            and self.fobos.fobos is not None
+            and self.fobos.mode is not None
+            and self.fobos.fobos.has_option(self.fobos.mode, "src")
+        ):
+            return
+        # Check if src was explicitly set on the CLI (differs from the default ["./"])
+        current_src = getattr(self.cliargs, "src", ["./"])
+        if current_src and current_src != ["./"] and current_src != [os.path.normpath("./")]:
+            return
+        from .utils import auto_discover_src
+
+        discovered = auto_discover_src(root=".")
+        if discovered:
+            self.print_b("[auto-discover] src not set; scanning: " + ", ".join(discovered))
+            self.cliargs.src = [os.path.normpath(d) for d in discovered]
 
     def _load_fetched_deps(self) -> None:
         """
