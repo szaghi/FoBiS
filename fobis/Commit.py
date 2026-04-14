@@ -57,6 +57,14 @@ You are an expert at writing Conventional Commits v1.0.0 messages.
 Prefer types that map to changelog sections (feat, fix, perf, revert) when the
 change justifies it.
 
+Type disambiguation — common mistakes:
+  - 'docs' applies ONLY to files that are never executed: .md, .rst, docstrings,
+    comments. String literals inside .py/.f90/etc. files that drive runtime
+    behavior (prompts, templates, error messages, format strings) are NOT docs —
+    use fix, feat, or refactor depending on intent.
+  - Changes that correct wrong observable behavior → fix, even if they only edit
+    text or configuration values.
+
 ## Rules
 
 Subject line:
@@ -67,7 +75,9 @@ Subject line:
 Scope:
   - Infer from the directory or module most affected (e.g. cli, scaffold, fetcher, build)
   - Omit scope only when changes are genuinely cross-cutting
-  - GOOD: feat(scaffold): add init-only manifest category
+  - Scope is a COMPONENT NAME, never a filename — strip the path and extension.
+  - GOOD: feat(scaffold): add init-only manifest category   ← component name
+  - BAD:  feat(Scaffolder.py): ...                          ← filename, never do this
   - BAD:  feat: add init-only manifest category  (scope is obvious from the diff)
 
 Body:
@@ -88,10 +98,12 @@ Footers:
   - Use BREAKING CHANGE:, Closes #N, Refs #N
   - Keep subject line free of issue numbers — put them in footers
 
-Style matching:
-  - Study the recent commit history provided and match its style closely
-  - If history uses short single-line messages, do the same for simple changes
-  - If history uses bodies for complex changes, follow that pattern
+Style matching (formatting only — never content):
+  - Use the recent commit history EXCLUSIVELY to match formatting style:
+    length, punctuation, use of scope, use of body, tone.
+  - NEVER infer what changed from commit history.
+  - ALL content (type, scope, description, body) must be derived solely from the
+    staged diff and stat. Commit history is a style ruler, not a content source.
 
 Changelog readiness:
   - Use BREAKING CHANGE: footer (not inline) so git-cliff/release-please detect it
@@ -135,7 +147,35 @@ forwarded to the Typer app. Detect both the env-var and the
 
 ### Example 3
 
-ci(scaffold): update ci.yml boilerplate to match FLAP reference\
+ci(scaffold): update ci.yml boilerplate to match FLAP reference
+
+### Example 4 — string-literal edits that fix runtime behavior (NOT docs)
+
+fix(commit): prevent model from anchoring on git log instead of staged diff
+
+The LLM was producing commit messages that echoed recent commit history
+rather than describing the actual change. Root cause: the prompt labelled
+the history section as a plain "style reference" without explicitly
+forbidding content inference, and 15 entries gave the model enough
+thematic signal to anchor on.
+
+Tighten the system-prompt rule to name the failure mode explicitly,
+add an IMPORTANT footer to the user prompt reinforcing the constraint,
+and drop the history window from 15 to 5 entries.
+
+(Note: only string literals and a default-argument value changed in the
+diff — this is still a fix, not docs, because those strings are LLM
+prompts that directly control runtime model output.)
+
+### Example 5 — scope is a component name, never a filename
+
+fix(fetcher): handle missing .fobis_deps directory on first fetch
+
+Without an existing deps directory the path-existence check raised
+FileNotFoundError before the clone could proceed.
+
+(Note: the changed file was fobis/Fetcher.py — scope is "fetcher",
+the component name, not "Fetcher.py".)\
 """
 
 
@@ -210,7 +250,7 @@ def current_branch() -> str:
     return result.stdout.strip() if result.returncode == 0 else ""
 
 
-def recent_commits(n: int = 15) -> str:
+def recent_commits(n: int = 5) -> str:
     return _git("log", "--oneline", f"-{n}")
 
 
@@ -226,11 +266,13 @@ def build_prompt(stat: str, diff: str, commits: str, branch: str = "", files: st
         f"{files_section}"
         "## Staged diff (may be truncated)\n\n"
         f"{diff}\n\n"
-        "## Recent commits (style reference)\n\n"
+        "## Recent commits (style reference — formatting only, not content)\n\n"
         f"{commits}\n\n"
         "Generate the semantic commit message for ALL staged files in the complete file list above.\n"
         "Every entry in that list MUST be addressed — use file names and stat sizes for any file\n"
-        "whose diff was omitted."
+        "whose diff was omitted.\n"
+        "IMPORTANT: derive ALL content from the diff and stat above. The commit history is\n"
+        "used only to match style (length, tone, scope usage) — never to infer what changed."
     )
 
 
@@ -247,7 +289,7 @@ def build_refine_prompt(draft: str, stat: str, diff: str, commits: str, files: s
         f"{files_section}"
         "## Staged diff (may be truncated)\n\n"
         f"{diff}\n\n"
-        "## Recent commits (style reference)\n\n"
+        "## Recent commits (style reference — formatting only, not content)\n\n"
         f"{commits}\n\n"
         "Critique the draft against these questions, then rewrite it:\n"
         "1. Does the subject line accurately name the primary change type and scope?\n"
