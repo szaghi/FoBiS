@@ -98,13 +98,7 @@ def test_strip_file_manifest_multiple_sections():
 
 def test_strip_file_manifest_preserves_non_manifest_bullets():
     """Bullets NOT preceded by a manifest header must be preserved."""
-    text = (
-        "refactor: clean\n\n"
-        "The change does three things:\n"
-        "- fixes a bug\n"
-        "- renames a function\n"
-        "- updates docs\n"
-    )
+    text = "refactor: clean\n\nThe change does three things:\n- fixes a bug\n- renames a function\n- updates docs\n"
     result = Commit._strip_file_manifest(text)
     assert "fixes a bug" in result
     assert "renames a function" in result

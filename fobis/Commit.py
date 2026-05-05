@@ -540,8 +540,7 @@ def _strip_file_manifest(text: str, print_w=None) -> str:
     result = "\n".join(out).rstrip() + ("\n" if text.endswith("\n") else "")
     if stripped_any and print_w is not None:
         print_w(
-            "⚠ stripped file-manifest section from body — the model re-emitted "
-            "the git stat despite the prompt rule"
+            "⚠ stripped file-manifest section from body — the model re-emitted the git stat despite the prompt rule"
         )
     return result.strip()
 
@@ -658,11 +657,11 @@ def generate(
         refine_prompt = build_refine_prompt(draft, stat, diff, commits, files=files)
         raw = _ask(refine_prompt)
         draft = wrap_message(
-        _strip_file_manifest(
-            _take_first_message(_strip_markdown_fences(_strip_think_tags(raw))),
+            _strip_file_manifest(
+                _take_first_message(_strip_markdown_fences(_strip_think_tags(raw))),
+                print_w=print_w,
+            ),
             print_w=print_w,
-        ),
-        print_w=print_w,
-    )
+        )
 
     return draft
