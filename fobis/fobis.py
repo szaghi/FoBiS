@@ -1619,6 +1619,10 @@ def run_fobis_introspect(configuration):
             "repository": proj.get("repository", ""),
         }
 
+    # Varsets — names, bindings, and the declared default (if any).
+    if getattr(cliargs, "introspect_varsets", False):
+        data["varsets"] = fobos.get_varsets_info()
+
     # Compiler info
     if getattr(cliargs, "introspect_compiler", False):
         data["compiler"] = {

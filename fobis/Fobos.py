@@ -94,6 +94,12 @@ _FEATURE_MAX_DEPTH = 32
 _FEATURE_SECTION_PREFIX = "feature:"
 _FEATURE_GROUP_SECTION_PREFIX = "feature-group:"
 
+# Varsets — named bundles of $variable bindings, applied at invocation
+# time via --varset.  Variables defined inside a [varset:NAME] section
+# are NOT auto-merged into the global pool; they apply only when the
+# user (or a fobos-declared default) explicitly selects the varset.
+_VARSET_SECTION_PREFIX = "varset:"
+
 
 def _expand_features(
     requested: list[str],
@@ -619,9 +625,15 @@ class Fobos:
     def _get_local_variables(self):
         """
         Get the definition of local variables defined into any sections (modes).
+
+        ``[varset:NAME]`` sections are deliberately skipped: their bindings
+        apply only when explicitly selected via ``--varset`` (or the fobos
+        default), not as part of the implicit global pool.
         """
         if self.fobos:
             for section in self.fobos.sections():
+                if section.startswith(_VARSET_SECTION_PREFIX):
+                    continue
                 for item in self.fobos.items(section):
                     if item[0].startswith("$"):
                         self.local_variables[item[0]] = item[1].replace("\n", " ")
@@ -638,25 +650,168 @@ class Fobos:
     def _substitute_local_variables_section(self, section):
         """
         Substitute the definition of local variables defined into a section.
+
+        The pattern uses a negative-lookahead ``(?![A-Za-z0-9_])`` so that a
+        variable name that is a prefix of another (e.g. ``$HDF5`` vs
+        ``$HDF5_PREFIX``) does not mangle the longer name's literal in the
+        text being substituted.  Without the lookahead, ``re.sub('$HDF5', ...)``
+        would match inside ``$HDF5_PREFIX`` and corrupt the value.
         """
         if self.fobos:
             if self.fobos.has_section(section):
                 for item in self.fobos.items(section):
                     item_val = item[1]
                     for key, value in list(self.local_variables.items()):
-                        item_val = re.sub(re.escape(key), value, item_val)
-                        # item_val = re.sub(r"(?!" + re.escape(key) + r"[aZ_-])\s*" + re.escape(key) + r"\s*", value, item_val)
+                        pattern = re.escape(key) + r"(?![A-Za-z0-9_])"
+                        item_val = re.sub(pattern, value, item_val)
                     self.fobos.set(section, item[0], item_val)
         return
 
-    def _check_local_variables(self):
+    def _check_local_variables(self, cliargs=None):
         """
         Get and substitute the definition of local variables defined into any sections (modes).
+
+        Resolution of varset overlay:
+
+        * If ``cliargs.varset`` is set, the named varsets are applied in order
+          (last-write-wins).  An explicit CLI choice overrides any fobos
+          default — they do not stack.
+        * Otherwise, if the fobos declares ``[varsets] default = NAME ...``,
+          those varsets are applied as the implicit fallback.
+
+        Parameters
+        ----------
+        cliargs : argparse.Namespace or None
+            When not None, ``cliargs.varset`` is honoured.  Passing None keeps
+            the legacy behaviour (no varset overlay).
         """
         if self.fobos:
             self._get_local_variables()
+            varset_arg: str | None = None
+            if cliargs is not None:
+                varset_arg = getattr(cliargs, "varset", None) or None
+            if varset_arg is None:
+                # Fall back to fobos-declared default (if any).
+                default_varsets = self._get_default_varsets()
+                if default_varsets:
+                    varset_arg = " ".join(default_varsets)
+            if varset_arg:
+                self._apply_varsets(varset_arg)
             if len(self.local_variables) > 0:
                 self._substitute_local_variables_mode()
+        return
+
+    def _get_default_varsets(self) -> list[str]:
+        """
+        Return the list of varsets declared as the fobos default.
+
+        Reads ``[varsets] default = a b c`` (space- or comma-separated).
+
+        Returns
+        -------
+        list[str]
+            Empty list when no ``[varsets]`` section exists or no default key is set.
+        """
+        if not self.fobos:
+            return []
+        if not self.fobos.has_section("varsets"):
+            return []
+        if not self.fobos.has_option("varsets", "default"):
+            return []
+        raw = self.fobos.get("varsets", "default")
+        return [n.strip() for n in raw.replace(",", " ").split() if n.strip()]
+
+    def _available_varsets(self) -> list[str]:
+        """
+        Return the names of all ``[varset:NAME]`` sections in the fobos.
+
+        Returns
+        -------
+        list[str]
+            Sorted list of varset names; empty if none are declared.
+        """
+        if not self.fobos:
+            return []
+        return sorted(
+            section[len(_VARSET_SECTION_PREFIX) :]
+            for section in self.fobos.sections()
+            if section.startswith(_VARSET_SECTION_PREFIX)
+        )
+
+    def get_varsets_info(self) -> dict[str, Any]:
+        """
+        Return all ``[varset:NAME]`` sections and the declared default.
+
+        Used by ``fobis introspect --varsets``.
+
+        Returns
+        -------
+        dict
+            ``{"default": [list of default varset names], "varsets": {name: {"$VAR": value, ...}}}``.
+        """
+        info: dict[str, Any] = {
+            "default": self._get_default_varsets(),
+            "varsets": {},
+        }
+        if not self.fobos:
+            return info
+        for section in self.fobos.sections():
+            if not section.startswith(_VARSET_SECTION_PREFIX):
+                continue
+            name = section[len(_VARSET_SECTION_PREFIX) :]
+            bindings: dict[str, str] = {}
+            for key, value in self.fobos.items(section):
+                if key.startswith("$"):
+                    bindings[key] = value.replace("\n", " ").strip()
+            info["varsets"][name] = bindings
+        return info
+
+    def _apply_varsets(self, varset_arg: str) -> None:
+        """
+        Overlay one or more ``[varset:NAME]`` sections onto self.local_variables.
+
+        ``varset_arg`` is the raw CLI value: a comma- or space-separated list
+        of varset names.  Each named varset is looked up and its ``$NAME``
+        bindings merged into the global pool in order.  Later varsets
+        override earlier ones for variables they both define
+        (last-write-wins).
+
+        A varset that does not exist aborts the build with a verbose error
+        listing the available varsets.
+
+        Parameters
+        ----------
+        varset_arg : str
+            CLI value, e.g. ``"leonardo"`` or ``"leonardo,gpu-cc80"``.
+        """
+        names = [n.strip() for n in varset_arg.replace(",", " ").split() if n.strip()]
+        if not names:
+            return
+        available = self._available_varsets()
+        for name in names:
+            section = f"{_VARSET_SECTION_PREFIX}{name}"
+            if not self.fobos or not self.fobos.has_section(section):
+                self.print_w(f"Error: varset '{name}' is not defined.")
+                if available:
+                    self.print_w(f"  Available varsets: {', '.join(available)}")
+                else:
+                    self.print_w("  (no [varset:*] sections in this fobos)")
+                sys.exit(1)
+            binding_count = 0
+            for key, value in self.fobos.items(section):
+                if not key.startswith("$"):
+                    self.print_w(
+                        f"Warning: varset '{name}' has key '{key}' without a "
+                        f"leading '$' — ignored. Variable bindings must be of "
+                        f"the form '$NAME = value'."
+                    )
+                    continue
+                self.local_variables[key] = value.replace("\n", " ")
+                binding_count += 1
+            if binding_count == 0:
+                self.print_w(
+                    f"Warning: varset '{name}' defines no variables. Did you forget the '$' prefix on the keys?"
+                )
         return
 
     # Keys handled by dedicated apply phases — never auto-copied from a mode
@@ -722,7 +877,7 @@ class Fobos:
             cliargs_dict = deepcopy(cliargs.__dict__)
             self._set_mode(mode=cliargs.mode)
             self._check_template()
-            self._check_local_variables()
+            self._check_local_variables(cliargs=cliargs)
             self._set_cliargs_attributes(cliargs=cliargs, cliargs_dict=cliargs_dict)
             self._check_cliargs_cflags(cliargs=cliargs, cliargs_dict=cliargs_dict)
             # Apply build profile flags (prepended so user flags win)

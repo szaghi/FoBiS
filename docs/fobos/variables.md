@@ -102,7 +102,22 @@ mklib     = static
 
 ## Rules and limitations
 
-- Variable names are **global** — they are collected from all sections before substitution.
+- Variable names are **global** — they are collected from all sections before
+  substitution. The one exception is `[varset:NAME]` sections, whose
+  `$`-prefixed keys apply only when the named varset is selected; see
+  [Varsets](/advanced/varsets).
 - **Recursion is not allowed** — a variable value may not reference another variable.
 - **Multiple variables** can appear in a single option value.
 - Variables are substituted via simple string replacement; there is no expression evaluation.
+- **Overlapping prefixes are safe** — substitution respects identifier
+  boundaries, so `$HDF5` and `$HDF5_PREFIX` can coexist in the same fobos
+  without one corrupting the other.
+
+## Choosing a binding at invocation time
+
+When several modes differ only in the *value* a variable should take (cluster
+paths, GPU architectures, install prefixes), reach for **varsets** instead of
+duplicating mode blocks. A varset is a named bundle of `$variable` bindings
+selected via `--varset NAME` on the CLI; the mode block stays cluster-agnostic
+and binds variables it needs by name. See [Varsets](/advanced/varsets) for the
+full reference.

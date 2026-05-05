@@ -75,6 +75,23 @@ members = single double quad
 default = double                                  ; fills the group if empty
 
 # ─────────────────────────────────────────────────────────────────────────────
+# [varsets] + [varset:NAME]  — named bundles of $variable bindings selected
+#   at invocation time via --varset.  Eliminates per-cluster mode duplication.
+#   $variables in [varset:NAME] do NOT leak into the implicit global pool.
+#   [varsets] default = NAME ...   — fobos-declared fallback (optional)
+# ─────────────────────────────────────────────────────────────────────────────
+[varsets]
+default = local                                   ; applied when --varset is omitted
+
+[varset:local]
+$HDF5_PREFIX = lib/hdf5/develop/nvf/26.1
+$ARCH        = cc89
+
+[varset:leonardo]
+$HDF5_PREFIX = /leonardo/prod/spack/.../hdf5-1.14.3
+$ARCH        = cc80
+
+# ─────────────────────────────────────────────────────────────────────────────
 # [dependencies]  — GitHub-hosted build dependencies fetched by `fobis fetch`.
 #   deps_dir = local directory for cloned repositories (default: .fobis_deps)
 #   Each entry: name = URL [:: branch=X | tag=X | rev=X | semver=X]

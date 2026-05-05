@@ -25,6 +25,16 @@ def cmd_check(
         bool,
         typer.Option("--strict", help="Treat warnings as errors; exit 1 on any warning"),
     ] = False,
+    varset: Annotated[
+        str | None,
+        typer.Option(
+            "--varset",
+            help=(
+                "Apply one or more [varset:NAME] sections' $variable bindings "
+                "(comma- or space-separated; last write wins) before validating."
+            ),
+        ),
+    ] = None,
 ):
     """Validate the dependency graph without building."""
     ctx.ensure_object(dict)
@@ -68,6 +78,7 @@ def cmd_check(
         build_profile="",
         features="",
         no_default_features=False,
+        varset=varset or "",
         pre_build=[],
         post_build=[],
         no_auto_discover=False,

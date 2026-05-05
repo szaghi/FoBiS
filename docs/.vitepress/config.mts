@@ -89,6 +89,7 @@ export default defineConfig({
           text: 'Special sections',
           items: [
             { text: 'Feature Flags',       link: '/advanced/features' },
+            { text: 'Varsets',             link: '/advanced/varsets' },
             { text: 'Dependencies',        link: '/advanced/fetch' },
             { text: 'Lock File & Semver',  link: '/advanced/lock-file' },
             { text: 'Test Runner',         link: '/advanced/testing' },
@@ -144,6 +145,7 @@ export default defineConfig({
           items: [
             { text: 'Build Profiles',          link: '/advanced/build-profiles' },
             { text: 'Feature Flags',           link: '/advanced/features' },
+            { text: 'Varsets',                 link: '/advanced/varsets' },
             { text: 'Build Cache',             link: '/advanced/cache' },
             { text: 'Auto-discovery',          link: '/advanced/auto-discovery' },
             { text: 'External Libraries',      link: '/advanced/externals' },

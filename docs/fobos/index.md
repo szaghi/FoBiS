@@ -118,6 +118,8 @@ Beyond the mode sections, a fobos file can contain several top-level sections wi
 | `[features]` | Named compile-time option sets, activated with `--features` | [Feature Flags](/advanced/features) |
 | `[feature:NAME]` | Per-feature metadata: `flags`, `requires`, `conflicts` | [Feature Flags](/advanced/features) |
 | `[feature-group:NAME]` | Mutually-exclusive feature group with optional default | [Feature Flags](/advanced/features) |
+| `[varsets]` | Varset metadata: `default = NAMES` (fobos-declared fallback) | [Varsets](/advanced/varsets) |
+| `[varset:NAME]` | Named bundle of `$variable` bindings, applied via `--varset` | [Varsets](/advanced/varsets) |
 | `[dependencies]` | GitHub-hosted build dependencies | [Fetch Dependencies](/advanced/fetch) |
 | `[test]` | Test runner defaults: suite, timeout, jobs | [Test Runner](/advanced/testing) |
 | `[coverage]` | Coverage report settings: output dir, fail threshold, excludes | [Coverage](/reference/coverage) |
@@ -186,6 +188,42 @@ default = double                          ; auto-activated when group is empty
 `requires` cascades transitively (cycle-safe). `conflicts` and group violations
 abort the build with a verbose error tracing each side back to its originator.
 See [Feature Flags](/advanced/features) for the full reference.
+
+### `[varsets]` and `[varset:NAME]` sections
+
+Varsets are named bundles of `$variable` bindings selected at invocation time.
+They eliminate per-cluster / per-target mode duplication when the only difference
+between modes is a handful of paths or numeric parameters:
+
+```ini
+[varsets]
+default = local                              ; applied when --varset is omitted
+
+[varset:local]
+$HDF5_PREFIX = lib/hdf5/develop/nvf/26.1
+
+[varset:leonardo]
+$HDF5_PREFIX = /leonardo/prod/spack/.../hdf5-1.14.3
+$ARCH        = cc80
+
+[mode-prism]
+template = template-nvf-oac
+target   = adam_prism_fnl.F90
+libs     = $HDF5_PREFIX/lib/libhdf5_fortran.a $HDF5_PREFIX/lib/libhdf5.a
+lib_dir  = $HDF5_PREFIX/lib
+include  = $HDF5_PREFIX/include
+cflags   = -c -gpu=$ARCH
+```
+
+```bash
+fobis build --mode mode-prism                          # uses [varsets] default = local
+fobis build --mode mode-prism --varset leonardo        # leonardo paths + cc80
+fobis build --mode mode-prism --varset leonardo,cc89   # combined; last write wins
+```
+
+Variables defined inside `[varset:NAME]` sections do **not** leak into the
+implicit global pool — they apply only when the varset is selected. See
+[Varsets](/advanced/varsets) for the full reference.
 
 ### `[dependencies]` section
 
@@ -270,6 +308,7 @@ cflags   = -c -O2
 - [Intrinsic rules](/fobos/intrinsic-rules) — built-in automation rules
 - [Project metadata](/fobos/project) — `[project]` section: name, version, authors, and more
 - [Feature Flags](/advanced/features) — `[features]` section: named compile-time option sets
+- [Varsets](/advanced/varsets) — `[varset:NAME]` sections: bundle `$variable` bindings, swap at invocation time
 - [Build Profiles](/advanced/build-profiles) — `build_profile` key: named compiler flag presets
 - [Fetch Dependencies](/advanced/fetch) — `[dependencies]` section: GitHub-hosted build dependencies
 - [Lock File & Semver](/advanced/lock-file) — reproducible builds and version constraints

@@ -28,6 +28,10 @@ def cmd_introspect(
     include_dirs: Annotated[bool, typer.Option("--include-dirs", help="Show include directories")] = False,
     buildoptions: Annotated[bool, typer.Option("--buildoptions", help="Show all fobos mode options")] = False,
     projectinfo: Annotated[bool, typer.Option("--projectinfo", help="Show [project] section metadata")] = False,
+    varsets: Annotated[
+        bool,
+        typer.Option("--varsets", help="Show available [varset:NAME] sections and their bindings"),
+    ] = False,
     all_info: Annotated[bool, typer.Option("--all", help="Show all introspection data")] = False,
     write: Annotated[
         bool,
@@ -37,6 +41,17 @@ def cmd_introspect(
         str,
         typer.Option("--format", help="Output format: json (default) or toml"),
     ] = "json",
+    varset: Annotated[
+        str | None,
+        typer.Option(
+            "--varset",
+            help=(
+                "Apply one or more [varset:NAME] sections' $variable bindings "
+                "(comma- or space-separated; last write wins) before resolving "
+                "introspection data."
+            ),
+        ),
+    ] = None,
 ):
     """Emit machine-readable JSON project metadata."""
     ctx.ensure_object(dict)
@@ -53,6 +68,7 @@ def cmd_introspect(
         introspect_include_dirs=include_dirs or all_info,
         introspect_buildoptions=buildoptions or all_info,
         introspect_projectinfo=projectinfo or all_info,
+        introspect_varsets=varsets or all_info,
         introspect_all=all_info,
         introspect_write=write,
         introspect_format=output_format,
@@ -90,6 +106,7 @@ def cmd_introspect(
         build_profile="",
         features="",
         no_default_features=False,
+        varset=varset or "",
         pre_build=[],
         post_build=[],
         no_auto_discover=True,  # no auto-discovery for introspect

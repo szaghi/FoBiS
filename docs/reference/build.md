@@ -91,6 +91,12 @@ fobis build [options]
 | `--features NAMES` | Comma- or space-separated list of features to activate. Prefix a name with `-` to deactivate (e.g. `prod,-coverage`). See [Feature Flags](/advanced/features) for composites (`@`-references), `[feature:NAME]` constraints, and `[feature-group:NAME]` mutual exclusivity. |
 | `--no-default-features` | Suppress the `default =` entry in `[features]`. Mode-level `features =` and CLI activations still apply. |
 
+## Varset options
+
+| Option | Description |
+|---|---|
+| `--varset NAMES` | Apply one or more `[varset:NAME]` sections' `$variable` bindings to the active mode. Comma- or space-separated; later varsets override earlier ones (last write wins). Overrides any `[varsets] default = ...` declared in the fobos. See [Varsets](/advanced/varsets). |
+
 ## Build cache options
 
 | Option | Description |

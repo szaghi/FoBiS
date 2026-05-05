@@ -100,6 +100,18 @@ def cmd_build(
             help="Disable the default feature set defined in [features] default",
         ),
     ] = False,
+    varset: Annotated[
+        str | None,
+        typer.Option(
+            "--varset",
+            help=(
+                "Apply one or more [varset:NAME] sections' $variable bindings "
+                "to the active mode. Comma- or space-separated; later varsets "
+                "override earlier ones. Use to swap parameterized values "
+                "(cluster paths, GPU arch, ...) without duplicating modes."
+            ),
+        ),
+    ] = None,
     pre_build: Annotated[
         list[str] | None,
         typer.Option(
@@ -172,6 +184,7 @@ def cmd_build(
         build_profile=build_profile or "",
         features=features or "",
         no_default_features=no_default_features,
+        varset=varset or "",
         pre_build=pre_build or [],
         post_build=post_build or [],
         no_auto_discover=no_auto_discover,

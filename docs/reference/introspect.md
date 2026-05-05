@@ -24,6 +24,7 @@ a single JSON object.
 | `--include-dirs` | Effective include search directories |
 | `--buildoptions` | Full resolved build options namespace |
 | `--projectinfo` | Project metadata from `[project]` section |
+| `--varsets` | Available `[varset:NAME]` sections and their bindings (plus the declared default) |
 | `--all` | All of the above |
 
 ## Output options
@@ -39,6 +40,7 @@ a single JSON object.
 |---|---|
 | `-f`, `--fobos` | Specify a fobos file with a different name or path |
 | `--mode` | Select a fobos mode |
+| `--varset NAMES` | Apply one or more `[varset:NAME]` sections' `$variable` bindings before resolving introspection data. Comma- or space-separated; last write wins. See [Varsets](/advanced/varsets). |
 
 ## Examples
 
