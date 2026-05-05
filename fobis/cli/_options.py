@@ -31,6 +31,7 @@ from ._completions import (
     _complete_compiler,
     _complete_extensions,
     _complete_fobos_mode,
+    _complete_fobos_rule,
     _complete_mklib,
 )
 
@@ -177,7 +178,13 @@ MakefileOpt = Annotated[
 # ---------------------------------------------------------------------------
 
 ExecuteOpt = Annotated[
-    str | None, typer.Option("--execute", "--ex", help="Specify a rule (defined in fobos) to execute")
+    str | None,
+    typer.Option(
+        "--execute",
+        "--ex",
+        help="Specify a rule (defined in fobos) to execute",
+        autocompletion=_complete_fobos_rule,
+    ),
 ]
 ListRulesOpt = Annotated[bool, typer.Option("--list", "--ls", help="List the rules defined in a fobos file")]
 GetOpt = Annotated[str | None, typer.Option("--get", help="Get option value defined in fobos (e.g. --get build_dir)")]

@@ -5,6 +5,13 @@ from typing import Annotated
 import typer
 
 from ._app import _ns, app
+from ._completions import (
+    _complete_build_profile,
+    _complete_fobos_feature,
+    _complete_fobos_rule,
+    _complete_fobos_target,
+    _complete_fobos_varset,
+)
 from ._constants import __extensions_inc__, __extensions_parsed__
 from ._options import *
 
@@ -79,6 +86,7 @@ def cmd_build(
         typer.Option(
             "--build-profile",
             help="Named build profile: debug, release, asan, coverage",
+            autocompletion=_complete_build_profile,
         ),
     ] = None,
     features: Annotated[
@@ -91,6 +99,7 @@ def cmd_build(
                 "deactivate (e.g. 'prod,-coverage'). A mode may declare "
                 "'features = a b c' to set its own default set."
             ),
+            autocompletion=_complete_fobos_feature,
         ),
     ] = None,
     no_default_features: Annotated[
@@ -110,6 +119,7 @@ def cmd_build(
                 "override earlier ones. Use to swap parameterized values "
                 "(cluster paths, GPU arch, ...) without duplicating modes."
             ),
+            autocompletion=_complete_fobos_varset,
         ),
     ] = None,
     pre_build: Annotated[
@@ -117,6 +127,7 @@ def cmd_build(
         typer.Option(
             "--pre-build",
             help="Rule(s) to execute before compilation (defined in [rule-X] sections)",
+            autocompletion=_complete_fobos_rule,
         ),
     ] = None,
     post_build: Annotated[
@@ -124,6 +135,7 @@ def cmd_build(
         typer.Option(
             "--post-build",
             help="Rule(s) to execute after successful linking (defined in [rule-X] sections)",
+            autocompletion=_complete_fobos_rule,
         ),
     ] = None,
     no_auto_discover: Annotated[
@@ -152,7 +164,9 @@ def cmd_build(
     target_filter: Annotated[
         str | None,
         typer.Option(
-            "--target-filter", help="Build only the named target(s) from [[target.*]] sections (comma-separated)"
+            "--target-filter",
+            help="Build only the named target(s) from [[target.*]] sections (comma-separated)",
+            autocompletion=_complete_fobos_target,
         ),
     ] = None,
 ):

@@ -120,6 +120,7 @@ Beyond the mode sections, a fobos file can contain several top-level sections wi
 | `[feature-group:NAME]` | Mutually-exclusive feature group with optional default | [Feature Flags](/advanced/features) |
 | `[varsets]` | Varset metadata: `default = NAMES` (fobos-declared fallback) | [Varsets](/advanced/varsets) |
 | `[varset:NAME]` | Named bundle of `$variable` bindings, applied via `--varset` | [Varsets](/advanced/varsets) |
+| `[include]` | Pull in sibling fobos files; `?` prefix for optional | [Includes](/advanced/includes) |
 | `[dependencies]` | GitHub-hosted build dependencies | [Fetch Dependencies](/advanced/fetch) |
 | `[test]` | Test runner defaults: suite, timeout, jobs | [Test Runner](/advanced/testing) |
 | `[coverage]` | Coverage report settings: output dir, fail threshold, excludes | [Coverage](/reference/coverage) |
@@ -225,6 +226,26 @@ Variables defined inside `[varset:NAME]` sections do **not** leak into the
 implicit global pool — they apply only when the varset is selected. See
 [Varsets](/advanced/varsets) for the full reference.
 
+### `[include]` section
+
+Pulls in the contents of one or more sibling fobos files before any other
+processing. Useful for splitting a large fobos by concern, sharing
+configuration across sibling repos, or layering machine-local overrides
+on top of committed defaults:
+
+```ini
+[include]
+paths = templates.fobos
+        rules.fobos
+        ?fobos.local                ; '?' prefix → optional, silent if missing
+```
+
+Paths resolve relative to the including file's directory (after `${ENV}` and
+`~` expansion). On conflict, the parent file wins; among siblings, later
+includes override earlier ones. Cycles abort with `exit 1`. By convention,
+included fragments use the `.fobos` extension (the resolver itself accepts
+any path). See [Includes](/advanced/includes) for the full reference.
+
 ### `[dependencies]` section
 
 Declares GitHub-hosted dependencies. Each entry maps a short name to a repository spec:
@@ -309,6 +330,7 @@ cflags   = -c -O2
 - [Project metadata](/fobos/project) — `[project]` section: name, version, authors, and more
 - [Feature Flags](/advanced/features) — `[features]` section: named compile-time option sets
 - [Varsets](/advanced/varsets) — `[varset:NAME]` sections: bundle `$variable` bindings, swap at invocation time
+- [Includes](/advanced/includes) — `[include]` section: pull in sibling fobos files (split, share, override)
 - [Build Profiles](/advanced/build-profiles) — `build_profile` key: named compiler flag presets
 - [Fetch Dependencies](/advanced/fetch) — `[dependencies]` section: GitHub-hosted build dependencies
 - [Lock File & Semver](/advanced/lock-file) — reproducible builds and version constraints

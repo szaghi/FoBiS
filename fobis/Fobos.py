@@ -100,6 +100,183 @@ _FEATURE_GROUP_SECTION_PREFIX = "feature-group:"
 # user (or a fobos-declared default) explicitly selects the varset.
 _VARSET_SECTION_PREFIX = "varset:"
 
+# Includes — a fobos may pull in sibling fobos files via the [include]
+# section's `paths` key.  Resolution is a pre-processing pass that runs
+# once at Fobos construction; downstream code sees a single merged config.
+_INCLUDE_SECTION = "include"
+_INCLUDE_OPTIONAL_PREFIX = "?"
+_INCLUDE_MAX_DEPTH = 16
+
+
+# Keys whose semantics are "an unordered list of names, contributed by every
+# source that defines them" — these are token-merged across includes rather
+# than overwritten with parent-wins / child-wins.  Tokens are deduped while
+# preserving first-seen order.  Listed as (section, key) pairs.
+_LIST_MERGED_KEYS: frozenset[tuple[str, str]] = frozenset(
+    (
+        ("modes", "modes"),
+        ("features", "default"),
+        ("varsets", "default"),
+    )
+)
+
+
+def _merge_into(
+    target: configparser.RawConfigParser,
+    source: configparser.RawConfigParser,
+    child_wins: bool,
+) -> None:
+    """
+    Merge every section/key from ``source`` into ``target`` (key-level merge).
+
+    When both parsers define the same ``[section] key``:
+      * ``child_wins=True``  → ``source`` value overwrites ``target``
+      * ``child_wins=False`` → ``target`` value is preserved (parent wins)
+
+    Exception: a small set of *list-typed* keys (see ``_LIST_MERGED_KEYS``)
+    are always **token-merged** regardless of ``child_wins`` — every source
+    that declares them contributes its tokens, and the result is the union
+    in first-seen order.  This handles enumeration keys like
+    ``[modes] modes = ...`` where the obvious user intent is "the include
+    contributes more modes", not "the include's modes get shadowed".
+
+    The ``[include]`` section is never merged — it is a directive consumed
+    during resolution.
+
+    Parameters
+    ----------
+    target : configparser.RawConfigParser
+        Parser receiving merged content.
+    source : configparser.RawConfigParser
+        Parser whose sections/keys are being merged in.
+    child_wins : bool
+        Conflict-resolution direction for non-list-merged keys.
+    """
+    for section in source.sections():
+        if section == _INCLUDE_SECTION:
+            continue
+        if not target.has_section(section):
+            target.add_section(section)
+        for key, value in source.items(section):
+            if (section, key) in _LIST_MERGED_KEYS and target.has_option(section, key):
+                # Token-merge: union of (existing tokens) and (source tokens),
+                # deduped, first-seen order preserved.
+                existing = target.get(section, key).split()
+                incoming = value.split()
+                seen: set[str] = set()
+                merged: list[str] = []
+                for tok in [*existing, *incoming]:
+                    if tok and tok not in seen:
+                        seen.add(tok)
+                        merged.append(tok)
+                target.set(section, key, " ".join(merged))
+            elif child_wins or not target.has_option(section, key):
+                target.set(section, key, value)
+
+
+def _resolve_includes(
+    parser: configparser.RawConfigParser,
+    base_path: str,
+    print_w: Callable[[str], None] | None = None,
+    case_insensitive: bool = False,
+) -> None:
+    """
+    Expand ``[include] paths = ...`` directives recursively into ``parser``.
+
+    Each path token is resolved relative to the *including* file's directory
+    after ``${ENV}`` and ``~`` expansion (absolute paths are used as-is).
+    A leading ``?`` marks an optional include; missing optional files are
+    skipped silently, missing required files abort with ``sys.exit(1)``.
+
+    Merge semantics (see ``_merge_into``):
+
+      * Sibling includes are merged left-to-right with **last-write-wins**
+        among themselves.
+      * The collective result is then merged into the parent file with
+        **parent-wins**.
+
+    Cycles are detected via a per-walk visited set keyed on resolved real
+    paths; the file currently being processed is also in the set so a self-
+    include is reported.  Depth is capped at ``_INCLUDE_MAX_DEPTH``.
+
+    The ``[include]`` section is removed from ``parser`` after expansion.
+
+    Parameters
+    ----------
+    parser : configparser.RawConfigParser
+        The fobos parser to expand in place.
+    base_path : str
+        Path of the fobos file ``parser`` was loaded from; used as the
+        anchor for relative include paths and for cycle detection.
+    print_w : callable | None
+        Sink for error messages emitted before ``sys.exit(1)``.
+    case_insensitive : bool
+        If True, included parsers also use case-insensitive option keys.
+    """
+
+    def _emit(msg: str) -> None:
+        if print_w is not None:
+            print_w(msg)
+
+    def _expand(target_parser: configparser.RawConfigParser, file_path: str, visited: set[str], depth: int) -> None:
+        if depth >= _INCLUDE_MAX_DEPTH:
+            _emit(f"Error: include depth exceeded ({_INCLUDE_MAX_DEPTH}) at '{file_path}'.  Likely a recursion bug.")
+            sys.exit(1)
+        if not target_parser.has_section(_INCLUDE_SECTION):
+            return
+        raw = (
+            target_parser.get(_INCLUDE_SECTION, "paths", fallback="").strip()
+            if target_parser.has_option(_INCLUDE_SECTION, "paths")
+            else ""
+        )
+        # Build the sibling-collective: process tokens left-to-right, merging
+        # each child into a fresh accumulator with child-wins semantics so
+        # the rightmost sibling overrides earlier ones.
+        collective = configparser.RawConfigParser()
+        if not case_insensitive:
+            collective.optionxform = str
+        for raw_token in raw.split():
+            token = raw_token.strip()
+            if not token:
+                continue
+            optional = token.startswith(_INCLUDE_OPTIONAL_PREFIX)
+            if optional:
+                token = token[1:]
+            if not token:
+                continue
+            expanded = os.path.expanduser(os.path.expandvars(token))
+            if not os.path.isabs(expanded):
+                expanded = os.path.join(os.path.dirname(file_path), expanded)
+            if not os.path.exists(expanded):
+                if optional:
+                    continue
+                _emit(
+                    f"Error: cannot include '{raw_token}' (file not found at "
+                    f"'{expanded}').  Use '?{raw_token.lstrip('?')}' to mark "
+                    f"this include as optional."
+                )
+                sys.exit(1)
+            real = os.path.realpath(expanded)
+            if real in visited:
+                trail = " -> ".join([*visited, real])
+                _emit(f"Error: include cycle detected: {trail}.")
+                sys.exit(1)
+            child = configparser.RawConfigParser()
+            if not case_insensitive:
+                child.optionxform = str
+            child.read(expanded)
+            # Recurse into the child *before* merging it, so deeply-nested
+            # includes are absorbed into ``child`` first.
+            _expand(child, expanded, visited | {real}, depth + 1)
+            _merge_into(collective, child, child_wins=True)
+        # Drop the directive — it has no runtime semantics — then overlay
+        # the sibling-collective into the parent with parent-wins.
+        target_parser.remove_section(_INCLUDE_SECTION)
+        _merge_into(target_parser, collective, child_wins=False)
+
+    base_real = os.path.realpath(base_path)
+    _expand(parser, base_path, {base_real}, 0)
+
 
 def _expand_features(
     requested: list[str],
@@ -528,6 +705,14 @@ class Fobos:
             if not cliargs.fobos_case_insensitive:
                 self.fobos.optionxform = str  # case sensitive
             self.fobos.read(filename)
+            # Resolve [include] directives before any downstream processing.
+            # No-op for fobos files without an [include] section.
+            _resolve_includes(
+                self.fobos,
+                base_path=filename,
+                print_w=self.print_w,
+                case_insensitive=cliargs.fobos_case_insensitive,
+            )
             self._set_cliargs(cliargs=cliargs)
         return
 
@@ -542,7 +727,11 @@ class Fobos:
         """
         if self.fobos:
             if self.fobos.has_option("modes", "modes"):
-                if mode in self.fobos.get("modes", "modes"):
+                # Token-level membership check.  Substring matching (the
+                # legacy behaviour) lets `--mode prism` silently match
+                # `prism-fnl-nvf` and pick the wrong mode.
+                declared = self.fobos.get("modes", "modes").split()
+                if mode in declared:
                     self.mode = mode
                 else:
                     self.print_w('Error: the mode "' + mode + '" is not defined into the fobos file.')

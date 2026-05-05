@@ -5,6 +5,22 @@ Copy it as a starting point and delete what you do not need.
 
 ```ini
 # ─────────────────────────────────────────────────────────────────────────────
+# [include]  — optional directive; pulls in sibling fobos files before any
+#              other processing.  Useful for splitting a large fobos by
+#              concern, sharing config across repos, or layering machine-local
+#              overrides on top of committed defaults.
+#              Paths resolve relative to this file's directory (after ${ENV}
+#              and ~ expansion).  Prefix with '?' to mark optional (silent
+#              if the file is absent).  On conflict: parent wins; among
+#              siblings, later includes override earlier ones.
+#              By convention, included fragments use the `.fobos` extension
+#              (any path works; convention helps editors and globbing).
+# ─────────────────────────────────────────────────────────────────────────────
+# [include]
+# paths = templates.fobos                       ; required — error if missing
+#         ?${HOME}/.fobis/local.fobos           ; optional — skipped if absent
+
+# ─────────────────────────────────────────────────────────────────────────────
 # [modes]  — list every named mode section defined below.
 #            Run: fobis build --mode <name>
 #            List: fobis build --lmodes

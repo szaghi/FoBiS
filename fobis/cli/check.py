@@ -10,6 +10,7 @@ from typing import Annotated
 import typer
 
 from ._app import _ns, app
+from ._completions import _complete_fobos_varset
 from ._constants import __extensions_inc__, __extensions_parsed__
 from ._options import FciOpt, FobosOpt, ModeOpt, SrcOpt
 
@@ -33,6 +34,7 @@ def cmd_check(
                 "Apply one or more [varset:NAME] sections' $variable bindings "
                 "(comma- or space-separated; last write wins) before validating."
             ),
+            autocompletion=_complete_fobos_varset,
         ),
     ] = None,
 ):

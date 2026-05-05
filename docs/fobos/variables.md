@@ -121,3 +121,11 @@ duplicating mode blocks. A varset is a named bundle of `$variable` bindings
 selected via `--varset NAME` on the CLI; the mode block stays cluster-agnostic
 and binds variables it needs by name. See [Varsets](/advanced/varsets) for the
 full reference.
+
+## Splitting variables across files
+
+Variables defined in an [included](/advanced/includes) fobos file are merged
+into the implicit global pool exactly as if they had been declared in the main
+file. This enables patterns like a committed `defaults.fobos` for project
+defaults plus an optional, gitignored `?fobos.local` for per-developer
+overrides, layered via a `[include]` directive.
