@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.8.4] — 2026-05-05
+### Added
+- **fobos**: Add [include] directive for splitting fobos files
+
+
 ## [3.8.3] — 2026-05-05
 ### Added
 - **fobos**: Add varsets for invocation-time $variable binding
