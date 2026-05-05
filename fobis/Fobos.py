@@ -82,6 +82,349 @@ _IMPLICIT_FEATURES: dict[str, str] = {
 
 
 # ---------------------------------------------------------------------------
+# Feature expansion (issue #168 — composability)
+# ---------------------------------------------------------------------------
+
+_FEATURE_REF_PREFIX = "@"
+_FEATURE_NEG_PREFIX = "-"
+_FEATURE_MAX_DEPTH = 32
+
+# Tier 2: per-feature metadata and exclusive groups live in dedicated
+# sibling sections (mirrors the [mode-X], [rule-X] convention).
+_FEATURE_SECTION_PREFIX = "feature:"
+_FEATURE_GROUP_SECTION_PREFIX = "feature-group:"
+
+
+def _expand_features(
+    requested: list[str],
+    features_map: dict[str, str],
+    print_w: Callable[[str], None] | None = None,
+) -> tuple[list[str], list[str]]:
+    """
+    Expand a list of requested feature tokens into a flat list of leaf names.
+
+    A requested token may be:
+      * a plain name (``release``)         — activated as a leaf, and any
+                                             ``@``-references in its value
+                                             are recursively expanded.
+      * a negated name (``-release``)      — collected as a post-expansion drop
+                                             (applied by the caller).
+
+    Inside a feature's value (in ``[features]``) tokens with the ``@`` prefix
+    reference another feature by name (recursive); other tokens are literal
+    flags belonging to that leaf and are resolved later by the caller.
+
+    Cycle detection uses a per-walk visited stack; re-entering a name on the
+    stack emits a warning (via ``print_w``) and aborts that walk's recursion.
+    Depth is capped at ``_FEATURE_MAX_DEPTH``.
+
+    Parameters
+    ----------
+    requested : list[str]
+        Ordered list of feature tokens (caller has already merged defaults
+        and CLI input).  May contain ``-name`` negation tokens.
+    features_map : dict[str, str]
+        ``{name: flag_string}`` from ``[features]`` section.
+    print_w : callable | None
+        Warning sink; if None, warnings are suppressed (used by pure tests).
+
+    Returns
+    -------
+    (positives, negatives) : tuple[list[str], list[str]]
+        Leaf names to activate (insertion-ordered, deduped), and names the
+        caller must remove from the active set after activation.
+    """
+    positives: list[str] = []
+    negatives: list[str] = []
+
+    def _warn(msg: str) -> None:
+        if print_w is not None:
+            print_w(msg)
+
+    def _walk(name: str, stack: list[str]) -> None:
+        if len(stack) >= _FEATURE_MAX_DEPTH:
+            _warn(f"Warning: feature expansion depth exceeded ({_FEATURE_MAX_DEPTH}) at '{name}'. Aborting expansion.")
+            return
+        if name in stack:
+            cycle = " -> ".join([*stack, name])
+            _warn(f"Warning: feature cycle detected: {cycle}. Ignored.")
+            return
+        if name not in positives:
+            positives.append(name)
+        # If this name has a value in features_map, walk its @-references.
+        value = features_map.get(name)
+        if value is None:
+            return
+        for tok in value.split():
+            if tok.startswith(_FEATURE_REF_PREFIX) and len(tok) > 1:
+                _walk(tok[1:], [*stack, name])
+
+    for tok in requested:
+        if not tok:
+            continue
+        if tok.startswith(_FEATURE_NEG_PREFIX) and len(tok) > 1:
+            target = tok[1:]
+            if target not in negatives:
+                negatives.append(target)
+            continue
+        # Plain (positive) request — strip leading '@' if user wrote it.
+        name = tok[1:] if tok.startswith(_FEATURE_REF_PREFIX) else tok
+        if not name:
+            continue
+        _walk(name, [])
+
+    return positives, negatives
+
+
+# ---------------------------------------------------------------------------
+# Feature metadata (Tier 2: requires / conflicts / groups)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class FeatureMetadata:
+    """Per-feature constraint metadata (issue #168 — Tier 2).
+
+    A leaf feature can have its flag string defined either in ``[features]``
+    (legacy form, no constraints) or in a dedicated ``[feature:NAME]`` block
+    that may also declare ``requires`` and ``conflicts``.  Both forms produce
+    a ``FeatureMetadata`` instance; the validation pipeline operates on this
+    unified view rather than the raw ``[features]`` dict.
+    """
+
+    name: str
+    flags: str = ""
+    requires: list[str] = field(default_factory=list)
+    conflicts: list[str] = field(default_factory=list)
+
+
+@dataclass
+class FeatureGroup:
+    """Mutually-exclusive feature group (issue #168 — Tier 2).
+
+    Declared as ``[feature-group:NAME]`` with:
+      * ``members = a b c``  — list of feature names in the group
+      * ``default = X``      — optional; when set, the group becomes
+                               exactly-one (the default fills the group when
+                               no member is explicitly active).  When absent,
+                               the group is at-most-one (zero active is OK).
+    """
+
+    name: str
+    members: list[str] = field(default_factory=list)
+    default: str | None = None
+
+
+def _apply_group_defaults(
+    active: list[str],
+    groups: dict[str, FeatureGroup],
+    negated: list[str],
+    print_w: Callable[[str], None] | None = None,
+) -> list[str]:
+    """
+    For each group with a ``default`` declared, fill the group when no member
+    is active.  A group whose default was explicitly negated by the user is
+    left empty (negation expresses an intentional choice).
+
+    Runs *after* composite expansion and ``_resolve_requires`` so that members
+    pulled in via @-references or `requires` correctly suppress the default.
+
+    Parameters
+    ----------
+    active : list[str]
+        Active leaves after expansion / negation / requires-pull.
+    groups : dict[str, FeatureGroup]
+    negated : list[str]
+        Names the user explicitly removed via ``--features -name``; if the
+        group's default is among these, the group is left empty.
+    print_w : callable | None
+        Info sink for "filling group X with default Y" messages.
+
+    Returns
+    -------
+    list[str]
+        ``active`` with group defaults appended where applicable.
+    """
+    for group in groups.values():
+        if group.default is None:
+            continue
+        if any(member in active for member in group.members):
+            continue
+        if group.default in negated:
+            continue
+        active.append(group.default)
+        if print_w is not None:
+            print_w(f"Activating '{group.default}' as default for feature-group '{group.name}'.")
+    return active
+
+
+def _check_groups(
+    active: list[str],
+    groups: dict[str, FeatureGroup],
+    chain: dict[str, str],
+) -> list[str]:
+    """
+    Verify that no feature-group has more than one active member.
+
+    Parameters
+    ----------
+    active : list[str]
+    groups : dict[str, FeatureGroup]
+    chain : dict[str, str]
+        ``{leaf: root_originator}`` for verbose messages.
+
+    Returns
+    -------
+    list[str]
+        Error messages, one per violated group.  Empty when no violations.
+    """
+    errors: list[str] = []
+    for group in groups.values():
+        active_members = [m for m in group.members if m in active]
+        if len(active_members) <= 1:
+            continue
+        rendered = ", ".join(_format_origin(m, chain) for m in active_members)
+        errors.append(
+            f"Error: feature-group '{group.name}' is mutually-exclusive but "
+            f"has {len(active_members)} active members: {rendered}.  "
+            f"Activate exactly one."
+        )
+    return errors
+
+
+def _format_origin(name: str, chain: dict[str, str]) -> str:
+    """Render '`X`' or '`X` (required by `Y`)' depending on chain membership."""
+    if name in chain:
+        return f"'{name}' (required by '{chain[name]}')"
+    return f"'{name}'"
+
+
+def _check_conflicts(
+    active: list[str],
+    metadata: dict[str, FeatureMetadata],
+    chain: dict[str, str],
+    print_w: Callable[[str], None] | None = None,
+) -> list[str]:
+    """
+    Detect ``[feature:X] conflicts = Y`` violations within the active set.
+
+    Self-conflicts (``conflicts = X`` declared on feature ``X``) are tolerated
+    as a warning — no abort.
+
+    Parameters
+    ----------
+    active : list[str]
+        Leaf names currently active.
+    metadata : dict[str, FeatureMetadata]
+    chain : dict[str, str]
+        Map ``{leaf: root_originator}`` from ``_resolve_requires``.
+    print_w : callable | None
+        Warning sink for self-conflict warnings.
+
+    Returns
+    -------
+    list[str]
+        Error messages, one per detected conflict pair.  Empty list when no
+        conflicts are present.  Caller should ``sys.exit(1)`` on non-empty.
+    """
+    errors: list[str] = []
+    seen_pairs: set[tuple[str, str]] = set()
+
+    def _warn(msg: str) -> None:
+        if print_w is not None:
+            print_w(msg)
+
+    for leaf in active:
+        meta = metadata.get(leaf)
+        if meta is None:
+            continue
+        for other in meta.conflicts:
+            if other == leaf:
+                _warn(f"Warning: feature '{leaf}' declares itself as a conflict. Ignored.")
+                continue
+            if other not in active:
+                continue
+            # Canonicalise the pair so symmetric declarations don't duplicate.
+            pair = (leaf, other) if leaf < other else (other, leaf)
+            if pair in seen_pairs:
+                continue
+            seen_pairs.add(pair)
+            errors.append(
+                f"Error: features {_format_origin(pair[0], chain)} and "
+                f"{_format_origin(pair[1], chain)} conflict.  "
+                f"Resolve in fobos or pass --features -{pair[0]} (or -{pair[1]}) to drop one side."
+            )
+    return errors
+
+
+def _resolve_requires(
+    active: list[str],
+    metadata: dict[str, FeatureMetadata],
+    print_w: Callable[[str], None] | None = None,
+) -> tuple[list[str], dict[str, str]]:
+    """
+    Pull prerequisites declared via ``[feature:X] requires = ...``.
+
+    A prerequisite that is not already active is appended to the active set
+    and walked recursively (its own ``requires`` are resolved too).  A cycle
+    in the requires graph is detected via a visited stack and emits a warning
+    without entering an infinite loop.
+
+    Parameters
+    ----------
+    active : list[str]
+        Leaf names currently active (post-expansion, post-negation).
+    metadata : dict[str, FeatureMetadata]
+        Unified metadata view from ``Fobos.get_feature_metadata()``.
+    print_w : callable | None
+        Warning sink.
+
+    Returns
+    -------
+    (active, chain) : tuple[list[str], dict[str, str]]
+        ``active`` extended in place with auto-pulled prereqs (insertion-ordered);
+        ``chain`` maps each auto-pulled leaf to its *root originator* — the
+        leaf that started the requires-chain that pulled it in.  Used by
+        downstream conflict messages to report "X (required by ROOT)" rather
+        than "X (required by intermediate)".  Leaves already active before
+        this pass are not in ``chain``.
+    """
+    chain: dict[str, str] = {}
+
+    def _warn(msg: str) -> None:
+        if print_w is not None:
+            print_w(msg)
+
+    def _walk(name: str, originator: str, stack: list[str]) -> None:
+        if len(stack) >= _FEATURE_MAX_DEPTH:
+            _warn(f"Warning: feature 'requires' depth exceeded ({_FEATURE_MAX_DEPTH}) at '{name}'. Aborting.")
+            return
+        meta = metadata.get(name)
+        if meta is None:
+            return
+        for prereq in meta.requires:
+            # Cycle detection runs *before* the "already-active" short-circuit
+            # so mutual dependencies (a requires b; b requires a) surface as a
+            # warning even though they don't cause infinite recursion.
+            if prereq in stack or prereq == name:
+                cycle = " -> ".join([*stack, name, prereq])
+                _warn(f"Warning: feature 'requires' cycle detected: {cycle}. Ignored.")
+                continue
+            if prereq in active:
+                continue
+            active.append(prereq)
+            chain[prereq] = originator
+            _warn(f"Activating '{prereq}' required by '{originator}'.")
+            _walk(prereq, originator, [*stack, name])
+
+    # Iterate over a snapshot — `active` mutates during the walk.
+    for leaf in list(active):
+        _walk(leaf, leaf, [])
+
+    return active, chain
+
+
+# ---------------------------------------------------------------------------
 # DepNode dataclass for fobis tree
 # ---------------------------------------------------------------------------
 
@@ -316,6 +659,10 @@ class Fobos:
                 self._substitute_local_variables_mode()
         return
 
+    # Keys handled by dedicated apply phases — never auto-copied from a mode
+    # block onto cliargs (would otherwise clobber CLI input before the merge).
+    _SKIP_AUTO_ATTRS: frozenset[str] = frozenset({"features", "no_default_features"})
+
     def _set_cliargs_attributes(self, cliargs, cliargs_dict):
         """
         Set attributes of cliargs from fobos options.
@@ -327,6 +674,8 @@ class Fobos:
         """
         if self.mode:
             for item in self.fobos.items(self.mode):
+                if item[0] in self._SKIP_AUTO_ATTRS:
+                    continue
                 if item[0] in cliargs_dict:
                     if isinstance(cliargs_dict[item[0]], bool):
                         setattr(cliargs, item[0], self.fobos.getboolean(self.mode, item[0]))
@@ -656,6 +1005,130 @@ class Fobos:
                 return self.fobos.get("features", "default").split()
         return []
 
+    def _get_mode_features(self) -> list[str]:
+        """
+        Return the space-split list of features declared on the active mode.
+
+        Reads ``features = a b c`` from ``[mode-X]`` (or the mode in use).
+        Negation tokens (``-name``) are accepted here too and forwarded to
+        the expander as part of the merged request stream.
+
+        Returns
+        -------
+        list[str]
+        """
+        if not self.fobos or not self.mode:
+            return []
+        if not self.fobos.has_option(self.mode, "features"):
+            return []
+        return self.fobos.get(self.mode, "features").split()
+
+    # ------------------------------------------------------------------
+    # Tier 2 metadata readers (issue #168)
+    # ------------------------------------------------------------------
+
+    def get_feature_metadata(self) -> dict[str, FeatureMetadata]:
+        """
+        Return a unified ``{name: FeatureMetadata}`` view of all features.
+
+        Sources (merged):
+          * ``[features] name = ...``        — legacy flat form (flags only)
+          * ``[feature:name] flags = ...``   — Tier 2 per-feature section
+          * ``[feature:name] requires = ...`` and ``conflicts = ...``
+
+        Both forms can coexist *only* when ``[features]`` provides the flag
+        string and ``[feature:name]`` provides constraints (no ``flags`` key).
+        Defining ``flags`` in both places is a hard error: the user has two
+        sources of truth for the same feature's flags, which is always wrong.
+
+        Returns
+        -------
+        dict[str, FeatureMetadata]
+            Empty dict if no [features] section and no [feature:*] sections.
+
+        Raises
+        ------
+        SystemExit
+            If a feature's flags are declared in both [features] and
+            [feature:NAME] flags = ... .  Exit code 1.
+        """
+        metadata: dict[str, FeatureMetadata] = {}
+        if not self.fobos:
+            return metadata
+
+        # Step 1: seed from [features] (legacy form).
+        for name, flags in self.get_features().items():
+            metadata[name] = FeatureMetadata(name=name, flags=flags)
+
+        # Step 2: merge [feature:NAME] sections.
+        for section in self.fobos.sections():
+            if not section.startswith(_FEATURE_SECTION_PREFIX):
+                continue
+            name = section[len(_FEATURE_SECTION_PREFIX) :].strip()
+            if not name:
+                continue
+            section_flags = ""
+            if self.fobos.has_option(section, "flags"):
+                section_flags = self.fobos.get(section, "flags").strip()
+            requires: list[str] = []
+            if self.fobos.has_option(section, "requires"):
+                requires = self.fobos.get(section, "requires").split()
+            conflicts: list[str] = []
+            if self.fobos.has_option(section, "conflicts"):
+                conflicts = self.fobos.get(section, "conflicts").split()
+
+            existing = metadata.get(name)
+            if existing is None:
+                metadata[name] = FeatureMetadata(
+                    name=name,
+                    flags=section_flags,
+                    requires=requires,
+                    conflicts=conflicts,
+                )
+                continue
+            # Already present from [features]; allow merging metadata only,
+            # not duplicate flag strings.
+            if section_flags and existing.flags and section_flags != existing.flags:
+                self.print_w(
+                    f"Error: feature '{name}' has flags declared in both "
+                    f"[features] and [feature:{name}].  Pick one source of truth."
+                )
+                sys.exit(1)
+            if section_flags and not existing.flags:
+                existing.flags = section_flags
+            existing.requires = requires
+            existing.conflicts = conflicts
+
+        return metadata
+
+    def get_feature_groups(self) -> dict[str, FeatureGroup]:
+        """
+        Return ``{name: FeatureGroup}`` from all ``[feature-group:NAME]`` sections.
+
+        Returns
+        -------
+        dict[str, FeatureGroup]
+            Empty dict if no group sections present.
+        """
+        groups: dict[str, FeatureGroup] = {}
+        if not self.fobos:
+            return groups
+        for section in self.fobos.sections():
+            if not section.startswith(_FEATURE_GROUP_SECTION_PREFIX):
+                continue
+            name = section[len(_FEATURE_GROUP_SECTION_PREFIX) :].strip()
+            if not name:
+                continue
+            members: list[str] = []
+            if self.fobos.has_option(section, "members"):
+                members = self.fobos.get(section, "members").split()
+            default: str | None = None
+            if self.fobos.has_option(section, "default"):
+                default_raw = self.fobos.get(section, "default").strip()
+                default = default_raw or None
+            groups[name] = FeatureGroup(name=name, members=members, default=default)
+        return groups
+
     def _apply_features(self, cliargs: Any) -> None:
         """
         Resolve active features and append their flags to cliargs.
@@ -675,7 +1148,12 @@ class Fobos:
         ----------
         cliargs : argparse.Namespace
         """
-        features_map = self.get_features() if (self.fobos and self.fobos.has_section("features")) else {}
+        # Tier 2: unified view over [features] and [feature:NAME] sections.
+        # For Step 1 the validation pipeline (requires/conflicts/groups) is
+        # not yet wired in — we only use the .flags field to preserve
+        # byte-identical behaviour for fobos files that don't use Tier 2.
+        metadata = self.get_feature_metadata()
+        features_map = {name: meta.flags for name, meta in metadata.items() if meta.flags}
         default_features = self.get_default_features() if (self.fobos and self.fobos.has_section("features")) else []
 
         no_default = getattr(cliargs, "no_default_features", False)
@@ -683,22 +1161,66 @@ class Fobos:
         requested_names = [n.strip() for n in requested_raw.replace(",", " ").split() if n.strip()]
 
         # Warn when --features is given but there is no [features] section and
-        # none of the requested names are implicit features.
+        # none of the *positive* requested names are implicit features.
+        # (Negation tokens like '-coverage' are filters, not feature names.)
         if requested_names and not features_map:
-            non_implicit = [n for n in requested_names if n not in _IMPLICIT_FEATURES]
+            positives_only = [n for n in requested_names if not n.startswith(_FEATURE_NEG_PREFIX)]
+            non_implicit = [n for n in positives_only if n not in _IMPLICIT_FEATURES]
             if non_implicit:
                 self.print_w(
                     "Warning: --features given but fobos has no [features] section. "
                     f"Unknown feature(s): {', '.join(non_implicit)}. Ignored."
                 )
 
-        # Build active set
-        active: list[str] = []
+        # Build requested set in resolution order:
+        #   1. [features] default (unless --no-default-features)
+        #   2. [mode-X] features = ...   (active mode)
+        #   3. CLI --features ...
+        # Each step appends names not already present; negation tokens flow
+        # through to the expander, which collects them and the caller drops
+        # the negated names from the active set after expansion.
+        requested: list[str] = []
         if not no_default:
-            active.extend(default_features)
+            requested.extend(default_features)
+        for n in self._get_mode_features():
+            if n not in requested:
+                requested.append(n)
         for n in requested_names:
-            if n not in active:
-                active.append(n)
+            if n not in requested:
+                requested.append(n)
+
+        # Expand composites and collect negations.
+        active, negated = _expand_features(requested, features_map, self.print_w)
+        # Warn on negation tokens that don't match any active feature — almost
+        # always a typo; silent no-op would mask the mistake.
+        if negated:
+            unmatched = [n for n in negated if n not in active]
+            for name in unmatched:
+                self.print_w(f"Warning: --features negation '-{name}' does not match any active feature. Ignored.")
+            # Apply negations: drop negated names from the active set.
+            active = [n for n in active if n not in negated]
+
+        # Tier 2: pull in `requires` prereqs (cycle-safe).  ``chain`` maps each
+        # auto-pulled leaf to the root originator and is consumed by the
+        # conflict-detection step.
+        active, requires_chain = _resolve_requires(active, metadata, self.print_w)
+
+        # Tier 2: feature-group defaults — fill any group with no active member
+        # using the group's declared default (respecting explicit negation).
+        groups = self.get_feature_groups()
+        if groups:
+            active = _apply_group_defaults(active, groups, negated, self.print_w)
+
+        # Tier 2: detect [feature:X] conflicts violations.  Hard error: the
+        # user declared an invariant; respecting it must not be optional.
+        errors = _check_conflicts(active, metadata, requires_chain, self.print_w)
+        # Tier 2: enforce feature-group mutual exclusivity.
+        if groups:
+            errors.extend(_check_groups(active, groups, requires_chain))
+        if errors:
+            for msg in errors:
+                self.print_w(msg)
+            sys.exit(1)
 
         # Resolve flags
         extra_cflags: list[str] = []
@@ -706,8 +1228,12 @@ class Fobos:
         for feat in active:
             if feat in features_map:
                 # Explicit definition wins — route raw flags by pattern.
+                # @-prefixed tokens are references handled by _expand_features
+                # and are skipped here (they are not flags).
                 flag_str = features_map[feat]
                 for tok in flag_str.split():
+                    if tok.startswith(_FEATURE_REF_PREFIX):
+                        continue
                     if tok in _DUAL_PHASE_FLAGS:
                         extra_cflags.append(tok)
                         extra_lflags.append(tok)

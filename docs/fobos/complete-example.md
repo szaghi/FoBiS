@@ -33,16 +33,46 @@ year       = 2026
 # [features]  — named compile-time option sets.
 #   default  = features active when none are explicitly requested
 #   All other keys: name = flags (routed to cflags/lflags automatically)
+#   @-prefixed tokens reference other features (recursive composite expansion).
 #   Well-known implicit names (openmp/omp, mpi, coarray, coverage, profile,
 #   openmp_offload/omp_offload) do NOT need an entry here — they resolve
 #   through the compiler table automatically.
 # ─────────────────────────────────────────────────────────────────────────────
 [features]
-default  = mpi                                    ; active by default
-mpi      = -DUSE_MPI                              ; -D → cflags
+default  = release mpi                            ; active by default
+release  = -O3 -DNDEBUG                           ; -D → cflags
+debug    = -g -O0 -fcheck=all                    ; -fcheck=all → cflags
+mpi      = -DUSE_MPI
 hdf5     = -DUSE_HDF5 -I/opt/hdf5/include        ; -I → cflags
 netcdf   = -DUSE_NETCDF -I/opt/netcdf/include
 omp_defs = -DUSE_OMP                              ; define only; use --features openmp for the compiler flag
+
+# Composite features compose other features via @-references.
+prod     = @release @mpi @hdf5                   ; activating prod pulls in 3 leaves
+dev      = @debug @mpi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# [feature:NAME]  — per-feature constraints (optional sibling sections).
+#   flags     = optional; alternative to [features] NAME = ... (must not duplicate)
+#   requires  = space-separated names auto-activated when this feature is active
+#   conflicts = space-separated names that cannot coexist (hard error if both active)
+# ─────────────────────────────────────────────────────────────────────────────
+[feature:hdf5]
+requires = mpi                                    ; activating hdf5 auto-activates mpi
+
+[feature:static]
+flags     = -static                               ; flags here instead of [features]
+conflicts = shared                                ; --features static,shared → exit 1
+
+# ─────────────────────────────────────────────────────────────────────────────
+# [feature-group:NAME]  — mutually-exclusive set of features (optional).
+#   members = space-separated feature names in the group
+#   default = optional; when set, auto-activated when no member is active
+#             (omit default for at-most-one semantics)
+# ─────────────────────────────────────────────────────────────────────────────
+[feature-group:precision]
+members = single double quad
+default = double                                  ; fills the group if empty
 
 # ─────────────────────────────────────────────────────────────────────────────
 # [dependencies]  — GitHub-hosted build dependencies fetched by `fobis fetch`.
@@ -134,7 +164,7 @@ preprocessor_no_o      = false                    ; omit -o from the preprocesso
 preprocessor_dir       = .preproc                 ; keep preprocessed sources in this dir
 preprocessor_ext       = .pf .PF                  ; file extensions to preprocess
 build_profile          = debug                    ; named flag preset: debug release asan coverage
-features               =                          ; comma-separated features to activate
+features               = release mpi              ; space- or comma-separated features active in this mode
 no_auto_discover       = false                    ; disable src/source/app/ auto-detection
 no_cache               = false                    ; disable the build artifact cache
 cache_dir              = .fobis_cache             ; override default cache directory

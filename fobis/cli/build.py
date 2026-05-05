@@ -85,7 +85,12 @@ def cmd_build(
         str | None,
         typer.Option(
             "--features",
-            help="Comma-separated list of feature flags to activate (defined in [features] section)",
+            help=(
+                "Comma- or space-separated feature flags to activate "
+                "(defined in [features] section). Prefix with '-' to "
+                "deactivate (e.g. 'prod,-coverage'). A mode may declare "
+                "'features = a b c' to set its own default set."
+            ),
         ),
     ] = None,
     no_default_features: Annotated[

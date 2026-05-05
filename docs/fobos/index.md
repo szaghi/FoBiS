@@ -116,6 +116,8 @@ Beyond the mode sections, a fobos file can contain several top-level sections wi
 | `[modes]` | Lists the available named mode sections | [Many-mode fobos](/fobos/many-modes) |
 | `[project]` | Project metadata: name, version, authors, … | [Project metadata](/fobos/project) |
 | `[features]` | Named compile-time option sets, activated with `--features` | [Feature Flags](/advanced/features) |
+| `[feature:NAME]` | Per-feature metadata: `flags`, `requires`, `conflicts` | [Feature Flags](/advanced/features) |
+| `[feature-group:NAME]` | Mutually-exclusive feature group with optional default | [Feature Flags](/advanced/features) |
 | `[dependencies]` | GitHub-hosted build dependencies | [Fetch Dependencies](/advanced/fetch) |
 | `[test]` | Test runner defaults: suite, timeout, jobs | [Test Runner](/advanced/testing) |
 | `[coverage]` | Coverage report settings: output dir, fail threshold, excludes | [Coverage](/reference/coverage) |
@@ -131,17 +133,59 @@ Defines named compile-time option sets that map to flags:
 
 ```ini
 [features]
-default = mpi                     ; active when none are explicitly requested
+default = release mpi             ; active when none are explicitly requested
+release = -O3 -DNDEBUG
+debug   = -g -O0 -fcheck=all
 mpi     = -DUSE_MPI
 hdf5    = -DUSE_HDF5 -I/opt/hdf5/include
 omp_defs = -DUSE_OMP              ; define only — pair with --features openmp
+
+# Composite features: prefix a name with @ to reference another feature.
+# Activating `prod` pulls in `release`, `mpi`, and `hdf5`.
+prod    = @release @mpi @hdf5
+dev     = @debug @mpi
 ```
 
-Flags are routed to `cflags` or `lflags` automatically by pattern.
+Flags are routed to `cflags` or `lflags` automatically by pattern. Composite
+expansion is recursive and cycle-safe.
+
+**Activation sources** (merged in order, last wins on negation):
+
+1. `[features] default = ...`           — project-wide baseline
+2. `[mode-X] features = a b c`          — per-mode preset
+3. `--features a,b` on the CLI          — user override; `-name` deactivates
+
+```bash
+fobis build                              # default features only
+fobis build --features prod              # composite expansion
+fobis build --features prod,-coverage    # drop coverage from the active set
+fobis build --no-default-features        # ignore [features] default =
+```
 
 Well-known compiler capabilities (`openmp`/`omp`, `mpi`, `coarray`, `coverage`,
 `profile`) are **implicit features** — they work without a `[features]` section
-and resolve to the correct compiler-specific flag automatically. See [Feature Flags](/advanced/features).
+and resolve to the correct compiler-specific flag automatically.
+
+### `[feature:NAME]` and `[feature-group:NAME]` sections
+
+For features that need constraints or grouping, declare them in dedicated
+sibling sections:
+
+```ini
+[feature:hdf5]
+requires = mpi                            ; auto-pulls mpi when hdf5 is active
+
+[feature:static]
+conflicts = shared                        ; hard error if both active
+
+[feature-group:precision]
+members = single double quad              ; at most one active at a time
+default = double                          ; auto-activated when group is empty
+```
+
+`requires` cascades transitively (cycle-safe). `conflicts` and group violations
+abort the build with a verbose error tracing each side back to its originator.
+See [Feature Flags](/advanced/features) for the full reference.
 
 ### `[dependencies]` section
 

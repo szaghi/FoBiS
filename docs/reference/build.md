@@ -88,8 +88,8 @@ fobis build [options]
 
 | Option | Description |
 |---|---|
-| `--features NAMES` | Comma- or space-separated list of features to activate (see [Feature Flags](/advanced/features)) |
-| `--no-default-features` | Suppress the `default =` entry in `[features]`; activate only explicitly listed features |
+| `--features NAMES` | Comma- or space-separated list of features to activate. Prefix a name with `-` to deactivate (e.g. `prod,-coverage`). See [Feature Flags](/advanced/features) for composites (`@`-references), `[feature:NAME]` constraints, and `[feature-group:NAME]` mutual exclusivity. |
+| `--no-default-features` | Suppress the `default =` entry in `[features]`. Mode-level `features =` and CLI activations still apply. |
 
 ## Build cache options
 
