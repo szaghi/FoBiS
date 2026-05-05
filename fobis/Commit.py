@@ -64,6 +64,11 @@ Type disambiguation — common mistakes:
     use fix, feat, or refactor depending on intent.
   - Changes that correct wrong observable behavior → fix, even if they only edit
     text or configuration values.
+  - 'revert' applies ONLY when the commit undoes a *specific prior commit* (e.g.
+    `git revert <sha>`). Large deletions of legacy / dead / stale code are NOT
+    reverts — they are refactor (if the intent is restructuring) or chore (if
+    tooling / cleanup). A diff with many deletions is almost always refactor,
+    not revert.
 
 ## Rules
 
@@ -122,6 +127,70 @@ All-files coverage (critical — violations are the most common mistake):
 Never add co-authors. Output ONLY the raw commit message — no explanations,
 no markdown fences, no "here is your commit message" preamble.
 Output EXACTLY ONE commit message and then stop. Do not output multiple messages.
+
+Forbidden: file manifests in the body (in ANY format).
+  - NEVER reproduce the git stat as a list of files in the body. `git show --stat`
+    already displays this; duplicating it is pure noise.
+  - This ban covers EVERY format the model might try:
+      * Section headers like "Files removed:" / "Files added:" / "Files modified:"
+      * Generic intro headers like "The changes include:" / "Summary of changes:"
+        followed by a file / operation enumeration
+      * Bullet lists where each bullet is a file path or "Removal of foo.vim"
+      * Numbered lists of files / change operations
+      * Tables of files with line counts
+    If your body contains an enumeration of more than two files OR of
+    per-file operations, you are writing a manifest. Delete it.
+  - "Accounting for every file" means the body's *reasons* cover the logical groups
+    represented, not that filenames are enumerated. A single sentence like
+    "remove the six unused colorschemes" accounts for all six without listing them.
+  - Name a specific file only when it is load-bearing for the *why* (e.g. "remove
+    plug.vim.old — stale vim-plug backup"). One or two named files is fine; a list
+    is not.
+  - BAD body ending:
+      The changes include:
+      - Removal of 13 legacy color scheme files
+      - Addition of new ftdetect files
+      - Updates to vimrc
+  - GOOD body: prose that names the *reasons* the files were removed, grouped by
+    motivation, with filenames only where they clarify the reason.
+
+Forbidden: hallucinated BREAKING CHANGE footers.
+  - Emit a BREAKING CHANGE footer ONLY when the diff removes or changes the
+    signature of a published API: a CLI flag, a public function signature, a
+    config file schema consumed by third parties, an exported module member, a
+    database migration, a network protocol. The trigger is "downstream code
+    that previously worked now fails."
+  - Personal dotfiles, internal scripts, vendored config files, test helpers,
+    and build scaffolding do NOT have downstream consumers and cannot produce
+    breaking changes. A vim config rewrite is not breaking — there is no API.
+  - NEVER emit "users will need to update" as the reason for a BREAKING CHANGE
+    unless you can name the specific API and the specific downstream behavior
+    that now fails. Vague "users may need to adapt" is a hallucination — drop it.
+  - When in doubt, omit the footer. A missing BREAKING CHANGE on a truly
+    breaking commit can be added later; a fabricated one poisons changelogs.
+
+Forbidden: generic padding.
+  - NEVER end the body with sentences like "this simplifies the configuration",
+    "this streamlines the codebase", "this improves maintainability", or similar
+    generic closers that could describe any refactor in any project. They add
+    length without information.
+  - If you cannot state a *specific* why, the body is too short — go back to the
+    diff and find concrete reasons.
+
+Diff-forensics checklist (read the diff like a reviewer, not a summarizer):
+  - Before writing the body, scan the diff for at least one of:
+      (a) dead code being removed (unreferenced functions, commented-out plugins,
+          stale vendored files),
+      (b) a duplicate or overwritten definition that was silently clobbering
+          earlier lines,
+      (c) a setting leaking beyond its intended scope (e.g. `set` at file level
+          that should have been `setlocal` in ftplugin),
+      (d) a band-aid being replaced with a proper fix (e.g. a timeout knob removed
+          in favor of addressing the root cause),
+      (e) a renamed or relocated file where the new location matches an idiomatic
+          pattern the old one didn't (e.g. ftplugin/, ftdetect/, plugins/).
+  - If you find any, name it concretely in the body — that is the *why*. These
+    observations are the difference between a summary and a review.
 
 ## Examples of well-formed messages
 
@@ -272,7 +341,13 @@ def build_prompt(stat: str, diff: str, commits: str, branch: str = "", files: st
         "Every entry in that list MUST be addressed — use file names and stat sizes for any file\n"
         "whose diff was omitted.\n"
         "IMPORTANT: derive ALL content from the diff and stat above. The commit history is\n"
-        "used only to match style (length, tone, scope usage) — never to infer what changed."
+        "used only to match style (length, tone, scope usage) — never to infer what changed.\n\n"
+        "Before drafting, state to yourself (silently) the 1-3 concrete *reasons* this change\n"
+        "was made. A reason is NOT 'simplifies configuration' or 'improves maintainability' —\n"
+        "those are padding. A reason is specific: 'lightline was defined twice, second block\n"
+        "silently overwrote the first' or 'pythonrc.vim set tabstop=2 globally instead of\n"
+        "locally, leaking a Python setting into every filetype'. If the diff does not support\n"
+        "a specific reason, the body should be shorter, not padded."
     )
 
 
@@ -380,6 +455,30 @@ def _strip_think_tags(text: str) -> str:
     return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
 
 
+def _strip_markdown_fences(text: str) -> str:
+    """Remove markdown code fences the model wraps output in despite being told not to.
+
+    Handles three shapes:
+      * Leading ```<lang>\\n...content...\\n```
+      * Trailing ``` on its own line (common when the model half-complies)
+      * Inline ``` at the start/end of a line that is otherwise the commit subject
+    """
+    stripped = text.strip()
+
+    # Full fence: ```[lang]\n...\n```
+    full = re.match(r"^```[a-zA-Z]*\n(.*?)\n```\s*$", stripped, flags=re.DOTALL)
+    if full:
+        return full.group(1).strip()
+
+    # Leading fence only
+    stripped = re.sub(r"^```[a-zA-Z]*\n", "", stripped)
+    # Trailing fence only (on its own line)
+    stripped = re.sub(r"\n```\s*$", "", stripped)
+    # Orphan triple-backtick line anywhere (last line is the usual case)
+    lines = [ln for ln in stripped.splitlines() if ln.strip() != "```"]
+    return "\n".join(lines).strip()
+
+
 def _take_first_message(text: str) -> str:
     """Return only the first commit message when the model repeats itself."""
     # Some models repeat the message separated by "---" lines
@@ -387,11 +486,91 @@ def _take_first_message(text: str) -> str:
     return parts[0].strip()
 
 
-def wrap_message(message: str, width: int = 90) -> str:
-    """Wrap each paragraph of a commit message to at most *width* columns."""
+# Headers the model uses to start a file-enumeration section. Case-insensitive.
+_MANIFEST_HEADER_RE = re.compile(
+    r"^\s*(?:\*\*)?(?:"
+    r"files?\s+(?:removed|added|modified|deleted|changed|created|updated)"
+    r"|(?:the\s+)?changes?\s+include"
+    r"|summary\s+of\s+changes?"
+    r"|(?:files?\s+)?(?:removed|added|modified|deleted|changed|created|updated)\s+files?"
+    r")(?:\*\*)?\s*:?\s*$",
+    re.IGNORECASE,
+)
+
+
+def _strip_file_manifest(text: str, print_w=None) -> str:
+    """Remove hallucinated "Files removed:" manifest sections from the body.
+
+    Small local models frequently enumerate every staged file in the body despite
+    explicit prompts forbidding it (the stat already shows this). Detect the
+    common section-header shapes and drop from that header through the end of the
+    contiguous bullet-list block that follows.
+
+    A "bullet-list block" is one or more lines beginning with ``-``, ``*``, or
+    ``N.``. Blank lines inside the block are allowed; the block ends at the first
+    non-bullet, non-blank line.
+    """
+    lines = text.splitlines()
+    out: list[str] = []
+    stripped_any = False
+    i = 0
+    bullet_re = re.compile(r"^\s*(?:[-*]|\d+\.)\s+")
+    while i < len(lines):
+        if _MANIFEST_HEADER_RE.match(lines[i]):
+            # Peek ahead: is this header followed (after optional blank) by bullets?
+            j = i + 1
+            while j < len(lines) and lines[j].strip() == "":
+                j += 1
+            if j < len(lines) and bullet_re.match(lines[j]):
+                # Skip header + bullet block (blanks permitted inside block)
+                k = j
+                while k < len(lines):
+                    if lines[k].strip() == "" or bullet_re.match(lines[k]):
+                        k += 1
+                        continue
+                    break
+                # Trim any trailing blank lines we ate (leave one separator in out)
+                while out and out[-1].strip() == "":
+                    out.pop()
+                stripped_any = True
+                i = k
+                continue
+        out.append(lines[i])
+        i += 1
+    result = "\n".join(out).rstrip() + ("\n" if text.endswith("\n") else "")
+    if stripped_any and print_w is not None:
+        print_w(
+            "⚠ stripped file-manifest section from body — the model re-emitted "
+            "the git stat despite the prompt rule"
+        )
+    return result.strip()
+
+
+SUBJECT_MAX = 72
+
+
+def wrap_message(message: str, width: int = 90, print_w=None) -> str:
+    """Wrap each paragraph of a commit message to at most *width* columns.
+
+    The subject line (first line) is never wrapped — git tooling assumes
+    single-line subjects, so wrapping it would corrupt the commit. If the
+    subject exceeds SUBJECT_MAX (72 chars, per Conventional Commits), a
+    warning is emitted via *print_w* and the subject is left as-is so the
+    user sees the violation before committing.
+    """
     lines = message.splitlines()
-    wrapped = []
-    for line in lines:
+    if not lines:
+        return message
+
+    subject = lines[0]
+    if len(subject) > SUBJECT_MAX and print_w is not None:
+        print_w(
+            f"⚠ subject line is {len(subject)} chars (max {SUBJECT_MAX}) — "
+            "consider shortening or re-running with --refine-passes 1"
+        )
+
+    wrapped = [subject]
+    for line in lines[1:]:
         if len(line) <= width:
             wrapped.append(line)
             continue
@@ -466,12 +645,24 @@ def generate(
     print_n(f"[{backend}:{model}] Generating commit message…")
     prompt = build_prompt(stat, diff, commits, branch=branch, files=files)
     raw = _ask(prompt)
-    draft = wrap_message(_take_first_message(_strip_think_tags(raw)))
+    draft = wrap_message(
+        _strip_file_manifest(
+            _take_first_message(_strip_markdown_fences(_strip_think_tags(raw))),
+            print_w=print_w,
+        ),
+        print_w=print_w,
+    )
 
     for i in range(refine_passes):
         print_n(f"[{backend}:{model}] Refining… (pass {i + 1}/{refine_passes})")
         refine_prompt = build_refine_prompt(draft, stat, diff, commits, files=files)
         raw = _ask(refine_prompt)
-        draft = wrap_message(_take_first_message(_strip_think_tags(raw)))
+        draft = wrap_message(
+        _strip_file_manifest(
+            _take_first_message(_strip_markdown_fences(_strip_think_tags(raw))),
+            print_w=print_w,
+        ),
+        print_w=print_w,
+    )
 
     return draft

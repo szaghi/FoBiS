@@ -26,6 +26,111 @@ def test_strip_think_tags_no_tags():
     assert Commit._strip_think_tags(text) == text
 
 
+def test_strip_markdown_fences_full_block():
+    text = "```\nfeat: subject\n\nbody\n```"
+    assert Commit._strip_markdown_fences(text) == "feat: subject\n\nbody"
+
+
+def test_strip_markdown_fences_with_lang():
+    text = "```text\nfeat: subject\n\nbody\n```"
+    assert Commit._strip_markdown_fences(text) == "feat: subject\n\nbody"
+
+
+def test_strip_markdown_fences_trailing_only():
+    text = "feat: subject\n\nbody\n```"
+    assert Commit._strip_markdown_fences(text) == "feat: subject\n\nbody"
+
+
+def test_strip_markdown_fences_leading_only():
+    text = "```\nfeat: subject\n\nbody"
+    assert Commit._strip_markdown_fences(text) == "feat: subject\n\nbody"
+
+
+def test_strip_markdown_fences_none():
+    text = "feat: clean\n\nbody"
+    assert Commit._strip_markdown_fences(text) == text
+
+
+def test_strip_file_manifest_files_removed_section():
+    text = (
+        "refactor: clean\n\n"
+        "Body prose explaining the change.\n\n"
+        "Files removed:\n"
+        "- foo.vim (57 lines)\n"
+        "- bar.vim (105 lines)\n"
+    )
+    result = Commit._strip_file_manifest(text)
+    assert "Files removed" not in result
+    assert "foo.vim" not in result
+    assert "Body prose explaining the change." in result
+
+
+def test_strip_file_manifest_changes_include_bullets():
+    text = (
+        "refactor: clean\n\n"
+        "Body prose.\n\n"
+        "The changes include:\n"
+        "- Removal of 13 legacy files\n"
+        "- Addition of new filetypes\n"
+    )
+    result = Commit._strip_file_manifest(text)
+    assert "The changes include" not in result
+    assert "Removal of 13" not in result
+    assert "Body prose." in result
+
+
+def test_strip_file_manifest_multiple_sections():
+    text = (
+        "refactor: clean\n\n"
+        "Prose.\n\n"
+        "Files removed:\n- a.vim\n- b.vim\n\n"
+        "Files added:\n- c.vim\n\n"
+        "Files modified:\n- d.vim\n"
+    )
+    result = Commit._strip_file_manifest(text)
+    assert "Files removed" not in result
+    assert "Files added" not in result
+    assert "Files modified" not in result
+    assert "a.vim" not in result
+    assert "c.vim" not in result
+    assert "Prose." in result
+
+
+def test_strip_file_manifest_preserves_non_manifest_bullets():
+    """Bullets NOT preceded by a manifest header must be preserved."""
+    text = (
+        "refactor: clean\n\n"
+        "The change does three things:\n"
+        "- fixes a bug\n"
+        "- renames a function\n"
+        "- updates docs\n"
+    )
+    result = Commit._strip_file_manifest(text)
+    assert "fixes a bug" in result
+    assert "renames a function" in result
+
+
+def test_strip_file_manifest_no_bullets_no_strip():
+    """A 'Files removed:' header with prose (not bullets) is not a manifest."""
+    text = "refactor: clean\n\nFiles removed: specifically the dead colorschemes.\n"
+    result = Commit._strip_file_manifest(text)
+    assert "Files removed: specifically" in result
+
+
+def test_strip_file_manifest_warns():
+    warnings = []
+    text = "refactor: x\n\nProse.\n\nFiles removed:\n- a\n- b\n"
+    Commit._strip_file_manifest(text, print_w=warnings.append)
+    assert len(warnings) == 1
+    assert "manifest" in warnings[0]
+
+
+def test_strip_file_manifest_no_warn_when_absent():
+    warnings = []
+    Commit._strip_file_manifest("refactor: x\n\nClean body.\n", print_w=warnings.append)
+    assert warnings == []
+
+
 def test_take_first_message_single():
     assert Commit._take_first_message("feat: first") == "feat: first"
 
@@ -40,19 +145,45 @@ def test_wrap_message_short_lines_unchanged():
     assert Commit.wrap_message(msg) == msg
 
 
-def test_wrap_message_long_line_wrapped():
-    long_line = "word " * 25  # 125 chars
-    result = Commit.wrap_message(long_line.strip(), width=72)
-    for line in result.splitlines():
+def test_wrap_message_long_body_line_wrapped():
+    long_body = "word " * 25  # 125 chars
+    msg = "feat(scope): subject\n\n" + long_body.strip()
+    result = Commit.wrap_message(msg, width=72)
+    # Subject line stays; body lines are wrapped.
+    body_lines = result.splitlines()[2:]
+    for line in body_lines:
         assert len(line) <= 72
 
 
+def test_wrap_message_preserves_long_subject():
+    """Subject line must never be wrapped — git tooling assumes single-line subjects."""
+    long_subject = "feat(scope): " + "word " * 20  # well over 72
+    msg = long_subject + "\n\nBody."
+    result = Commit.wrap_message(msg, width=72)
+    assert result.splitlines()[0] == long_subject
+
+
+def test_wrap_message_warns_on_overlong_subject():
+    warnings = []
+    long_subject = "feat(scope): " + "x" * 80  # > 72
+    Commit.wrap_message(long_subject + "\n\nBody.", print_w=warnings.append)
+    assert len(warnings) == 1
+    assert "subject line" in warnings[0]
+    assert str(len(long_subject)) in warnings[0]
+
+
+def test_wrap_message_no_warning_on_short_subject():
+    warnings = []
+    Commit.wrap_message("feat: short\n\nBody.", print_w=warnings.append)
+    assert warnings == []
+
+
 def test_wrap_message_bullet_indent():
-    msg = "- " + "word " * 20
-    result = Commit.wrap_message(msg.strip(), width=40)
-    lines = result.splitlines()
-    assert len(lines) > 1
-    assert lines[1].startswith("  ")  # subsequent indent aligns with bullet body
+    msg = "feat: subject\n\n- " + "word " * 20
+    result = Commit.wrap_message(msg, width=40)
+    body_lines = result.splitlines()[2:]
+    assert len(body_lines) > 1
+    assert body_lines[1].startswith("  ")  # subsequent indent aligns with bullet body
 
 
 def test_build_prompt_includes_branch():
