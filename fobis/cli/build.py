@@ -199,6 +199,7 @@ def cmd_build(
         features=features or "",
         no_default_features=no_default_features,
         varset=varset or "",
+        intrinsic_modules=[],
         pre_build=pre_build or [],
         post_build=post_build or [],
         no_auto_discover=no_auto_discover,

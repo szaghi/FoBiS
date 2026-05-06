@@ -100,7 +100,7 @@ import operator
 import os
 import re
 import shlex
-from subprocess import STDOUT, check_output
+from subprocess import STDOUT, CalledProcessError, check_output
 
 from .Dependency import Dependency
 from .Doctest import Doctest
@@ -110,13 +110,6 @@ from .utils import traverse_recursive, unique_seq
 __str_apex__ = r"('|" + r'")'
 __str_kw_include__ = r"[Ii][Nn][Cc][Ll][Uu][Dd][Ee]"
 __str_kw_intrinsic__ = r"[Ii][Nn][Tt][Rr][Ii][Nn][Ss][Ii][Cc]"
-__str_kw_iso_fortran_env__ = r"[Ii][Ss][Oo]_[Ff][Oo][Rr][Tt][Rr][Aa][Nn]_[Ee][Nn][Vv]"
-__str_kw_iso_c_binding__ = r"[Ii][Ss][Oo]_[Cc]_[Bb][Ii][Nn][Dd][Ii][Nn][Gg]"
-__str_kw_ieee_exceptions__ = r"[Ii][Ee][Ee][Ee]_[Ee][Xx][Cc][Ee][Pp][Tt][Ii][Oo][Nn][Ss]"
-__str_kw_ieee_arithmetic__ = r"[Ii][Ee][Ee][Ee]_[Aa][Rr][Ii][Tt][Hh][Mm][Ee][Tt][Ii][Cc]"
-__str_kw_ieee_features__ = r"[Ii][Ee][Ee][Ee]_[Ff][Ee][Aa][Tt][Uu][Rr][Ee][Ss]"
-__str_kw_openacc__ = r"[Oo][Pp][Ee][Nn][Aa][Cc][Cc]"
-__str_kw_omp_lib__ = r"[Oo][Mm][Pp]_[Ll][Ii][Bb]"
 __str_kw_module__ = r"[Mm][Oo][Dd][Uu][Ll][Ee]"
 __str_kw_submodule__ = r"[Ss][Uu][Bb][Mm][Oo][Dd][Uu][Ll][Ee]"
 __str_kw_program__ = r"[Pp][Rr][Oo][Gg][Rr][Aa][Mm]"
@@ -145,59 +138,11 @@ __str_use_mod_intrinsic__ = (
     + r"\s*::.*"  # keyword intrinsic
     + r"(?P<mod_eol>(.*))"
 )
-__str_use_mod_iso_fortran_env__ = (
-    r"^(\s*)"  # eventual initial white spaces
-    + __str_kw_use__  # keyword "use"
-    + r"\s+"
-    + __str_kw_iso_fortran_env__  # keyword intrinsic module iso_fortran_env
-    + r"(?P<mod_eol>(.*))"
-)
-__str_use_mod_iso_c_binding__ = (
-    r"^(\s*)"  # eventual initial white spaces
-    + __str_kw_use__  # keyword "use"
-    + r"\s+"
-    + __str_kw_iso_c_binding__  # keyword intrinsic module iso_c_binding
-    + r"(?P<mod_eol>(.*))"
-)
-__str_use_mod_ieee_exceptions__ = (
-    r"^(\s*)"  # eventual initial white spaces
-    + __str_kw_use__  # keyword "use"
-    + r"\s+"
-    + __str_kw_ieee_exceptions__  # keyword intrinsic module ieee_exceptions
-    + r"(?P<mod_eol>(.*))"
-)
-__str_use_mod_ieee_arithmetic__ = (
-    r"^(\s*)"  # eventual initial white spaces
-    + __str_kw_use__  # keyword "use"
-    + r"\s+"
-    + __str_kw_ieee_arithmetic__  # keyword intrinsic module ieee_arithmetic
-    + r"(?P<mod_eol>(.*))"
-)
-__str_use_mod_ieee_features__ = (
-    r"^(\s*)"  # eventual initial white spaces
-    + __str_kw_use__  # keyword "use"
-    + r"\s+"
-    + __str_kw_ieee_features__  # keyword intrinsic module ieee_features
-    + r"(?P<mod_eol>(.*))"
-)
-__str_use_mod_openacc__ = (
-    r"^(\s*)"  # eventual initial white spaces
-    + __str_kw_use__  # keyword "use"
-    + r"\s+"
-    + r"(.*)"
-    + __str_kw_openacc__
-    + r".*"  # keyword intrinsic module openacc
-    + r"(?P<mod_eol>(.*))"
-)
-__str_use_mod_omp_lib__ = (
-    r"^(\s*)"  # eventual initial white spaces
-    + __str_kw_use__  # keyword "use"
-    + r"\s+"
-    + r"(.*)"
-    + __str_kw_omp_lib__
-    + r".*"  # keyword intrinsic module omp_lib
-    + r"(?P<mod_eol>(.*))"
-)
+# Per-module intrinsic regexes (`__str_use_mod_iso_fortran_env__` etc.) used
+# to live here.  They were replaced by name-based lookup against
+# ``_INTRINSIC_MODULES`` in the parse loop.  Only the syntactic form
+# ``use, intrinsic :: NAME`` (above) is still regex-matched, because that
+# is a *form* — name-agnostic — and cannot fold into a name set.
 __str_include__ = (
     r"^(\s*|\#)"  # eventual initial white spaces or "#" character
     + __str_kw_include__  # keyword "include"
@@ -247,28 +192,186 @@ __regex_program__ = re.compile(__str_program__)
 __regex_module__ = re.compile(__str_module__)
 __regex_submodule__ = re.compile(__str_submodule__)
 __regex_use_mod_intrinsic__ = re.compile(__str_use_mod_intrinsic__)
-__regex_use_mod_iso_fortran_env__ = re.compile(__str_use_mod_iso_fortran_env__)
-__regex_use_mod_iso_c_binding__ = re.compile(__str_use_mod_iso_c_binding__)
-__regex_use_mod_ieee_exceptions__ = re.compile(__str_use_mod_ieee_exceptions__)
-__regex_use_mod_ieee_arithmetic__ = re.compile(__str_use_mod_ieee_arithmetic__)
-__regex_use_mod_ieee_features__ = re.compile(__str_use_mod_ieee_features__)
-__regex_use_mod_openacc__ = re.compile(__str_use_mod_openacc__)
-__regex_use_mod_omp_lib__ = re.compile(__str_use_mod_omp_lib__)
+# Single-element list for the surviving syntactic form.  The list shape is
+# kept (rather than collapsing to a scalar) so the parse loop's
+# ``any(re.match(...) for ...)`` idiom continues to work and reads the
+# same as before.
 __regex_use_intrinsic_modules__ = [
     __regex_use_mod_intrinsic__,
-    __regex_use_mod_iso_fortran_env__,
-    __regex_use_mod_iso_c_binding__,
-    __regex_use_mod_ieee_exceptions__,
-    __regex_use_mod_ieee_arithmetic__,
-    __regex_use_mod_ieee_features__,
-    __regex_use_mod_openacc__,
-    __regex_use_mod_omp_lib__,
 ]
 __regex_mpifh__ = re.compile(__str_mpifh__)
+
+# Universal intrinsic modules — recognised by every supported Fortran
+# compiler.  Names are lowercased; the parser's lookup also lowercases the
+# matched `use NAME` token before checking membership.  Replaces the legacy
+# per-module regex chain (kept in parallel during the refactor; deleted in
+# a later step).  The `use, intrinsic :: NAME` syntactic form (where the
+# user explicitly forces the intrinsic version of a same-named module) is
+# still handled by ``__regex_use_mod_intrinsic__`` — that's a *form*, not
+# a *name*, and can't fold into a name set.
+_INTRINSIC_MODULES: frozenset[str] = frozenset(
+    {
+        "iso_fortran_env",
+        "iso_c_binding",
+        "ieee_exceptions",
+        "ieee_arithmetic",
+        "ieee_features",
+        "openacc",
+        "omp_lib",
+        "mpi",
+    }
+)
+
+# Compiler-specific intrinsic modules.  Filtering is conditional: a module
+# is silently skipped only when the *active* compiler ships it as built-in.
+# Switching compiler (e.g. nvfortran → gnu) makes the dependency reappear
+# as unresolved, which is the right behaviour — gnu does NOT supply
+# cudafor, so the project must redirect the `use` line via #ifdef guards
+# or grow a portable backend abstraction.
+#
+# Names are stored lowercased; the lookup compares the lowercased module
+# name from the parser.  Keep this list conservative — adding an entry
+# silences a real-world warning whose only fix path is "use a different
+# compiler", which is rare.
+_COMPILER_INTRINSIC_MODULES: dict[str, frozenset[str]] = {
+    "nvfortran": frozenset(
+        {
+            "cudafor",  # CUDA Fortran runtime
+            "cudadeviceprop",
+            "cublas",
+            "cublas_v2",
+            "cusparse",
+            "cusolverdn",
+            "curand",
+            "curand_device",
+            "cufft",
+            "nccl",
+            "nvtx",
+            "thrust",
+        }
+    ),
+    "pgi": frozenset(
+        {
+            "cudafor",
+            "cudadeviceprop",
+            "cublas",
+            "cublas_v2",
+            "cusparse",
+            "cusolverdn",
+            "curand",
+            "cufft",
+        }
+    ),
+    "intel": frozenset(
+        {
+            "ifport",
+            "ifcore",
+            "ifqwin",
+            "iflogm",
+            "dfport",
+            "mkl_service",
+        }
+    ),
+    "intel_nextgen": frozenset(
+        {
+            "ifport",
+            "ifcore",
+            "ifqwin",
+            "iflogm",
+            "dfport",
+            "mkl_service",
+        }
+    ),
+}
+
+
+def _is_intrinsic_module(name: str, compiler: str = "", extra: list[str] | None = None) -> bool:
+    """
+    Return True iff ``name`` is an intrinsic module that should be filtered
+    from the dependency graph.
+
+    Membership is checked, in order, against:
+
+      1. ``_INTRINSIC_MODULES`` — universal Fortran intrinsics
+         (``iso_fortran_env``, ``iso_c_binding``, ``ieee_*``, ``openacc``,
+         ``omp_lib``, ``mpi``).  Always filtered regardless of compiler.
+      2. ``_COMPILER_INTRINSIC_MODULES[compiler]`` — modules supplied as
+         intrinsic only by specific compilers (e.g. nvfortran's ``cudafor``).
+         Filtered only when that compiler is active.
+      3. ``extra`` — caller-supplied list (e.g. the fobos
+         ``intrinsic_modules = ...`` mode key).  Always filtered.
+
+    Lookup is case-insensitive — Fortran identifiers are.  An empty or
+    unknown ``compiler`` skips step 2 only; the universal set in step 1
+    still applies.
+
+    Parameters
+    ----------
+    name : str
+        Module name as captured from a ``use`` statement.
+    compiler : str
+        Active compiler key (``"gnu"``, ``"nvfortran"``, …).
+    extra : list[str] | None
+        Additional names treated as intrinsic regardless of compiler.
+
+    Returns
+    -------
+    bool
+    """
+    n = (name or "").lower()
+    if not n:
+        return False
+    if n in _INTRINSIC_MODULES:
+        return True
+    if compiler:
+        builtin = _COMPILER_INTRINSIC_MODULES.get(compiler.lower())
+        if builtin is not None and n in builtin:
+            return True
+    return bool(extra and n in {x.lower() for x in extra})
+
+
+# Legacy alias retained for any external caller that might import the old
+# name.  New code should use ``_is_intrinsic_module``.
+_is_compiler_intrinsic_module = _is_intrinsic_module
 
 
 def openReader(filename: str) -> Any:
     return open(filename, newline="", encoding="utf8")
+
+
+def _needs_preprocessing(extension: str, inc: list[str]) -> bool:
+    """
+    Decide whether ``cpp`` should expand a file before the parser scans it.
+
+    Two triggers:
+
+      * Extension is in ``inc`` — the legacy "include file" path (``.h``,
+        ``.H``, ``.inc``, ``.INC``).  Preserves prior behaviour for the
+        files this was originally designed for.
+      * Extension is uppercase Fortran (``.F``, ``.F90``, ``.F03``,
+        ``.FPP``, …) — the long-standing convention every Fortran compiler
+        uses to mean "this file needs preprocessing".  Lowercase
+        counterparts (``.f90``) skip cpp.
+
+    The uppercase rule lets ``use MACRO_NAME`` lines (and ``#ifdef``-guarded
+    ``use`` statements) be expanded *before* dependency scanning, so the
+    parser sees the real module names instead of unresolvable cpp tokens.
+
+    Parameters
+    ----------
+    extension : str
+        Extension of the file, including the leading dot (e.g. ``".F90"``).
+    inc : list[str]
+        Extensions explicitly marked as include-files in cliargs.
+
+    Returns
+    -------
+    bool
+    """
+    if extension in inc:
+        return True
+    # Uppercase-Fortran convention: ".F90", ".F03", ".F", ".FPP", ".F95", …
+    return len(extension) >= 2 and extension.startswith(".") and extension[1:].isupper()
 
 
 class ParsedFile:
@@ -375,6 +478,8 @@ class ParsedFile:
         preprocessor: str = "cpp",
         preproc: str = "",
         include: str | list[str] = "",
+        compiler: str = "",
+        intrinsic_modules: list[str] | None = None,
     ) -> None:
         """
         Parse the file creating its the dependencies list and the list of modules names that self eventually contains.
@@ -389,12 +494,20 @@ class ParsedFile:
           preprocessor flags
         include : list
           include directories
+        compiler : str
+          active compiler key (e.g. ``"nvfortran"``); used to filter
+          compiler-specific intrinsic modules like ``cudafor``.  An empty
+          or unknown compiler disables compiler-conditional filtering
+          (preserves prior behaviour).
+        intrinsic_modules : list[str] | None
+          extra module names to treat as intrinsic regardless of compiler
+          (e.g. fobos-declared ``intrinsic_modules = my_helper``).
         """
         self.module_names = []
         self.submodule_names = []
         self.dependencies = []
 
-        if self.extension in inc:
+        if _needs_preprocessing(self.extension, inc):
             preprocessor_exist = False
             for path in os.environ["PATH"].split(os.pathsep):
                 preprocessor_exist = os.path.exists(os.path.join(path, preprocessor))
@@ -407,18 +520,33 @@ class ParsedFile:
                     preprocessor += " -w "
                 if preproc is None:
                     preproc = ""
-                includes = " "
+                # Always add the source file's own directory to the search
+                # path so `#include "header.H"` finds source-co-located
+                # headers (the common Fortran-with-cpp pattern).
+                includes_list = [os.path.dirname(self.name) or "."]
                 if len(include) > 0:
-                    includes = " -I" + "-I".join(include) + " "
-                source = str(
-                    check_output(
-                        shlex.split(preprocessor + " " + preproc + includes + self.name),
-                        shell=False,
-                        stderr=STDOUT,
-                        encoding="UTF-8",
+                    if isinstance(include, str):
+                        includes_list.append(include)
+                    else:
+                        includes_list.extend(include)
+                includes = " " + " ".join(f"-I{p}" for p in includes_list) + " "
+                try:
+                    source = str(
+                        check_output(
+                            shlex.split(preprocessor + " " + preproc + includes + self.name),
+                            shell=False,
+                            stderr=STDOUT,
+                            encoding="UTF-8",
+                        )
                     )
-                )
-                source = source.replace("\\n", "\n")
+                    source = source.replace("\\n", "\n")
+                except CalledProcessError:
+                    # cpp failed (e.g. missing include path the user must
+                    # provide).  Fall back to the raw file so dependency
+                    # scanning can still proceed; macro-driven `use` lines
+                    # may show up as "unreachable" warnings, but that's
+                    # better than crashing the whole parse.
+                    source = str(openReader(self.name).read())
             else:
                 source = str(openReader(self.name).read())
         else:
@@ -440,10 +568,23 @@ class ParsedFile:
                 self.dependencies.append(dep)
             matching = re.match(__regex_use_mod__, line)
             if matching:
-                if not any(re.match(regex, line) for regex in __regex_use_intrinsic_modules__):
-                    if matching.group("name").lower() != "mpi" and matching.group("name").lower() != "omp_lib":
-                        dep = Dependency(dtype="module", name=matching.group("name"))
-                        self.dependencies.append(dep)
+                # Two-stage filter:
+                #   1. Legacy regex chain — matches `use, intrinsic ::` form
+                #      (a *syntactic* declaration, name-agnostic) plus the
+                #      historical per-module regexes (kept in parallel for
+                #      this refactor; pruned in a later step).
+                #   2. Unified name-set helper — universal intrinsics
+                #      (iso_*, ieee_*, openacc, omp_lib, mpi) plus
+                #      compiler-specific (cudafor under nvfortran, …) plus
+                #      user-supplied `intrinsic_modules` list.
+                # Either filter triggering means the use is intrinsic and
+                # not a real dependency.
+                name = matching.group("name")
+                if not any(
+                    re.match(regex, line) for regex in __regex_use_intrinsic_modules__
+                ) and not _is_intrinsic_module(name, compiler, intrinsic_modules):
+                    dep = Dependency(dtype="module", name=name)
+                    self.dependencies.append(dep)
             matching = re.match(__regex_include__, line)
             if matching:
                 if not re.match(__regex_mpifh__, line):
@@ -595,10 +736,7 @@ class ParsedFile:
                     # verifying if dep is newer than self
                     if not os.path.exists(dep.name):
                         print(
-                            " Attention: file "
-                            + dep.name
-                            + " does not exist, but it is a dependency of file "
-                            + self.name
+                            "error: file " + dep.name + " does not exist, but it is a dependency of file " + self.name
                         )
                         sys.exit(1)
                     else:

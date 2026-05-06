@@ -106,6 +106,9 @@ All CLI options accepted by `build` and `clean` are available in a fobos mode se
 | `no_auto_discover` | Disable convention-based source discovery (`true`/`false`) |
 | `pre_build` | Shell command to run before the build |
 | `post_build` | Shell command to run after a successful build |
+| `features` | Space-separated feature names to activate for this mode (see [Feature Flags](/advanced/features)) |
+| `varset` | Space-separated varset names to apply for this mode (see [Varsets](/advanced/varsets)) |
+| `intrinsic_modules` | Space-separated module names to treat as intrinsic — silently skipped from the dependency graph (see below) |
 
 ## Special sections
 
@@ -306,6 +309,34 @@ output = demo
 fobis build --target-filter solver
 fobis build --examples
 ```
+
+### `intrinsic_modules` mode key
+
+When the dependency scanner sees a `use NAME` line that doesn't resolve to
+any source file or compiled `.mod`, it warns *"the file 'X' depends on
+'NAME' that is unreachable"*. FoBiS already filters out the standard Fortran
+intrinsics (`iso_fortran_env`, `iso_c_binding`, `ieee_*`, `openacc`,
+`omp_lib`, `mpi`) and the modules supplied by the active compiler
+(`cudafor` etc. under `nvfortran`; `ifport` etc. under `intel`).
+
+For modules that come from external libraries — `hdf5`, `mpi_f08`, vendor
+HPC libraries, or any project-specific helper that lives outside the
+source tree — declare them per-mode so the warning goes away:
+
+```ini
+[release]
+compiler          = nvfortran
+cflags            = -cpp -c -O3
+target            = src/main.F90
+intrinsic_modules = hdf5 hdf5_hl mpi_f08
+```
+
+The names are case-insensitive (Fortran rules) and apply only to the mode
+they are declared in. They compose with the universal and compiler-specific
+sets — together they form the union the dependency scanner skips. See
+[Compilers](/guide/compilers#compiler-supplied-intrinsic-modules) for the
+list of compiler-supplied modules and
+[Architecture](/advanced/architecture) for the three-tier filter.
 
 ## Comments
 

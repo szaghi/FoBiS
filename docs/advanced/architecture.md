@@ -44,7 +44,24 @@ flowchart TD
 2. **Source scan** — `FoBiSConfig.parse_files()` walks every directory in `cliargs.src`, creates a `ParsedFile` per source file, and calls `ParsedFile.parse()` on each.
 3. **`ParsedFile.parse()`** applies regex patterns to extract:
    - `module <name>` / `submodule (<parent>) <name>` definitions
-   - `use [, intrinsic ::] <name>` dependencies (intrinsics filtered out)
+   - `use [, intrinsic ::] <name>` dependencies — filtered through a
+     three-tier intrinsic-module check:
+     1. **Universal set** (`_INTRINSIC_MODULES`) — names known to every
+        Fortran compiler: `iso_fortran_env`, `iso_c_binding`, `ieee_*`,
+        `openacc`, `omp_lib`, `mpi`. Plus the syntactic `use, intrinsic ::`
+        form (name-agnostic, retained as a regex match).
+     2. **Compiler-specific set** (`_COMPILER_INTRINSIC_MODULES`) —
+        modules supplied by the active compiler only: `cudafor`/`cublas`/…
+        under `nvfortran`/`pgi`; `ifport`/`ifcore`/… under
+        `intel`/`intel_nextgen`. Filtered conditionally on
+        `cliargs.compiler`.
+     3. **User-extensible set** — names listed in the active mode's
+        `intrinsic_modules = ...` key, propagated via
+        `cliargs.intrinsic_modules`. For project-specific cases like
+        `hdf5` or vendor HPC modules.
+     The three lookups share the helper `_is_intrinsic_module(name,
+     compiler, extra)`. Names not in any tier surface as real
+     dependencies.
    - `include "<file>"` / `include '<file>'` dependencies
    - Presence of a `program` statement
 4. **`dependency_hierarchy()`** (in `utils.py`) performs a topological sort over the parsed dependency graph and returns a compilation-ordered list.

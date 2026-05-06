@@ -107,6 +107,7 @@ def cmd_introspect(
         profile=False,
         build_profile="",
         features="",
+        intrinsic_modules=[],
         no_default_features=False,
         varset=varset or "",
         pre_build=[],

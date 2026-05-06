@@ -797,6 +797,30 @@ def run_fobis_doctests(configuration):
                 shutil.rmtree(doc_dir)
 
 
+def _merged_preproc_flags(cliargs) -> str:
+    """
+    Return the preprocessor flags to feed cpp at parse time.
+
+    Combines ``cliargs.preproc`` (the dedicated preprocessor channel) with
+    every ``-D...`` / ``-U...`` token found in ``cliargs.cflags``.  After
+    the feature-flag refactor some defines are emitted to ``cflags`` rather
+    than ``preproc`` (e.g. via ``[features] mpi = -D_MPI_``); without this
+    merge, ``cpp`` runs without those defines and ``#ifdef`` ladders that
+    gate ``use`` statements via macros expand to the wrong branch — leading
+    to "module unreachable" warnings during dependency scanning.
+
+    Tokens that are already present on either side are not de-duplicated;
+    cpp tolerates redundant ``-D`` flags.
+    """
+    preproc = (getattr(cliargs, "preproc", "") or "").strip()
+    cflags = getattr(cliargs, "cflags", "") or ""
+    extra = [tok for tok in cflags.split() if tok.startswith(("-D", "-U"))]
+    if extra:
+        joined = " ".join(extra)
+        preproc = (preproc + " " + joined).strip() if preproc else joined
+    return preproc
+
+
 def parse_files(configuration, src_dir=None, is_doctest=False):
     """
     Parse files and return the list of parsed files.
@@ -817,6 +841,9 @@ def parse_files(configuration, src_dir=None, is_doctest=False):
         src = [src_dir]
     else:
         src = configuration.cliargs.src
+    parse_preproc = _merged_preproc_flags(configuration.cliargs)
+    parse_compiler = getattr(configuration.cliargs, "compiler", "") or ""
+    parse_intrinsic_modules = list(getattr(configuration.cliargs, "intrinsic_modules", None) or [])
     for src_dir in src:
         if configuration.cliargs.disable_recursive_search:
             for filename in os.listdir(src_dir):
@@ -831,14 +858,18 @@ def parse_files(configuration, src_dir=None, is_doctest=False):
                             pfile.parse(
                                 inc=configuration.cliargs.inc,
                                 preprocessor=configuration.cliargs.doctests_preprocessor,
-                                preproc=configuration.cliargs.preproc,
+                                preproc=parse_preproc,
                                 include=configuration.cliargs.include,
+                                compiler=parse_compiler,
+                                intrinsic_modules=parse_intrinsic_modules,
                             )
                         else:
                             pfile.parse(
                                 inc=configuration.cliargs.inc,
-                                preproc=configuration.cliargs.preproc,
+                                preproc=parse_preproc,
                                 include=configuration.cliargs.include,
+                                compiler=parse_compiler,
+                                intrinsic_modules=parse_intrinsic_modules,
                             )
                         pfiles.append(pfile)
         else:
@@ -857,14 +888,18 @@ def parse_files(configuration, src_dir=None, is_doctest=False):
                                 pfile.parse(
                                     inc=configuration.cliargs.inc,
                                     preprocessor=configuration.cliargs.doctests_preprocessor,
-                                    preproc=configuration.cliargs.preproc,
+                                    preproc=parse_preproc,
                                     include=configuration.cliargs.include,
+                                    compiler=parse_compiler,
+                                    intrinsic_modules=parse_intrinsic_modules,
                                 )
                             else:
                                 pfile.parse(
                                     inc=configuration.cliargs.inc,
-                                    preproc=configuration.cliargs.preproc,
+                                    preproc=parse_preproc,
                                     include=configuration.cliargs.include,
+                                    compiler=parse_compiler,
+                                    intrinsic_modules=parse_intrinsic_modules,
                                 )
                             pfiles.append(pfile)
     return pfiles

@@ -197,7 +197,7 @@ def dependency_hiearchy(builder, pfiles, print_w=None, force_compile=False):
                             break
                     if fnum != 0:
                         print_wm(
-                            "Attention: the file '"
+                            "warning: the file '"
                             + parsed_file.name
                             + "' depends on '"
                             + dep.name
@@ -217,11 +217,7 @@ def dependency_hiearchy(builder, pfiles, print_w=None, force_compile=False):
                             builder.dinc.append(os.path.dirname(pfiles[fnum].name))
                 else:
                     print_wm(
-                        "Attention: the file '"
-                        + parsed_file.name
-                        + "' depends on '"
-                        + dep.name
-                        + "' that is unreachable"
+                        "warning: the file '" + parsed_file.name + "' depends on '" + dep.name + "' that is unreachable"
                     )
                     # sys.exit(1)
     # indirect dependency list
