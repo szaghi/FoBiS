@@ -402,3 +402,52 @@ def test_list_files_covers_all_categories(tmp_path):
     text = "\n".join(messages)
     assert "Verbatim" in text
     assert "Templated" in text
+
+
+# ── Packaging: every manifest entry must ship with the package ───────────────
+
+
+def test_every_manifest_source_is_packaged():
+    """Each `source = X` in manifest.ini must resolve to a real file on disk
+    relative to the installed `fobis` package.
+
+    Regression test for a packaging bug: setuptools' ``scaffolds/**/*``
+    glob in ``[tool.setuptools.package-data]`` does NOT descend into
+    dot-directories (``.github/``, ``.vitepress/``).  Without explicit
+    dot-directory patterns, the wheel ships without those files and
+    ``fobis scaffold status`` aborts with FileNotFoundError on the very
+    first .github workflow entry.
+
+    This test checks the *currently installed* package's scaffolds tree,
+    so it passes trivially in editable installs (the source tree is
+    visible directly) but catches the bug when run against a wheel-
+    installed package.
+    """
+    import configparser
+    from pathlib import Path
+
+    import fobis
+
+    scaffolds_root = Path(fobis.__file__).parent / "scaffolds"
+    manifest_path = scaffolds_root / "manifest.ini"
+    assert manifest_path.is_file(), f"manifest.ini missing at {manifest_path}"
+
+    parser = configparser.RawConfigParser()
+    parser.optionxform = str
+    parser.read(manifest_path)
+
+    missing: list[str] = []
+    for section in parser.sections():
+        if not parser.has_option(section, "source"):
+            continue
+        source_rel = parser.get(section, "source").strip()
+        candidate = scaffolds_root / source_rel
+        if not candidate.is_file():
+            missing.append(source_rel)
+
+    assert not missing, (
+        "Manifest references files that are not on disk in the installed "
+        "package.  In wheel installs this means setuptools' package-data "
+        "glob is missing patterns for the dot-directories in those paths.  "
+        f"Missing: {missing}"
+    )

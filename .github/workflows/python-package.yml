@@ -74,8 +74,48 @@ jobs:
         FoBiS.py -v
         FoBiS.py --help
 
+  wheel-roundtrip:
+    # Build a real wheel, install it into a clean venv with no source-tree
+    # access, then run the packaging-regression tests against the installed
+    # package.  Catches package-data omissions (e.g. dot-directory files
+    # missing from `scaffolds/.github/`) before they reach PyPI.
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4.2.2
+    - uses: actions/setup-python@v5.6.0
+      with:
+        python-version: "3.12"
+    - name: Build wheel + sdist
+      run: |
+        pip install build
+        python -m build
+    - name: Install wheel into a fresh venv
+      run: |
+        python -m venv /tmp/venv-wheel
+        /tmp/venv-wheel/bin/pip install --upgrade pip
+        /tmp/venv-wheel/bin/pip install dist/*.whl pytest
+    - name: Verify scaffold manifest is fully packaged
+      # Run the regression test from a working directory that has NO
+      # access to the source tree, so the test resolves files via the
+      # installed package only.  Copy just the one test file in.
+      run: |
+        mkdir /tmp/wheel-test
+        cp tests/test_scaffold.py /tmp/wheel-test/
+        cd /tmp/wheel-test
+        /tmp/venv-wheel/bin/pytest test_scaffold.py::test_every_manifest_source_is_packaged -v
+    - name: Smoke-test entry points from the installed wheel
+      run: |
+        /tmp/venv-wheel/bin/fobis -v
+        /tmp/venv-wheel/bin/fobis --help
+    - name: Upload built distribution
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist
+        path: dist/
+        retention-days: 7
+
   publish:
-    needs: [lint, test, build]
+    needs: [lint, test, build, wheel-roundtrip]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     environment: release

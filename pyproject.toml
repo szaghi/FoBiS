@@ -93,4 +93,19 @@ version = { attr = "fobis.__version__" }
 include = ["fobis*"]
 
 [tool.setuptools.package-data]
-"fobis" = ["scaffolds/**/*", "scaffolds/manifest.ini"]
+# Explicitly list dot-directory globs.  Setuptools' `**/*` does not
+# descend into dot-directories like `.github/`, so the workflow and
+# composite-action templates need their own patterns.  Without these,
+# `fobis scaffold` aborts with FileNotFoundError on any installed
+# (non-editable) wheel because the manifest references files that
+# never made it into the package.
+"fobis" = [
+  "scaffolds/manifest.ini",
+  "scaffolds/**/*",
+  "scaffolds/**/.github/**/*",
+  "scaffolds/**/.github/workflows/*",
+  "scaffolds/**/.github/actions/**/*",
+  "scaffolds/**/.github/actions/*/*",
+  "scaffolds/**/.vitepress/**/*",
+  "scaffolds/**/.vitepress/*",
+]
