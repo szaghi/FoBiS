@@ -4,6 +4,15 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.8.5] — 2026-05-06
+### Added
+- **parser**: Filter compiler-supplied intrinsic modules
+
+
+### Security
+- **deps**: Bump uuid and postcss in /docs
+
+
 ## [3.8.4] — 2026-05-05
 ### Added
 - **fobos**: Add [include] directive for splitting fobos files
