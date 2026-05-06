@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.8.6] — 2026-05-06
+### Fixed
+- **scaffold**: Ship dot-directory files (.github/, .vitepress/) in wheel
+
+
 ## [3.8.5] — 2026-05-06
 ### Added
 - **parser**: Filter compiler-supplied intrinsic modules
