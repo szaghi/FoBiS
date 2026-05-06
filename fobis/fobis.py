@@ -506,6 +506,7 @@ def run_fobis_build(configuration):
         for t_dict in all_build_targets:
             t_cliargs = _cliargs_for_target(cliargs, t_dict)
             t_builder = Builder(cliargs=t_cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
+            configuration.print_b(t_builder.verbose(quiet=configuration.cliargs.quiet))
             dependency_hiearchy(
                 builder=t_builder,
                 pfiles=pfiles_all,
@@ -543,6 +544,7 @@ def run_fobis_build(configuration):
 
     # Standard (single-target) build path
     builder = Builder(cliargs=cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
+    configuration.print_b(builder.verbose(quiet=cliargs.quiet))
     pfiles = parse_files(configuration=configuration)
     dependency_hiearchy(
         builder=builder, pfiles=pfiles, print_w=configuration.print_r, force_compile=cliargs.force_compile
@@ -949,7 +951,6 @@ def build_pfile(configuration, pfile, pfiles, nomodlibs, submodules, builder):
       list of built submodules object names
     builder : Builder()
     """
-    configuration.print_b(builder.verbose(quiet=configuration.cliargs.quiet))
     if pfile.program:
         remove_other_main(builder=builder, pfiles=pfiles, myself=pfile)
     builder.build(
