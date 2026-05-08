@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.8.8] — 2026-05-08
+### Fixed
+- **scaffold**: Remove trailing comma in docs/package.json template
+
+
 ## [3.8.7] — 2026-05-06
 ### Fixed
 - **build**: Print builder options header before submodule compilation
