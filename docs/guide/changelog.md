@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.8.9] — 2026-05-08
+### Fixed
+- **test**: Regenerate build-test2 precompiled fixture at test-time
+
+
 ## [3.8.8] — 2026-05-08
 ### Fixed
 - **scaffold**: Remove trailing comma in docs/package.json template
