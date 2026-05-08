@@ -14,8 +14,16 @@ jobs      = 1
 target    = cumbersome.f90
 output    = build-test2
 log       = True
+pre_build = precompile
+
+[rule-precompile]
+help   = Compile the external dependency into precompiled/ before the main build
+quiet  = True
+rule_1 = mkdir -p precompiled/mod precompiled/obj
+rule_2 = gfortran -c precompiled-src/first_dep.f90 -J precompiled/mod -o precompiled/obj/first_dep.o
 
 [rule-finalize]
-help  = Rule for preparing the next test
-quiet = True
-rule  = rm -f precompiled/obj/first_dep.o
+help   = Rule for preparing the next test
+quiet  = True
+rule_1 = rm -f precompiled/obj/first_dep.o
+rule_2 = rm -f precompiled/mod/nested_1.mod

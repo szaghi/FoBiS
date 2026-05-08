@@ -33,3 +33,4 @@ tests/**/obj/
 tests/**/mod/
 tests/**/build-test*/build-test*
 tests/**/build_*.log
+tests/**/precompiled/
