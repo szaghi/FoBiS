@@ -451,3 +451,34 @@ def test_every_manifest_source_is_packaged():
         "glob is missing patterns for the dot-directories in those paths.  "
         f"Missing: {missing}"
     )
+
+
+def test_verbatim_json_templates_are_strict_json():
+    """Every *.json under scaffolds/verbatim/ must parse as strict JSON.
+
+    Verbatim scaffolds are copied byte-for-byte to user projects and then
+    consumed by tools that enforce strict JSON (npm, jq, etc.). A trailing
+    comma — accepted by editors and JS — silently ships an unusable file.
+    Walk the verbatim tree and json.load() each candidate.
+    """
+    import json
+    from pathlib import Path
+
+    import fobis
+
+    verbatim_root = Path(fobis.__file__).parent / "scaffolds" / "verbatim"
+    assert verbatim_root.is_dir(), f"verbatim/ missing at {verbatim_root}"
+
+    invalid: list[tuple[str, str]] = []
+    for path in sorted(verbatim_root.rglob("*.json")):
+        try:
+            with path.open() as fh:
+                json.load(fh)
+        except json.JSONDecodeError as e:
+            invalid.append((str(path.relative_to(verbatim_root)), str(e)))
+
+    assert not invalid, (
+        "Verbatim JSON templates fail strict parse — they will break "
+        "downstream tools (npm ci, jq, etc.) in scaffolded projects:\n"
+        + "\n".join(f"  {p}: {err}" for p, err in invalid)
+    )
