@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 # Run the project test suite.
-# Each test binary in exe/ is expected to exit 0 on success, non-zero on failure.
+#
+# Test classification by binary name:
+#   exe/*_xfail_*   — expected-failure test. MUST exit non-zero
+#                     (e.g. validates an `error stop` path). Exit 0 is treated
+#                     as a regression (XPASS, counted as failure).
+#   exe/*          — regular test. MUST exit 0.
+#
+# Output labels (autotools convention):
+#   PASS   regular test passed
+#   FAIL   regular test failed
+#   XFAIL  expected-failure test failed as expected (success)
+#   XPASS  expected-failure test passed unexpectedly (failure)
 
 if [[ -t 1 ]]; then
   RED=$'\033[0;31m'; GREEN=$'\033[0;32m'; BOLD=$'\033[1m'; RESET=$'\033[0m'
@@ -16,13 +27,29 @@ shopt -s nullglob
 for exe in exe/*; do
   [[ -f "$exe" && -x "$exe" ]] || continue
   name=$(basename "$exe")
-  if "$exe" > "$tmpout" 2>&1; then
-    printf "  ${GREEN}PASS${RESET}  %s\n" "$name"
-    pass=$((pass + 1))
+
+  "$exe" > "$tmpout" 2>&1
+  rc=$?
+
+  if [[ "$name" == *_xfail_* ]]; then
+    # Expected-failure test: non-zero exit is success.
+    if [[ $rc -ne 0 ]]; then
+      printf "  ${GREEN}XFAIL${RESET} %s\n" "$name"
+      pass=$((pass + 1))
+    else
+      printf "  ${RED}XPASS${RESET} %s ${BOLD}(expected non-zero exit)${RESET}\n" "$name"
+      fail=$((fail + 1))
+    fi
   else
-    printf "  ${RED}FAIL${RESET}  %s\n" "$name"
-    sed 's/^/       /' "$tmpout"
-    fail=$((fail + 1))
+    # Regular test: zero exit is success.
+    if [[ $rc -eq 0 ]]; then
+      printf "  ${GREEN}PASS${RESET}  %s\n" "$name"
+      pass=$((pass + 1))
+    else
+      printf "  ${RED}FAIL${RESET}  %s\n" "$name"
+      sed 's/^/       /' "$tmpout"
+      fail=$((fail + 1))
+    fi
   fi
 done
 
