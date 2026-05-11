@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.8.12] — 2026-05-11
+### Added
+- **scaffold**: Support xfail tests via *_xfail_* naming
+
+
 ## [3.8.11] — 2026-05-10
 ### Added
 - **scaffold**: Extend install.sh with fpm build support and improve run_tests.sh
