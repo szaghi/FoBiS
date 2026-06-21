@@ -4,6 +4,15 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.8.13] — 2026-06-21
+### Added
+- **compiler**: Add first-class lfortran support
+
+
+### Fixed
+- **docs**: Resolve vite/esbuild advisories and add dependabot config
+
+
 ## [3.8.12] — 2026-05-11
 ### Added
 - **scaffold**: Support xfail tests via *_xfail_* naming
