@@ -1,0 +1,43 @@
+# Dependabot configuration for FoBiS.py.
+# Covers the three ecosystems in the repo: Python (pip), the VitePress docs
+# (npm, /docs) and the GitHub Actions workflows. Updates are grouped so related
+# bumps arrive in a single PR instead of one PR per dependency.
+version: 2
+updates:
+  # Python package (pyproject.toml)
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore(deps)
+      prefix-development: chore(deps-dev)
+    groups:
+      python-deps:
+        patterns:
+          - "*"
+
+  # VitePress documentation site
+  - package-ecosystem: npm
+    directory: /docs
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore(deps)
+      prefix-development: chore(deps-dev)
+    groups:
+      docs-deps:
+        patterns:
+          - "*"
+
+  # GitHub Actions workflows
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore(ci)
+    groups:
+      actions:
+        patterns:
+          - "*"
