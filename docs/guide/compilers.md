@@ -31,6 +31,7 @@ compiler = gnu
 | `nag` | NAG Fortran Compiler |
 | `nvfortran` | NVIDIA HPC Fortran (nvfortran) |
 | `amd` | AMD Flang (amdflang) |
+| `lfortran` | LFortran (LLVM-based) — see [notes](#lfortran-notes) |
 | `custom` | User-defined — requires `--fc` and optionally `--modsw` |
 
 ## Custom compiler
@@ -50,6 +51,37 @@ fc       = /opt/myfc/bin/myfc
 modsw    = -module
 cflags   = -c -O2
 ```
+
+## LFortran notes {#lfortran-notes}
+
+[LFortran](https://docs.lfortran.org/) is an LLVM-based Fortran compiler. As of
+the 0.63 alpha it builds many real projects, with a few differences from the
+established compilers that affect FoBiS usage:
+
+- **Preprocessing is not automatic.** Unlike gfortran, LFortran does not
+  preprocess uppercase `.F90` sources implicitly. FoBiS leaves `cflags` as a
+  bare `-c`; if your sources use `#define`/`#ifdef`, add `--cpp` yourself:
+
+  ```ini
+  [default]
+  compiler = lfortran
+  cflags   = -c --cpp
+  preproc  = -DDEBUG
+  ```
+
+  (FoBiS still preprocesses uppercase-extension files internally for its own
+  dependency scan, so module resolution works regardless.)
+
+- **Linking goes through `clang` by default.** LFortran invokes `clang` as its
+  link driver, so `clang` must be on `PATH`. To use a different driver, pass it
+  through `lflags` (e.g. `lflags = --linker=gcc`).
+
+- **No quad precision.** `selected_real_kind(33,4931)` returns `-1`; build PENF
+  and similar libraries without the `_R16P`/float128 path.
+
+- **OpenMP** is supported (`fobis build --openmp` adds `--openmp`). **MPI** uses
+  an LFortran-built `mpif90` wrapper (`fobis build --mpi`), mirroring gfortran.
+  **Coarrays** are not yet available in the alpha.
 
 ## Compiler variants
 
@@ -128,7 +160,7 @@ them resurface as unresolved dependencies, which is the right behaviour:
 |---|---|
 | `nvfortran`, `pgi` | `cudafor`, `cudadeviceprop`, `cublas`, `cublas_v2`, `cusparse`, `cusolverdn`, `curand`, `curand_device`, `cufft`, `nccl`, `nvtx`, `thrust` |
 | `intel`, `intel_nextgen` | `ifport`, `ifcore`, `ifqwin`, `iflogm`, `dfport`, `mkl_service` |
-| `gnu`, `nag`, `ibm`, `amd`, `g95`, `opencoarrays-gnu` | (universal set only) |
+| `gnu`, `nag`, `ibm`, `amd`, `lfortran`, `g95`, `opencoarrays-gnu` | (universal set only) |
 
 **3. User-extensible per-mode list** — for modules from external libraries
 (e.g. `hdf5`, `hdf5_hl`, `mpi_f08`, vendor HPC modules) declare them in the

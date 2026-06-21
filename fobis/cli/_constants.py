@@ -37,5 +37,6 @@ __compiler_supported__ = (
     "nag",
     "nvfortran",
     "amd",
+    "lfortran",
     "custom",
 )

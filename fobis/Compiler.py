@@ -39,7 +39,7 @@ class Compiler:
 
     Attributes
     ----------
-    supported : {['gnu', 'intel', 'intel_nextgen', 'g95', 'opencoarrays-gnu', 'pgi', 'ibm', 'nag', 'nvfortran', 'amd', 'custom']}
+    supported : {['gnu', 'intel', 'intel_nextgen', 'g95', 'opencoarrays-gnu', 'pgi', 'ibm', 'nag', 'nvfortran', 'amd', 'lfortran', 'custom']}
       list of supported compilers
     """
 
@@ -54,6 +54,7 @@ class Compiler:
         "nag",
         "nvfortran",
         "amd",
+        "lfortran",
         "custom",
     ]
 
@@ -127,6 +128,8 @@ class Compiler:
                 self._nvfortran()
             elif self.compiler.lower() == "amd":
                 self._amd()
+            elif self.compiler.lower() == "lfortran":
+                self._lfortran()
             elif self.compiler.lower() == "custom":
                 self._custom()
             else:
@@ -305,6 +308,28 @@ class Compiler:
         self._coarray = ["", ""]
         self._coverage = ["", ""]
         self._profile = ["-pg", "-pg"]
+        return
+
+    def _lfortran(self):
+        """Set compiler defaults to the LFortran compiler options.
+
+        LFortran does not auto-preprocess uppercase ``.F90`` sources: ``cflags``
+        is left as a bare ``-c`` (like gfortran) and the user must add ``--cpp``
+        explicitly (CLI ``--cflags`` or fobos ``cflags``) to preprocess. As of
+        the 0.63 alpha there is no coarray flag; OpenMP is ``--openmp`` and MPI
+        relies on an LFortran-built ``mpif90`` wrapper, mirroring gfortran.
+        """
+        self.compiler = "lfortran"
+        self.fcs = "lfortran"
+        self.cflags = "-c"
+        self.lflags = ""
+        self.preproc = ""
+        self.modsw = "-J "
+        self._mpi = "mpif90"
+        self._openmp = ["--openmp", "--openmp"]
+        self._coarray = ["", ""]
+        self._coverage = ["", ""]
+        self._profile = ["", ""]
         return
 
     def _custom(self):

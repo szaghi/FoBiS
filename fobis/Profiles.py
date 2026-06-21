@@ -100,10 +100,19 @@ PROFILES: dict[tuple[str, str], dict[str, str]] = {
         "cflags": "-O3 -funroll-loops",
         "lflags": "",
     },
+    # LFortran
+    ("lfortran", "debug"): {
+        "cflags": "-O0 -g",
+        "lflags": "",
+    },
+    ("lfortran", "release"): {
+        "cflags": "-O3",
+        "lflags": "",
+    },
 }
 
 KNOWN_PROFILES = {"debug", "release", "asan", "coverage"}
-KNOWN_COMPILERS = {"gnu", "intel", "intel_nextgen", "nvfortran", "nag", "amd"}
+KNOWN_COMPILERS = {"gnu", "intel", "intel_nextgen", "nvfortran", "nag", "amd", "lfortran"}
 
 
 def get_profile_flags(
