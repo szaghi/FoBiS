@@ -12,8 +12,8 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4.2.2
-    - uses: actions/setup-python@v5.6.0
+    - uses: actions/checkout@v7
+    - uses: actions/setup-python@v6
       with:
         python-version: "3.12"
     - name: Install ruff
@@ -26,8 +26,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4.2.2
-    - uses: actions/setup-python@v5.6.0
+    - uses: actions/checkout@v7
+    - uses: actions/setup-python@v6
       with:
         python-version: "3.12"
     - name: Install gfortran
@@ -37,7 +37,7 @@ jobs:
     - name: Run pytest with coverage
       run: pytest
     - name: Upload coverage report
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: coverage-report
         path: docs/public/coverage*.json
@@ -51,10 +51,10 @@ jobs:
         python-version: ['3.10', '3.11', '3.12']
 
     steps:
-    - uses: actions/checkout@v4.2.2
+    - uses: actions/checkout@v7
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5.6.0
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -81,8 +81,8 @@ jobs:
     # missing from `scaffolds/.github/`) before they reach PyPI.
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4.2.2
-    - uses: actions/setup-python@v5.6.0
+    - uses: actions/checkout@v7
+    - uses: actions/setup-python@v6
       with:
         python-version: "3.12"
     - name: Build wheel + sdist
@@ -108,7 +108,7 @@ jobs:
         /tmp/venv-wheel/bin/fobis -v
         /tmp/venv-wheel/bin/fobis --help
     - name: Upload built distribution
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: dist
         path: dist/
@@ -122,8 +122,8 @@ jobs:
     permissions:
       id-token: write   # required for OIDC Trusted Publisher
     steps:
-    - uses: actions/checkout@v4.2.2
-    - uses: actions/setup-python@v5.6.0
+    - uses: actions/checkout@v7
+    - uses: actions/setup-python@v6
       with:
         python-version: "3.12"
     - name: Build distribution
