@@ -4,6 +4,15 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.8.14] — 2026-06-23
+### Added
+- **build**: Add standalone offline zipapp distribution
+
+
+### Fixed
+- **docs**: Pin markdown-it-mathjax3 to ^4 for vitepress peer compat
+
+
 ## [3.8.13] — 2026-06-21
 ### Added
 - **compiler**: Add first-class lfortran support
