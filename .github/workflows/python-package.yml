@@ -151,6 +151,6 @@ jobs:
         python3 -I dist/fobis.pyz -v
         python3 -I dist/fobis.pyz --help
     - name: Upload fobis.pyz to the GitHub Release
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: gh release upload "${GITHUB_REF_NAME}" dist/fobis.pyz --repo "${{ github.repository }}" --clobber
+      uses: softprops/action-gh-release@v2
+      with:
+        files: dist/fobis.pyz
