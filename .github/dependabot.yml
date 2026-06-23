@@ -29,6 +29,12 @@ updates:
       docs-deps:
         patterns:
           - "*"
+    ignore:
+      # vitepress@2.x declares peerOptional markdown-it-mathjax3@"^4"; the 5.x
+      # major breaks `npm ci` with ERESOLVE. Stay on 4.x until VitePress widens
+      # its peer range.
+      - dependency-name: "markdown-it-mathjax3"
+        update-types: ["version-update:semver-major"]
 
   # GitHub Actions workflows
   - package-ecosystem: github-actions
