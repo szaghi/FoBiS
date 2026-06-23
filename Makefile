@@ -1,4 +1,4 @@
-.PHONY: dev test lint fmt clean
+.PHONY: dev test lint fmt clean standalone
 
 VENV   := .venv
 PYTHON := $(VENV)/bin/python
@@ -24,6 +24,16 @@ lint: dev
 fmt: dev
 	$(VENV)/bin/ruff check --fix fobis/ tests/
 	$(VENV)/bin/ruff format fobis/ tests/
+
+## Build a single-file, offline zipapp (dist/fobis.pyz) with the full runtime closure vendored
+standalone: $(VENV)/bin/activate
+	rm -rf build/standalone
+	mkdir -p build/standalone dist
+	$(PIP) install --target build/standalone .
+	cp fobis/__main__.py build/standalone/__main__.py
+	$(PYTHON) -m zipapp build/standalone -o dist/fobis.pyz -p "/usr/bin/env python3" -c
+	$(PYTHON) -I dist/fobis.pyz -v
+	@echo "Built dist/fobis.pyz"
 
 ## Remove build artifacts
 clean:

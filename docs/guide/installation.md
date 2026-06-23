@@ -58,6 +58,39 @@ For development (editable install with all dev tools):
 pip install -e ".[dev]"
 ```
 
+## Standalone offline (air-gapped HPC)
+
+On clusters with no internet access — no `pip`, no `pipx`, no PyPI — where the only way in is to `scp` a file, use the standalone **zipapp** distribution. It bundles FoBiS together with its full Python runtime dependency closure (Typer and friends) into a single self-contained `fobis.pyz`.
+
+Build the archive on a machine that *does* have network access:
+
+```bash
+git clone https://github.com/szaghi/FoBiS.git
+cd FoBiS
+make standalone        # produces dist/fobis.pyz
+```
+
+Copy it to the cluster and run it directly with the cluster's Python:
+
+```bash
+scp dist/fobis.pyz user@cluster:~/bin/
+ssh user@cluster
+python3 ~/bin/fobis.pyz build      # or any other subcommand
+```
+
+The archive carries a shebang, so you can also make it directly executable:
+
+```bash
+chmod +x ~/bin/fobis.pyz
+~/bin/fobis.pyz --help
+```
+
+Each tagged release also publishes `fobis.pyz` as a [GitHub Release](https://github.com/szaghi/FoBiS/releases) asset, so you can download a prebuilt archive instead of building it yourself.
+
+::: tip Requirements on the target cluster
+The `.pyz` ships pure-Python source, so it is OS- and architecture-independent and runs on any **Python 3.10 or later**. It does **not** bundle a Fortran compiler — the cluster must still provide one (`gfortran`, `ifx`, …) on `PATH`, since FoBiS shells out to it.
+:::
+
 ## Programmatic use
 
 FoBiS.py can be invoked from Python code without the CLI:

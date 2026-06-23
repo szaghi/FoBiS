@@ -15,7 +15,10 @@ make test   # pytest
 make lint   # ruff check + format check (no fixes)
 make fmt    # ruff check --fix + ruff format
 make clean  # remove dist/, *.egg-info/, .pytest_cache/, .ruff_cache/, __pycache__/
+make standalone  # build dist/fobis.pyz — single-file offline zipapp (FoBiS + full typer closure) for air-gapped clusters
 ```
+
+The `standalone` target vendors the full runtime dependency closure into one `dist/fobis.pyz` (stdlib `zipapp`) so it can be `scp`'d to clusters with no pip/PyPI and run as `python3 fobis.pyz build`. The tag-push CI (`python-package.yml`, `standalone` job) attaches the same archive to each GitHub Release. Requires `fobis/__main__.py` (the package + zipapp entry shim).
 
 ### Releasing a new version
 ```bash

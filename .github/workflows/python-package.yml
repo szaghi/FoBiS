@@ -132,3 +132,25 @@ jobs:
         python -m build
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
+
+  standalone:
+    needs: [lint, test, build, wheel-roundtrip]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write   # upload a Release asset
+    steps:
+    - uses: actions/checkout@v7
+    - uses: actions/setup-python@v6
+      with:
+        python-version: "3.10"
+    - name: Build standalone zipapp
+      run: make standalone
+    - name: Smoke-test the zipapp in isolated mode
+      run: |
+        python3 -I dist/fobis.pyz -v
+        python3 -I dist/fobis.pyz --help
+    - name: Upload fobis.pyz to the GitHub Release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: gh release upload "${GITHUB_REF_NAME}" dist/fobis.pyz --repo "${{ github.repository }}" --clobber
