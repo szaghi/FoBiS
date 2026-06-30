@@ -102,11 +102,13 @@ ruff format fobis/ tests/
 
 ### Core Components (fobis/)
 
-- **fobis.py**: Main entry point with `run_fobis()` orchestrating all commands (build, clean, install, doctests, rule, fetch)
+- **fobis.py**: Main entry point with `run_fobis()` orchestrating all commands (build, clean, install, doctests, rule, fetch, plus the newer commands below)
 
 - **FoBiSConfig.py**: Configuration class that parses CLI arguments and fobos files, manages cflags heritage, and handles interdependent project builds. Contains app metadata (`__appname__`, `__author__`, etc.); `__version__` is imported from `fobis/__init__.py` (single source of truth for `pyproject.toml`). The `_load_fetched_deps()` method auto-loads `.fobis_deps/.deps_config.ini` during `build`: `dependon` entries are appended to `cliargs.dependon` (and their directories added to `cliargs.exclude_dirs` to prevent source-scan overlap); `src` entries are appended to `cliargs.src` when not already covered by an existing source path.
 
-- **cli_parser.py**: Argparse-based CLI with subcommands (build, clean, rule, install, doctests, fetch). Defines supported file extensions and compilers.
+- **cli/** (package): **Typer-based** CLI (migrated from argparse, March 2026). The root Typer `app` lives in `cli/_app.py`; each subcommand is its own module that registers via `@app.command(...)` (or `app.add_typer(...)` for sub-apps). `cli/_options.py` holds shared `Annotated` option types (`FobosOpt`, `FciOpt`, ...), `cli/_completions.py` holds shell-completion callbacks, `cli/_constants.py` holds constants. Each command function assembles an `argparse.Namespace` and stores it in `ctx.obj['cliargs']`; all downstream core code reads `cliargs.*` unchanged. **Command set:** build, clean, rule, install, doctests, fetch, scaffold (sub-app: status/sync/init/list), **check, test, coverage, tree, introspect, run, cache (sub-app: list/clean/show), commit**.
+
+- **cli_parser.py**: Legacy argparse module retained for the backward-compat shim. `_normalize_args()` converts legacy single-dash multi-char options (`-compiler`, `-mode`, `-ex`) to double-dash and normalizes `--build_dir` → `--build-dir` before Typer/Click sees them, preserving 100% CLI back-compat and the test `fake_args` interface. Also defines supported file extensions and compilers.
 
 - **ParsedFile.py**: Parses Fortran source files using regex to extract:
   - Module definitions and submodule relationships
@@ -122,7 +124,7 @@ ruff format fobis/ tests/
   - GNU Make file generation
   - Support for static/shared library creation
 
-- **Compiler.py**: Compiler abstraction supporting: gnu, intel, intel_nextgen, g95, opencoarrays-gnu, pgi, ibm, nag, nvfortran, amd, custom. Handles MPI, OpenMP, coarray, coverage, and profile flags.
+- **Compiler.py**: Compiler abstraction supporting: gnu, intel, intel_nextgen, g95, opencoarrays-gnu, pgi, ibm, nag, nvfortran, amd, lfortran, custom. Handles MPI, OpenMP, coarray, coverage, and profile flags.
 
 - **Fobos.py**: Parses fobos configuration files (INI format). Supports:
   - Multiple modes (build configurations)
@@ -147,6 +149,18 @@ ruff format fobis/ tests/
 - **Dependency.py**: Simple class representing a single dependency (module or include)
 
 - **Doctest.py**: Extracts and runs inline doctests from Fortran module comments
+
+#### Modules backing the newer commands
+
+- **TestRunner.py** (`TestResult`, `TestRunner`): first-class test runner behind `fobis test`; `--suite` tag filtering; passthrough args
+- **Coverage.py** (`CoverageReporter`) + **Gcov.py**: coverage reporting behind `fobis coverage` (html/xml/text/all); gcov markdown reports embed mermaid pie charts
+- **Cache.py**: build-artifact cache behind the `fobis cache` sub-app (`list`/`clean`/`show`)
+- **Commit.py**: LLM-assisted Conventional-Commit message generation behind `fobis commit` (`--backend ollama|openai`, `--url`, `--model`; iterative prompt refinement)
+- **Cleaner.py**: cleaning-phase controller
+- **Externals.py** (`ExternalFlags`): resolved compiler/linker flags for one or more external libraries
+- **PkgConfig.py** (`PkgConfigSpec`): generates `.pc` pkg-config files
+- **SemVer.py** (`Version`): parsed `major.minor.patch` triple
+- **Profiles.py**, **UserConfig.py**, **Colors.py**, **Coverage.py**: supporting infrastructure (build profiles, user config, terminal coloring)
 
 ### Data Flow
 1. `FoBiSConfig` parses CLI + fobos file -> `cliargs` namespace
@@ -221,8 +235,9 @@ Tests use **pytest** and live in `tests/`:
 
 | File | Description |
 |------|-------------|
-| `tests/helpers.py` | Shared helpers: `run_build`, `run_clean`, `make_makefile`, `run_install`, `run_doctest`, `run_rule`, `TESTS_DIR`, `OPENCOARRAYS` |
+| `tests/helpers.py` | Shared helpers: `run_build`, `run_clean`, `make_makefile`, `run_install`, `run_doctest`, `run_rule`, `TESTS_DIR`, `OPENCOARRAYS`, `PREFORM` |
 | `tests/conftest.py` | pytest configuration/fixtures |
+| `tests/unit/` | Unit tests for individual modules |
 | `tests/test_build.py` | 32 parametrized build scenarios |
 | `tests/test_clean.py` | 1 clean scenario |
 | `tests/test_makefile.py` | 2 Makefile generation scenarios |
@@ -231,6 +246,25 @@ Tests use **pytest** and live in `tests/`:
 | `tests/test_rules.py` | 1 custom rule scenario |
 | `tests/test_template.py` | Circular template detection |
 | `tests/test_fetch.py` | Fetcher unit tests + 4 integration scenarios |
+| `tests/test_scaffold.py` | `scaffold` subcommand (GH #164) |
+| `tests/test_tree.py` | `tree` inter-project dependency rendering (GH #167) |
+| `tests/test_externals.py` | `Externals` — automatic external library detection (GH #169) |
+| `tests/test_semver.py` | `SemVer` — version constraint resolution (GH #171) |
+| `tests/test_cache.py` | `Cache` — build artifact cache (GH #172) |
+| `tests/test_testrunner.py` | `TestRunner` — first-class test runner (GH #173) |
+| `tests/test_run.py` | `run` — build and execute a target (GH #174) |
+| `tests/test_multitarget.py` | multi-target builds / `Fobos.get_targets()` (GH #175) |
+| `tests/test_profiles.py` | `Profiles` — named build profiles (GH #176) |
+| `tests/test_auto_discover.py` | convention-based source-dir auto-discovery (GH #177) |
+| `tests/test_pkgconfig.py` | `PkgConfig` — automatic pkg-config file generation (GH #179) |
+| `tests/test_coverage.py` | `Coverage` — coverage report generation (GH #180) |
+| `tests/test_gcov.py` | `Gcov` — gcov file analysis and reporting |
+| `tests/test_features.py` | feature flags — conditional compilation (GH #168) |
+| `tests/test_includes.py` | `[include]` directive in fobos files |
+| `tests/test_variables.py` | `$variable` substitution + `[varset:NAME]` mechanism |
+| `tests/test_compiler_lfortran.py` | first-class LFortran compiler support |
+| `tests/test_commit.py` | `Commit` — LLM-assisted commit-message generation |
+| `tests/test_userconfig.py` | `UserConfig` — user-level LLM configuration |
 
 Fixture directories in `tests/`:
 - `build-test{1-32}/`: Build scenarios with fobos files
