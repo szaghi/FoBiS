@@ -42,6 +42,8 @@ fobis rule [options]
 | `-l`, `--log` | Write a log file |
 | `-q`, `--quiet` | Less verbose output |
 | `--verbose` | Maximum verbosity |
+| `-j`, `--jobs` | Number of parallel compile jobs (default: 1) |
+| `-m`, `--makefile` | Export a GNU Makefile instead of building |
 
 ## Examples
 

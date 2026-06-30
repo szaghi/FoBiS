@@ -127,8 +127,7 @@ Beyond the mode sections, a fobos file can contain several top-level sections wi
 | `[dependencies]` | GitHub-hosted build dependencies | [Fetch Dependencies](/advanced/fetch) |
 | `[test]` | Test runner defaults: suite, timeout, jobs | [Test Runner](/advanced/testing) |
 | `[coverage]` | Coverage report settings: output dir, fail threshold, excludes | [Coverage](/reference/coverage) |
-| `[externals]` | External library flags via `pkg-config` and MPI auto-detection | [External Libraries](/advanced/externals) |
-| `[pkgconfig]` | Generate a `.pc` file for your own project | [External Libraries](/advanced/externals) |
+| `[externals]` | External library map (`name = auto \| /prefix`); activate per mode with `externals = …` | [External Libraries](/advanced/externals) |
 | `[target.NAME]` | Named build target with per-target flag overrides | [build reference](/reference/build) |
 | `[example.NAME]` | Named example target (same syntax as `target.NAME`) | [build reference](/reference/build) |
 | `[rule-NAME]` | Custom shell-command rules | [Rules](/fobos/rules) |
@@ -367,4 +366,4 @@ cflags   = -c -O2
 - [Lock File & Semver](/advanced/lock-file) — reproducible builds and version constraints
 - [Test Runner](/advanced/testing) — `[test]` section: test discovery and execution
 - [Coverage](/reference/coverage) — `[coverage]` section: HTML/XML coverage reports
-- [External Libraries](/advanced/externals) — `[externals]` and `[pkgconfig]` sections
+- [External Libraries](/advanced/externals) — `[externals]` section and the `pkgconfig*` mode keys

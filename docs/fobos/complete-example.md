@@ -121,13 +121,16 @@ jsonfort = https://github.com/jacobwilliams/json-fortran :: branch=main :: use=f
 utils    = szaghi/fortran-utils :: rev=a1b2c3d    ; user/repo shorthand resolves to GitHub
 
 # ─────────────────────────────────────────────────────────────────────────────
-# [externals]  — system library resolution via pkg-config or MPI auto-detect.
-#   pkg-config = space-separated list of pkg-config package names
-#   mpi-auto   = true → probe mpifort/mpif90 wrappers for compile+link flags
+# [externals]  — system library resolution. Each entry is `name = auto | /prefix`.
+#   auto     → probe pkg-config / wrapper scripts (mpi, hdf5, netcdf, blas,
+#              lapack, fftw/fftw3, openblas)
+#   /prefix  → probe <prefix>/include and <prefix>/lib explicitly
+#   Activate per mode with `externals = name1 name2` (see the mode section below).
 # ─────────────────────────────────────────────────────────────────────────────
 [externals]
-pkg-config = hdf5 netcdf                          ; runs `pkg-config --cflags --libs`
-mpi-auto   = false                                ; set true to probe MPI wrappers
+mpi    = auto                                     ; probe mpifort/mpif90 -show
+hdf5   = auto                                     ; pkg-config hdf5_fortran or h5fc -show
+netcdf = /opt/netcdf                              ; explicit prefix: /opt/netcdf/{include,lib}
 
 # ─────────────────────────────────────────────────────────────────────────────
 # [test]  — defaults for `fobis test`.

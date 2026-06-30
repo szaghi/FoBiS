@@ -35,6 +35,8 @@ After fetching, run `fobis build` as usual — it automatically picks up the fet
 | `-l`, `--log` | Write a log file |
 | `-q`, `--quiet` | Less verbose output |
 | `--verbose` | Maximum verbosity |
+| `-j`, `--jobs` | Number of parallel compile jobs (default: 1) |
+| `-m`, `--makefile` | Export a GNU Makefile instead of building |
 | `--json` | Emit structured JSON to stdout (see [JSON output](/advanced/json-output)) |
 
 ## fobos `[dependencies]` section

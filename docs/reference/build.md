@@ -10,7 +10,7 @@ fobis build [options]
 
 | Option | Description |
 |---|---|
-| `--compiler {gnu,intel,intel_nextgen,g95,opencoarrays-gnu,pgi,ibm,nag,nvfortran,amd,custom}` | Compiler (case-insensitive, default: `gnu`) — tab-completable |
+| `--compiler {gnu,intel,intel_nextgen,g95,opencoarrays-gnu,pgi,ibm,nag,nvfortran,amd,lfortran,custom}` | Compiler (case-insensitive, default: `gnu`) — tab-completable |
 | `--fc FC` | Compiler executable — required for `--compiler custom` |
 | `--cflags CFLAGS` | Compilation flags |
 | `--lflags LFLAGS` | Linking flags |
@@ -124,12 +124,14 @@ fobis build [options]
 |---|---|
 | `--no-auto-discover` | Disable convention-based source directory detection (`src/`, `source/`, `app/`) |
 
-## External library options
+## External libraries
 
-| Option | Description |
-|---|---|
-| `--pkg-config NAMES` | `pkg-config` package names to query for flags (repeatable) |
-| `--with-mpi-auto` | Auto-detect MPI compiler wrapper and flags |
+External libraries (MPI, HDF5, NetCDF, BLAS/LAPACK, FFTW, …) are configured in the
+fobos file, not via CLI flags: declare them in an `[externals]` section and activate
+them per mode with `externals = name1 name2`. FoBiS resolves their compile/link flags
+automatically (via `pkg-config`, `nf-config`, `mpifort -show`, or an explicit prefix).
+See [External Libraries](/advanced/externals) for the full mechanism and for generating
+a `pkg-config` `.pc` file for your own project.
 
 ## Fancy options
 
