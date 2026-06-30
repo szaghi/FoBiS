@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.8.19] — 2026-06-30
+### Added
+- **scaffold**: Auto-dispatch MPI test binaries in run_tests.sh
+
+
 ## [3.8.18] — 2026-06-30
 ### Added
 - **scaffold**: Ship full API-docs generation in package.json
