@@ -152,9 +152,20 @@ def get_project_vars(fobos=None, overrides=None):
         "EMAIL": "",
         "YEAR": str(datetime.date.today().year),
         "DEPENDENCIES": "",
+        "SCAFFOLD_APT_PACKAGES": "",
     }
 
     if fobos is not None:
+        scaffold_cfg = fobos.get_scaffold_config()
+        if scaffold_cfg.get("apt_packages"):
+            # Render the package list as a trailing apt-line continuation so the
+            # templated setup-build-env action stays byte-identical to the old
+            # verbatim file when no packages are configured. Each package is
+            # appended on its own ' \'-continued, 10-space-indented line, mirroring
+            # the gcc/gfortran/g++ block above it.
+            pkgs = scaffold_cfg["apt_packages"].split()
+            vars_dict["SCAFFOLD_APT_PACKAGES"] = "".join(f" \\\n          {pkg}" for pkg in pkgs)
+
         info = fobos.get_project_info()
         if info.get("name"):
             vars_dict["NAME"] = info["name"]

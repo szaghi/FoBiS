@@ -56,20 +56,20 @@ fobis scaffold <action> [options]
 
 - `.github/workflows/ci.yml`
 - `.github/workflows/docs.yml`
-- `.github/actions/setup-build-env/action.yml`
+- `.github/workflows/install.yml`
 - `.github/actions/run-coverage-analysis/action.yml`
 - `scripts/release.sh`
-- `scripts/run_tests.sh`
+- `scripts/run_tests.sh` — supports `--np N` for MPI-parallel test execution
 - `scripts/install.sh`
 - `scripts/compute-coverage.sh`
 - `docs/package.json`
 - `cliff.toml`
-- `CONTRIBUTING.md`
 - `LICENSE.gpl3.md`
 
 **Templated** files have `{{VAR}}` placeholders substituted with project metadata before comparison:
 
-- `.github/workflows/release.yml`
+- `.github/workflows/release.yml` — `{{NAME}}`
+- `.github/actions/setup-build-env/action.yml` — `{{SCAFFOLD_APT_PACKAGES}}` from the fobos `[scaffold]` section (empty by default)
 - `docs/.vitepress/config.mts`
 - `docs/ford.md`
 - `fpm.toml`
@@ -77,9 +77,14 @@ fobis scaffold <action> [options]
 **Init-only** files are created by `fobis scaffold init` if absent, but are never overwritten by `fobis scaffold sync` — they are yours to customise:
 
 - `fobos` — a minimal annotated multi-mode fobos skeleton with `debug` and `release` modes
+- `docs/guide/contributing.md` — contributing guide (extend with repo-specific sections)
 - `docs/.vitepress/config.mts`
 - `docs/ford.md`
 - `fpm.toml`
+
+**Symlink** entries ensure a repo-root path links to a canonical managed file; `sync` creates/repairs the link and never writes through it:
+
+- `CONTRIBUTING.md` → `docs/guide/contributing.md`
 
 ### Variable resolution
 

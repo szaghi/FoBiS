@@ -1222,6 +1222,30 @@ class Fobos:
                 info["year"] = self.fobos.get("project", "year").strip()
         return info
 
+    def get_scaffold_config(self) -> dict[str, Any]:
+        """
+        Parse the optional [scaffold] section and return scaffold parameters.
+
+        These drive per-project rendering of templated scaffold artifacts (see
+        the scaffold feature). All values are empty when the section or option
+        is absent, so an unparametrised project renders the scaffold defaults
+        unchanged.
+
+        Returns
+        -------
+        dict
+          dict with key 'apt_packages' (str): space-separated extra system
+          packages to install in the CI build environment (e.g.
+          'libopenmpi-dev openmpi-bin' or 'zlib1g-dev'). Empty string if unset.
+        """
+        config = {
+            "apt_packages": "",
+        }
+        if self.fobos and self.fobos.has_section("scaffold"):
+            if self.fobos.has_option("scaffold", "apt_packages"):
+                config["apt_packages"] = self.fobos.get("scaffold", "apt_packages").strip()
+        return config
+
     def get_version(self) -> str:
         """
         Resolve the project version from [project] and/or git tags.

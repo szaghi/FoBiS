@@ -80,6 +80,10 @@ fobis commit             # generate a Conventional-Commits message via a local L
 - `doctests`: `--keep-volatile-doctests`, `--exclude-from-doctests`, `--doctests-preprocessor cpp|fpp`.
 - `scaffold`: subcommands `status` (`--strict` for CI), `sync` (`--dry-run`, `--yes/-y`),
   `init` (`--yes/-y`), `list`. All take `--fobos/-f`; `status`/`sync` take `--files GLOB`.
+  Manages four artifact categories — verbatim (SHA-256 synced), templated (`{{VAR}}`-rendered;
+  reads the optional fobos `[scaffold]` section, e.g. `apt_packages`), init-only (created once,
+  project-owned, e.g. `docs/guide/contributing.md`), and symlink (`CONTRIBUTING.md` → the
+  canonical contributing page; never written through).
 - `commit`: `--backend/-b ollama|openai`, `--url/-u`, `--model/-m`, `--max-diff`, `--refine-passes`,
   `--apply` (runs `git commit`), `--config/-c`, `--show-config`, `--init-config`. **No `--fobos`/`--mode`.**
 
@@ -549,6 +553,7 @@ Add custom include extensions: `fobis build --inc .cmn`.
 | `[rule-NAME]` | Custom shell rule for `fobis rule --ex NAME` |
 | `[dependencies]` | GitHub-hosted build dependencies (used by `fetch`) |
 | `[project]` | Metadata: `name`, `authors`, `version`, `summary`, `repository`, `website`, `email`, `year` |
+| `[scaffold]` | Optional `fobis scaffold` knobs: `apt_packages = …` (extra CI system packages, space-separated) |
 
 ---
 

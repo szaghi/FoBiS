@@ -577,3 +577,102 @@ def test_sync_dry_run_does_not_create_symlink(tmp_path):
     dest, _target = _inject_symlink_entry(s)
     s.sync(dry_run=True, yes=True, files_glob=dest)
     assert not (tmp_path / dest).exists()
+
+
+# ── Scaffolder [scaffold] apt_packages parametrization ─────────────────────────
+
+
+class _FakeFobos:
+    """Minimal fobos stub exposing the two getters get_project_vars consumes."""
+
+    def __init__(self, apt_packages=""):
+        self._apt = apt_packages
+
+    def get_scaffold_config(self):
+        return {"apt_packages": self._apt}
+
+    def get_project_info(self):
+        return {
+            "name": "Demo",
+            "authors": [],
+            "version": "",
+            "summary": "",
+            "repository": "",
+            "website": "",
+            "email": "",
+            "year": "",
+        }
+
+    def get_dependencies(self):
+        return {}
+
+
+def test_apt_packages_empty_renders_setup_build_env_unchanged(tmp_path):
+    """No [scaffold] apt_packages → setup-build-env renders byte-identical to its template-with-empty-var."""
+    vars_no_apt = get_project_vars(fobos=_FakeFobos(apt_packages=""))
+    assert vars_no_apt["SCAFFOLD_APT_PACKAGES"] == ""
+    s = Scaffolder(project_vars=vars_no_apt, cwd=str(tmp_path))
+    entry = s.manifest[".github/actions/setup-build-env/action.yml"]
+    assert entry["category"] == "templated"
+    rendered = s._get_canonical(entry)
+    # The placeholder vanished: no dangling braces, last apt target is the g++ line.
+    assert "{{SCAFFOLD_APT_PACKAGES}}" not in rendered
+    assert "g++-${{ inputs.gcc-version }}\n" in rendered
+
+
+def test_apt_packages_set_appends_continuation_lines(tmp_path):
+    """[scaffold] apt_packages → each package appended as a '\\'-continued apt line."""
+    vars_apt = get_project_vars(fobos=_FakeFobos(apt_packages="libopenmpi-dev openmpi-bin"))
+    assert vars_apt["SCAFFOLD_APT_PACKAGES"] == " \\\n          libopenmpi-dev \\\n          openmpi-bin"
+    s = Scaffolder(project_vars=vars_apt, cwd=str(tmp_path))
+    entry = s.manifest[".github/actions/setup-build-env/action.yml"]
+    rendered = s._get_canonical(entry)
+    assert "libopenmpi-dev" in rendered
+    assert "openmpi-bin" in rendered
+    # Still inside the single apt-install block (before update-alternatives).
+    apt_block = rendered.split("update-alternatives")[0]
+    assert "libopenmpi-dev" in apt_block and "openmpi-bin" in apt_block
+
+
+# ── Scaffold run_tests.sh --np (MPI) support ──────────────────────────────────
+
+
+def test_run_tests_sh_supports_np_flag_and_serial_default(tmp_path):
+    """The scaffold run_tests.sh runs serially by default and accepts --np for mpirun."""
+    import shutil
+    import stat
+    import subprocess
+    from pathlib import Path
+
+    import fobis
+
+    src = Path(fobis.__file__).parent / "scaffolds" / "verbatim" / "scripts" / "run_tests.sh"
+    script = tmp_path / "run_tests.sh"
+    shutil.copy(src, script)
+
+    exe_dir = tmp_path / "exe"
+    exe_dir.mkdir()
+    ok = exe_dir / "foo_test"
+    ok.write_text("#!/bin/bash\nexit 0\n")
+    ok.chmod(ok.stat().st_mode | stat.S_IEXEC)
+    xf = exe_dir / "bar_xfail_test"
+    xf.write_text("#!/bin/bash\nexit 1\n")
+    xf.chmod(xf.stat().st_mode | stat.S_IEXEC)
+
+    # Serial (no --np): xfail classified as pass, regular passes → exit 0.
+    r = subprocess.run(["bash", str(script)], cwd=tmp_path, capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "PASS" in r.stdout and "XFAIL" in r.stdout
+
+    # --np engages an mpirun wrapper: provide a fake mpirun on PATH that just execs.
+    fakebin = tmp_path / "fakebin"
+    fakebin.mkdir()
+    mpirun = fakebin / "mpirun"
+    mpirun.write_text('#!/bin/bash\nshift 2\nexec "$@"\n')
+    mpirun.chmod(mpirun.stat().st_mode | stat.S_IEXEC)
+    import os
+
+    env = dict(os.environ, PATH=f"{fakebin}:{os.environ['PATH']}")
+    r2 = subprocess.run(["bash", str(script), "--np", "2"], cwd=tmp_path, capture_output=True, text=True, env=env)
+    assert r2.returncode == 0, r2.stdout + r2.stderr
+    assert "2/2 passed" in r2.stdout

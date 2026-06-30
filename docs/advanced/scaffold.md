@@ -60,7 +60,7 @@ Use `--yes` to accept all without prompting, or `--dry-run` to preview changes w
 
 ## Template categories
 
-Scaffold manages two categories of files, distinguished by how drift is detected and how updates are applied.
+Scaffold manages four categories of files, distinguished by how drift is detected and how updates are applied.
 
 ### Verbatim files
 
@@ -69,16 +69,15 @@ Verbatim files are copied as-is from the bundled canonical version. Drift detect
 | File | Purpose |
 |------|---------|
 | `.github/workflows/ci.yml` | Build-and-test CI workflow |
-| `.github/workflows/docs.yml` | VitePress documentation deployment workflow |
-| `.github/actions/setup-build-env/action.yml` | Composite action: install gfortran + FoBiS.py |
+| `.github/workflows/docs.yml` | VitePress docs deployment + coverage-badge publish workflow |
+| `.github/workflows/install.yml` | Post-release smoke test of the install methods (make/cmake/fpm; legs self-skip when inapplicable) |
 | `.github/actions/run-coverage-analysis/action.yml` | Composite action: lcov coverage + JSON badge |
 | `scripts/release.sh` | Bump the `VERSION` file |
-| `scripts/run_tests.sh` | Build and run the project test suite |
+| `scripts/run_tests.sh` | Build and run the project test suite (serial, or `--np N` for MPI) |
 | `scripts/install.sh` | Repo-agnostic install script |
 | `scripts/compute-coverage.sh` | Compute gcov coverage and emit JSON badge |
 | `docs/package.json` | VitePress npm configuration |
 | `cliff.toml` | git-cliff changelog configuration (auto-detecting, no hardcoded repo slug) |
-| `CONTRIBUTING.md` | Contributing guidelines |
 | `LICENSE.gpl3.md` | GNU GPL v3 license text |
 
 ### Templated files
@@ -88,9 +87,30 @@ Templated files contain `{{VAR}}` placeholders. Before comparing or writing, sca
 | File | Placeholders used |
 |------|------------------|
 | `.github/workflows/release.yml` | `{{NAME}}` |
+| `.github/actions/setup-build-env/action.yml` | `{{SCAFFOLD_APT_PACKAGES}}` (empty by default → renders identically to the unparametrised action) |
 | `docs/.vitepress/config.mts` | `{{NAME}}`, `{{SUMMARY}}`, `{{REPOSITORY_NAME}}`, `{{REPOSITORY}}`, `{{AUTHORS}}`, `{{YEAR}}` |
 | `docs/ford.md` | `{{NAME}}`, `{{SUMMARY}}`, `{{WEBSITE}}`, `{{AUTHORS}}`, `{{EMAIL}}`, `{{REPOSITORY}}` |
 | `fpm.toml` | `{{NAME}}`, `{{SUMMARY}}`, `{{AUTHORS}}`, `{{EMAIL}}`, `{{YEAR}}` |
+
+### Init-only files
+
+Init-only files are created once by `fobis scaffold init` and then **owned by the project** — `sync` never touches them and `status` reports them `OK` whenever present (never `OUTDATED`), so a repo can freely extend them.
+
+| File | Purpose |
+|------|---------|
+| `docs/guide/contributing.md` | Contributing guide (projects add repo-specific sections) |
+| `docs/.vitepress/config.mts` | VitePress site config |
+| `docs/ford.md` | FORD API-doc config |
+| `fpm.toml` | fpm package manifest |
+| `fobos` | FoBiS build configuration |
+
+### Symlink files
+
+A symlink entry ensures a repo-root path is a symbolic link to a canonical managed file (so GitHub and the docs site share one source). `sync` creates or repairs the link and **never writes through it**; if a regular file is found in its place it is replaced by the link.
+
+| Link | Target |
+|------|--------|
+| `CONTRIBUTING.md` | `docs/guide/contributing.md` |
 
 ## Variable resolution
 
@@ -122,6 +142,21 @@ authors    = Stefano Zaghi
 ```
 
 With this in place, `fobis scaffold status` and `fobis scaffold sync` know exactly what to put in `fpm.toml`, `docs/.vitepress/config.mts`, and the other templated files.
+
+### Optional fobos `[scaffold]` section
+
+Some templated artifacts read extra knobs from a `[scaffold]` section. The section is entirely optional — when absent, the affected artifacts render to their defaults (byte-identical to the unparametrised version, so no spurious drift).
+
+| Key | Drives | Example |
+|-----|--------|---------|
+| `apt_packages` | extra system packages installed in `setup-build-env` (space-separated) | `apt_packages = libopenmpi-dev openmpi-bin` |
+
+```ini
+[scaffold]
+apt_packages = zlib1g-dev
+```
+
+A project that needs MPI or a system library (HDF5, NetCDF, zlib, …) in CI declares it here instead of hand-editing the composite action. The packages are appended to the action's `apt install` line; `mpirun`-based test execution is handled separately by `scripts/run_tests.sh --np N`.
 
 ### `AUTHORS` format
 
@@ -250,7 +285,7 @@ Output:
 Verbatim files (copied as-is, SHA-256 drift detection):
   .github/workflows/ci.yml
   .github/workflows/docs.yml
-  .github/actions/setup-build-env/action.yml
+  .github/workflows/install.yml
   .github/actions/run-coverage-analysis/action.yml
   scripts/release.sh
   scripts/run_tests.sh
@@ -258,14 +293,14 @@ Verbatim files (copied as-is, SHA-256 drift detection):
   scripts/compute-coverage.sh
   docs/package.json
   cliff.toml
-  CONTRIBUTING.md
   LICENSE.gpl3.md
 
 Templated files ({{VAR}} substitution, rendered drift detection):
+  .github/actions/setup-build-env/action.yml
   .github/workflows/release.yml
-  docs/.vitepress/config.mts
-  docs/ford.md
-  fpm.toml
+
+Symlinks (repo-root link to a canonical managed file):
+  CONTRIBUTING.md → docs/guide/contributing.md
 ```
 
 ## Typical workflows
@@ -316,9 +351,12 @@ fobis scaffold init --yes
 # The result:
 # src/
 # docs/.vitepress/config.mts  ← rendered with MyProject metadata
+# docs/guide/contributing.md  ← contributing guide (project-owned after creation)
+# CONTRIBUTING.md             ← symlink → docs/guide/contributing.md
 # .github/workflows/ci.yml
 # .github/workflows/docs.yml
 # .github/workflows/release.yml
+# .github/workflows/install.yml
 # .github/actions/setup-build-env/action.yml
 # .github/actions/run-coverage-analysis/action.yml
 # scripts/release.sh
@@ -326,7 +364,6 @@ fobis scaffold init --yes
 # scripts/install.sh
 # scripts/compute-coverage.sh
 # cliff.toml
-# CONTRIBUTING.md
 # LICENSE.gpl3.md
 # fpm.toml
 # docs/ford.md

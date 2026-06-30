@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Run the project test suite.
 #
+# Usage: run_tests.sh [--np N]
+#   -n, --np N   Run each test under `mpirun -np N` (for MPI-parallel projects).
+#                Omit for serial execution (the default).
+#
 # Test classification by binary name:
 #   exe/*_xfail_*   — expected-failure test. MUST exit non-zero
 #                     (e.g. validates an `error stop` path). Exit 0 is treated
@@ -12,6 +16,20 @@
 #   FAIL   regular test failed
 #   XFAIL  expected-failure test failed as expected (success)
 #   XPASS  expected-failure test passed unexpectedly (failure)
+
+NP=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --np | -n ) NP="$2"; shift 2 ;;
+    * ) printf "Unknown argument: %s\n" "$1" >&2; exit 2 ;;
+  esac
+done
+
+# Serial by default; wrap in mpirun only when --np N (N>0) is requested.
+runner=()
+if [[ "$NP" -gt 0 ]]; then
+  runner=(mpirun -np "$NP")
+fi
 
 if [[ -t 1 ]]; then
   RED=$'\033[0;31m'; GREEN=$'\033[0;32m'; BOLD=$'\033[1m'; RESET=$'\033[0m'
@@ -28,7 +46,7 @@ for exe in exe/*; do
   [[ -f "$exe" && -x "$exe" ]] || continue
   name=$(basename "$exe")
 
-  "$exe" > "$tmpout" 2>&1
+  "${runner[@]}" "$exe" > "$tmpout" 2>&1
   rc=$?
 
   if [[ "$name" == *_xfail_* ]]; then

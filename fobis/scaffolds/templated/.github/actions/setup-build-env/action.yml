@@ -21,7 +21,7 @@ runs:
         sudo apt install -y \
           gcc-${{ inputs.gcc-version }} \
           gfortran-${{ inputs.gcc-version }} \
-          g++-${{ inputs.gcc-version }}
+          g++-${{ inputs.gcc-version }}{{SCAFFOLD_APT_PACKAGES}}
         sudo update-alternatives \
           --install /usr/bin/gcc     gcc     /usr/bin/gcc-${{ inputs.gcc-version }}     100 \
           --slave   /usr/bin/gfortran gfortran /usr/bin/gfortran-${{ inputs.gcc-version }} \

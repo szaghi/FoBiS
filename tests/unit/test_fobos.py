@@ -187,6 +187,22 @@ def test_get_project_info_empty_when_no_section(tmp_path):
     assert info["version"] == ""
 
 
+def test_get_scaffold_config_apt_packages(tmp_path):
+    """get_scaffold_config() parses apt_packages from [scaffold]."""
+    _write_fobos(tmp_path, "[default]\ncompiler = gnu\n[scaffold]\napt_packages = libopenmpi-dev openmpi-bin\n")
+    fobos = Fobos(cliargs=_ns(tmp_path / "fobos"))
+    cfg = fobos.get_scaffold_config()
+    assert cfg["apt_packages"] == "libopenmpi-dev openmpi-bin"
+
+
+def test_get_scaffold_config_empty_when_no_section(tmp_path):
+    """get_scaffold_config() returns defaults when [scaffold] is absent."""
+    _write_fobos(tmp_path, "[default]\ncompiler = gnu\n")
+    fobos = Fobos(cliargs=_ns(tmp_path / "fobos"))
+    cfg = fobos.get_scaffold_config()
+    assert cfg["apt_packages"] == ""
+
+
 # ---------------------------------------------------------------------------
 # Case insensitivity flag
 # ---------------------------------------------------------------------------
