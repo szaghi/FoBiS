@@ -143,6 +143,10 @@ projectbuild() {
       ;;
     cmake )
       command -v cmake &>/dev/null || error "cmake not found."
+      if [[ ! -f CMakeLists.txt ]]; then
+        warn "CMakeLists.txt not found — skipping cmake build."
+        return
+      fi
       cmake -B build
       cmake --build build
       ;;

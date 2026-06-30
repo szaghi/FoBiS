@@ -257,10 +257,13 @@ class Scaffolder:
         cp.read_string(manifest_text)
         entries = {}
         for dest in cp.sections():
+            category = cp.get(dest, "category")
             entries[dest] = {
-                "source": cp.get(dest, "source"),
-                "category": cp.get(dest, "category"),
+                # symlink entries point at another managed file and carry no source content
+                "source": cp.get(dest, "source", fallback=None),
+                "category": category,
                 "executable": cp.getboolean(dest, "executable", fallback=False),
+                "target": cp.get(dest, "target", fallback=None),
             }
         return entries
 
@@ -317,6 +320,26 @@ class Scaffolder:
             mode = os.stat(abs_path).st_mode
             os.chmod(abs_path, mode | 0o111)
 
+    def _symlink_ok(self, abs_dest, target):
+        """True when abs_dest is a symlink pointing at *target*."""
+        return os.path.islink(abs_dest) and os.readlink(abs_dest) == target
+
+    def _ensure_symlink(self, abs_dest, target):
+        """
+        Make abs_dest a symlink to *target*, replacing a regular file if present.
+
+        Never writes *through* an existing link. Returns True if it changed anything.
+        """
+        if self._symlink_ok(abs_dest, target):
+            return False
+        parent = os.path.dirname(abs_dest)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+        if os.path.islink(abs_dest) or os.path.exists(abs_dest):
+            os.remove(abs_dest)
+        os.symlink(target, abs_dest)
+        return True
+
     def _filter(self, dest, files_glob):
         if files_glob is None:
             return True
@@ -342,7 +365,17 @@ class Scaffolder:
             if not self._filter(dest, files_glob):
                 continue
             abs_dest = os.path.join(self.cwd, dest)
-            if not os.path.exists(abs_dest):
+            if entry["category"] == "symlink":
+                # Drift = root is missing or not a symlink to the canonical target
+                if self._symlink_ok(abs_dest, entry["target"]):
+                    self.print_n(f"  OK       {dest}")
+                elif not os.path.lexists(abs_dest):
+                    self.print_w(f"  MISSING  {dest}")
+                    any_drift = True
+                else:
+                    self.print_n(f"  SYMLINK  {dest} (should link to {entry['target']})")
+                    any_drift = True
+            elif not os.path.exists(abs_dest):
                 self.print_w(f"  MISSING  {dest}")
                 any_drift = True
             elif entry["category"] == "init-only":
@@ -376,6 +409,28 @@ class Scaffolder:
             if entry["category"] == "init-only":
                 continue
             abs_dest = os.path.join(self.cwd, dest)
+
+            if entry["category"] == "symlink":
+                target = entry["target"]
+                if self._symlink_ok(abs_dest, target):
+                    continue
+                kind = "regular file → symlink" if os.path.exists(abs_dest) and not os.path.islink(abs_dest) else "symlink"
+                self.print_n(f"\n--- {dest} ---")
+                self.print_n(f"  ({kind} → {target})")
+                if dry_run:
+                    continue
+                if not yes:
+                    try:
+                        answer = typer.confirm(f"Make {dest} a symlink to {target}?", default=True)
+                    except Exception:
+                        answer = True
+                    if not answer:
+                        continue
+                self._ensure_symlink(abs_dest, target)
+                self.print_n(f"  Linked   {dest} → {target}")
+                changed += 1
+                continue
+
             canonical = self._get_canonical(entry)
             existing = ""
             if os.path.exists(abs_dest):
@@ -447,6 +502,14 @@ class Scaffolder:
         created = 0
         for dest, entry in self.manifest.items():
             abs_dest = os.path.join(self.cwd, dest)
+            if entry["category"] == "symlink":
+                if self._symlink_ok(abs_dest, entry["target"]):
+                    self.print_n(f"  exists   {dest}")
+                    continue
+                self._ensure_symlink(abs_dest, entry["target"])
+                self.print_n(f"  linked   {dest} → {entry['target']}")
+                created += 1
+                continue
             if os.path.exists(abs_dest):
                 self.print_n(f"  exists   {dest}")
                 continue
@@ -468,3 +531,9 @@ class Scaffolder:
         self.print_n("Templated files ({{VAR}} substitution, rendered drift detection):")
         for dest in templated:
             self.print_n(f"  {dest}")
+        symlinks = [(d, e["target"]) for d, e in self.manifest.items() if e["category"] == "symlink"]
+        if symlinks:
+            self.print_n("")
+            self.print_n("Symlinks (repo-root link to a canonical managed file):")
+            for dest, target in symlinks:
+                self.print_n(f"  {dest} → {target}")

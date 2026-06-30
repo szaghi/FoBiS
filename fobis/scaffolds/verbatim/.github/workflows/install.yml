@@ -1,0 +1,48 @@
+name: Test (alternative) Install Methods
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  install:
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      TAG: ${{ github.event.release.tag_name }}
+
+    steps:
+    - name: INSTALL SCRIPT + make
+      run: |
+        WORKDIR=$(mktemp -d)
+        cd "$WORKDIR"
+        wget $(curl -s https://api.github.com/repos/$GITHUB_REPOSITORY/releases/tags/$TAG | jq -r '.assets[] | select(.name | test("install.sh"; "i")) | .browser_download_url')
+        chmod +x install.sh
+        ./install.sh --download wget --build make
+
+    - name: INSTALL SCRIPT + cmake
+      run: |
+        WORKDIR=$(mktemp -d)
+        cd "$WORKDIR"
+        wget $(curl -s https://api.github.com/repos/$GITHUB_REPOSITORY/releases/tags/$TAG | jq -r '.assets[] | select(.name | test("install.sh"; "i")) | .browser_download_url')
+        chmod +x install.sh
+        # install.sh skips the cmake build itself when no CMakeLists.txt is present
+        ./install.sh --download wget --build cmake
+
+    - name: Setup fpm
+      uses: fortran-lang/setup-fpm@v9
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: FPM
+      run: |
+        WORKDIR=$(mktemp -d)
+        cd "$WORKDIR"
+        git clone https://github.com/$GITHUB_REPOSITORY ./
+        if [[ ! -f fpm.toml ]]; then
+          echo "fpm.toml not found — skipping fpm build."
+          exit 0
+        fi
+        fpm build --profile release

@@ -215,7 +215,7 @@ def test_scaffolder_loads_manifest(tmp_path):
     for _dest, entry in manifest.items():
         assert "source" in entry
         assert "category" in entry
-        assert entry["category"] in ("verbatim", "templated", "init-only")
+        assert entry["category"] in ("verbatim", "templated", "init-only", "symlink")
 
 
 def test_scaffolder_render_substitutes_vars(tmp_path):
@@ -482,3 +482,98 @@ def test_verbatim_json_templates_are_strict_json():
         "downstream tools (npm ci, jq, etc.) in scaffolded projects:\n"
         + "\n".join(f"  {p}: {err}" for p, err in invalid)
     )
+
+
+# ── Scaffolder symlink category ───────────────────────────────────────────────
+
+
+def _inject_symlink_entry(s, dest="CONTRIBUTING.md", target="docs/guide/contributing.md"):
+    """Add a synthetic symlink manifest entry so symlink behaviour is testable in isolation."""
+    s.manifest[dest] = {
+        "source": None,
+        "category": "symlink",
+        "executable": False,
+        "target": target,
+    }
+    return dest, target
+
+
+def test_symlink_ensure_creates_link_when_missing(tmp_path):
+    s, _ = _make_scaffolder(tmp_path)
+    dest, target = _inject_symlink_entry(s)
+    abs_dest = tmp_path / dest
+    changed = s._ensure_symlink(str(abs_dest), target)
+    assert changed is True
+    assert abs_dest.is_symlink()
+    import os
+
+    assert os.readlink(str(abs_dest)) == target
+
+
+def test_symlink_ensure_replaces_regular_file(tmp_path):
+    s, _ = _make_scaffolder(tmp_path)
+    dest, target = _inject_symlink_entry(s)
+    abs_dest = tmp_path / dest
+    abs_dest.write_text("a stale regular CONTRIBUTING file", encoding="utf-8")
+    assert abs_dest.is_file() and not abs_dest.is_symlink()
+
+    changed = s._ensure_symlink(str(abs_dest), target)
+    assert changed is True
+    assert abs_dest.is_symlink()
+
+
+def test_symlink_ensure_skips_correct_link(tmp_path):
+    import os
+
+    s, _ = _make_scaffolder(tmp_path)
+    dest, target = _inject_symlink_entry(s)
+    abs_dest = tmp_path / dest
+    os.symlink(target, str(abs_dest))
+    # Already correct → no change
+    assert s._ensure_symlink(str(abs_dest), target) is False
+
+
+def test_status_reports_symlink_drift_for_regular_file(tmp_path):
+    s, messages = _make_scaffolder(tmp_path)
+    dest, _target = _inject_symlink_entry(s)
+    (tmp_path / dest).write_text("regular file, not a link", encoding="utf-8")
+    messages.clear()
+    s.status(files_glob=dest)
+    assert any("SYMLINK" in m for m in messages)
+
+
+def test_status_reports_ok_for_correct_symlink(tmp_path):
+    import os
+
+    s, messages = _make_scaffolder(tmp_path)
+    dest, target = _inject_symlink_entry(s)
+    os.symlink(target, str(tmp_path / dest))
+    messages.clear()
+    s.status(files_glob=dest)
+    assert any("OK" in m and "SYMLINK" not in m for m in messages)
+    assert not any("SYMLINK" in m for m in messages)
+
+
+def test_sync_creates_symlink_and_never_writes_through(tmp_path):
+    """sync replaces a regular file with a link; it must NOT overwrite the link target."""
+    s, messages = _make_scaffolder(tmp_path)
+    dest, target = _inject_symlink_entry(s)
+    # Create the canonical target with known content
+    abs_target = tmp_path / target
+    abs_target.parent.mkdir(parents=True, exist_ok=True)
+    abs_target.write_text("CANONICAL CONTRIBUTING CONTENT", encoding="utf-8")
+    # And a stale regular file at the root dest
+    (tmp_path / dest).write_text("stale root file", encoding="utf-8")
+
+    s.sync(yes=True, files_glob=dest)
+    assert (tmp_path / dest).is_symlink()
+    # The target must be untouched — proves we did not write through the link
+    assert abs_target.read_text(encoding="utf-8") == "CANONICAL CONTRIBUTING CONTENT"
+    assert any("Linked" in m for m in messages)
+
+
+def test_sync_dry_run_does_not_create_symlink(tmp_path):
+    s, _ = _make_scaffolder(tmp_path)
+    dest, _target = _inject_symlink_entry(s)
+    s.sync(dry_run=True, yes=True, files_glob=dest)
+    assert not (tmp_path / dest).exists()
