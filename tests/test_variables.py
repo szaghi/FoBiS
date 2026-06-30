@@ -593,7 +593,9 @@ def _capture_varset_warnings(root, content, varset="local"):
 def test_varset_missing_dollar_prefix_still_warns():
     """A varset with keys but none $-prefixed keeps both diagnostics (the real mistake)."""
     with tempfile.TemporaryDirectory() as root:
-        content = "[varsets]\ndefault = broken\n[varset:broken]\nNVF_CC = cc89\n[default]\ncompiler = gnu\ncflags = -c\n"
+        content = (
+            "[varsets]\ndefault = broken\n[varset:broken]\nNVF_CC = cc89\n[default]\ncompiler = gnu\ncflags = -c\n"
+        )
         warns = _capture_varset_warnings(root, content, varset="broken")
         assert any("without a leading '$'" in m for m in warns)
         assert any("defines no variables" in m for m in warns)
