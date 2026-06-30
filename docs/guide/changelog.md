@@ -4,6 +4,17 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.8.15] — 2026-06-30
+### Added
+- **scaffold**: Add symlink category and absorb project-led artifacts
+
+
+### Documentation
+- Sync CLAUDE.md with current CLI and module surface
+
+- Correct CLI/API drift and refactor fobis skill
+
+
 ## [3.8.14] — 2026-06-23
 ### Added
 - **build**: Add standalone offline zipapp distribution
