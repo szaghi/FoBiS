@@ -637,8 +637,10 @@ def test_apt_packages_set_appends_continuation_lines(tmp_path):
 # ── Scaffold run_tests.sh --np (MPI) support ──────────────────────────────────
 
 
-def test_run_tests_sh_supports_np_flag_and_serial_default(tmp_path):
-    """The scaffold run_tests.sh runs serially by default and accepts --np for mpirun."""
+def test_run_tests_sh_auto_dispatches_mpi_binaries(tmp_path):
+    """run_tests.sh runs *mpi* binaries under mpirun, others serially; non-MPI
+    projects never invoke mpirun and --np overrides the rank count."""
+    import os
     import shutil
     import stat
     import subprocess
@@ -652,27 +654,38 @@ def test_run_tests_sh_supports_np_flag_and_serial_default(tmp_path):
 
     exe_dir = tmp_path / "exe"
     exe_dir.mkdir()
-    ok = exe_dir / "foo_test"
-    ok.write_text("#!/bin/bash\nexit 0\n")
-    ok.chmod(ok.stat().st_mode | stat.S_IEXEC)
+    for nm in ("foo_test", "baz_mpi_test"):
+        p = exe_dir / nm
+        p.write_text("#!/bin/bash\nexit 0\n")
+        p.chmod(p.stat().st_mode | stat.S_IEXEC)
     xf = exe_dir / "bar_xfail_test"
     xf.write_text("#!/bin/bash\nexit 1\n")
     xf.chmod(xf.stat().st_mode | stat.S_IEXEC)
 
-    # Serial (no --np): xfail classified as pass, regular passes → exit 0.
-    r = subprocess.run(["bash", str(script)], cwd=tmp_path, capture_output=True, text=True)
-    assert r.returncode == 0, r.stdout + r.stderr
-    assert "PASS" in r.stdout and "XFAIL" in r.stdout
-
-    # --np engages an mpirun wrapper: provide a fake mpirun on PATH that just execs.
+    # Fake mpirun records every invocation to a proof file, then execs the target.
     fakebin = tmp_path / "fakebin"
     fakebin.mkdir()
+    proof = tmp_path / "mpirun_calls"
     mpirun = fakebin / "mpirun"
-    mpirun.write_text('#!/bin/bash\nshift 2\nexec "$@"\n')
+    mpirun.write_text(f'#!/bin/bash\necho "$@" >> {proof}\nshift 2\nexec "$@"\n')
     mpirun.chmod(mpirun.stat().st_mode | stat.S_IEXEC)
-    import os
-
     env = dict(os.environ, PATH=f"{fakebin}:{os.environ['PATH']}")
-    r2 = subprocess.run(["bash", str(script), "--np", "2"], cwd=tmp_path, capture_output=True, text=True, env=env)
-    assert r2.returncode == 0, r2.stdout + r2.stderr
-    assert "2/2 passed" in r2.stdout
+
+    # Default: only the *mpi* binary is wrapped, at -np 2; serial + xfail still classified.
+    r = subprocess.run(["bash", str(script)], cwd=tmp_path, capture_output=True, text=True, env=env)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "PASS" in r.stdout and "XFAIL" in r.stdout
+    calls = proof.read_text()
+    assert "exe/baz_mpi_test" in calls and "-np 2" in calls
+    assert "foo_test" not in calls  # non-mpi binary ran serially
+
+    # --np overrides the rank count for mpi binaries.
+    proof.unlink()
+    subprocess.run(["bash", str(script), "--np", "4"], cwd=tmp_path, capture_output=True, text=True, env=env)
+    assert "-np 4" in proof.read_text()
+
+    # A project with no *mpi* binaries never invokes mpirun.
+    (exe_dir / "baz_mpi_test").unlink()
+    proof.unlink()
+    subprocess.run(["bash", str(script)], cwd=tmp_path, capture_output=True, text=True, env=env)
+    assert not proof.exists()
