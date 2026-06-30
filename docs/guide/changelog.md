@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.8.17] — 2026-06-30
+### Fixed
+- **fobos**: Don't warn on an intentionally-empty varset
+
+
 ## [3.8.16] — 2026-06-30
 ### Added
 - **scaffold**: Parametrize via [scaffold] fobos section and MPI test runner
