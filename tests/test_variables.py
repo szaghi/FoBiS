@@ -343,8 +343,13 @@ def test_varset_warns_on_non_dollar_key(capsys):
         assert "-I/actually/applied/include" in cliargs.cflags
 
 
-def test_varset_empty_warns(capsys):
-    """A [varset:NAME] with no $-keys at all triggers a warning."""
+def test_varset_empty_is_silent_noop(capsys):
+    """A genuinely empty [varset:NAME] is a valid no-op and must not warn.
+
+    An empty varset is a legitimate default-placeholder pattern (selected so
+    existing modes are unaffected); only a varset with keys-but-no-$-bindings
+    (the "forgot the prefix" mistake) should warn.
+    """
     with tempfile.TemporaryDirectory() as root:
         content = (
             "[varset:empty]\n"
@@ -358,7 +363,7 @@ def test_varset_empty_warns(capsys):
         _fobos, _cliargs = _make_fobos(root, content, {"varset": "empty"})
         captured = capsys.readouterr()
         msg = (captured.out + captured.err).lower()
-        assert "no variables" in msg or "defines no variables" in msg
+        assert "no variables" not in msg
 
 
 def test_varset_compatible_with_features():
@@ -549,3 +554,46 @@ def test_get_varsets_info_empty_when_none_declared():
         fobos, _cliargs = _make_fobos(root, content)
         info = fobos.get_varsets_info()
         assert info == {"default": [], "varsets": {}}
+
+
+# ── Empty varset is a valid no-op (no spurious "defines no variables" warning) ──
+
+
+def _capture_varset_warnings(root, content, varset="local"):
+    """Build a Fobos with a capturing print_w and return the warning messages."""
+    path = os.path.join(root, "fobos")
+    with open(path, "w") as f:
+        f.write(content)
+    msgs: list[str] = []
+    cliargs = argparse.Namespace(
+        fobos=path,
+        fobos_case_insensitive=False,
+        mode=None,
+        which="build",
+        cflags="-c",
+        lflags="",
+        libs=[],
+        lib_dir=[],
+        include=[],
+        features="",
+        no_default_features=False,
+        varset=varset,
+        build_profile=None,
+        openmp=False,
+        openmp_offload=False,
+        mpi=False,
+        coarray=False,
+        coverage=False,
+        profile=False,
+    )
+    Fobos(cliargs=cliargs, print_w=msgs.append)
+    return msgs
+
+
+def test_varset_missing_dollar_prefix_still_warns():
+    """A varset with keys but none $-prefixed keeps both diagnostics (the real mistake)."""
+    with tempfile.TemporaryDirectory() as root:
+        content = "[varsets]\ndefault = broken\n[varset:broken]\nNVF_CC = cc89\n[default]\ncompiler = gnu\ncflags = -c\n"
+        warns = _capture_varset_warnings(root, content, varset="broken")
+        assert any("without a leading '$'" in m for m in warns)
+        assert any("defines no variables" in m for m in warns)

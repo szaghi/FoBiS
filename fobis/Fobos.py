@@ -986,8 +986,10 @@ class Fobos:
                 else:
                     self.print_w("  (no [varset:*] sections in this fobos)")
                 sys.exit(1)
+            key_count = 0
             binding_count = 0
             for key, value in self.fobos.items(section):
+                key_count += 1
                 if not key.startswith("$"):
                     self.print_w(
                         f"Warning: varset '{name}' has key '{key}' without a "
@@ -997,7 +999,11 @@ class Fobos:
                     continue
                 self.local_variables[key] = value.replace("\n", " ")
                 binding_count += 1
-            if binding_count == 0:
+            # Warn only when keys were present but none were valid bindings (the
+            # "forgot the '$' prefix" mistake). A genuinely empty varset is a
+            # legitimate no-op — e.g. an empty default selected so existing modes
+            # are unaffected — and must stay silent.
+            if key_count > 0 and binding_count == 0:
                 self.print_w(
                     f"Warning: varset '{name}' defines no variables. Did you forget the '$' prefix on the keys?"
                 )
