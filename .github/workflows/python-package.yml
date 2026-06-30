@@ -151,6 +151,6 @@ jobs:
         python3 -I dist/fobis.pyz -v
         python3 -I dist/fobis.pyz --help
     - name: Upload fobis.pyz to the GitHub Release
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         files: dist/fobis.pyz
