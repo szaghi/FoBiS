@@ -414,7 +414,9 @@ class Scaffolder:
                 target = entry["target"]
                 if self._symlink_ok(abs_dest, target):
                     continue
-                kind = "regular file → symlink" if os.path.exists(abs_dest) and not os.path.islink(abs_dest) else "symlink"
+                kind = (
+                    "regular file → symlink" if os.path.exists(abs_dest) and not os.path.islink(abs_dest) else "symlink"
+                )
                 self.print_n(f"\n--- {dest} ---")
                 self.print_n(f"  ({kind} → {target})")
                 if dry_run:
