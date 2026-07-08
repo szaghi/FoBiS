@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.8.22] — 2026-07-08
+### Added
+- **scaffold**: Add `patched` category for additive config fragments
+
+
 ## [3.8.21] — 2026-07-07
 ### Fixed
 - **scaffold**: Set vite build target to es2022 in docs template
