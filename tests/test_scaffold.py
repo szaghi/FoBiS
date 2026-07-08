@@ -215,7 +215,7 @@ def test_scaffolder_loads_manifest(tmp_path):
     for _dest, entry in manifest.items():
         assert "source" in entry
         assert "category" in entry
-        assert entry["category"] in ("verbatim", "templated", "init-only", "symlink")
+        assert entry["category"] in ("verbatim", "templated", "init-only", "symlink", "patched")
 
 
 def test_scaffolder_render_substitutes_vars(tmp_path):
@@ -689,3 +689,151 @@ def test_run_tests_sh_auto_dispatches_mpi_binaries(tmp_path):
     proof.unlink()
     subprocess.run(["bash", str(script)], cwd=tmp_path, capture_output=True, text=True, env=env)
     assert not proof.exists()
+
+
+# ── Scaffolder `patched` category ─────────────────────────────────────────────
+
+# Minimal VitePress-config shapes exercising each patch state. The title/nav
+# lines stand in for arbitrary project-owned content that must survive untouched.
+_CFG_CLEAN_VITE = """\
+export default {
+  title: 'MyProject',
+  themeConfig: { nav: [{ text: 'Home', link: '/' }] },
+  vite: {
+    optimizeDeps: {
+      include: ['mermaid'],
+    },
+  },
+}
+"""
+
+_CFG_ALREADY_PATCHED = """\
+export default {
+  title: 'MyProject',
+  vite: {
+    build: {
+      target: 'es2022',
+    },
+  },
+}
+"""
+
+_CFG_USER_BUILD_BLOCK = """\
+export default {
+  title: 'MyProject',
+  vite: {
+    build: {
+      chunkSizeWarningLimit: 900,
+    },
+  },
+}
+"""
+
+_CFG_NO_VITE = """\
+export default {
+  title: 'MyProject',
+  themeConfig: { nav: [] },
+}
+"""
+
+
+def _patched_dest_and_scaffolder(tmp_path, content):
+    s, messages = _make_scaffolder(tmp_path)
+    dest = next(d for d, e in s.manifest.items() if e["category"] == "patched")
+    abs_path = tmp_path / dest
+    abs_path.parent.mkdir(parents=True, exist_ok=True)
+    abs_path.write_text(content, encoding="utf-8")
+    messages.clear()
+    return s, messages, dest, abs_path
+
+
+def test_manifest_has_patched_category(tmp_path):
+    """config.mts is `patched`, not `init-only`, and names its fragment."""
+    s, _ = _make_scaffolder(tmp_path)
+    entry = s.manifest["docs/.vitepress/config.mts"]
+    assert entry["category"] == "patched"
+    assert entry["patches"] == ["vite-es2022-target"]
+    assert "vite-es2022-target" in s.patches
+
+
+def test_patched_probe_present_is_ok(tmp_path):
+    """A file already carrying the fragment reports OK and sync leaves it byte-identical."""
+    s, messages, dest, abs_path = _patched_dest_and_scaffolder(tmp_path, _CFG_ALREADY_PATCHED)
+    before = abs_path.read_text(encoding="utf-8")
+
+    s.status(files_glob=dest)
+    assert any("OK" in m for m in messages)
+    assert not any(("PATCH" in m or "MANUAL" in m) for m in messages)
+
+    messages.clear()
+    s.sync(yes=True, files_glob=dest)
+    assert abs_path.read_text(encoding="utf-8") == before
+
+
+def test_patched_inserts_into_clean_vite_block(tmp_path):
+    """A clean `vite: {` with no `build:` gets the fragment; project content survives."""
+    s, messages, dest, abs_path = _patched_dest_and_scaffolder(tmp_path, _CFG_CLEAN_VITE)
+
+    s.status(files_glob=dest)
+    assert any("PATCH" in m for m in messages)
+
+    messages.clear()
+    s.sync(yes=True, files_glob=dest)
+    out = abs_path.read_text(encoding="utf-8")
+    assert "target: 'es2022'" in out
+    # project-owned lines untouched
+    assert "title: 'MyProject'," in out
+    assert "include: ['mermaid']," in out
+    # fragment nested one level inside the 2-space `vite:` block → 4-space indent
+    assert "    build: {\n      target: 'es2022',\n    },\n" in out
+    # idempotent: a second sync is a no-op
+    messages.clear()
+    s.sync(yes=True, files_glob=dest)
+    assert not any("Patched" in m for m in messages)
+
+
+def test_patched_refuses_when_guard_present(tmp_path):
+    """A user-owned `build: {` block blocks auto-insertion; file is left untouched."""
+    s, messages, dest, abs_path = _patched_dest_and_scaffolder(tmp_path, _CFG_USER_BUILD_BLOCK)
+    before = abs_path.read_text(encoding="utf-8")
+
+    s.status(files_glob=dest)
+    assert any("MANUAL" in m for m in messages)
+
+    messages.clear()
+    s.sync(yes=True, files_glob=dest)
+    assert abs_path.read_text(encoding="utf-8") == before  # never written
+    assert any("manual insertion" in m for m in messages)
+    assert any("target: 'es2022'" in m for m in messages)  # fragment printed for the user
+
+
+def test_patched_refuses_when_no_anchor(tmp_path):
+    """No `vite: {` anchor at all → refuse to guess; file untouched, fragment printed."""
+    s, messages, dest, abs_path = _patched_dest_and_scaffolder(tmp_path, _CFG_NO_VITE)
+    before = abs_path.read_text(encoding="utf-8")
+
+    s.status(files_glob=dest)
+    assert any("MANUAL" in m for m in messages)
+
+    messages.clear()
+    s.sync(yes=True, files_glob=dest)
+    assert abs_path.read_text(encoding="utf-8") == before
+    assert any("manual insertion" in m for m in messages)
+
+
+def test_patched_dry_run_does_not_write(tmp_path):
+    """dry_run shows the diff but never writes the patched file."""
+    s, messages, dest, abs_path = _patched_dest_and_scaffolder(tmp_path, _CFG_CLEAN_VITE)
+    before = abs_path.read_text(encoding="utf-8")
+
+    s.sync(dry_run=True, yes=True, files_glob=dest)
+    assert abs_path.read_text(encoding="utf-8") == before
+    assert any("target: 'es2022'" in m for m in messages)  # diff was shown
+
+
+def test_patched_missing_file_is_not_created_by_sync(tmp_path):
+    """sync does not create an absent patched file — that is init's job."""
+    s, _messages = _make_scaffolder(tmp_path)
+    dest = next(d for d, e in s.manifest.items() if e["category"] == "patched")
+    s.sync(yes=True, files_glob=dest)
+    assert not (tmp_path / dest).exists()

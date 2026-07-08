@@ -252,6 +252,7 @@ class Scaffolder:
         self.print_n = print_n or print_fake
         self.print_w = print_w or print_fake
         self._manifest = None
+        self._patches = None
 
     @property
     def manifest(self):
@@ -260,14 +261,36 @@ class Scaffolder:
             self._manifest = self._load_manifest()
         return self._manifest
 
+    @property
+    def patches(self):
+        """Lazy-loaded {name: patch-spec} map from the manifest's [patch:*] sections."""
+        if self._patches is None:
+            self.manifest  # noqa: B018 — force _load_manifest, which also fills _patches
+        return self._patches
+
     def _load_manifest(self):
         """Read and parse bundled manifest.ini."""
         pkg = resources.files("fobis") / "scaffolds"
         manifest_text = (pkg / "manifest.ini").read_text(encoding="utf-8")
         cp = configparser.ConfigParser()
         cp.read_string(manifest_text)
+        # [patch:NAME] sections define additive config fragments for `patched`
+        # files; collect them first so they are available to file entries below.
+        self._patches = {}
+        for sec in cp.sections():
+            if not sec.startswith("patch:"):
+                continue
+            name = sec.split(":", 1)[1]
+            self._patches[name] = {
+                "probe": cp.get(sec, "probe"),
+                "anchor": cp.get(sec, "anchor"),
+                "guard": cp.get(sec, "guard", fallback=None),
+                "insert": cp.get(sec, "insert"),
+            }
         entries = {}
         for dest in cp.sections():
+            if dest.startswith("patch:"):
+                continue
             category = cp.get(dest, "category")
             entries[dest] = {
                 # symlink entries point at another managed file and carry no source content
@@ -275,6 +298,8 @@ class Scaffolder:
                 "category": category,
                 "executable": cp.getboolean(dest, "executable", fallback=False),
                 "target": cp.get(dest, "target", fallback=None),
+                # patched entries name one or more [patch:*] fragments to guarantee
+                "patches": [p.strip() for p in cp.get(dest, "patch", fallback="").split() if p.strip()],
             }
         return entries
 
@@ -309,6 +334,76 @@ class Scaffolder:
         if entry["category"] == "templated":
             return self._render(raw)
         return raw
+
+    def _patch_state(self, text, patch):
+        """
+        Classify a single patch against a file's current text.
+
+        Returns
+        -------
+        str
+            ``"ok"``         — ``probe`` already present; nothing to do.
+            ``"insertable"`` — ``probe`` absent, ``anchor`` present, ``guard`` absent:
+                               the fragment can be inserted unambiguously.
+            ``"manual"``     — ``probe`` absent but the structure is ambiguous (a
+                               competing ``guard`` block exists, or no ``anchor`` is
+                               found). Refuse to edit; the caller prints the fragment.
+
+        The bias is deliberate: a false ``"manual"`` costs one manual edit, a false
+        ``"insertable"`` could corrupt the file. When unsure, refuse.
+        """
+        if patch["probe"] in text:
+            return "ok"
+        if patch["guard"] and patch["guard"] in text:
+            return "manual"
+        if patch["anchor"] not in text:
+            return "manual"
+        return "insertable"
+
+    @staticmethod
+    def _patch_lines(insert):
+        """
+        Decode a manifest ``insert`` value into fragment lines.
+
+        configparser strips the leading whitespace of continuation lines, so the
+        manifest guards intended indentation with a ``|`` at column 0 (everything
+        after the ``|`` is preserved verbatim). Blank folded lines are dropped.
+        """
+        lines = []
+        for raw in insert.splitlines():
+            if not raw.strip():
+                continue
+            lines.append(raw[1:] if raw.startswith("|") else raw)
+        return lines
+
+    def _apply_patch(self, text, patch):
+        """
+        Insert ``patch['insert']`` immediately after the first ``anchor`` line.
+
+        Each fragment line keeps its own (guarded) relative indentation and is
+        prefixed with the anchor line's indentation, so the block nests correctly
+        wherever the anchor sits. Only the first anchor match is used; nothing
+        else in the file is touched.
+        """
+        anchor = patch["anchor"]
+        frags = self._patch_lines(patch["insert"])
+        out = []
+        inserted = False
+        for line in text.splitlines(keepends=True):
+            out.append(line)
+            if not inserted and anchor in line:
+                base_indent = line[: len(line) - len(line.lstrip())]
+                body = "\n".join((base_indent + frag) if frag.strip() else frag for frag in frags)
+                out.append(body + "\n")
+                inserted = True
+        return "".join(out)
+
+    def _confirm(self, prompt, default=True):
+        """Prompt for confirmation, defaulting to *default* when no TTY is available."""
+        try:
+            return typer.confirm(prompt, default=default)
+        except Exception:
+            return default
 
     def _unified_diff(self, old, new, dest):
         return "".join(
@@ -392,6 +487,20 @@ class Scaffolder:
             elif entry["category"] == "init-only":
                 # Present and init-only: never check for drift
                 self.print_n(f"  OK       {dest}")
+            elif entry["category"] == "patched":
+                # Project-owned file that must nonetheless contain specific config
+                # fragments. Report per-file worst state: MANUAL > PATCH > OK.
+                with open(abs_dest, encoding="utf-8", errors="replace") as fh:
+                    text = fh.read()
+                states = [self._patch_state(text, self.patches[p]) for p in entry["patches"]]
+                if "manual" in states:
+                    self.print_w(f"  MANUAL   {dest} (needs a config fragment — run sync to see it)")
+                    any_drift = True
+                elif "insertable" in states:
+                    self.print_n(f"  PATCH    {dest} (missing config fragment — run sync)")
+                    any_drift = True
+                else:
+                    self.print_n(f"  OK       {dest}")
             elif self._sha256(self._get_canonical(entry)) != self._file_sha256(abs_dest):
                 self.print_n(f"  OUTDATED {dest}")
                 any_drift = True
@@ -419,6 +528,39 @@ class Scaffolder:
                 continue
             if entry["category"] == "init-only":
                 continue
+
+            if entry["category"] == "patched":
+                abs_dest = os.path.join(self.cwd, dest)
+                if not os.path.exists(abs_dest):
+                    # A patched file is project-owned; creating it is `init`'s job,
+                    # not sync's. Nothing to patch into a file that isn't there.
+                    continue
+                with open(abs_dest, encoding="utf-8", errors="replace") as fh:
+                    text = fh.read()
+                for pname in entry["patches"]:
+                    patch = self.patches[pname]
+                    state = self._patch_state(text, patch)
+                    if state == "ok":
+                        continue
+                    if state == "manual":
+                        self.print_w(f"\n--- {dest}: fragment '{pname}' needs manual insertion ---")
+                        self.print_n("  Its target block already exists or was customised; add this yourself:")
+                        self.print_n(patch["insert"])
+                        continue
+                    # insertable — safe to place after the anchor line
+                    new_text = self._apply_patch(text, patch)
+                    self.print_n(f"\n--- {dest} (+ {pname}) ---")
+                    self.print_n(self._unified_diff(text, new_text, dest))
+                    if dry_run:
+                        text = new_text  # chain further patches against the would-be result
+                        continue
+                    if yes or self._confirm(f"Insert fragment '{pname}' into {dest}?"):
+                        self._write_file(abs_dest, new_text, executable=entry["executable"])
+                        text = new_text
+                        self.print_n(f"  Patched  {dest}")
+                        changed += 1
+                continue
+
             abs_dest = os.path.join(self.cwd, dest)
 
             if entry["category"] == "symlink":
@@ -550,3 +692,9 @@ class Scaffolder:
             self.print_n("Symlinks (repo-root link to a canonical managed file):")
             for dest, target in symlinks:
                 self.print_n(f"  {dest} → {target}")
+        patched = [(d, e["patches"]) for d, e in self.manifest.items() if e["category"] == "patched"]
+        if patched:
+            self.print_n("")
+            self.print_n("Patched files (project-owned; sync guarantees named config fragments):")
+            for dest, names in patched:
+                self.print_n(f"  {dest} ({', '.join(names)})")
