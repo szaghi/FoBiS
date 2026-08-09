@@ -9,8 +9,8 @@
   "devDependencies": {
     "debug": "^4.4.3",
     "markdown-it-mathjax3": "^4.3.2",
-    "mermaid": "^11.16.0",
-    "vitepress": "^2.0.0-alpha.17"
+    "mermaid": "^11.16.1",
+    "vitepress": "^2.0.0-alpha.19"
   },
   "overrides": {
     "esbuild": ">=0.28.1",
