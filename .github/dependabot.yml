@@ -1,7 +1,9 @@
 # Dependabot configuration for FoBiS.py.
-# Covers the three ecosystems in the repo: Python (pip), the VitePress docs
-# (npm, /docs) and the GitHub Actions workflows. Updates are grouped so related
-# bumps arrive in a single PR instead of one PR per dependency.
+# Covers Python (pip) and the GitHub Actions workflows. Updates are grouped so
+# related bumps arrive in a single PR instead of one PR per dependency.
+# The VitePress docs (npm, /docs) are deliberately absent: their lockfile is
+# refreshed by .github/workflows/docs-deps.yml, which commits to master only
+# after the docs build passes.
 version: 2
 updates:
   # Python package (pyproject.toml)
@@ -16,25 +18,6 @@ updates:
       python-deps:
         patterns:
           - "*"
-
-  # VitePress documentation site
-  - package-ecosystem: npm
-    directory: /docs
-    schedule:
-      interval: weekly
-    commit-message:
-      prefix: chore(deps)
-      prefix-development: chore(deps-dev)
-    groups:
-      docs-deps:
-        patterns:
-          - "*"
-    ignore:
-      # vitepress@2.x declares peerOptional markdown-it-mathjax3@"^4"; the 5.x
-      # major breaks `npm ci` with ERESOLVE. Stay on 4.x until VitePress widens
-      # its peer range.
-      - dependency-name: "markdown-it-mathjax3"
-        update-types: ["version-update:semver-major"]
 
   # GitHub Actions workflows
   - package-ecosystem: github-actions

@@ -1,0 +1,74 @@
+# Refresh the VitePress docs lockfile without pull requests.
+#
+# docs/package-lock.json stays committed (docs.yml builds with `npm ci`), so the
+# docs build is reproducible. Instead of Dependabot opening one PR per advisory,
+# this job moves every dependency to the newest version allowed by
+# docs/package.json, rebuilds the site from the refreshed lock, and commits the
+# lock straight to master only if that build succeeds. A failing build commits
+# nothing and leaves the run red.
+name: Refresh docs dependencies
+
+on:
+  schedule:
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: docs-deps
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: master
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Update lockfile within package.json ranges
+        id: update
+        working-directory: docs
+        run: |
+          npm update --no-audit --no-fund
+          if git diff --quiet -- package-lock.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install from the refreshed lockfile
+        if: steps.update.outputs.changed == 'true'
+        working-directory: docs
+        run: |
+          rm -rf node_modules
+          npm ci
+
+      - name: Build VitePress site
+        if: steps.update.outputs.changed == 'true'
+        working-directory: docs
+        run: npm run docs:build
+
+      - name: Commit refreshed lockfile
+        if: steps.update.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/package-lock.json
+          git commit -m "chore(deps): refresh docs lockfile"
+          git push origin HEAD:master
+
+      # A push made with GITHUB_TOKEN does not trigger other workflows, so the
+      # docs deploy must be dispatched explicitly.
+      - name: Deploy docs
+        if: steps.update.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run docs.yml --ref master
