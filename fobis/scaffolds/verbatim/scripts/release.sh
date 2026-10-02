@@ -12,8 +12,8 @@
 # What it does:
 #   1. Pre-flight: branch, remote freshness, clean tree, tag uniqueness
 #   2. Runs git-cliff to regenerate CHANGELOG.md up to the new version
-#   3. Updates VERSION file
-#   4. Commits CHANGELOG.md + VERSION with a conventional "chore(release)" message
+#   3. Updates VERSION file, and the version of fpm.toml when the project has one
+#   4. Commits CHANGELOG.md + VERSION (+ fpm.toml) with a conventional "chore(release)" message
 #   5. Creates an annotated git tag
 #   6. Pushes commit + tag  →  triggers the release.yml workflow on GitHub
 #
@@ -45,6 +45,7 @@ usage() {
 # ── Stage tracking + recovery trap ───────────────────────────────────────────
 STAGE="preflight"
 NEW_TAG=""
+RELEASE_FILES=(CHANGELOG.md VERSION) # files modified and committed by the release
 
 on_error() {
   echo ""
@@ -58,7 +59,7 @@ on_error() {
     bumped)
       echo "  Files were modified locally but not committed."
       echo "  To discard and start over:"
-      echo "    git checkout -- VERSION CHANGELOG.md"
+      echo "    git checkout -- ${RELEASE_FILES[*]}"
       ;;
     committed)
       echo "  Commit was made but not tagged/pushed. To resume:"
@@ -152,6 +153,16 @@ BEHIND="$(git rev-list --count HEAD..origin/${TRUNK} 2>/dev/null || echo 0)"
 [[ "$BEHIND" -eq 0 ]] \
   || die "${TRUNK} is ${BEHIND} commit(s) behind origin/${TRUNK} — run: git pull origin ${TRUNK}"
 
+# ── fpm manifest ──────────────────────────────────────────────────────────────
+# fpm.toml carries its own copy of the version (X.Y.Z, without the v prefix that
+# fpm does not accept): it is kept aligned when the manifest declares one.
+FPM_VERSION_RE='^version[[:space:]]*='
+HAS_FPM_VERSION=false
+if [[ -f fpm.toml ]] && grep -Eq "$FPM_VERSION_RE" fpm.toml; then
+  HAS_FPM_VERSION=true
+  RELEASE_FILES+=(fpm.toml)
+fi
+
 # ── Confirm ───────────────────────────────────────────────────────────────────
 STAGE="confirm"
 echo ""
@@ -161,6 +172,7 @@ echo ""
 echo -e "${BOLD}This will:${RESET}"
 echo -e "  1. Regenerate ${CYAN}CHANGELOG.md${RESET} up to ${BOLD}${NEW_TAG}${RESET}"
 echo -e "  2. Update ${CYAN}VERSION${RESET} to ${BOLD}${NEW_TAG}${RESET}"
+$HAS_FPM_VERSION && echo -e "     and the version of ${CYAN}fpm.toml${RESET} to ${BOLD}${NEW_TAG#v}${RESET}"
 echo -e "  3. Commit with message: ${CYAN}chore(release): ${NEW_TAG}${RESET}"
 echo -e "  4. Create annotated tag ${BOLD}${NEW_TAG}${RESET}"
 echo -e "  5. Push commit and tag to origin  →  triggers GitHub release workflow"
@@ -181,10 +193,22 @@ echo "$NEW_TAG" > VERSION
 grep -q "^${NEW_TAG}$" VERSION || die "VERSION update failed — file content mismatch"
 success "VERSION updated to ${NEW_TAG}"
 
+# ── Update fpm.toml ───────────────────────────────────────────────────────────
+if $HAS_FPM_VERSION; then
+  info "Updating fpm.toml…"
+  # only the first match: the version of the package, not the one of a dependency
+  awk -v version="${NEW_TAG#v}" -v re="$FPM_VERSION_RE" \
+    '!done && $0 ~ re { print "version = \"" version "\""; done = 1; next } { print }' \
+    fpm.toml > fpm.toml.tmp
+  mv fpm.toml.tmp fpm.toml
+  grep -q "^version = \"${NEW_TAG#v}\"$" fpm.toml || die "fpm.toml update failed — version mismatch"
+  success "fpm.toml updated to ${NEW_TAG#v}"
+fi
+
 # ── Commit ────────────────────────────────────────────────────────────────────
 STAGE="committed"
 info "Committing changelog and version…"
-git add CHANGELOG.md VERSION
+git add "${RELEASE_FILES[@]}"
 git commit -m "chore(release): ${NEW_TAG}"
 success "Committed"
 
