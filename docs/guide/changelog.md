@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.8.24] — 2026-10-02
+### Fixed
+- **scaffold**: Keep the version of fpm.toml aligned on release
+
+
 ## [3.8.23] — 2026-10-02
 ### Fixed
 - **rule**: Run fobos rule commands through the system shell
