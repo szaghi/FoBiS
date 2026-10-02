@@ -2028,7 +2028,7 @@ class Fobos:
                     if rul.startswith("rule"):
                         if not quiet:
                             self.print_n("   Command => " + self.fobos.get(rule_name, rul))
-                        result = syswork(self.fobos.get(rule_name, rul))
+                        result = syswork(self.fobos.get(rule_name, rul), shell=True)
                         results.append(result)
                 if log:
                     check_results(results=results, log="rules_errors.log", print_w=self.print_w)

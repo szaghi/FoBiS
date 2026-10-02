@@ -31,14 +31,22 @@ def print_fake(input_obj, end="\n"):
     print(input_obj, end=end)
 
 
-def syswork(cmd):
+def syswork(cmd, shell=False):
     """
     Function for executing system command 'cmd': for compiling and linking files.
+
+    Parameters
+    ----------
+    cmd : str or list
+      command to execute
+    shell : {False}
+      execute the command through the system shell, so that globs, pipes, redirections and command chains are
+      interpreted; to be used only for commands written by the user, like the fobos rules
     """
     error = 0
-    args = shlex.split(cmd) if isinstance(cmd, str) else cmd
+    args = cmd if shell or not isinstance(cmd, str) else shlex.split(cmd)
     try:
-        output = subprocess.check_output(args, shell=False, stderr=subprocess.STDOUT)
+        output = subprocess.check_output(args, shell=shell, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as err:
         error = err.returncode
         output = err.output
