@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.9.1] — 2026-10-03
+### Added
+- **scaffold**: Check expected results and cap memory in run_tests.sh
+
+
 ## [3.9.0] — 2026-10-03
 ### Added
 - **ecosystem**: Manage interconnected projects as a whole
