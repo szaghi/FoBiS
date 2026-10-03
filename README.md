@@ -14,6 +14,7 @@
 > Automatic dependency-resolving build tool for modern Fortran projects — no makefiles, no boilerplate.
 > Package manger highly integrated with GitHub, install and fetch project dependencies.
 > Add instrospective doctests to your Fortran project and exploit AI-powered programmatic buildings with the provided AI skill.
+> Manage a whole ecosystem of interconnected repositories: dashboard, cross-repo checks, release train.
 
 <div>
 <table>
@@ -36,6 +37,10 @@
 <tr>
 <td><b>📋 Scaffold — boilerplate sync</b><br><sub>Keep CI workflows, docs configs, license files, and scripts identical across all your Fortran repos. <code>fobis scaffold status</code> shows drift; <code>fobis scaffold sync</code> fixes it; <code>fobis scaffold init</code> bootstraps new projects. All templates bundled inside FoBiS — no extra dependencies. <a href="https://szaghi.github.io/FoBiS/reference/scaffold">Scaffold reference</a></sub></td>
 <td><b>🧠 LLM commit messages</b><br><sub>Generate well-formed <a href="https://www.conventionalcommits.org/">Conventional Commits</a> messages for staged changes via a local LLM. Supports <a href="https://ollama.com">Ollama</a> and any OpenAI-compatible endpoint (LM Studio, vLLM, llama.cpp) — no cloud account, no API key, no data leaving your machine. <a href="https://szaghi.github.io/FoBiS/advanced/commit">LLM commit guide</a></sub></td>
+</tr>
+<tr>
+<td><b>🧭 Ecosystem dashboard</b><br><sub>Register your interconnected repositories once; <code>fobis ecosystem dashboard</code> shows them all at a glance — releases due (bump suggested from Conventional Commits), CI at HEAD, scaffold drift, dependency pins behind the upstream heads — in the terminal or as a themed HTML page with a live dependency diagram. <a href="https://szaghi.github.io/FoBiS/advanced/ecosystem">Ecosystem guide</a></sub></td>
+<td><b>🚂 Check &amp; release train</b><br><sub><code>fobis ecosystem check LIB</code> builds and tests every project downstream against your local, unreleased working copy. <code>fobis ecosystem release</code> releases everything due, dependencies first, refusing to start while any project is blocked and stopping safely at the first failure. <a href="https://szaghi.github.io/FoBiS/reference/ecosystem">ecosystem reference</a></sub></td>
 </tr>
 </table>
 </div>
@@ -81,6 +86,31 @@ fobis build -mode release
 | ![basic build](docs/public/gifs/01_basic_build.gif) | ![complex dependancy](docs/public/gifs/04_dependent_build.gif) |
 | **GH integration, project install** | **GH integration, dependancies fetch** |
 | ![project install](docs/public/gifs/06_install.gif) | ![dependancies fetch](docs/public/gifs/07_fetch.gif) |
+| **ecosystem: graph and dashboard** | **ecosystem: check before releasing** |
+| ![ecosystem dashboard](docs/public/gifs/09_ecosystem_dashboard.gif) | ![ecosystem check](docs/public/gifs/10_ecosystem_check.gif) |
+
+## Ecosystem — manage interconnected projects
+
+Several Fortran libraries, each in its own repository, depending on each other? Register them once and `fobis ecosystem` handles them as a whole — read-only unless you ask it to act, and nothing is ever pushed without your confirmation.
+
+```bash
+fobis ecosystem discover                    # FoBiS repos under your root not registered yet
+fobis ecosystem add PENF FACE BeFoR64       # register them (your config keeps its comments)
+fobis ecosystem graph                       # release order and dependency tree
+fobis ecosystem dashboard                   # releases due, CI, drift, stale pins (--format html for a page)
+fobis ecosystem exec -- 'fobis clean && fobis build'   # any command, every project, dependencies first
+fobis ecosystem check PENF                  # does my local PENF break anything downstream?
+fobis ecosystem release --dry-run           # what needs a release, with which version
+fobis ecosystem release                     # the release train
+```
+
+![ecosystem HTML dashboard](docs/public/images/ecosystem-dashboard-dark.png)
+
+| **pre-release impact check** | **release train** |
+|:---:|:---:|
+| ![ecosystem check](docs/public/gifs/10_ecosystem_check.gif) | ![ecosystem release](docs/public/gifs/11_ecosystem_release.gif) |
+
+See the [ecosystem guide](https://szaghi.github.io/FoBiS/advanced/ecosystem) for the concepts, a one-minute demo you can run locally, and recipes.
 
 ## Scaffold — boilerplate management
 

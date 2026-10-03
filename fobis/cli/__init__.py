@@ -32,6 +32,7 @@ from . import (  # noqa: F401
     commit,
     coverage_cmd,
     doctests,
+    ecosystem,
     fetch,
     install,
     introspect,
@@ -52,8 +53,12 @@ from ._constants import (
 
 # Register the ``cache`` sub-application
 from .cache_cmd import cache_app as _cache_app
+from .ecosystem import ecosystem_app as _ecosystem_app
 
 app.add_typer(_cache_app, name="cache")
+
+# Register the ``ecosystem`` sub-application
+app.add_typer(_ecosystem_app, name="ecosystem")
 
 __all__ = [
     "__compiler_supported__",

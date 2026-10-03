@@ -342,12 +342,14 @@ def test_sync_skips_init_only_files(tmp_path):
     assert abs_path.read_text(encoding="utf-8") == "custom content that sync must not touch"
 
 
-def test_sync_yes_false_confirm_exception_defaults_to_apply(tmp_path):
-    """When typer.confirm raises (non-TTY), the exception handler applies changes."""
+def test_sync_yes_false_confirm_exception_writes_nothing(tmp_path):
+    """When typer.confirm raises (no TTY, stdin at EOF), nothing is written: no consent, no write."""
     s, messages = _make_scaffolder(tmp_path)
     with patch("typer.confirm", side_effect=Exception("no tty")):
         s.sync(yes=False)
-    assert any("Written" in m for m in messages)
+    assert not any("Written" in m for m in messages)
+    assert any("no answer possible" in m for m in messages)
+    assert not [f for f in tmp_path.rglob("*") if f.is_file()]
 
 
 # ── Scaffolder.init() ─────────────────────────────────────────────────────────
@@ -383,13 +385,25 @@ def test_init_creates_standard_directories(tmp_path):
 
 
 def test_init_prompts_for_missing_vars(tmp_path):
-    """With missing vars and yes=True, typer.prompt is called; exception → empty."""
+    """With missing vars and yes=False, typer.prompt is called; exception → empty."""
     sparse_vars = {k: "" for k in _FULL_VARS}
     sparse_vars["YEAR"] = "2026"
     s, messages = _make_scaffolder(tmp_path, vars_dict=sparse_vars)
-    with patch("typer.prompt", side_effect=Exception("no tty")):
-        s.init(yes=True)
+    with patch("typer.prompt", side_effect=Exception("no tty")) as prompt:
+        s.init(yes=False)
+    assert prompt.called
     # Should still complete without crashing
+    assert any("created" in m for m in messages)
+
+
+def test_init_yes_never_prompts(tmp_path):
+    """--yes means no interactive prompt at all: missing vars stay empty (it used to block on stdin)."""
+    sparse_vars = {k: "" for k in _FULL_VARS}
+    sparse_vars["YEAR"] = "2026"
+    s, messages = _make_scaffolder(tmp_path, vars_dict=sparse_vars)
+    with patch("typer.prompt", side_effect=AssertionError("prompted under --yes")) as prompt:
+        s.init(yes=True)
+    assert not prompt.called
     assert any("created" in m for m in messages)
 
 

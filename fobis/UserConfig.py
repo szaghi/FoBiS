@@ -21,6 +21,8 @@ UserConfig.py — user-level FoBiS configuration (~/.config/fobis/config.ini).
 
 import configparser
 import os
+import re
+import tempfile
 
 _DEFAULT_CONFIG_PATH = os.path.join(
     os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")),
@@ -50,9 +52,36 @@ _TEMPLATE = """\
 # Critique-and-rewrite passes after the initial draft (0 = single pass)
 # Increase to 1-3 for small/fast models that produce shallow first drafts
 # refine_passes = 0
+
+[ecosystem]
+# Directory the projects live in (relative entries of 'projects' are resolved against it)
+# root = ~/fortran
+
+# The managed projects: directory names under root, or paths; whitespace or newline separated
+# projects = PENF FACE BeFoR64 StringiFor FLAP
+
+# HTML dashboard palette: github solarized dracula nord tokyo-night catppuccin gruvbox one rose-pine
+# theme = github
+
+# HTML dashboard mode: auto (follow the system), light or dark
+# mode = auto
 """
 
 _BACKENDS = ("ollama", "openai")
+_KEY_RE = re.compile(r"^([A-Za-z_][\w-]*)\s*[=:]")  # an uncommented, unindented key line
+
+
+def _format_list(key: str, values: list[str], width: int = 100) -> list[str]:
+    """Format ``key = v1 v2 ...`` as INI lines, wrapping long lists on indented continuation lines."""
+    prefix = f"{key} = "
+    lines, current = [], prefix
+    for value in values:
+        if current != prefix and len(current) + len(value) + 1 > width:
+            lines.append(current.rstrip())
+            current = " " * len(prefix)
+        current += value + " "
+    lines.append(current.rstrip())
+    return lines
 
 
 class UserConfig:
@@ -97,6 +126,93 @@ class UserConfig:
     @property
     def llm_refine_passes(self) -> int:
         return int(self._get("llm", "refine_passes", str(self.DEFAULT_REFINE_PASSES)))
+
+    # ── Ecosystem settings ────────────────────────────────────────────────────
+
+    @property
+    def ecosystem_root(self) -> str:
+        """Directory the managed projects live in ('' when not configured)."""
+        root = self._get("ecosystem", "root", "")
+        return os.path.abspath(os.path.expanduser(root)) if root else ""
+
+    @property
+    def ecosystem_entries(self) -> list[str]:
+        """The ``projects`` entries as written (names under root, or paths)."""
+        return self._get("ecosystem", "projects", "").split()
+
+    @property
+    def ecosystem_projects(self) -> list[str]:
+        """Absolute paths of the managed projects, in the order they are listed."""
+        return [self.ecosystem_path(entry) for entry in self.ecosystem_entries]
+
+    def ecosystem_path(self, entry: str) -> str:
+        """Return the absolute path of a ``projects`` entry (relative entries resolve against root, else the cwd)."""
+        path = os.path.expanduser(entry)
+        return os.path.abspath(path if os.path.isabs(path) else os.path.join(self.ecosystem_root or os.getcwd(), path))
+
+    def ecosystem_entry(self, path: str) -> str:
+        """Return how *path* is written in ``projects``: its bare name when it sits directly in root, else ``~/...`` or absolute."""
+        path = os.path.abspath(os.path.expanduser(path))
+        if self.ecosystem_root and os.path.dirname(path) == self.ecosystem_root:
+            return os.path.basename(path)
+        home = os.path.expanduser("~")
+        return "~" + path[len(home) :] if path.startswith(home + os.sep) else path
+
+    def set_ecosystem_projects(self, entries: list[str]) -> None:
+        """
+        Write the ``[ecosystem] projects`` list, leaving the rest of the file as it is.
+
+        configparser would drop every comment when writing the file back, so only the lines of the
+        ``projects`` key (and its continuation lines) are replaced; the section, or the file, is
+        created when missing. The file is replaced atomically.
+
+        Parameters
+        ----------
+        entries : list[str]
+            Project entries (names under root, or paths), in order.
+        """
+        lines = []
+        if os.path.exists(self.path):
+            with open(self.path, encoding="utf-8") as fh:
+                lines = fh.read().splitlines()
+        new = _format_list("projects", entries)
+        header = next((i for i, line in enumerate(lines) if line.strip().lower() == "[ecosystem]"), None)
+        if header is None:
+            lines += ([""] if lines and lines[-1].strip() else []) + ["[ecosystem]", *new]
+        else:
+            end = next((i for i in range(header + 1, len(lines)) if lines[i].lstrip().startswith("[")), len(lines))
+            key = next(
+                (
+                    i
+                    for i in range(header + 1, end)
+                    if _KEY_RE.match(lines[i]) and _KEY_RE.match(lines[i]).group(1) == "projects"
+                ),
+                None,
+            )
+            if key is None:
+                lines[header + 1 : header + 1] = new
+            else:
+                stop = key + 1
+                while stop < end and lines[stop].strip() and lines[stop][:1] in " \t":  # continuation lines
+                    stop += 1
+                lines[key:stop] = new
+        os.makedirs(os.path.dirname(os.path.abspath(self.path)), exist_ok=True)
+        fd, tmp = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(self.path)), prefix=".config-", suffix=".ini")
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write("\n".join(lines) + "\n")
+        os.replace(tmp, self.path)
+        self._cp = configparser.ConfigParser()
+        self._cp.read(self.path)
+
+    @property
+    def ecosystem_theme(self) -> str:
+        """Palette of the HTML dashboard."""
+        return self._get("ecosystem", "theme", "github")
+
+    @property
+    def ecosystem_mode(self) -> str:
+        """Light/dark mode of the HTML dashboard: auto, light or dark."""
+        return self._get("ecosystem", "mode", "auto")
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 

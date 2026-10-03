@@ -50,6 +50,13 @@ def main():
 
         _app()
         return
+    # ``ecosystem`` streams the output of long multi-repo runs and asks for confirmations: the
+    # CliRunner of FoBiSConfig would buffer the former and abort the latter, so run it directly.
+    if sys.argv[1:2] == ["ecosystem"]:
+        from .cli import app as _app
+
+        _app(prog_name=os.path.basename(sys.argv[0]))
+        return
     run_fobis()
     sys.exit(0)
 
@@ -338,8 +345,9 @@ def run_fobis_fetch(configuration):
             frozen_commit=frozen_commit,
         )
 
-        # Verify against lockfile (non-frozen: warn only)
-        if lock and not frozen:
+        # Verify against lockfile (non-frozen: warn only). Not with --update: moving past the lock is
+        # its purpose, and the lock is rewritten below.
+        if lock and not frozen and not configuration.cliargs.update:
             fetcher.verify_lock(name, dep_path, lock)
 
         if not configuration.cliargs.no_build and use_mode == "fobos":
@@ -437,6 +445,7 @@ def run_fobis_scaffold(configuration):
         project_vars=project_vars,
         print_n=configuration.print_b,
         print_w=configuration.print_r,
+        skip=configuration.fobos.get_scaffold_config()["skip"],
     )
     action = configuration.cliargs.action
     if action == "status":

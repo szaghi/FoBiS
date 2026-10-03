@@ -46,6 +46,7 @@ That single command:
 - **GitHub dependency fetching** — `fobis fetch` clones and builds external FoBiS projects declared in the fobos `[dependencies]` section
 - **Doctests** — introspective micro unit tests embedded in Fortran doc comments, Python-doctest style
 - **GNU Makefile export** — generate a standard `Makefile` from the resolved dependency graph
+- **Ecosystem management** — `fobis ecosystem` manages a set of interconnected repositories as a whole: a dashboard of their state (releases, CI, drift, dependency pins), commands run across all of them in dependency order, a pre-release check of the projects downstream, and a release train ([guide](/advanced/ecosystem))
 
 ![GNU Makefile export demo](/gifs/08_makefile_export.gif)
 

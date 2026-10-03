@@ -26,6 +26,7 @@ import fnmatch
 import hashlib
 import os
 import re
+import shlex
 import sys
 from importlib import resources
 
@@ -86,7 +87,7 @@ def _git_submodule_deps_to_fpm(cwd: str = ".") -> str:
 
     # Build rev map: submodule path → commit SHA
     rev_map = {}
-    result = syswork("git submodule status")
+    result = syswork(_git("submodule status", None if cwd == "." else cwd))
     if result[0] == 0:
         for line in result[1].splitlines():
             # Format: [+- ]SHA path [(desc)]
@@ -113,7 +114,14 @@ def _git_submodule_deps_to_fpm(cwd: str = ".") -> str:
     return "\n".join(lines)
 
 
-def get_project_vars(fobos=None, overrides=None):
+def _git(command, cwd=None):
+    """Return a git command line, run in *cwd* when given (otherwise in the current directory)."""
+    if cwd:
+        return f"git -C {shlex.quote(cwd)} {command}"
+    return f"git {command}"
+
+
+def get_project_vars(fobos=None, overrides=None, cwd=None):
     """
     Build the project variables dict from fobos metadata, git, and defaults.
 
@@ -136,6 +144,8 @@ def get_project_vars(fobos=None, overrides=None):
         Fobos object for reading [project] section; None if no fobos file.
     overrides : dict | None
         Explicit overrides that take highest priority over all other sources.
+    cwd : str | None
+        Project root the git fallbacks are queried in; defaults to the current working directory.
 
     Returns
     -------
@@ -186,7 +196,7 @@ def get_project_vars(fobos=None, overrides=None):
             vars_dict["YEAR"] = info["year"]
 
     if not vars_dict["REPOSITORY"]:
-        result = syswork("git remote get-url origin")
+        result = syswork(_git("remote get-url origin", cwd))
         if result[0] == 0:
             url = result[1].strip()
             url = re.sub(r"^git@github\.com:", "https://github.com/", url)
@@ -198,12 +208,12 @@ def get_project_vars(fobos=None, overrides=None):
         vars_dict["REPOSITORY_NAME"] = vars_dict["REPOSITORY"].rstrip("/").split("/")[-1]
 
     if not vars_dict["AUTHORS"]:
-        result = syswork("git config user.name")
+        result = syswork(_git("config user.name", cwd))
         if result[0] == 0:
             vars_dict["AUTHORS"] = result[1].strip()
 
     if not vars_dict["EMAIL"]:
-        result = syswork("git config user.email")
+        result = syswork(_git("config user.email", cwd))
         if result[0] == 0:
             vars_dict["EMAIL"] = result[1].strip()
 
@@ -216,7 +226,7 @@ def get_project_vars(fobos=None, overrides=None):
         if raw_deps:
             vars_dict["DEPENDENCIES"] = _fobos_deps_to_fpm(raw_deps)
     if not vars_dict["DEPENDENCIES"]:
-        vars_dict["DEPENDENCIES"] = _git_submodule_deps_to_fpm()
+        vars_dict["DEPENDENCIES"] = _git_submodule_deps_to_fpm(cwd or ".")
 
     if overrides:
         for key, val in overrides.items():
@@ -234,7 +244,7 @@ class Scaffolder:
     greenfield creation (init), and manifest listing (list).
     """
 
-    def __init__(self, project_vars, cwd=None, print_n=None, print_w=None):
+    def __init__(self, project_vars, cwd=None, print_n=None, print_w=None, skip=None):
         """
         Parameters
         ----------
@@ -246,8 +256,12 @@ class Scaffolder:
             Normal message printer.
         print_w : callable | None
             Warning/error message printer.
+        skip : list[str] | None
+            Globs of managed files the project owns (fobos ``[scaffold] skip``): reported as
+            ``skipped`` and never written by sync or init.
         """
         self.vars = dict(project_vars)
+        self.skip = list(skip or [])
         self.cwd = cwd or os.getcwd()
         self.print_n = print_n or print_fake
         self.print_w = print_w or print_fake
@@ -399,11 +413,17 @@ class Scaffolder:
         return "".join(out)
 
     def _confirm(self, prompt, default=True):
-        """Prompt for confirmation, defaulting to *default* when no TTY is available."""
+        """
+        Prompt for confirmation; *default* answers an empty reply.
+
+        When no answer is possible (no terminal, stdin at EOF) the answer is no: a file is never
+        written without consent. ``--yes`` is the way to apply unattended.
+        """
         try:
             return typer.confirm(prompt, default=default)
         except Exception:
-            return default
+            self.print_w(f"  {prompt} no answer possible: skipped (use --yes to apply unattended)")
+            return False
 
     def _unified_diff(self, old, new, dest):
         return "".join(
@@ -451,9 +471,70 @@ class Scaffolder:
             return True
         return fnmatch.fnmatch(dest, files_glob)
 
+    def _skipped(self, dest):
+        """Return True when the project owns *dest* (fobos ``[scaffold] skip``)."""
+        return any(fnmatch.fnmatch(dest, glob) for glob in self.skip)
+
     # ------------------------------------------------------------------
     # Public commands
     # ------------------------------------------------------------------
+
+    def drift(self, files_glob=None):
+        """
+        Return the drift state of each managed file.
+
+        Parameters
+        ----------
+        files_glob : str | None
+            Optional glob pattern to limit scope.
+
+        Returns
+        -------
+        list[tuple[str, str]]
+            ``(destination, state)`` pairs, state being one of ``ok``, ``missing``,
+            ``symlink`` (not a link to the canonical target), ``manual`` (a config
+            fragment needs manual insertion), ``patch`` (a config fragment can be
+            inserted by sync), ``outdated`` and ``skipped`` (owned by the project,
+            never synced: not drift).
+        """
+        states = []
+        for dest, entry in self.manifest.items():
+            if not self._filter(dest, files_glob):
+                continue
+            if self._skipped(dest):
+                states.append((dest, "skipped"))
+                continue
+            abs_dest = os.path.join(self.cwd, dest)
+            if entry["category"] == "symlink":
+                # Drift = root is missing or not a symlink to the canonical target
+                if self._symlink_ok(abs_dest, entry["target"]):
+                    states.append((dest, "ok"))
+                elif not os.path.lexists(abs_dest):
+                    states.append((dest, "missing"))
+                else:
+                    states.append((dest, "symlink"))
+            elif not os.path.exists(abs_dest):
+                states.append((dest, "missing"))
+            elif entry["category"] == "init-only":
+                # Present and init-only: never check for drift
+                states.append((dest, "ok"))
+            elif entry["category"] == "patched":
+                # Project-owned file that must nonetheless contain specific config
+                # fragments. Report per-file worst state: MANUAL > PATCH > OK.
+                with open(abs_dest, encoding="utf-8", errors="replace") as fh:
+                    text = fh.read()
+                patch_states = [self._patch_state(text, self.patches[p]) for p in entry["patches"]]
+                if "manual" in patch_states:
+                    states.append((dest, "manual"))
+                elif "insertable" in patch_states:
+                    states.append((dest, "patch"))
+                else:
+                    states.append((dest, "ok"))
+            elif self._sha256(self._get_canonical(entry)) != self._file_sha256(abs_dest):
+                states.append((dest, "outdated"))
+            else:
+                states.append((dest, "ok"))
+        return states
 
     def status(self, files_glob=None, strict=False):
         """
@@ -467,45 +548,24 @@ class Scaffolder:
             Exit non-zero if any drift is detected (for CI use).
         """
         any_drift = False
-        for dest, entry in self.manifest.items():
-            if not self._filter(dest, files_glob):
+        for dest, state in self.drift(files_glob=files_glob):
+            if state == "ok":
+                self.print_n(f"  OK       {dest}")
                 continue
-            abs_dest = os.path.join(self.cwd, dest)
-            if entry["category"] == "symlink":
-                # Drift = root is missing or not a symlink to the canonical target
-                if self._symlink_ok(abs_dest, entry["target"]):
-                    self.print_n(f"  OK       {dest}")
-                elif not os.path.lexists(abs_dest):
-                    self.print_w(f"  MISSING  {dest}")
-                    any_drift = True
-                else:
-                    self.print_n(f"  SYMLINK  {dest} (should link to {entry['target']})")
-                    any_drift = True
-            elif not os.path.exists(abs_dest):
+            if state == "skipped":
+                self.print_n(f"  SKIPPED  {dest} (project-owned: fobos [scaffold] skip)")
+                continue
+            any_drift = True
+            if state == "missing":
                 self.print_w(f"  MISSING  {dest}")
-                any_drift = True
-            elif entry["category"] == "init-only":
-                # Present and init-only: never check for drift
-                self.print_n(f"  OK       {dest}")
-            elif entry["category"] == "patched":
-                # Project-owned file that must nonetheless contain specific config
-                # fragments. Report per-file worst state: MANUAL > PATCH > OK.
-                with open(abs_dest, encoding="utf-8", errors="replace") as fh:
-                    text = fh.read()
-                states = [self._patch_state(text, self.patches[p]) for p in entry["patches"]]
-                if "manual" in states:
-                    self.print_w(f"  MANUAL   {dest} (needs a config fragment — run sync to see it)")
-                    any_drift = True
-                elif "insertable" in states:
-                    self.print_n(f"  PATCH    {dest} (missing config fragment — run sync)")
-                    any_drift = True
-                else:
-                    self.print_n(f"  OK       {dest}")
-            elif self._sha256(self._get_canonical(entry)) != self._file_sha256(abs_dest):
-                self.print_n(f"  OUTDATED {dest}")
-                any_drift = True
+            elif state == "symlink":
+                self.print_n(f"  SYMLINK  {dest} (should link to {self.manifest[dest]['target']})")
+            elif state == "manual":
+                self.print_w(f"  MANUAL   {dest} (needs a config fragment — run sync to see it)")
+            elif state == "patch":
+                self.print_n(f"  PATCH    {dest} (missing config fragment — run sync)")
             else:
-                self.print_n(f"  OK       {dest}")
+                self.print_n(f"  OUTDATED {dest}")
         if strict and any_drift:
             sys.exit(1)
 
@@ -524,7 +584,7 @@ class Scaffolder:
         """
         changed = 0
         for dest, entry in self.manifest.items():
-            if not self._filter(dest, files_glob):
+            if not self._filter(dest, files_glob) or self._skipped(dest):
                 continue
             if entry["category"] == "init-only":
                 continue
@@ -574,13 +634,8 @@ class Scaffolder:
                 self.print_n(f"  ({kind} → {target})")
                 if dry_run:
                     continue
-                if not yes:
-                    try:
-                        answer = typer.confirm(f"Make {dest} a symlink to {target}?", default=True)
-                    except Exception:
-                        answer = True
-                    if not answer:
-                        continue
+                if not yes and not self._confirm(f"Make {dest} a symlink to {target}?"):
+                    continue
                 self._ensure_symlink(abs_dest, target)
                 self.print_n(f"  Linked   {dest} → {target}")
                 changed += 1
@@ -604,13 +659,8 @@ class Scaffolder:
             if dry_run:
                 continue
 
-            if not yes:
-                try:
-                    answer = typer.confirm(f"Apply changes to {dest}?", default=True)
-                except Exception:
-                    answer = True
-                if not answer:
-                    continue
+            if not yes and not self._confirm(f"Apply changes to {dest}?"):
+                continue
 
             self._write_file(abs_dest, canonical, executable=entry["executable"])
             self.print_n(f"  Written  {dest}")
@@ -628,14 +678,14 @@ class Scaffolder:
         Parameters
         ----------
         yes : bool
-            Skip confirmation prompts.
+            No interactive prompt at all: missing project variables stay empty.
         """
         _hints = {
             "AUTHORS": " (comma-separated, e.g. 'Jane Doe, John Smith')",
             "REPOSITORY": " (full URL, e.g. 'https://github.com/user/repo')",
         }
         missing_vars = [k for k, v in self.vars.items() if not v and k != "REPOSITORY_NAME"]
-        if missing_vars:
+        if missing_vars and not yes:
             self.print_n("Some project variables are unset. Please provide them (press Enter to skip):")
             for var in missing_vars:
                 hint = _hints.get(var, "")
@@ -656,6 +706,9 @@ class Scaffolder:
 
         created = 0
         for dest, entry in self.manifest.items():
+            if self._skipped(dest):
+                self.print_n(f"  skipped  {dest}")
+                continue
             abs_dest = os.path.join(self.cwd, dest)
             if entry["category"] == "symlink":
                 if self._symlink_ok(abs_dest, entry["target"]):

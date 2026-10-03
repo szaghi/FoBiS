@@ -14,6 +14,24 @@ export default defineConfig({
       f08:     'fortran-free-form',
       f77:     'fortran-fixed-form',
     },
+    // ```mermaid blocks are left to the browser: .vitepress/theme renders them (and re-renders on dark mode)
+    config: (md) => {
+      const fence = md.renderer.rules.fence!
+      md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+        const token = tokens[idx]
+        if (token.info.trim() === 'mermaid') {
+          return `<pre class="mermaid">${md.utils.escapeHtml(token.content)}</pre>`
+        }
+        return fence(tokens, idx, options, env, self)
+      }
+    },
+  },
+  vite: {
+    // An explicit modern target: Vite's default (es2020) makes esbuild down-level the syntax mermaid 11.16+
+    // ships, which it refuses to do, and the build dies (same setting as StringiFor and PENF).
+    build: {
+      target: 'es2022',
+    },
   },
   themeConfig: {
     nav: [
@@ -34,6 +52,7 @@ export default defineConfig({
       { text: 'fobos',     link: '/fobos/' },
       { text: 'Reference', link: '/reference/build' },
       { text: 'Advanced',  link: '/advanced/' },
+      { text: 'Ecosystem', link: '/advanced/ecosystem' },
       { text: 'Examples',  link: '/examples/' },
       { text: 'GitHub',    link: 'https://github.com/szaghi/FoBiS' },
     ],
@@ -120,6 +139,7 @@ export default defineConfig({
             { text: 'introspect', link: '/reference/introspect' },
             { text: 'tree',       link: '/reference/tree' },
             { text: 'cache',      link: '/reference/cache' },
+            { text: 'ecosystem',  link: '/reference/ecosystem' },
           ],
         },
         {
@@ -171,6 +191,12 @@ export default defineConfig({
             { text: 'Lock File & Semver',      link: '/advanced/lock-file' },
             { text: 'Interdependent Projects', link: '/advanced/interdependent' },
             { text: 'GitHub Install',          link: '/advanced/install' },
+          ],
+        },
+        {
+          text: 'Multi-project',
+          items: [
+            { text: 'Ecosystem',               link: '/advanced/ecosystem' },
           ],
         },
         {

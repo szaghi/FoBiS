@@ -1240,16 +1240,21 @@ class Fobos:
         Returns
         -------
         dict
-          dict with key 'apt_packages' (str): space-separated extra system
+          dict with keys 'apt_packages' (str): space-separated extra system
           packages to install in the CI build environment (e.g.
-          'libopenmpi-dev openmpi-bin' or 'zlib1g-dev'). Empty string if unset.
+          'libopenmpi-dev openmpi-bin' or 'zlib1g-dev'), empty string if unset;
+          and 'skip' (list of str): globs of the managed files the project owns
+          (deliberately customised), which scaffold never writes, empty if unset.
         """
         config = {
             "apt_packages": "",
+            "skip": [],
         }
         if self.fobos and self.fobos.has_section("scaffold"):
             if self.fobos.has_option("scaffold", "apt_packages"):
                 config["apt_packages"] = self.fobos.get("scaffold", "apt_packages").strip()
+            if self.fobos.has_option("scaffold", "skip"):
+                config["skip"] = self.fobos.get("scaffold", "skip").split()
         return config
 
     def get_version(self) -> str:

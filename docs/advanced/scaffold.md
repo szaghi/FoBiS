@@ -56,7 +56,7 @@ For each outdated or missing file, scaffold prints the unified diff and asks for
 Apply changes to cliff.toml? [Y/n]:
 ```
 
-Use `--yes` to accept all without prompting, or `--dry-run` to preview changes without writing any file.
+Use `--yes` to accept all without prompting, or `--dry-run` to preview changes without writing any file. When no answer is possible (no terminal, stdin at end of file, e.g. in CI or a pipe) the answer is *no*: a file is never written without consent, so unattended runs need `--yes`.
 
 ## Template categories
 
@@ -150,11 +150,16 @@ Some templated artifacts read extra knobs from a `[scaffold]` section. The secti
 | Key | Drives | Example |
 |-----|--------|---------|
 | `apt_packages` | extra system packages installed in `setup-build-env` (space-separated) | `apt_packages = libopenmpi-dev openmpi-bin` |
+| `skip` | managed files the project owns (space-separated globs): reported as `SKIPPED`, never written by `sync` or `init`, not counted as drift | `skip = scripts/release.sh` |
 
 ```ini
 [scaffold]
 apt_packages = zlib1g-dev
+# release.sh is customised here (it also bumps the CMake version): never sync it
+skip = scripts/release.sh
 ```
+
+Files listed in `skip` are *project-owned*: reported as `SKIPPED`, not counted as drift, never written by `sync` or `init`. To check or sync the boilerplate of many repositories at once, see [`fobis ecosystem scaffold`](/advanced/ecosystem#sync-the-boilerplate-scaffold).
 
 A project that needs MPI or a system library (HDF5, NetCDF, zlib, …) in CI declares it here instead of hand-editing the composite action. The packages are appended to the action's `apt install` line; `mpirun`-based test execution is handled separately by `scripts/run_tests.sh --np N`.
 

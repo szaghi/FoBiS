@@ -16,6 +16,7 @@ This section covers FoBiS.py's more powerful features for large or complex Fortr
 | [GNU Makefile Export](/advanced/makefile) | Export a GNU Makefile from your fobos settings |
 | [Fetch Dependencies](/advanced/fetch) | Clone GitHub-hosted Fortran deps and compile them inline or as libraries |
 | [GitHub Install](/advanced/install) | One-shot install of a GitHub-hosted FoBiS project |
+| [Ecosystem](/advanced/ecosystem) | Manage interconnected repositories as a whole: dashboard, cross-repo commands, pre-release impact check, release train |
 | [Scaffold Boilerplate](/advanced/scaffold) | Keep CI workflows, docs configs, and scripts in sync across all your Fortran repos |
 | [LLM Commit Messages](/advanced/commit) | Generate Conventional Commits messages via a local LLM (Ollama, LM Studio, …) |
 | [JSON Output](/advanced/json-output) | Machine-readable structured output for scripting and agents |
@@ -27,6 +28,7 @@ Most projects only need the basics covered in [Quick Start](/guide/quickstart). 
 - Have a large codebase and want faster incremental builds — **Parallel Compiling**
 - Link against pre-built Fortran libraries — **External Libraries**
 - Maintain a multi-repo project where library A must be rebuilt before program B — **Interdependent Projects**
+- Maintain several libraries that depend on each other, each in its own repository, and release them together — **Ecosystem**
 - Use external libraries that change frequently (CI-generated artifacts) — **Volatile Libraries**
 - Switch between debug/release builds and want reliable full rebuilds — **Flag Heritage**
 - Use template-based code generation — **PreForM Preprocessing**

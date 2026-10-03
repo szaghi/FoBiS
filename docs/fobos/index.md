@@ -131,6 +131,8 @@ Beyond the mode sections, a fobos file can contain several top-level sections wi
 | `[target.NAME]` | Named build target with per-target flag overrides | [build reference](/reference/build) |
 | `[example.NAME]` | Named example target (same syntax as `target.NAME`) | [build reference](/reference/build) |
 | `[rule-NAME]` | Custom shell-command rules | [Rules](/fobos/rules) |
+| `[scaffold]` | Scaffold knobs: `apt_packages` (extra CI packages), `skip` (project-owned files never synced) | [Scaffold](/advanced/scaffold) |
+| `[ecosystem]` | How `fobis ecosystem` treats the project: `check` commands, `release_exclude` globs | [Ecosystem](/advanced/ecosystem) |
 
 ### `[features]` section
 
@@ -288,6 +290,36 @@ fail_under = 75
 exclude    = test/*
             examples/*
 ```
+
+### `[scaffold]` section
+
+Knobs of [`fobis scaffold`](/reference/scaffold):
+
+```ini
+[scaffold]
+apt_packages = libopenmpi-dev openmpi-bin   ; extra system packages in the CI build environment
+skip         = scripts/release.sh           ; managed files this project owns: never written by scaffold
+```
+
+`skip` takes space-separated globs. The files it matches are reported as `SKIPPED`, are not counted
+as drift, and are never written by `sync` or `init` — use it for a managed file the project has
+deliberately customised.
+
+### `[ecosystem]` section
+
+How [`fobis ecosystem`](/advanced/ecosystem) treats the project when it is part of an ecosystem:
+
+```ini
+[ecosystem]
+check           = fobis build --mode tests-gnu      ; commands of `fobis ecosystem check`, one per line
+                  ./scripts/run_tests.sh
+release_exclude = docs/* .github/* *.md scripts/*   ; changes that call for no release
+```
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `check` | `fobis rule --ex makecoverage` when defined, else `fobis build` | Build-and-test commands run when an upstream project is checked against this one |
+| `release_exclude` | `docs/* .github/* *.md scripts/*` | A commit that only changes files matching these globs does not call for a release |
 
 ### `[target.NAME]` and `[example.NAME]` sections
 

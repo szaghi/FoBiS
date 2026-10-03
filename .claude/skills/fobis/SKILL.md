@@ -1,14 +1,14 @@
 ---
 name: fobis
 description: >
-  Expert knowledge of FoBiS.py (Fortran Building System for poor men) — an automatic Fortran build tool that resolves module dependency hierarchies without manual makefiles. Use this skill whenever the user asks about: writing or editing a fobos file; running any fobis subcommand (build, clean, fetch, install, rule, doctests, scaffold, check, test, coverage, tree, introspect, run, cache, commit); Fortran project build configuration; diagnosing FoBiS build errors; adding GitHub dependencies to a Fortran project; the --json output flag; multi-mode builds; templates; variables and varsets; library builds (static/shared); MPI/OpenMP/coarray/OpenMP-offload builds; feature flags and conditional compilation; build profiles; the build cache; external-library auto-detection and pkg-config (.pc) generation; multi-target builds; convention-based source auto-discovery; the lock file and semver dependency constraints; the first-class test runner and coverage reports; LLM-assisted commit messages; the cflags-heritage feature; parallel compilation; or any question that mentions "fobos", "FoBiS", or building Fortran projects. When in doubt, trigger this skill — it is better to consult it unnecessarily than to miss it.
+  Expert knowledge of FoBiS.py (Fortran Building System for poor men) — an automatic Fortran build tool that resolves module dependency hierarchies without manual makefiles. Use this skill whenever the user asks about: writing or editing a fobos file; running any fobis subcommand (build, clean, fetch, install, rule, doctests, scaffold, check, test, coverage, tree, introspect, run, cache, commit, ecosystem); managing several interconnected FoBiS repositories as a whole (fobis ecosystem: registry, dashboard, cross-repo exec/fetch/check/scaffold, release train); Fortran project build configuration; diagnosing FoBiS build errors; adding GitHub dependencies to a Fortran project; the --json output flag; multi-mode builds; templates; variables and varsets; library builds (static/shared); MPI/OpenMP/coarray/OpenMP-offload builds; feature flags and conditional compilation; build profiles; the build cache; external-library auto-detection and pkg-config (.pc) generation; multi-target builds; convention-based source auto-discovery; the lock file and semver dependency constraints; the first-class test runner and coverage reports; LLM-assisted commit messages; the cflags-heritage feature; parallel compilation; or any question that mentions "fobos", "FoBiS", or building Fortran projects. When in doubt, trigger this skill — it is better to consult it unnecessarily than to miss it.
 ---
 
 # FoBiS.py Expert Knowledge
 
 FoBiS.py is a CLI tool that auto-builds modern Fortran projects by parsing source files and resolving inter-module dependency hierarchies. It eliminates manual makefile dependency tracking.
 
-> **Currency:** This reflects FoBiS.py 3.8.x (15-subcommand Typer CLI). The canonical CLI binary is `fobis`; `FoBiS.py` remains a legacy alias. Flags use **double-dash long form** (`--mode`, `--ex`, `--ls`, `--lmodes`). Legacy single-dash multi-char forms (`-mode`, `-ex`) are auto-normalized but should not be written in new scripts/docs.
+> **Currency:** This reflects FoBiS.py 3.8.x (16-subcommand Typer CLI). The canonical CLI binary is `fobis`; `FoBiS.py` remains a legacy alias. Flags use **double-dash long form** (`--mode`, `--ex`, `--ls`, `--lmodes`). Legacy single-dash multi-char forms (`-mode`, `-ex`) are auto-normalized but should not be written in new scripts/docs.
 
 ## Core Concept
 
@@ -18,7 +18,7 @@ FoBiS.py scans your source directories, parses every `.f90` (and related) file f
 
 ## CLI Commands
 
-15 subcommands, grouped by purpose. Every command except `commit` and the `cache`/`scaffold`
+16 subcommands, grouped by purpose. Every command except `commit` and the `cache`/`scaffold`/`ecosystem`
 sub-apps accepts `--fobos`/`-f <path>` (non-default fobos file) and `--mode <name>` (select a build mode).
 
 ### Build & run
@@ -83,15 +83,18 @@ fobis commit             # generate a Conventional-Commits message via a local L
   Manages four artifact categories — verbatim (SHA-256 synced), templated (`{{VAR}}`-rendered;
   reads the optional fobos `[scaffold]` section, e.g. `apt_packages`), init-only (created once,
   project-owned, e.g. `docs/guide/contributing.md`), and symlink (`CONTRIBUTING.md` → the
-  canonical contributing page; never written through).
+  canonical contributing page; never written through). Fobos `[scaffold] skip = <globs>` marks
+  managed files the project owns (e.g. a customised `scripts/release.sh`): reported `SKIPPED`, not
+  drift, never written. A confirmation that cannot be answered (no tty) means *no*; `--yes` is the
+  unattended path (and makes `init` prompt for nothing).
 - `commit`: `--backend/-b ollama|openai`, `--url/-u`, `--model/-m`, `--max-diff`, `--refine-passes`,
   `--apply` (runs `git commit`), `--config/-c`, `--show-config`, `--init-config`. **No `--fobos`/`--mode`.**
 
 ### Cross-cutting facts
 
-- **`--json`** exists on exactly three commands: `build`, `clean`, `fetch`. (`introspect`/`coverage`
-  use `--format` instead.)
-- **Passthrough** (forward extra args after `--`): `run`, `test` only.
+- **`--json`** exists on `build`, `clean`, `fetch`, and on `ecosystem dashboard`/`ecosystem graph`.
+  (`introspect`/`coverage` use `--format` instead.)
+- **Passthrough** (forward extra args after `--`): `run`, `test`, and `ecosystem exec`.
 - **Global:** `--version`/`-v`.
 
 ---
@@ -426,6 +429,58 @@ fobis commit --apply                  # run `git commit` with the generated mess
 
 ---
 
+## Ecosystem: Interconnected Projects
+
+`fobis ecosystem` manages a set of FoBiS repositories that depend on each other (e.g. PENF → BeFoR64
+→ StringiFor) as a whole. The registry is an explicit list in the **user config**
+`~/.config/fobis/config.ini` (`$XDG_CONFIG_HOME` honoured) — not in any fobos:
+
+```ini
+[ecosystem]
+root     = ~/fortran
+projects = PENF FACE BeFoR64 StringiFor FLAP   ; names under root, or paths
+theme    = github                              ; HTML dashboard palette
+mode     = auto                                ; auto | light | dark
+```
+
+Edges come from each project's own fobos `[dependencies]` (a dep is an ecosystem dep when its key or
+URL repo name matches a registered project). Projects are walked in **release order** (topological
+levels, dependencies first; cycles reported, never looped).
+
+| Subcommand | Does |
+|---|---|
+| `discover [--root DIR]` | list unregistered FoBiS git repos under root; prints the `add` command (read-only) |
+| `add NAME\|PATH...` / `remove NAME...` | edit the registry (all-or-nothing; only the `projects` key is rewritten, comments kept) |
+| `graph [--json]` | release order + dependency tree |
+| `dashboard [--format terminal\|html] [--theme T] [--mode M] [--no-fetch] [--no-ci] [--json]` | per project: branch, dirty, ahead/behind, VERSION vs tag, unreleased/releasable commits + suggested bump, CI at HEAD (via `gh`), scaffold drift, dependency pins (lock vs dep's remote head). Runs `git fetch` first unless `--no-fetch` |
+| `exec [--only] [--from] [--fail-fast] -- CMD` | run CMD (bash -c) in every project; `fobis` inside resolves to this FoBiS |
+| `fetch` | `fobis fetch --update` in every project with deps |
+| `check PROJECT [--keep] [--fail-fast]` | stage each transitive dependent in a tempdir with PROJECT's **local working copy** (uncommitted changes included) and run its check commands from scratch; repos untouched |
+| `scaffold status\|sync [--apply [--yes]]` | scaffold across projects; sync is a dry run unless `--apply` |
+| `release [--dry-run] [--bump NAME=minor\|vX.Y.Z] [--from X] [--yes] [--no-wait]` | release train: plan → pre-flight blockers (dirty, behind, CI failing, no release.sh, git-cliff missing...) → confirm → per project `scripts/release.sh vX.Y.Z` (its own prompt), verify tag local+remote (declined → `aborted`), wait GitHub release, `fetch --update` dependents; stop at first failure with a `--from` resume hint |
+
+**Release rule:** files decide *whether* (a commit is releasable if it touches a path outside
+`docs/* .github/* *.md scripts/*`), Conventional-Commit types decide *how much* (`!`/BREAKING →
+major, `feat` → minor, else patch), counting releasable commits only.
+
+**Per-project fobos keys:**
+
+```ini
+[ecosystem]
+check           = fobis build --mode tests-gnu   ; `check` commands, one per line
+                  ./scripts/run_tests.sh         ; default: rule makecoverage if defined, else fobis build
+release_exclude = docs/* .github/* *.md scripts/*
+
+[scaffold]
+skip = scripts/release.sh                        ; project-owned managed files
+```
+
+Pins: `current`, `stale` (run `fobis ecosystem fetch`), `ahead`, `diverged`, `unlocked` (never
+fetched), `unknown`. Nothing commits or pushes except `release`, and only after confirmation; an
+unanswerable prompt counts as *no*.
+
+---
+
 ## JSON Output (scripting / CI)
 
 Add `--json` to **`build`, `clean`, or `fetch`** for structured stdout. Exit codes are unchanged
@@ -553,7 +608,8 @@ Add custom include extensions: `fobis build --inc .cmn`.
 | `[rule-NAME]` | Custom shell rule for `fobis rule --ex NAME` |
 | `[dependencies]` | GitHub-hosted build dependencies (used by `fetch`) |
 | `[project]` | Metadata: `name`, `authors`, `version`, `summary`, `repository`, `website`, `email`, `year` |
-| `[scaffold]` | Optional `fobis scaffold` knobs: `apt_packages = …` (extra CI system packages, space-separated) |
+| `[scaffold]` | Optional `fobis scaffold` knobs: `apt_packages = …` (extra CI system packages), `skip = <globs>` (project-owned managed files, never synced) |
+| `[ecosystem]` | How `fobis ecosystem` treats the project: `check` (commands for `ecosystem check`), `release_exclude` (globs whose changes call for no release) |
 
 ---
 
@@ -562,7 +618,8 @@ Add custom include extensions: `fobis build --inc .cmn`.
 Full documentation at **https://szaghi.github.io/FoBiS/**:
 
 - [fobos reference](https://szaghi.github.io/FoBiS/fobos/) · [Complete example](https://szaghi.github.io/FoBiS/fobos/complete-example)
-- [Command reference](https://szaghi.github.io/FoBiS/reference/build) (all 15 subcommands)
+- [Command reference](https://szaghi.github.io/FoBiS/reference/build) (all 16 subcommands)
+- [Ecosystem guide](https://szaghi.github.io/FoBiS/advanced/ecosystem) · [ecosystem reference](https://szaghi.github.io/FoBiS/reference/ecosystem)
 - [Feature flags](https://szaghi.github.io/FoBiS/advanced/features) · [Build profiles](https://szaghi.github.io/FoBiS/advanced/build-profiles) · [Varsets](https://szaghi.github.io/FoBiS/advanced/varsets)
 - [External libraries](https://szaghi.github.io/FoBiS/advanced/externals) · [Build cache](https://szaghi.github.io/FoBiS/advanced/cache) · [Auto-discovery](https://szaghi.github.io/FoBiS/advanced/auto-discovery)
 - [Fetch dependencies](https://szaghi.github.io/FoBiS/advanced/fetch) · [Lock file & semver](https://szaghi.github.io/FoBiS/advanced/lock-file) · [Interdependent builds](https://szaghi.github.io/FoBiS/advanced/interdependent)

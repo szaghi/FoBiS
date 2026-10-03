@@ -2,7 +2,9 @@
 # make_gifs.sh — generate all FoBiS demo GIFs using VHS
 #
 # Install VHS: https://github.com/charmbracelet/vhs#installation
-# Prerequisites: gfortran must be in PATH
+# Prerequisites: gfortran must be in PATH (and git; the ecosystem tapes also need git-cliff).
+# The tapes run the `fobis` found on PATH: to record unreleased features, put the dev one first,
+# e.g.  PATH=../.venv/bin:$PATH bash make_gifs.sh 09 10 11
 #
 # Usage:
 #   bash make_gifs.sh           — generate all GIFs
@@ -60,6 +62,11 @@ run_tape() {
     local work_dir
     if [[ "$name" == "07_fetch" ]]; then
         work_dir=$(_make_work_dir "$SCRIPT_DIR/demo/fetch-demo")
+    elif [[ "$name" == *_ecosystem_* ]]; then
+        # a fresh demo ecosystem (three git repos with local remotes) for every tape
+        work_dir=$(mktemp -d)
+        _cleanup_dirs+=("$work_dir")
+        bash "$SCRIPT_DIR/demo/ecosystem-demo/setup.sh" "$work_dir" </dev/null >/dev/null
     else
         work_dir=$(_make_work_dir "$SCRIPT_DIR/demo")
     fi

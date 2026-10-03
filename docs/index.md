@@ -4,7 +4,7 @@ layout: home
 hero:
   name: FoBiS
   text: Fortran Building System
-  tagline: Automatic dependency-resolving build tool for modern Fortran projects — no makefiles, no boilerplate.
+  tagline: Automatic dependency-resolving build tool for modern Fortran projects — no makefiles, no boilerplate. From one project to a whole ecosystem of interconnected repositories.
   actions:
     - theme: brand
       text: Quick Start
@@ -12,6 +12,9 @@ hero:
     - theme: alt
       text: Guide
       link: /guide/
+    - theme: alt
+      text: Ecosystem
+      link: /advanced/ecosystem
     - theme: alt
       text: View on GitHub
       link: https://github.com/szaghi/FoBiS
@@ -32,6 +35,11 @@ features:
     details: Declare dependencies in a `[dependencies]` fobos section — `fobis fetch` clones, pins to branch/tag/rev, and pre-builds them; `fobis build` picks them up automatically. Install any GitHub-hosted FoBiS project directly with `fobis install user/repo`.
     link: /advanced/fetch
     linkText: Fetch deps & install
+  - icon: 🧭
+    title: Manage a whole ecosystem
+    details: Several libraries, each in its own repository, depending on each other? `fobis ecosystem` shows the state of all of them at a glance — releases due, CI, boilerplate drift, stale dependency pins — runs commands across them in dependency order, checks that a local change breaks nothing downstream before you release it, and releases them as a train.
+    link: /advanced/ecosystem
+    linkText: Ecosystem guide
   - icon: 🔬
     title: Introspective doctests
     details: Embed micro-unit-tests directly inside Fortran comment docstrings. FoBiS generates, compiles, and runs volatile test programs automatically — inspired by Python's doctest module, no test harness needed.
@@ -84,6 +92,31 @@ fobis build -mode release
 | ![basic build](public/gifs/01_basic_build.gif) | ![complex dependancy](public/gifs/04_dependent_build.gif) |
 | **GH integration, project install** | **GH integration, dependancies fetch** |
 | ![project install](public/gifs/06_install.gif) | ![dependancies fetch](public/gifs/07_fetch.gif) |
+| **ecosystem: graph and dashboard** | **ecosystem: check before releasing** |
+| ![ecosystem dashboard](public/gifs/09_ecosystem_dashboard.gif) | ![ecosystem check](public/gifs/10_ecosystem_check.gif) |
+
+## Beyond a single project
+
+Fortran libraries rarely live alone: a portability layer feeds a string library, which feeds a
+command-line parser, which feeds your application — each in its own repository, with its own tags,
+CI and boilerplate. Register them once and `fobis ecosystem` handles them as a whole:
+
+```bash
+fobis ecosystem add PENF FACE BeFoR64 StringiFor FLAP   # register the repositories
+fobis ecosystem dashboard                               # what needs a release, what is red, what is stale
+fobis ecosystem check PENF                              # does my local PENF break anything downstream?
+fobis ecosystem release                                 # release everything due, dependencies first
+```
+
+![ecosystem HTML dashboard](public/images/ecosystem-dashboard-dark.png)
+
+The release train plans each version from Conventional Commits, refuses to start while any project
+is blocked (dirty tree, failing CI, behind the remote), confirms with you, releases in dependency
+order and stops safely at the first failure with the command that resumes it.
+
+![ecosystem release train](public/gifs/11_ecosystem_release.gif)
+
+[Read the ecosystem guide →](/advanced/ecosystem)
 
 ## Showcases
 

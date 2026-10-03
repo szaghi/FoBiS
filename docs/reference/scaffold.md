@@ -40,11 +40,14 @@ fobis scaffold <action> [options]
 | `-y, --yes` | Apply all changes without interactive prompts |
 | `--files <glob>` | Limit scope to files matching this glob pattern |
 
+Without `--yes`, every change is confirmed. A confirmation that cannot be answered — no terminal,
+stdin at end of file, as in CI or a pipe — counts as *no*: nothing is written without consent.
+
 ### `init` options
 
 | Option | Description |
 |--------|-------------|
-| `-y, --yes` | Skip interactive confirmation prompts |
+| `-y, --yes` | No interactive prompt at all: confirmations are accepted and missing project variables stay empty |
 
 ## Description
 
@@ -182,3 +185,23 @@ authors    = Jane Doe
 `year` is optional — omit it to use the current calendar year.
 
 See [Project Metadata](/fobos/project) for full details.
+
+### Project-owned files: `[scaffold] skip`
+
+A project that has deliberately customised a managed file declares it, so that scaffold never
+overwrites it:
+
+```ini
+[scaffold]
+# release.sh also bumps the CMake project version: owned here, never synced
+skip = scripts/release.sh
+```
+
+`skip` takes space-separated globs. Matching files are reported as `SKIPPED (project-owned: fobos
+[scaffold] skip)`, do not count as drift (so `status --strict` stays green), and are never written
+by `sync` or `init`.
+
+### Across many repositories
+
+[`fobis ecosystem scaffold`](/reference/ecosystem#scaffold-status) runs `status` and `sync` across
+every project of an [ecosystem](/advanced/ecosystem), honouring each project's `skip`.

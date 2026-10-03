@@ -103,7 +103,18 @@ The generated file looks like:
 # Critique-and-rewrite passes after the initial draft (0 = single pass)
 # Increase to 1-3 for small/fast models that produce shallow first drafts
 # refine_passes = 0
+
+[ecosystem]
+# Directory the projects live in (relative entries of 'projects' are resolved against it)
+# root = ~/fortran
+
+# The managed projects: directory names under root, or paths; whitespace or newline separated
+# projects = PENF FACE BeFoR64 StringiFor FLAP
+# ... (theme and mode of the HTML dashboard)
 ```
+
+The same file holds the `[ecosystem]` registry of [`fobis ecosystem`](/advanced/ecosystem), which
+`fobis ecosystem add`/`remove` edit for you.
 
 **Priority:** CLI flags → config file → hardcoded defaults.
 

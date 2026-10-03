@@ -30,7 +30,8 @@ CYAN='\033[0;36m'; BOLD='\033[1m'; RESET='\033[0m'
 info()    { echo -e "${CYAN}[info]${RESET}  $*"; }
 success() { echo -e "${GREEN}[ok]${RESET}    $*"; }
 warn()    { echo -e "${YELLOW}[warn]${RESET}  $*"; }
-die()     { echo -e "${RED}[error]${RESET} $*" >&2; exit 1; }
+# after the confirmation something may already be changed: show how to recover (exit bypasses the ERR trap)
+die()     { echo -e "${RED}[error]${RESET} $*" >&2; [[ "${STAGE:-preflight}" =~ ^(preflight|confirm)$ ]] || on_error; exit 1; }
 
 usage() {
   echo -e "Usage: $0 (--patch | --minor | --major | vX.Y.Z)"
@@ -43,6 +44,8 @@ usage() {
 }
 
 # ── Stage tracking + recovery trap ───────────────────────────────────────────
+# STAGE names the last step COMPLETED: a failure while committing is still "bumped" (no commit was
+# made), while tagging still "committed", while pushing "tagged"; the recovery hint relies on it.
 STAGE="preflight"
 NEW_TAG=""
 RELEASE_FILES=(CHANGELOG.md VERSION) # files modified and committed by the release
@@ -57,9 +60,9 @@ on_error() {
       echo "  Nothing was changed. Fix the issue above and re-run."
       ;;
     bumped)
-      echo "  Files were modified locally but not committed."
+      echo "  Files were modified locally (maybe staged) but not committed."
       echo "  To discard and start over:"
-      echo "    git checkout -- ${RELEASE_FILES[*]}"
+      echo "    git checkout HEAD -- ${RELEASE_FILES[*]}"
       ;;
     committed)
       echo "  Commit was made but not tagged/pushed. To resume:"
@@ -206,16 +209,16 @@ if $HAS_FPM_VERSION; then
 fi
 
 # ── Commit ────────────────────────────────────────────────────────────────────
-STAGE="committed"
 info "Committing changelog and version…"
 git add "${RELEASE_FILES[@]}"
 git commit -m "chore(release): ${NEW_TAG}"
+STAGE="committed"
 success "Committed"
 
 # ── Tag ───────────────────────────────────────────────────────────────────────
-STAGE="tagged"
 info "Creating annotated tag ${NEW_TAG}…"
 git tag -a "$NEW_TAG" -m "Release ${NEW_TAG}"
+STAGE="tagged"
 success "Tagged"
 
 # ── Push ──────────────────────────────────────────────────────────────────────
