@@ -29,6 +29,30 @@ import typer
 # Argument normaliser — preserves backward compat with argparse-style options
 # ---------------------------------------------------------------------------
 _MULTI_CHAR_OPT = re.compile(r"^-[A-Za-z][A-Za-z0-9_-]+$")
+_LONG_OPTIONS = None
+
+
+def _long_options():
+    """
+    Return the names (without dashes) of the long options of all the commands.
+
+    The set is built once, at the first call: the commands are all registered by then.
+    """
+    global _LONG_OPTIONS
+    if _LONG_OPTIONS is None:
+        names = set()
+
+        def _collect(command):
+            for param in command.params:
+                for opt in list(param.opts) + list(param.secondary_opts):
+                    if opt.startswith("--"):
+                        names.add(opt[2:])
+            for sub_command in getattr(command, "commands", {}).values():
+                _collect(sub_command)
+
+        _collect(typer.main.get_command(app))
+        _LONG_OPTIONS = names
+    return _LONG_OPTIONS
 
 
 def _normalize_args(args):
@@ -37,7 +61,9 @@ def _normalize_args(args):
 
     Rules applied to each token:
     - Single-dash multi-char option (-compiler, -mode, -get_output_name)
-      → double-dash with underscores turned to hyphens (--compiler, --mode, --get-output-name)
+      → double-dash with underscores turned to hyphens (--compiler, --mode, --get-output-name),
+      only if it is the name of an option: a value starting with a dash (--preproc -DFOO,
+      --cflags -O2) is left unchanged
     - Double-dash option with underscores (--build_dir, --cflags_heritage)
       → double-dash with hyphens (--build-dir, --cflags-heritage)
     - Single-char short options (-f, -m, -q), values, and negative numbers
@@ -45,7 +71,7 @@ def _normalize_args(args):
     """
     result = []
     for arg in args:
-        if _MULTI_CHAR_OPT.match(arg):
+        if _MULTI_CHAR_OPT.match(arg) and arg[1:].replace("_", "-") in _long_options():
             result.append("--" + arg[1:].replace("_", "-"))
         elif arg.startswith("--") and len(arg) > 2:
             if "=" in arg:

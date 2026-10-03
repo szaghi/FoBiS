@@ -792,11 +792,16 @@ def run_fobis_doctests(configuration):
         print_w=configuration.print_r,
         force_compile=configuration.cliargs.force_compile,
     )
-    test_doctests(configuration=configuration, doctests=doctests, pfiles=pfiles, nomodlibs=nomodlibs, builder=builder)
+    failed = test_doctests(
+        configuration=configuration, doctests=doctests, pfiles=pfiles, nomodlibs=nomodlibs, builder=builder
+    )
     if not configuration.cliargs.keep_volatile_doctests:
         for doc_dir in doctests_dirs:
             if os.path.isdir(doc_dir):
                 shutil.rmtree(doc_dir)
+    if failed:
+        configuration.print_r(f"{failed} doctest(s) failed")
+        sys.exit(1)
 
 
 def _merged_preproc_flags(cliargs) -> str:
@@ -1039,7 +1044,13 @@ def test_doctests(configuration, doctests, pfiles, nomodlibs, builder):
     nomodlibs : list
       list of built non module libraries object names
     builder : Builder()
+
+    Returns
+    -------
+    int
+      number of failed doctests: the ones giving a wrong result and the ones exiting with an error
     """
+    failed = 0
     for test in doctests:
         if test.is_doctest and os.path.basename(test.name).split("-doctest")[0] not in [
             os.path.basename(os.path.splitext(exc)[0]) for exc in configuration.cliargs.exclude_from_doctests
@@ -1059,11 +1070,18 @@ def test_doctests(configuration, doctests, pfiles, nomodlibs, builder):
                 if result[1].strip() == expected_result:
                     configuration.print_b("doctest passed")
                 else:
+                    failed += 1
                     configuration.print_r("doctest failed!")
                     configuration.print_b('  result obtained: "' + result[1].strip() + '"')
                     configuration.print_b('  result expected: "' + expected_result + '"')
+            else:
+                failed += 1
+                configuration.print_r("doctest failed!")
+                configuration.print_b("  exit status: " + str(result[0]))
+                configuration.print_b('  output: "' + result[1].strip() + '"')
             if not configuration.cliargs.keep_volatile_doctests:
                 os.remove(test_exe)
+    return failed
 
 
 def save_makefile(configuration, pfiles, builder):
