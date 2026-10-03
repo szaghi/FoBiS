@@ -4,6 +4,15 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.9.0] — 2026-10-03
+### Added
+- **ecosystem**: Manage interconnected projects as a whole
+
+
+### Documentation
+- **ecosystem**: Show the whole dependency diagram in the dashboard screenshots
+
+
 ## [3.8.25] — 2026-10-03
 ### Fixed
 - Preserve dash-prefixed option values and fail on doctest errors
