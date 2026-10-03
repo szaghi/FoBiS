@@ -62,7 +62,8 @@ stdin at end of file, as in CI or a pipe — counts as *no*: nothing is written 
 - `.github/workflows/install.yml`
 - `.github/actions/run-coverage-analysis/action.yml`
 - `scripts/release.sh`
-- `scripts/run_tests.sh` — supports `--np N` for MPI-parallel test execution
+- `scripts/run_tests.sh` — supports `--np N` for MPI-parallel test execution and `--vmem KB` to cap the virtual memory
+  of every test; a test with a `<name>.result` file in the project (the doctests) must print that result
 - `scripts/install.sh`
 - `scripts/compute-coverage.sh`
 - `docs/package.json`

@@ -73,7 +73,7 @@ Verbatim files are copied as-is from the bundled canonical version. Drift detect
 | `.github/workflows/install.yml` | Post-release smoke test of the install methods (make/cmake/fpm; legs self-skip when inapplicable) |
 | `.github/actions/run-coverage-analysis/action.yml` | Composite action: lcov coverage + JSON badge |
 | `scripts/release.sh` | Bump the `VERSION` file |
-| `scripts/run_tests.sh` | Build and run the project test suite (serial, or `--np N` for MPI) |
+| `scripts/run_tests.sh` | Run the project test suite (serial, or `--np N` for MPI); a test with a `<name>.result` file (the doctests) must also print that result; `--vmem KB` caps the memory of every test |
 | `scripts/install.sh` | Repo-agnostic install script |
 | `scripts/compute-coverage.sh` | Compute gcov coverage and emit JSON badge |
 | `docs/package.json` | VitePress npm configuration |

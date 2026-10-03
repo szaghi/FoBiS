@@ -705,6 +705,75 @@ def test_run_tests_sh_auto_dispatches_mpi_binaries(tmp_path):
     assert not proof.exists()
 
 
+def test_run_tests_sh_checks_expected_results(tmp_path):
+    """run_tests.sh compares the output of a test with its <name>.result, if the project has one:
+    a doctest printing F (exit 0) fails; a test without result is judged by its exit status only."""
+    import shutil
+    import stat
+    import subprocess
+    from pathlib import Path
+
+    import fobis
+
+    src = Path(fobis.__file__).parent / "scaffolds" / "verbatim" / "scripts" / "run_tests.sh"
+    script = tmp_path / "run_tests.sh"
+    shutil.copy(src, script)
+
+    exe_dir = tmp_path / "exe"
+    exe_dir.mkdir()
+    for nm, body in (
+        ("m-doctest-1", "echo ' T'"),  # matches its result, surrounding white space ignored
+        ("m-doctest-11", "echo F"),  # differs from its result: the name of m-doctest-1 must not match it
+        ("plain_test", "echo F"),  # no result: exit status only
+    ):
+        p = exe_dir / nm
+        p.write_text(f"#!/bin/bash\n{body}\n")
+        p.chmod(p.stat().st_mode | stat.S_IEXEC)
+    results = tmp_path / "src" / "tests" / "m"
+    results.mkdir(parents=True)
+    (results / "m-doctest-1.result").write_text("T")
+    (results / "m-doctest-11.result").write_text("T")
+    (exe_dir / "plain_test.result").write_text("T")  # inside the build directory: ignored
+
+    r = subprocess.run(["bash", str(script)], cwd=tmp_path, capture_output=True, text=True)
+    assert r.returncode == 1, r.stdout + r.stderr
+    lines = r.stdout.splitlines()
+    assert any("PASS" in line and "m-doctest-1" in line and "m-doctest-11" not in line for line in lines)
+    assert any(
+        "FAIL" in line and "m-doctest-11" in line and "src/tests/m/m-doctest-11.result" in line for line in lines
+    )
+    assert any("PASS" in line and "plain_test" in line for line in lines)
+    assert "2/3 passed" in r.stdout
+
+
+def test_run_tests_sh_caps_virtual_memory(tmp_path):
+    """run_tests.sh --vmem KB runs every test under `ulimit -v KB`; a non-numeric cap is rejected."""
+    import shutil
+    import stat
+    import subprocess
+    from pathlib import Path
+
+    import fobis
+
+    src = Path(fobis.__file__).parent / "scaffolds" / "verbatim" / "scripts" / "run_tests.sh"
+    script = tmp_path / "run_tests.sh"
+    shutil.copy(src, script)
+
+    exe_dir = tmp_path / "exe"
+    exe_dir.mkdir()
+    p = exe_dir / "limit_test"
+    p.write_text('#!/bin/bash\n[[ "$(ulimit -v)" == 500000 ]]\n')
+    p.chmod(p.stat().st_mode | stat.S_IEXEC)
+
+    r = subprocess.run(["bash", str(script), "--vmem", "500000"], cwd=tmp_path, capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout + r.stderr
+    r = subprocess.run(["bash", str(script)], cwd=tmp_path, capture_output=True, text=True)
+    assert r.returncode == 1  # no cap by default
+    r = subprocess.run(["bash", str(script), "--vmem", "4G"], cwd=tmp_path, capture_output=True, text=True)
+    assert r.returncode == 2
+    assert "Invalid --vmem" in r.stderr
+
+
 # ── Scaffolder `patched` category ─────────────────────────────────────────────
 
 # Minimal VitePress-config shapes exercising each patch state. The title/nav
