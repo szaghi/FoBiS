@@ -231,6 +231,11 @@ class Fetcher:
                 result = syswork("git -C " + dep_dir + " checkout " + ref)
                 if result[0] != 0:
                     self.print_w("Error checking out " + ref + " for " + name + ":\n" + result[1])
+                elif update and branch and not (tag or rev):
+                    # checkout of an existing local branch does not move it to the fetched remote head
+                    result = syswork("git -C " + dep_dir + " merge --ff-only origin/" + branch)
+                    if result[0] != 0:
+                        self.print_w("Error merging updates for " + name + ":\n" + result[1])
             elif update:
                 result = syswork("git -C " + dep_dir + " merge --ff-only")
                 if result[0] != 0:

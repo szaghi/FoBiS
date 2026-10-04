@@ -169,6 +169,58 @@ def test_fetch_with_tag_checks_out_ref():
         assert any("checkout" in c and "v1.0.0" in c for c in calls)
 
 
+def test_fetch_update_branch_fast_forwards_to_remote():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        dep_dir = os.path.join(tmpdir, "dep")
+        os.makedirs(dep_dir)
+        fetcher = Fetcher(deps_dir=tmpdir)
+        with patch("fobis.Fetcher.syswork", return_value=(0, "")) as mock_sw:
+            fetcher.fetch("dep", "https://github.com/user/dep", branch="master", update=True)
+        calls = [c[0][0] for c in mock_sw.call_args_list]
+        checkout = next(i for i, c in enumerate(calls) if "checkout master" in c)
+        merge = next(i for i, c in enumerate(calls) if "merge --ff-only origin/master" in c)
+        rev_parse = next(i for i, c in enumerate(calls) if "rev-parse HEAD" in c)
+        # the lock records HEAD, so it must be read after the fast-forward
+        assert checkout < merge < rev_parse
+
+
+def test_fetch_branch_without_update_does_not_merge():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        dep_dir = os.path.join(tmpdir, "dep")
+        os.makedirs(dep_dir)
+        fetcher = Fetcher(deps_dir=tmpdir)
+        with patch("fobis.Fetcher.syswork", return_value=(0, "")) as mock_sw:
+            fetcher.fetch("dep", "https://github.com/user/dep", branch="master")
+        calls = [c[0][0] for c in mock_sw.call_args_list]
+        assert not any("merge" in c for c in calls)
+
+
+def test_fetch_update_tag_does_not_merge():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        dep_dir = os.path.join(tmpdir, "dep")
+        os.makedirs(dep_dir)
+        fetcher = Fetcher(deps_dir=tmpdir)
+        with patch("fobis.Fetcher.syswork", return_value=(0, "")) as mock_sw:
+            fetcher.fetch("dep", "https://github.com/user/dep", tag="v1.0.0", update=True)
+        calls = [c[0][0] for c in mock_sw.call_args_list]
+        assert not any("merge" in c for c in calls)
+
+
+def test_fetch_update_branch_merge_failure_logged():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        dep_dir = os.path.join(tmpdir, "dep")
+        os.makedirs(dep_dir)
+        warnings = []
+        fetcher = Fetcher(deps_dir=tmpdir, print_w=warnings.append)
+
+        def fake_syswork(cmd):
+            return (1, "fatal: Not possible to fast-forward") if "merge" in cmd else (0, "")
+
+        with patch("fobis.Fetcher.syswork", side_effect=fake_syswork):
+            fetcher.fetch("dep", "https://github.com/user/dep", branch="master", update=True)
+        assert any("Error merging updates" in w for w in warnings)
+
+
 def test_fetch_checkout_failure_logged():
     with tempfile.TemporaryDirectory() as tmpdir:
         dep_dir = os.path.join(tmpdir, "dep")
