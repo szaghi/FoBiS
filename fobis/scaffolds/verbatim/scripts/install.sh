@@ -90,7 +90,8 @@ GITHUB="https://github.com/$REPO"
 [[ $VERBOSE -eq 1 ]] && info "Repository: ${BOLD}${REPO}${RESET}"
 
 # ── Dependencies ──────────────────────────────────────────────────────────────
-# Run in the project root: fetch the fobos [dependencies], if any.
+# Run in the project root: fetch the fobos [dependencies], if any. Only the
+# fobis build consumes them; make/cmake/fpm projects resolve their own.
 fetchdeps() {
   if [[ -f fobos ]] && grep -q '^\[dependencies\]' fobos; then
     command -v fobis &>/dev/null || error "fobis not found (needed to fetch dependencies)."
@@ -107,9 +108,6 @@ projectdownload() {
   if [[ "$DOWNLOAD" == "git" ]]; then
     command -v git &>/dev/null || error "git not found."
     git clone "$GITHUB"
-    cd "$PROJECT"
-    fetchdeps
-    cd - >/dev/null
 
   elif [[ "$DOWNLOAD" == "wget" ]]; then
     command -v wget &>/dev/null || error "wget not found."
@@ -143,10 +141,15 @@ projectbuild() {
   case "$BUILD" in
     fobis | FoBiS.py )
       command -v fobis &>/dev/null || error "fobis not found."
+      fetchdeps
       fobis build ${MODE:+--mode "$MODE"}
       ;;
     make )
       command -v make &>/dev/null || error "make not found."
+      if [[ ! -f Makefile && ! -f makefile && ! -f GNUmakefile ]]; then
+        warn "Makefile not found — skipping make build."
+        return
+      fi
       make
       ;;
     cmake )
@@ -185,7 +188,6 @@ elif [[ "$DOWNLOAD" != "0" && "$BUILD" != "0" ]]; then
   projectdownload
   if [[ "$DOWNLOAD" == "wget" ]]; then
     cd "$EXTRACTED"
-    fetchdeps
   else
     cd "$PROJECT"
   fi

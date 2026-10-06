@@ -70,7 +70,7 @@ Verbatim files are copied as-is from the bundled canonical version. Drift detect
 |------|---------|
 | `.github/workflows/ci.yml` | Build-and-test CI workflow |
 | `.github/workflows/docs.yml` | VitePress docs deployment + coverage-badge publish workflow |
-| `.github/workflows/install.yml` | Post-release smoke test of the install methods (make/cmake/fpm; legs self-skip when inapplicable) |
+| `.github/workflows/install.yml` | Post-release smoke test of the install methods (make/cmake/fobis/fpm) in the CI build environment (`setup-build-env`); each leg runs only when the project has that build system |
 | `.github/actions/run-coverage-analysis/action.yml` | Composite action: lcov coverage + JSON badge |
 | `scripts/release.sh` | Bump the `VERSION` file |
 | `scripts/run_tests.sh` | Run the project test suite (serial, or `--np N` for MPI); a test with a `<name>.result` file (the doctests) must also print that result; `--vmem KB` caps the memory of every test |
