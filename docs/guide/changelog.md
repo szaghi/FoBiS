@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.9.6] — 2026-10-06
+### Fixed
+- **scaffold**: Fetch fobos dependencies for make and cmake installs
+
+
 ## [3.9.5] — 2026-10-06
 ### Fixed
 - **scaffold**: Build the install smoke test in the CI environment
