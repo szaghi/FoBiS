@@ -1,17 +1,33 @@
 name: Test (alternative) Install Methods
 
+# Smoke-tests the published release assets. Called by release.yml right after
+# it publishes the release: a `release: published` trigger never fires there,
+# because GitHub starts no workflow run for an event raised with GITHUB_TOKEN.
+# The release is already public when this runs, so a failure flags a broken
+# release; it cannot block it.
 on:
-  release:
-    types: [published]
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to smoke-test (e.g. v1.2.3)
+        type: string
+        required: true
+
+# A workflow_call caller must grant at least these same permissions.
+permissions:
+  contents: read
 
 jobs:
   install:
 
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     env:
-      TAG: ${{ github.event.release.tag_name }}
+      TAG: ${{ inputs.tag }}
 
     steps:
     - name: INSTALL SCRIPT + make
@@ -50,7 +66,7 @@ jobs:
       run: |
         WORKDIR=$(mktemp -d)
         cd "$WORKDIR"
-        git clone https://github.com/$GITHUB_REPOSITORY ./
+        git clone --depth 1 --branch "$TAG" https://github.com/$GITHUB_REPOSITORY ./
         if [[ ! -f fpm.toml ]]; then
           echo "fpm.toml not found — skipping fpm build."
           exit 0

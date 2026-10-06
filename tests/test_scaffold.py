@@ -968,3 +968,49 @@ def test_release_workflow_extracts_cliff_changelog_section(tmp_path, heading_tag
     assert "- Fix the reader" in out
     assert "Older fix" not in out
     assert "See CHANGELOG.md for details" not in out
+
+
+# ── Install smoke test: release.yml must run install.yml itself ─────────────
+
+
+def _workflow(rel):
+    yaml = pytest.importorskip("yaml")
+    wf = yaml.safe_load(_scaffold_text(rel))
+    # YAML 1.1 loads the bare key `on` as the boolean True
+    wf["on"] = wf.pop(True, wf.get("on"))
+    return wf
+
+
+def test_release_workflow_runs_install_smoke_test():
+    """A release published with GITHUB_TOKEN triggers no `release: published`
+    workflow (GH #203): install.yml must be a reusable workflow called by
+    release.yml after publishing, with the tag passed explicitly."""
+    release = _workflow("templated/.github/workflows/release.yml")
+    install = _workflow("verbatim/.github/workflows/install.yml")
+
+    assert "release" not in install["on"]
+    assert install["on"]["workflow_call"]["inputs"]["tag"]["required"] is True
+    assert install["on"]["workflow_dispatch"]["inputs"]["tag"]["required"] is True
+    # in a called workflow github.event is the caller's (tag push) event
+    assert "github.event.release" not in _scaffold_text("verbatim/.github/workflows/install.yml")
+    assert install["jobs"]["install"]["env"]["TAG"] == "${{ inputs.tag }}"
+
+    caller = release["jobs"]["install"]
+    assert caller["uses"] == "./.github/workflows/install.yml"
+    assert caller["needs"] == "release"
+    assert caller["with"]["tag"] == "${{ github.ref_name }}"
+    # a called workflow can only narrow the caller's permissions
+    assert caller["permissions"] == install["permissions"]
+
+
+def test_release_workflow_publishes_only_from_tags():
+    """workflow_dispatch from a branch must not publish a release named after it."""
+    release = _workflow("templated/.github/workflows/release.yml")
+    assert release["jobs"]["release"]["if"] == "startsWith(github.ref, 'refs/tags/v')"
+
+
+def test_install_workflow_builds_fpm_from_the_release_tag():
+    """The fpm step must test the released tag, not the default-branch head."""
+    install = _workflow("verbatim/.github/workflows/install.yml")
+    fpm = next(st for st in install["jobs"]["install"]["steps"] if st.get("name") == "FPM")
+    assert '--branch "$TAG"' in fpm["run"]
