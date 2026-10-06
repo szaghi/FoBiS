@@ -36,8 +36,10 @@ jobs:
           tag, path = sys.argv[1], sys.argv[2]
           with open(path) as f:
               content = f.read()
-          pattern = rf'(## \[{re.escape(tag)}\].*?)(?=\n## |\Z)'
-          match = re.search(pattern, content, re.DOTALL)
+          # cliff.toml writes the heading without the tag's "v" prefix: accept both
+          version = re.escape(tag[1:] if tag.startswith('v') else tag)
+          pattern = rf'(^## \[v?{version}\].*?)(?=\n## |\Z)'
+          match = re.search(pattern, content, re.DOTALL | re.MULTILINE)
           print(match.group(1).strip() if match else f"Release {tag}\n\nSee CHANGELOG.md for details.")
           PYEOF
 

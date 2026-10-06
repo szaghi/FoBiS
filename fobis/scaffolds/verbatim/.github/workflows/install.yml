@@ -31,6 +31,16 @@ jobs:
         # install.sh skips the cmake build itself when no CMakeLists.txt is present
         ./install.sh --download wget --build cmake
 
+    - name: INSTALL SCRIPT + fobis
+      run: |
+        pipx install FoBiS.py
+        WORKDIR=$(mktemp -d)
+        cd "$WORKDIR"
+        wget $(curl -s https://api.github.com/repos/$GITHUB_REPOSITORY/releases/tags/$TAG | jq -r '.assets[] | select(.name | test("install.sh"; "i")) | .browser_download_url')
+        chmod +x install.sh
+        # fetches the fobos [dependencies], then builds the fobos default mode
+        ./install.sh --download wget --build fobis
+
     - name: Setup fpm
       uses: fortran-lang/setup-fpm@v9
       with:

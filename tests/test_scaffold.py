@@ -920,3 +920,51 @@ def test_patched_missing_file_is_not_created_by_sync(tmp_path):
     dest = next(d for d, e in s.manifest.items() if e["category"] == "patched")
     s.sync(yes=True, files_glob=dest)
     assert not (tmp_path / dest).exists()
+
+
+# ── Release notes: release.yml must find the heading cliff.toml writes ──────
+
+
+def _scaffold_text(rel):
+    from importlib import resources
+
+    return (resources.files("fobis") / "scaffolds" / rel).read_text(encoding="utf-8")
+
+
+def _cliff_heading(tag):
+    """Render the version heading of the scaffolded cliff.toml for `tag`."""
+    import re
+
+    line = next(ln for ln in _scaffold_text("verbatim/cliff.toml").splitlines() if ln.startswith("## [{{ version"))
+    version = tag
+    if 'trim_start_matches(pat="v")' in line:
+        version = tag[1:] if tag.startswith("v") else tag
+    line = re.sub(r"\{\{ version[^}]*\}\}", version, line)
+    return re.sub(r"\{\{ timestamp[^}]*\}\}", "2026-01-31", line)
+
+
+@pytest.mark.parametrize("heading_tag", ["v1.2.3", None])
+def test_release_workflow_extracts_cliff_changelog_section(tmp_path, heading_tag):
+    """The notes script in release.yml must match the version heading that the
+    scaffolded cliff.toml writes (GH #202: cliff.toml strips the tag's "v", the
+    workflow searched for it, every release got the fallback text).  Headings
+    that keep the "v" (heading_tag="v1.2.3") must match as well."""
+    import subprocess
+    import sys
+    import textwrap
+
+    workflow = _scaffold_text("templated/.github/workflows/release.yml")
+    script = textwrap.dedent(workflow.split("<<'PYEOF'\n", 1)[1].split("PYEOF", 1)[0])
+    heading = _cliff_heading("v1.2.3") if heading_tag is None else f"## [{heading_tag}] — 2026-01-31"
+    changelog = tmp_path / "CHANGELOG.md"
+    changelog.write_text(
+        f"# Changelog\n\n{heading}\n\n### Bug fixes\n- Fix the reader\n\n## [1.2.2] — 2026-01-01\n\n### Bug fixes\n- Older fix\n",
+        encoding="utf-8",
+    )
+    out = subprocess.run(
+        [sys.executable, "-", "v1.2.3", str(changelog)], input=script, capture_output=True, text=True, check=True
+    ).stdout
+    assert out.startswith(heading)
+    assert "- Fix the reader" in out
+    assert "Older fix" not in out
+    assert "See CHANGELOG.md for details" not in out
