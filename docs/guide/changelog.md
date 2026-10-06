@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.9.3] — 2026-10-06
+### Fixed
+- **scaffold**: Extract release notes and fetch deps in install.sh
+
+
 ## [3.9.2] — 2026-10-04
 ### Fixed
 - **fetch**: Fast-forward branch deps on --update so the lock tracks the remote head
