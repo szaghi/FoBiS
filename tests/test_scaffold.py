@@ -1036,7 +1036,7 @@ def test_install_workflow_sets_up_build_env_before_any_build():
         assert "pipx" not in steps[i]["run"]
 
 
-# ── install.sh: dependencies are fetched only for the fobis build ────────────
+# ── install.sh: dependencies are fetched once the build is known to happen ───
 
 
 def _install_sh_env(tmp_path, tools):
@@ -1072,7 +1072,8 @@ def _install_sh_release(tmp_path, bindir, project_files):
     with tarfile.open(tarball, "w:gz") as tar:
         tar.add(src, arcname=src.name)
     _stub(bindir, "curl", "echo '{}'")
-    _stub(bindir, "jq", "echo https://example.invalid/proj-1.0.0.tar.gz")
+    # read stdin as the real jq does: exiting first would SIGPIPE curl in `curl | jq` (pipefail -> exit 141)
+    _stub(bindir, "jq", "cat > /dev/null\necho https://example.invalid/proj-1.0.0.tar.gz")
     _stub(bindir, "wget", f'cp "{tarball}" .')
     work = tmp_path / "work"
     work.mkdir()
@@ -1110,13 +1111,48 @@ def test_install_sh_make_without_makefile_needs_no_fobis(tmp_path):
     assert not log.exists()
 
 
-def test_install_sh_make_builds_without_fetching_deps(tmp_path):
+def test_install_sh_make_fetches_deps_then_builds(tmp_path):
+    """A Makefile generated alongside the fobos builds from the fetched sources,
+    which a release tarball does not contain: fetch them before `make`."""
     env, bindir, log = _install_sh_env(tmp_path, ())
+    _stub(bindir, "fobis")
     _stub(bindir, "make")
     work = _install_sh_release(tmp_path, bindir, {"fobos": _FOBOS_WITH_DEPS, "Makefile": "all:\n"})
     res = _run_install_sh(work, env, "--download", "wget", "--build", "make")
     assert res.returncode == 0, res.stderr
+    assert [line.split("/")[-1] for line in log.read_text().splitlines()] == ["fobis fetch", "make "]
+
+
+def test_install_sh_make_with_deps_needs_fobis(tmp_path):
+    """Without fobis the dependencies cannot be fetched: fail with a clear error,
+    not with make's missing-source one."""
+    env, bindir, log = _install_sh_env(tmp_path, ())
+    _stub(bindir, "make")
+    work = _install_sh_release(tmp_path, bindir, {"fobos": _FOBOS_WITH_DEPS, "Makefile": "all:\n"})
+    res = _run_install_sh(work, env, "--download", "wget", "--build", "make")
+    assert res.returncode != 0
+    assert "fobis not found" in res.stderr
+    assert not log.exists()
+
+
+def test_install_sh_make_without_deps_needs_no_fobis(tmp_path):
+    env, bindir, log = _install_sh_env(tmp_path, ())
+    _stub(bindir, "make")
+    work = _install_sh_release(tmp_path, bindir, {"fobos": "[modes]\nmodes = gnu\n", "Makefile": "all:\n"})
+    res = _run_install_sh(work, env, "--download", "wget", "--build", "make")
+    assert res.returncode == 0, res.stderr
     assert [line.split("/")[-1] for line in log.read_text().splitlines()] == ["make "]
+
+
+def test_install_sh_cmake_fetches_deps_then_builds(tmp_path):
+    env, bindir, log = _install_sh_env(tmp_path, ())
+    _stub(bindir, "fobis")
+    _stub(bindir, "cmake")
+    work = _install_sh_release(tmp_path, bindir, {"fobos": _FOBOS_WITH_DEPS, "CMakeLists.txt": "project(p)\n"})
+    res = _run_install_sh(work, env, "--download", "wget", "--build", "cmake")
+    assert res.returncode == 0, res.stderr
+    calls = [line.split("/")[-1] for line in log.read_text().splitlines()]
+    assert calls == ["fobis fetch", "cmake -B build", "cmake --build build"]
 
 
 def test_install_sh_fobis_fetches_deps_then_builds(tmp_path):
