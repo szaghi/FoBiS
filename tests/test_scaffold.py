@@ -407,6 +407,52 @@ def test_init_yes_never_prompts(tmp_path):
     assert any("created" in m for m in messages)
 
 
+_TEMPLATED_PROJECT_OWNED = ("fpm.toml", "docs/ford.md", "docs/.vitepress/config.mts", "fobos")
+
+
+@pytest.mark.parametrize("dest", _TEMPLATED_PROJECT_OWNED)
+def test_init_renders_templated_project_owned_files(tmp_path, dest):
+    """GH #205: init-only/patched entries with a templated/ source are rendered, not copied raw."""
+    s, _ = _make_scaffolder(tmp_path)
+    assert s.manifest[dest]["category"] in ("init-only", "patched")
+    assert s.manifest[dest]["source"].startswith("templated/")
+    s.init(yes=True)
+    text = (tmp_path / dest).read_text(encoding="utf-8")
+    assert s._unrendered(text) == []
+    assert "MyProject" in text
+
+
+def test_status_after_init_reports_no_unrendered(tmp_path):
+    s, messages = _make_scaffolder(tmp_path)
+    s.init(yes=True)
+    assert not any(state == "unrendered" for _, state in s.drift())
+    messages.clear()
+    s.status()
+    assert not any("UNRENDERED" in m for m in messages)
+
+
+@pytest.mark.parametrize("dest", ["fpm.toml", "docs/.vitepress/config.mts"])
+def test_status_flags_unrendered_project_owned_file(tmp_path, dest):
+    """A project-owned file still holding {{VAR}} placeholders is drift, not OK."""
+    s, messages = _make_scaffolder(tmp_path)
+    abs_path = tmp_path / dest
+    abs_path.parent.mkdir(parents=True, exist_ok=True)
+    abs_path.write_text(s._read_template(s.manifest[dest]["source"]), encoding="utf-8")  # raw, as GH #205 wrote it
+    assert (dest, "unrendered") in s.drift(files_glob=dest)
+    messages.clear()
+    s.status(files_glob=dest)
+    assert any("UNRENDERED" in m and "{{NAME}}" in m for m in messages)
+    with pytest.raises(SystemExit):
+        s.status(files_glob=dest, strict=True)
+
+
+def test_unrendered_ignores_github_and_template_engine_expressions(tmp_path):
+    """Only project-variable tokens count: ${{ github.x }} or {{ group }} are not placeholders."""
+    s, _ = _make_scaffolder(tmp_path)
+    assert s._unrendered("${{ github.ref_name }} {{ group }} {{VAR}}") == []
+    assert s._unrendered("name = {{NAME}}, year {{YEAR}}") == ["{{NAME}}", "{{YEAR}}"]
+
+
 # ── Scaffolder.list_files() ───────────────────────────────────────────────────
 
 

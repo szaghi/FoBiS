@@ -33,7 +33,7 @@ Output:
   ...
 ```
 
-Each managed file is reported as `OK`, `OUTDATED`, or `MISSING`.
+Each managed file is reported as `OK`, `OUTDATED`, or `MISSING`. A project-owned file (init-only or patched) that still contains unfilled `{{VAR}}` placeholders is reported as `UNRENDERED`, listing the leftover tokens: fill them in by hand, or delete the file and run `fobis scaffold init` again.
 
 ### Apply updates
 
@@ -94,7 +94,7 @@ Templated files contain `{{VAR}}` placeholders. Before comparing or writing, sca
 
 ### Init-only files
 
-Init-only files are created once by `fobis scaffold init` and then **owned by the project** — `sync` never touches them and `status` reports them `OK` whenever present (never `OUTDATED`), so a repo can freely extend them.
+Init-only files are created once by `fobis scaffold init` and then **owned by the project** — `sync` never touches them and `status` reports them `OK` whenever present (never `OUTDATED`), so a repo can freely extend them. Those with a templated source (`docs/ford.md`, `fpm.toml`, `fobos`) are rendered with the project variables when `init` creates them; the only drift `status` checks for is leftover `{{VAR}}` placeholders (`UNRENDERED`).
 
 | File | Purpose |
 |------|---------|

@@ -336,6 +336,11 @@ class Scaffolder:
     def _sha256(text):
         return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
+    @staticmethod
+    def _read_file(path):
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            return fh.read()
+
     def _file_sha256(self, path):
         if not os.path.exists(path):
             return None
@@ -343,11 +348,17 @@ class Scaffolder:
             return hashlib.sha256(fh.read().encode("utf-8")).hexdigest()
 
     def _get_canonical(self, entry):
-        """Return the canonical content for a manifest entry (rendered if templated)."""
+        """Return the canonical content for a manifest entry (rendered if its source is a template)."""
         raw = self._read_template(entry["source"])
-        if entry["category"] == "templated":
+        # Rendering follows the source, not the category: init-only and patched
+        # entries can have a templated/ source too (fpm.toml, fobos, config.mts).
+        if entry["category"] == "templated" or entry["source"].startswith("templated/"):
             return self._render(raw)
         return raw
+
+    def _unrendered(self, text):
+        """Return the project-variable placeholders left unfilled in *text*, as ``{{VAR}}`` tokens."""
+        return [f"{{{{{key}}}}}" for key in self.vars if f"{{{{{key}}}}}" in text]
 
     def _patch_state(self, text, patch):
         """
@@ -494,8 +505,9 @@ class Scaffolder:
             ``(destination, state)`` pairs, state being one of ``ok``, ``missing``,
             ``symlink`` (not a link to the canonical target), ``manual`` (a config
             fragment needs manual insertion), ``patch`` (a config fragment can be
-            inserted by sync), ``outdated`` and ``skipped`` (owned by the project,
-            never synced: not drift).
+            inserted by sync), ``unrendered`` (a project-owned file still holds
+            ``{{VAR}}`` placeholders), ``outdated`` and ``skipped`` (owned by the
+            project, never synced: not drift).
         """
         states = []
         for dest, entry in self.manifest.items():
@@ -515,6 +527,10 @@ class Scaffolder:
                     states.append((dest, "symlink"))
             elif not os.path.exists(abs_dest):
                 states.append((dest, "missing"))
+            elif entry["category"] in ("init-only", "patched") and self._unrendered(self._read_file(abs_dest)):
+                # Project-owned file never re-synced: placeholders left unfilled
+                # (e.g. written by an init affected by GH #205) are drift.
+                states.append((dest, "unrendered"))
             elif entry["category"] == "init-only":
                 # Present and init-only: never check for drift
                 states.append((dest, "ok"))
@@ -564,6 +580,9 @@ class Scaffolder:
                 self.print_w(f"  MANUAL   {dest} (needs a config fragment — run sync to see it)")
             elif state == "patch":
                 self.print_n(f"  PATCH    {dest} (missing config fragment — run sync)")
+            elif state == "unrendered":
+                tokens = ", ".join(self._unrendered(self._read_file(os.path.join(self.cwd, dest))))
+                self.print_w(f"  UNRENDERED {dest} ({tokens} left unfilled — edit it, or delete it and run init)")
             else:
                 self.print_n(f"  OUTDATED {dest}")
         if strict and any_drift:
