@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.9.8] — 2026-10-08
+### Fixed
+- **scaffold**: Render templated sources of init-only and patched files
+
+
 ## [3.9.7] — 2026-10-06
 ### Fixed
 - **scaffold**: Pin fpm v0.13.0 in the install smoke test
