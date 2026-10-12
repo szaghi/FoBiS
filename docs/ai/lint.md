@@ -1,0 +1,124 @@
+# Linting
+
+`fobis lint` reports bug-prone and obsolescent Fortran constructs: missing `implicit none` and `intent`,
+local variables that are silently `save`d, assumed-size dummies, unchecked `stat=`, common blocks,
+labelled DO loops, deprecated `mpif.h` includes, and more. Every rule is documented in the
+[rule reference](/lint-rules/) and in the terminal with `fobis lint --explain <ID>`.
+
+```bash
+fobis lint                     # the sources of the fobos mode (or ./), default rules
+fobis lint src/solver.F90      # specific files or directories
+fobis lint --mode gnu-mpi      # analyse the code as compiled by that mode
+```
+
+```text
+src/grid.F90:42: COR020 [warning] 'counter' in subroutine 'update' is initialised in its declaration (implicit save)
+src/io.f90:7: OBS020 [warning] include of mpif.h (deprecated): use mpi_f08
+
+2 finding(s) in 31 file(s): COR020 x1, OBS020 x1
+Explain a rule with: fobis lint --explain <ID>
+```
+
+## What is analysed
+
+- **The code your build compiles.** `#if`/`#ifdef` conditionals are resolved with the `-D` defines of the
+  selected fobos mode (from `cflags` and `preproc`), so with `--mode gnu-mpi` the `#ifdef USE_MPI` branch is
+  analysed and the `#else` branch is not. Without a fobos file no macro is defined. A condition beyond
+  the evaluator (a function-like macro) is assumed true and reported as `LNT004` (info).
+- **Free and fixed form**, chosen by file extension (`.f`, `.for`, `.fpp`, `.f77` are fixed form; fixed form
+  ignores columns beyond 72, like the compilers' default).
+- **Which files.** The paths given on the command line; otherwise the `src` directories of the fobos mode
+  (default `./`), honouring the mode's `exclude` and `exclude_dirs`. Fetched dependencies (`.fobis_deps/`)
+  and VCS directories are always skipped: lint your own code, not your dependencies'.
+
+The analysis works statement by statement; it is not a compiler. On syntax it does not recognise it skips
+the statement and continues, so one unusual construct never hides the rest of a file. Macros used inside
+Fortran code (a type spelled `VARTYPE(KKP)`) are not expanded; declarations written with them are still
+recognised.
+
+## Choosing rules
+
+By default the rules marked *default* in the [rule reference](/lint-rules/) run. Select explicitly by id
+or prefix; an explicit selection also enables *opt-in* rules:
+
+```bash
+fobis lint --select OBS                  # only the obsolescent-feature rules
+fobis lint --select COR,OBS011           # comma-separated, or repeat --select
+fobis lint --select ALL --ignore COR040  # everything except use-without-only
+fobis lint --list-rules                  # id, name, severity, default, Fortitude equivalent
+```
+
+A project fixes its choice in the fobos [`[lint]` section](/fobos/lint); command-line `--select` replaces
+the section's `select`, while `--ignore` adds to its `ignore`.
+
+## Suppressing a finding
+
+Silence one occurrence with a comment naming the rule and giving the reason, on the reported statement
+(any of its lines) or alone on the line before it:
+
+```fortran
+real(R8P) :: total = 0._R8P  ! fobis: ignore[COR020] running total across calls is intended
+
+! fobis: ignore[COR011, COR010] C interface: the buffer size is passed separately
+subroutine fill(buf, n) bind(c)
+```
+
+The linter checks its own suppressions: a suppression without a reason is reported (`LNT001`), one that
+no longer silences anything is reported (`LNT002`, it would silently hide a future finding on that line),
+and a misspelled rule id is reported (`LNT003`).
+
+## Adopting the linter on an existing code: the baseline
+
+On a large existing code the first run reports hundreds of findings. Record them as the accepted state,
+then fix them at your own pace while every *new* finding is reported:
+
+```bash
+fobis lint --update-baseline    # writes .fobis-lint-baseline.json; commit it
+fobis lint                      # now reports only findings not in the baseline
+```
+
+```text
+0 finding(s) in 214 file(s), 486 hidden by the baseline
+```
+
+Findings are matched to the baseline by rule, file and the text of the offending statement, not by line
+number: inserting code above a recorded finding does not resurface it, while changing the offending
+statement does. Re-run `--update-baseline` after fixing findings to shrink the file. The baseline path is
+`--baseline FILE`, else `baseline` in the fobos `[lint]` section, else `.fobis-lint-baseline.json`
+(used only when it exists).
+
+## Output formats and CI
+
+| `--format` | Use |
+|------------|-----|
+| `text` (default) | Terminal: `path:line: ID [severity] message` and a summary |
+| `json` | Scripts: findings with rule, name, severity, path, lines, message, fingerprint |
+| `sarif` | [SARIF 2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html): GitHub code scanning, IDE viewers |
+| `github` | GitHub Actions annotations on the pull-request diff |
+
+The exit code is 1 when a warning- or error-level finding remains (or a file cannot be read), 0 otherwise;
+`--exit-zero` always exits 0 (useful when uploading a report).
+
+Annotations on pull requests:
+
+```yaml
+- run: pip install FoBiS.py
+- run: fobis lint --format github
+```
+
+GitHub code scanning (findings tracked across commits in the repository's *Security* tab):
+
+```yaml
+- run: pip install FoBiS.py
+- run: fobis lint --format sarif --exit-zero > fobis-lint.sarif
+- uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: fobis-lint.sarif
+```
+
+## Relation to other tools
+
+The generic rules reimplement, natively and in FoBiS's own words, rules catalogued by
+[Fortitude](https://fortitude.readthedocs.io/); the [rule reference](/lint-rules/#relation-to-fortitude)
+gives the matching Fortitude code of each. Formatting (line length, spacing, keyword case) is deliberately
+out of scope: leave it to a formatter such as fprettify.

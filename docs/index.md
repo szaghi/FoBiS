@@ -40,6 +40,11 @@ features:
     details: Several libraries, each in its own repository, depending on each other? `fobis ecosystem` shows the state of all of them at a glance — releases due, CI, boilerplate drift, stale dependency pins — runs commands across them in dependency order, checks that a local change breaks nothing downstream before you release it, and releases them as a train.
     link: /advanced/ecosystem
     linkText: Ecosystem guide
+  - icon: 🩺
+    title: Fortran linter that sees your build
+    details: "`fobis lint` reports bug-prone and obsolescent constructs — missing `implicit none` and `intent`, silently saved locals, unchecked `stat=`, common blocks, `mpif.h` — analysing the code your fobos mode actually compiles (its `-D` defines decide every `#ifdef`). Inline suppressions with reasons, a baseline for existing codes, SARIF for GitHub code scanning."
+    link: /ai/lint
+    linkText: Linting guide
   - icon: 🔬
     title: Introspective doctests
     details: Embed micro-unit-tests directly inside Fortran comment docstrings. FoBiS generates, compiles, and runs volatile test programs automatically — inspired by Python's doctest module, no test harness needed.

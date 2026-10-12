@@ -1976,6 +1976,26 @@ class Fobos:
                 config["timeout"] = int(self.fobos.get("test", "timeout"))
         return config
 
+    def get_lint_config(self) -> dict[str, Any]:
+        """
+        Read the optional ``[lint]`` section (``fobis lint`` settings).
+
+        Returns
+        -------
+        dict
+            ``select`` and ``ignore`` (lists of rule ids or prefixes; values are comma- or
+            whitespace-separated), ``baseline`` (baseline file path, '' when unset).
+        """
+        config: dict[str, Any] = {"select": [], "ignore": [], "baseline": ""}
+        if not self.fobos or not self.fobos.has_section("lint"):
+            return config
+        for key in ("select", "ignore"):
+            if self.fobos.has_option("lint", key):
+                config[key] = self.fobos.get("lint", key).replace(",", " ").split()
+        if self.fobos.has_option("lint", "baseline"):
+            config["baseline"] = self.fobos.get("lint", "baseline").strip()
+        return config
+
     def rules_list(self, quiet: bool = False) -> None:
         """
         Function for listing defined rules.

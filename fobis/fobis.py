@@ -98,6 +98,8 @@ def run_fobis(fake_args=None):
             run_fobis_run(configuration)
         if configuration.cliargs.which == "check":
             run_fobis_check(configuration)
+        if configuration.cliargs.which == "lint":
+            run_fobis_lint(configuration)
         if configuration.cliargs.which == "test":
             run_fobis_test(configuration)
         if configuration.cliargs.which == "introspect":
@@ -1572,6 +1574,98 @@ def run_fobis_check(configuration):
         sys.exit(1)
     else:
         configuration.print_b(f"Dependency check: OK ({len(pfiles)} files scanned, 0 errors)")
+
+
+DEFAULT_LINT_BASELINE = ".fobis-lint-baseline.json"
+
+
+def _split_selectors(values) -> list[str]:
+    """Flatten repeatable, comma-separated rule selectors."""
+    return [item for value in values or [] for item in value.replace(",", " ").split()]
+
+
+def run_fobis_lint(configuration):
+    """
+    Run FoBiS in lint mode: report bug-prone and obsolescent Fortran constructs.
+
+    Sources are those given on the command line, else the fobos mode's source directories; conditional
+    compilation is resolved with the mode's ``-D`` flags. Findings recorded in the baseline file (``--baseline``,
+    fobos ``[lint] baseline``, else ``.fobis-lint-baseline.json`` when present) are not reported.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    from .analysis import parse_defines
+    from .lint import (
+        FORMATS,
+        RULES,
+        BaselineError,
+        apply_baseline,
+        discover_files,
+        lint_files,
+        load_baseline,
+        render,
+        render_rule_list,
+        select_rules,
+        write_baseline,
+    )
+
+    cliargs = configuration.cliargs
+    if cliargs.lint_list_rules:
+        print(render_rule_list())
+        return
+    if cliargs.lint_explain:
+        rid = cliargs.lint_explain.strip().upper()
+        if rid not in RULES:
+            configuration.print_r(f"Error: unknown rule '{cliargs.lint_explain}' (see fobis lint --list-rules)")
+            sys.exit(1)
+        print(RULES[rid].explain())
+        return
+    if cliargs.lint_format not in FORMATS:
+        configuration.print_r(f"Error: unknown format '{cliargs.lint_format}': use one of {', '.join(FORMATS)}")
+        sys.exit(1)
+    lint_cfg = configuration.fobos.get_lint_config()
+    try:
+        rules = select_rules(
+            _split_selectors(cliargs.lint_select) or lint_cfg["select"],
+            _split_selectors(cliargs.lint_ignore) + lint_cfg["ignore"],
+        )
+    except ValueError as exc:
+        configuration.print_r(f"Error: {exc} (see fobis lint --list-rules)")
+        sys.exit(1)
+
+    files = discover_files(
+        cliargs.lint_paths or cliargs.src,
+        extensions=cliargs.extensions,
+        exclude=cliargs.exclude,
+        exclude_dirs=cliargs.exclude_dirs,
+        recursive=not cliargs.disable_recursive_search,
+    )
+    result = lint_files(
+        files,
+        rules,
+        defines=parse_defines(_merged_preproc_flags(cliargs)),
+        openmp=bool(getattr(cliargs, "openmp", False)),
+    )
+
+    baseline = cliargs.lint_baseline or lint_cfg["baseline"] or DEFAULT_LINT_BASELINE
+    if cliargs.lint_update_baseline:
+        count = write_baseline(baseline, result.findings)
+        configuration.print_b(f"Baseline {baseline}: {count} finding(s) recorded")
+        return
+    try:
+        apply_baseline(result, load_baseline(baseline))
+    except BaselineError as exc:
+        configuration.print_r(f"Error: {exc}")
+        sys.exit(1)
+
+    output = render(result, cliargs.lint_format)
+    if output:
+        print(output)
+    failing = [f for f in result.findings if f.severity in ("error", "warning")]
+    if (failing or result.unreadable) and not cliargs.lint_exit_zero:
+        sys.exit(1)
 
 
 def run_fobis_test(configuration):

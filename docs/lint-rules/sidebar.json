@@ -1,0 +1,161 @@
+[
+  {
+    "text": "Lint Rules",
+    "items": [
+      {
+        "text": "Overview",
+        "link": "/lint-rules/"
+      }
+    ]
+  },
+  {
+    "text": "Correctness (COR)",
+    "collapsed": true,
+    "items": [
+      {
+        "text": "COR001 implicit-typing",
+        "link": "/lint-rules/COR001"
+      },
+      {
+        "text": "COR002 interface-implicit-typing",
+        "link": "/lint-rules/COR002"
+      },
+      {
+        "text": "COR003 implicit-external-procedures",
+        "link": "/lint-rules/COR003"
+      },
+      {
+        "text": "COR010 missing-intent",
+        "link": "/lint-rules/COR010"
+      },
+      {
+        "text": "COR011 assumed-size",
+        "link": "/lint-rules/COR011"
+      },
+      {
+        "text": "COR020 initialisation-in-declaration",
+        "link": "/lint-rules/COR020"
+      },
+      {
+        "text": "COR021 pointer-initialisation-in-declaration",
+        "link": "/lint-rules/COR021"
+      },
+      {
+        "text": "COR030 external-procedure",
+        "link": "/lint-rules/COR030"
+      },
+      {
+        "text": "COR031 procedure-not-in-module",
+        "link": "/lint-rules/COR031"
+      },
+      {
+        "text": "COR040 use-all",
+        "link": "/lint-rules/COR040"
+      },
+      {
+        "text": "COR041 missing-intrinsic",
+        "link": "/lint-rules/COR041"
+      },
+      {
+        "text": "COR050 missing-accessibility-statement",
+        "link": "/lint-rules/COR050"
+      },
+      {
+        "text": "COR060 unchecked-stat",
+        "link": "/lint-rules/COR060"
+      },
+      {
+        "text": "COR061 multiple-allocations-with-stat",
+        "link": "/lint-rules/COR061"
+      }
+    ]
+  },
+  {
+    "text": "Obsolescent (OBS)",
+    "collapsed": true,
+    "items": [
+      {
+        "text": "OBS001 common-block",
+        "link": "/lint-rules/OBS001"
+      },
+      {
+        "text": "OBS002 equivalence-statement",
+        "link": "/lint-rules/OBS002"
+      },
+      {
+        "text": "OBS003 block-data",
+        "link": "/lint-rules/OBS003"
+      },
+      {
+        "text": "OBS004 entry-statement",
+        "link": "/lint-rules/OBS004"
+      },
+      {
+        "text": "OBS005 specific-intrinsic-name",
+        "link": "/lint-rules/OBS005"
+      },
+      {
+        "text": "OBS006 computed-go-to",
+        "link": "/lint-rules/OBS006"
+      },
+      {
+        "text": "OBS007 pause-statement",
+        "link": "/lint-rules/OBS007"
+      },
+      {
+        "text": "OBS008 deprecated-character-syntax",
+        "link": "/lint-rules/OBS008"
+      },
+      {
+        "text": "OBS009 forall",
+        "link": "/lint-rules/OBS009"
+      },
+      {
+        "text": "OBS010 arithmetic-if",
+        "link": "/lint-rules/OBS010"
+      },
+      {
+        "text": "OBS011 labelled-do-loop",
+        "link": "/lint-rules/OBS011"
+      },
+      {
+        "text": "OBS012 shared-do-termination",
+        "link": "/lint-rules/OBS012"
+      },
+      {
+        "text": "OBS013 bad-do-termination",
+        "link": "/lint-rules/OBS013"
+      },
+      {
+        "text": "OBS020 deprecated-mpi-include",
+        "link": "/lint-rules/OBS020"
+      },
+      {
+        "text": "OBS021 deprecated-omp-include",
+        "link": "/lint-rules/OBS021"
+      }
+    ]
+  },
+  {
+    "text": "Linter (LNT)",
+    "collapsed": true,
+    "items": [
+      {
+        "text": "LNT001 suppression-without-reason",
+        "link": "/lint-rules/LNT001"
+      },
+      {
+        "text": "LNT002 unused-suppression",
+        "link": "/lint-rules/LNT002"
+      },
+      {
+        "text": "LNT003 unknown-rule-in-suppression",
+        "link": "/lint-rules/LNT003"
+      },
+      {
+        "text": "LNT004 preprocessor-assumption",
+        "link": "/lint-rules/LNT004"
+      }
+    ]
+  }
+]

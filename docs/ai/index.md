@@ -1,0 +1,25 @@
+# Analysis & AI
+
+FoBiS knows more about a Fortran project than any generic tool: every source file, the module dependency
+graph, the build modes with their compiler, flags and `-D` defines, and the git history. The analysis
+features use that knowledge in layers.
+
+| Layer | What it does | Needs a model? | Commands |
+|-------|--------------|----------------|----------|
+| **Rules** | Deterministic checks of the sources: bug-prone and obsolescent constructs | No | [`fobis lint`](/ai/lint) |
+| **Knowledge** | Reference material distilled from the Fortran, MPI, OpenMP and OpenACC standards, used to ground explanations | No | *planned* |
+| **LLM assistance** | Generation and explanation on top of the two layers above | Yes | [`fobis commit`](/advanced/commit) |
+
+## Trust tiers
+
+A finding from a rule is reproducible: the same code always gives the same result, every rule has
+documentation and test cases, and rule findings can fail a CI job. Anything produced by a language model
+is advisory: it is labelled as such and never fails a build unless you explicitly ask for it.
+
+## Commands available today
+
+| Job | Command |
+|-----|---------|
+| Find bug-prone and obsolescent constructs | [`fobis lint`](/ai/lint) |
+| Read why a rule matters | `fobis lint --explain COR020`, or the [rule reference](/lint-rules/) |
+| Write a Conventional Commits message for the staged changes | [`fobis commit`](/advanced/commit) |

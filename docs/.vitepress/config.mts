@@ -1,4 +1,6 @@
 import { defineConfig } from 'vitepress'
+// Generated with the rule pages by docs/scripts/gen_lint_rules.py
+import lintRulesSidebar from '../lint-rules/sidebar.json'
 
 export default defineConfig({
   title: 'FoBiS.py',
@@ -52,6 +54,14 @@ export default defineConfig({
       { text: 'fobos',     link: '/fobos/' },
       { text: 'Reference', link: '/reference/build' },
       { text: 'Advanced',  link: '/advanced/' },
+      {
+        text: 'Analysis',
+        items: [
+          { text: 'Analysis & AI', link: '/ai/' },
+          { text: 'Linting',       link: '/ai/lint' },
+          { text: 'Lint Rules',    link: '/lint-rules/' },
+        ],
+      },
       { text: 'Ecosystem', link: '/advanced/ecosystem' },
       { text: 'Examples',  link: '/examples/' },
       { text: 'GitHub',    link: 'https://github.com/szaghi/FoBiS' },
@@ -116,6 +126,7 @@ export default defineConfig({
             { text: 'Coverage',            link: '/reference/coverage' },
             { text: 'External Libraries',  link: '/advanced/externals' },
             { text: 'Build Profiles',      link: '/advanced/build-profiles' },
+            { text: 'Lint',                link: '/fobos/lint' },
           ],
         },
       ],
@@ -149,10 +160,37 @@ export default defineConfig({
             { text: 'rule',     link: '/reference/rule' },
             { text: 'doctests', link: '/reference/doctests' },
             { text: 'scaffold', link: '/reference/scaffold' },
+          ],
+        },
+        {
+          text: 'Analysis & AI',
+          items: [
+            { text: 'lint',     link: '/reference/lint' },
             { text: 'commit',   link: '/reference/commit' },
           ],
         },
       ],
+
+      '/ai/': [
+        {
+          text: 'Analysis & AI',
+          items: [
+            { text: 'Overview',          link: '/ai/' },
+            { text: 'Linting',           link: '/ai/lint' },
+            { text: 'Lint Rules',        link: '/lint-rules/' },
+            { text: 'LLM Commit Messages', link: '/advanced/commit' },
+          ],
+        },
+        {
+          text: 'Reference',
+          items: [
+            { text: 'lint command',      link: '/reference/lint' },
+            { text: '[lint] section',    link: '/fobos/lint' },
+          ],
+        },
+      ],
+
+      '/lint-rules/': lintRulesSidebar,
 
       '/advanced/': [
         {

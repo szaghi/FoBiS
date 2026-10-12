@@ -36,6 +36,7 @@ from . import (  # noqa: F401
     fetch,
     install,
     introspect,
+    lint,
     rule,
     run,
     scaffold,
