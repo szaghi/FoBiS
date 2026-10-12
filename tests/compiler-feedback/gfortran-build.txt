@@ -1,0 +1,44 @@
+Builder options
+  Directories
+    Root of source files directory: "src"
+    Building directory: "build-gnu"
+    Compiled-objects .o   directory: "build-gnu/obj"
+    Compiled-objects .mod directory: "build-gnu/mod"
+  Compiler options
+    Vendor: "gnu"
+    Compiler command: "gfortran"
+    Module directory switch: "-J"
+    Compiling flags: "-c -O2 -fopt-info-vec-missed"
+    Linking flags: ""
+    Preprocessing flags: ""
+    Coverage: False
+    Profile: False
+  Archiver: ar -rcs
+  Ranlib: ranlib
+  Preprocessor used: None
+  Preprocessor args: 
+  Preprocessor output directory: None
+  Preprocessor extensions processed: []
+
+Building src/main.f90
+Compiling src/kernels.f90 serially
+src/kernels.f90:19:8: missed: couldn't vectorize loop
+src/kernels.f90:20:24: missed: not vectorized: no vectype for stmt: _4 = (*y_12(D))[_3];
+ scalar_type: real(kind=4)
+
+Compiling src/main.f90 serially
+src/main.f90:12:6: missed: couldn't vectorize loop
+src/main.f90:13:35: missed: not vectorized: no vectype for stmt: _4 = y[_3];
+ scalar_type: real(kind=4)
+src/main.f90:8:26: missed: statement clobbers memory: axpy (&C.4693, &C.4694, &x, &y);
+src/main.f90:9:18: missed: statement clobbers memory: scan (&C.4698, &y);
+src/main.f90:10:21: missed: statement clobbers memory: omp_off (&C.4701, &y);
+src/main.f90:15:15: missed: statement clobbers memory: _gfortran_st_write (&dt_parm.3);
+src/main.f90:15:15: missed: statement clobbers memory: _gfortran_transfer_real_write (&dt_parm.3, &D.4713, 4);
+src/main.f90:15:15: missed: statement clobbers memory: _gfortran_st_write_done (&dt_parm.3);
+src/main.f90:2:24: missed: statement clobbers memory: _gfortran_set_args (argc_2(D), argv_3(D));
+src/main.f90:2:24: missed: statement clobbers memory: _gfortran_set_options (7, &options.6[0]);
+src/main.f90:2:24: missed: statement clobbers memory: MAIN__ ();
+
+Linking build-gnu/main
+Target src/main.f90 has been successfully built

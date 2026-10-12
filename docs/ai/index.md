@@ -23,4 +23,6 @@ is advisory: it is labelled as such and never fails a build unless you explicitl
 | Find bug-prone and obsolescent constructs, data races and GPU/MPI pitfalls | [`fobis lint`](/ai/lint) |
 | Read why a rule matters | `fobis lint --explain COR020`, or the [rule reference](/lint-rules/) |
 | Look up a standard's rule or an HPC pitfall | [`fobis kb search "firstprivate associate"`](/ai/knowledge-packs) |
+| Confirm GPU data movement and sequential loops with the compiler's own report | [`fobis lint --compiler-feedback build.log`](/ai/lint#compiler-feedback) |
+| Let an AI agent lint, search the packs, build and test | [`fobis mcp`](/ai/mcp) |
 | Write a Conventional Commits message for the staged changes | [`fobis commit`](/advanced/commit) |

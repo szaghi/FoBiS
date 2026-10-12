@@ -44,6 +44,11 @@ def render_text(result: LintResult) -> str:
         summary += f", {len(result.skipped)} C header(s) skipped"
     if counts:
         summary += ": " + ", ".join(f"{rid} x{n}" for rid, n in sorted(counts.items()))
+    if result.feedback_messages:
+        summary += f"\nCompiler feedback: {result.feedback_messages} message(s) read"
+        if result.feedback_unattributed:
+            summary += f", {result.feedback_unattributed} not attributable to a linted file"
+    if counts:
         summary += "\nExplain a rule with: fobis lint --explain <ID>"
     return "\n".join([*lines, "", summary] if lines else [summary])
 

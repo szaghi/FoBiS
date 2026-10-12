@@ -50,9 +50,10 @@ def main():
 
         _app()
         return
-    # ``ecosystem`` streams the output of long multi-repo runs and asks for confirmations: the
-    # CliRunner of FoBiSConfig would buffer the former and abort the latter, so run it directly.
-    if sys.argv[1:2] == ["ecosystem"]:
+    # ``ecosystem`` streams the output of long multi-repo runs and asks for confirmations, ``mcp`` speaks
+    # JSON-RPC on stdin/stdout: the CliRunner of FoBiSConfig would buffer stdout and replace stdin, so run
+    # them directly.
+    if sys.argv[1:2] in (["ecosystem"], ["mcp"]):
         from .cli import app as _app
 
         _app(prog_name=os.path.basename(sys.argv[0]))
@@ -1613,6 +1614,29 @@ def _lint_fixes(findings, write: bool, print_n) -> list:
     return [f for f in findings if not (write and f.fixes)]
 
 
+def _read_feedback_log(path: str, cliargs, configuration) -> str:
+    """Text of the compiler-feedback build log *path* ('-' = stdin); exit with a how-to when missing."""
+    from .lint.feedback import REPORT_FLAGS
+
+    if path == "-":
+        return sys.stdin.read()
+    if os.path.isfile(path):
+        with open(path, encoding="utf-8", errors="replace") as handle:
+            return handle.read()
+    compiler = getattr(cliargs, "compiler", "") or ""
+    flags = REPORT_FLAGS.get(compiler)
+    mode = f" --mode {cliargs.mode}" if getattr(cliargs, "mode", None) else ""
+    if flags:
+        hint = (
+            f'produce it with:\n  fobis build{mode} --cflags "{flags}" -j 1 --force-compile --no-cache'
+            f" 2>&1 | tee {path}"
+        )
+    else:
+        hint = f"compiler '{compiler}' is not supported (supported: nvfortran, gnu)"
+    configuration.print_r(f"Error: compiler feedback log '{path}' not found; {hint}")
+    sys.exit(1)
+
+
 def run_fobis_lint(configuration):
     """
     Run FoBiS in lint mode: report bug-prone and obsolescent Fortran constructs.
@@ -1664,6 +1688,10 @@ def run_fobis_lint(configuration):
         configuration.print_r(f"Error: {exc} (see fobis lint --list-rules)")
         sys.exit(1)
 
+    feedback = None
+    if cliargs.lint_compiler_feedback:
+        feedback = _read_feedback_log(cliargs.lint_compiler_feedback, cliargs, configuration)
+
     files = discover_files(
         cliargs.lint_paths or cliargs.src,
         extensions=cliargs.extensions,
@@ -1676,6 +1704,7 @@ def run_fobis_lint(configuration):
         rules,
         defines=parse_defines(_merged_preproc_flags(cliargs)),
         openmp=bool(getattr(cliargs, "openmp", False)),
+        feedback=feedback,
     )
 
     baseline = cliargs.lint_baseline or lint_cfg["baseline"] or DEFAULT_LINT_BASELINE

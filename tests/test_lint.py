@@ -375,7 +375,8 @@ def test_rule_cases(rule_id, code, expected):
 def test_every_rule_has_a_positive_case():
     covered = {rule_id for rule_id, _, expected in CASES if expected}
     engine_rules = {"LNT001", "LNT002", "LNT003", "LNT004"}  # tested below
-    assert set(RULES) - engine_rules <= covered
+    feedback_rules = {"ACC001", "ACC012", "OMP008", "PRF001"}  # tested in test_feedback.py on real logs
+    assert set(RULES) - engine_rules - feedback_rules <= covered
 
 
 def test_rules_are_documented_consistently():

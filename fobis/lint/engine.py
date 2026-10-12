@@ -28,6 +28,7 @@ from dataclasses import dataclass, field
 
 from ..analysis import FileUnits, SourceFile, Suppression, build_units, lex, read_source
 from ..analysis.project import ProjectIndex, build_index
+from .feedback import FeedbackMessage, attribute, parse_log
 from .rule import RULES, Finding, Hit, LintContext, Rule, rule
 
 BASELINE_VERSION = 1
@@ -120,6 +121,8 @@ class LintResult:
     unreadable: list[tuple[str, str]] = field(default_factory=list)
     baselined: int = 0
     skipped: list[str] = field(default_factory=list)
+    feedback_messages: int = 0
+    feedback_unattributed: int = 0
 
 
 def _statement_span(source: SourceFile, sup: Suppression) -> tuple[int, int]:
@@ -173,11 +176,13 @@ def analyse(
     return build_units(lex(text, path=path, defines=defines, openmp=openmp, fixed_line_length=fixed_line_length))
 
 
-def check_units(units: FileUnits, rules: Iterable[Rule], project: ProjectIndex) -> list[Finding]:
-    """Run *rules* on one analysed file; suppressions are applied, the baseline is not."""
+def check_units(
+    units: FileUnits, rules: Iterable[Rule], project: ProjectIndex, feedback: list[FeedbackMessage] | None = None
+) -> list[Finding]:
+    """Run *rules* on one analysed file (with its compiler *feedback*); suppressions applied, baseline not."""
     rules = list(rules)
     source = units.source
-    ctx = LintContext(path=source.path, source=source, units=units, project=project)
+    ctx = LintContext(path=source.path, source=source, units=units, project=project, feedback=list(feedback or []))
     findings = []
     for rul in rules:
         if rul.id in _ENGINE_RULES:
@@ -260,11 +265,13 @@ def lint_files(
     defines: dict[str, str] | None = None,
     openmp: bool = False,
     fixed_line_length: int | None = 72,
+    feedback: str | None = None,
 ) -> LintResult:
     """Lint *files* as one project; findings carry display paths (see `display_path`).
 
     Every file is analysed first, so that cross-file rules see the whole project (see
-    `fobis.analysis.project`).
+    `fobis.analysis.project`). *feedback* is the text of a build log with compiler optimisation reports
+    (see `fobis.lint.feedback`); its messages feed the rules that need them.
     """
     rules = list(rules)
     result = LintResult()
@@ -280,9 +287,16 @@ def lint_files(
             continue
         analysed.append(analyse(text, display_path(path), defines, openmp, fixed_line_length))
     project = build_index(analysed)
+    by_path: dict[str, list[FeedbackMessage]] = {}
+    if feedback is not None:
+        messages = parse_log(feedback)
+        attribution = attribute(messages, analysed, project)
+        by_path = attribution.by_path
+        result.feedback_messages = len(messages)
+        result.feedback_unattributed = len(attribution.unattributed)
     for units in analysed:
         result.files += 1
-        result.findings.extend(check_units(units, rules, project))
+        result.findings.extend(check_units(units, rules, project, by_path.get(units.source.path)))
     return result
 
 

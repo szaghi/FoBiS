@@ -16,6 +16,7 @@ parallel, timers read before `!$acc wait`, MPI requests never completed. Every r
 | `OMP` | OpenMP: shared scalars written in parallel regions, missing reductions, `collapse`, MPI thread level |
 | `ACC` | OpenACC: missing `!$acc routine`, atomics in device code, `declare create` reductions, async timing |
 | `MPI` | MPI: non-blocking requests never completed |
+| `PRF` | Performance reported by the compiler (needs `--compiler-feedback`) |
 | `LNT` | The linter's own suppressions and preprocessor assumptions |
 
 ```bash
@@ -73,6 +74,41 @@ Their limits:
 
 When a finding is wrong for a reason the linter cannot see, suppress it with the reason (below): the
 reason documents why the code is safe.
+
+## Compiler feedback
+
+The compiler knows things the source does not show: which arrays an OpenACC region copies implicitly at
+every launch, which device loop it had to run sequentially, which OpenMP target maps it generated, which
+loops it could not vectorise. `--compiler-feedback` reads the compiler's own optimisation report from a
+build log and reports it as findings on your source lines, next to the other rules:
+
+```bash
+# 1. build once with the report flags (one job: messages of different files must not interleave)
+fobis build --mode nvidia --cflags "-Minfo=accel,mp" -j 1 --force-compile --no-cache 2>&1 | tee build.log
+# 2. lint with the report
+fobis lint --mode nvidia --compiler-feedback build.log
+```
+
+```text
+src/kernels.f90:9: ACC001 [warning] implicit data movement for the compute region: copyin(x(:n)), copy(y(:n))
+src/kernels.f90:19: ACC012 [warning] loop runs sequentially on the device: loop-carried dependence of y
+src/kernels.f90:29: OMP008 [warning] implicit map(tofrom:y(:)) for the target region
+```
+
+| Compiler | Report flags | Rules fed |
+|----------|--------------|-----------|
+| nvfortran | `-Minfo=accel,mp` | `ACC001` implicit data movement, `ACC012` sequential device loop, `OMP008` implicit target map |
+| gfortran | `-fopt-info-vec-missed` | `PRF001` loop not vectorized (opt-in: `--select PRF001`) |
+
+FoBiS does not run this build for you: a feedback build writes objects, and with a fobos mode the mode's
+`build_dir` wins over `--build-dir`, so it would overwrite your build tree. When the log is missing,
+`fobis lint` prints the exact command for the mode's compiler. nvfortran names procedures, not files: each
+message is attributed through the project's procedures (and, for a name defined in several files, through
+the `Compiling ...` lines of the log); a message that cannot be attributed unambiguously is counted in the
+summary, never guessed. `-` reads the log from standard input.
+
+These rules see the code the compiler built with *those* flags: a finding refers to the build configuration
+of the log, so lint with the same `--mode`.
 
 ## Automatic fixes
 

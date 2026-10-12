@@ -1,0 +1,49 @@
+Builder options
+  Directories
+    Root of source files directory: "src"
+    Building directory: "build-nv"
+    Compiled-objects .o   directory: "build-nv/obj"
+    Compiled-objects .mod directory: "build-nv/mod"
+  Compiler options
+    Vendor: "nvfortran"
+    Compiler command: "nvfortran"
+    Module directory switch: "-module"
+    Compiling flags: "-c -acc -mp=gpu -gpu=cc80 -Minfo=accel,mp"
+    Linking flags: "-acc -mp=gpu -gpu=cc80"
+    Preprocessing flags: ""
+    Coverage: False
+    Profile: False
+  Archiver: ar -rcs
+  Ranlib: ranlib
+  Preprocessor used: None
+  Preprocessor args: 
+  Preprocessor output directory: None
+  Preprocessor extensions processed: []
+
+Building src/main.f90
+Compiling src/kernels.f90 serially
+axpy:
+      9, Generating implicit firstprivate(n)
+         Generating NVIDIA GPU code
+         10, !$acc loop gang, vector(128) ! blockidx%x threadidx%x
+      9, Generating implicit copyin(x(:n)) [if not already present]
+         Generating implicit copy(y(:n)) [if not already present]
+     10, Generating implicit firstprivate(a)
+scan:
+     18, Generating implicit copyout(y(2:n)) [if not already present]
+         Generating implicit copyin(y(:n)) [if not already present]
+     19, Loop carried dependence of y prevents parallelization
+         Loop carried backward dependence of y prevents vectorization
+         Accelerator serial kernel generated
+         Generating NVIDIA GPU code
+         19, !$acc loop seq
+     19, Loop carried dependence of y prevents parallelization
+         Loop carried backward dependence of y prevents vectorization
+omp_off:
+     29, !$omp target teams distribute parallel do
+         29, Generating "nvkernel_k_omp_off__F1L29_2" GPU kernel
+     29, Generating implicit map(tofrom:y(:)) 
+
+Compiling src/main.f90 serially
+Linking build-nv/main
+Target src/main.f90 has been successfully built

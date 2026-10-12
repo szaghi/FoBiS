@@ -1,0 +1,17 @@
+[modes]
+modes = nv gnu
+
+[nv]
+compiler = nvfortran
+cflags = -c -acc -mp=gpu -gpu=cc80
+lflags = -acc -mp=gpu -gpu=cc80
+src = ./src/
+target = main.f90
+build_dir = ./build-nv/
+
+[gnu]
+compiler = gnu
+cflags = -c -O2
+src = ./src/
+target = main.f90
+build_dir = ./build-gnu/

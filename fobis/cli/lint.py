@@ -47,6 +47,13 @@ def cmd_lint(
         bool,
         typer.Option("--update-baseline", help="Record all current findings into the baseline file and exit."),
     ] = False,
+    compiler_feedback: Annotated[
+        str | None,
+        typer.Option(
+            "--compiler-feedback",
+            help="Build log with compiler optimisation reports (nvfortran -Minfo, gfortran -fopt-info); '-' reads stdin.",
+        ),
+    ] = None,
     diff: Annotated[
         bool,
         typer.Option("--diff", help="Print the automatic fixes as a unified diff; change nothing."),
@@ -82,6 +89,7 @@ def cmd_lint(
         lint_update_baseline=update_baseline,
         lint_exit_zero=exit_zero,
         lint_diff=diff,
+        lint_compiler_feedback=compiler_feedback,
         lint_fix=fix,
         lint_list_rules=list_rules,
         lint_explain=explain,

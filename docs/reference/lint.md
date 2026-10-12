@@ -19,6 +19,7 @@ Guide: [Linting](/ai/lint). Rules: [Lint Rules](/lint-rules/).
 | `--format FMT` | `text` (default), `json`, `sarif` or `github` |
 | `--baseline FILE` | Baseline file: findings recorded there are not reported [default: fobos `baseline`, else `.fobis-lint-baseline.json` when present] |
 | `--update-baseline` | Record all current findings into the baseline file and exit |
+| `--compiler-feedback LOG` | Build log with compiler optimisation reports (nvfortran `-Minfo=accel,mp`, gfortran `-fopt-info-vec-missed`) feeding the `ACC001`, `ACC012`, `OMP008`, `PRF001` rules; `-` reads standard input. See [Compiler feedback](/ai/lint#compiler-feedback) |
 | `--diff` | Print the automatic fixes of the reported findings as a unified diff; change nothing |
 | `--fix` | Apply the automatic fixes to the files, then report the findings that remain |
 | `--exit-zero` | Exit 0 even when findings are reported |

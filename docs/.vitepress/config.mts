@@ -61,6 +61,7 @@ export default defineConfig({
           { text: 'Linting',       link: '/ai/lint' },
           { text: 'Lint Rules',    link: '/lint-rules/' },
           { text: 'Knowledge Packs', link: '/ai/knowledge-packs' },
+          { text: 'MCP Server',    link: '/ai/mcp' },
         ],
       },
       { text: 'Ecosystem', link: '/advanced/ecosystem' },
@@ -168,6 +169,7 @@ export default defineConfig({
           items: [
             { text: 'lint',     link: '/reference/lint' },
             { text: 'kb',       link: '/reference/kb' },
+            { text: 'mcp',      link: '/ai/mcp' },
             { text: 'commit',   link: '/reference/commit' },
           ],
         },
@@ -181,6 +183,7 @@ export default defineConfig({
             { text: 'Linting',           link: '/ai/lint' },
             { text: 'Lint Rules',        link: '/lint-rules/' },
             { text: 'Knowledge Packs',   link: '/ai/knowledge-packs' },
+            { text: 'MCP Server',        link: '/ai/mcp' },
             { text: 'LLM Commit Messages', link: '/advanced/commit' },
           ],
         },

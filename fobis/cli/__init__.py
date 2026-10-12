@@ -37,6 +37,7 @@ from . import (  # noqa: F401
     install,
     introspect,
     lint,
+    mcp,
     rule,
     run,
     scaffold,

@@ -241,6 +241,10 @@
       {
         "text": "OMP007 mpi-in-threaded-region-without-thread-support",
         "link": "/lint-rules/OMP007"
+      },
+      {
+        "text": "OMP008 implicit-target-map",
+        "link": "/lint-rules/OMP008"
       }
     ]
   },
@@ -248,6 +252,10 @@
     "text": "OpenACC (ACC)",
     "collapsed": true,
     "items": [
+      {
+        "text": "ACC001 implicit-data-movement",
+        "link": "/lint-rules/ACC001"
+      },
       {
         "text": "ACC002 atomic-in-compute-region",
         "link": "/lint-rules/ACC002"
@@ -271,6 +279,10 @@
       {
         "text": "ACC011 acc-collapse-imperfect-nest",
         "link": "/lint-rules/ACC011"
+      },
+      {
+        "text": "ACC012 sequential-device-loop",
+        "link": "/lint-rules/ACC012"
       }
     ]
   },
@@ -281,6 +293,16 @@
       {
         "text": "MPI001 request-never-completed",
         "link": "/lint-rules/MPI001"
+      }
+    ]
+  },
+  {
+    "text": "Performance (PRF)",
+    "collapsed": true,
+    "items": [
+      {
+        "text": "PRF001 loop-not-vectorized",
+        "link": "/lint-rules/PRF001"
       }
     ]
   },

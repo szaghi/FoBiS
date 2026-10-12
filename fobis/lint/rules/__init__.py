@@ -19,6 +19,6 @@
 
 from __future__ import annotations
 
-from . import correctness, fortran, modernisation, obsolescent, parallel
+from . import correctness, feedback, fortran, modernisation, obsolescent, parallel
 
-__all__ = ["correctness", "fortran", "modernisation", "obsolescent", "parallel"]
+__all__ = ["correctness", "feedback", "fortran", "modernisation", "obsolescent", "parallel"]

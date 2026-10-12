@@ -6,7 +6,7 @@ title: Lint Rules
 
 # Lint Rules
 
-`fobis lint` has 61 rules. Rules marked *default* run unless a selection is given;
+`fobis lint` has 65 rules. Rules marked *default* run unless a selection is given;
 *opt-in* rules run only when selected (`--select COR003`, a prefix like `--select COR`, or `ALL`).
 Run `fobis lint --explain <ID>` for the same documentation in the terminal. How to run, select and
 suppress rules: [Linting](/ai/lint).
@@ -90,23 +90,32 @@ suppress rules: [Linting](/ai/lint).
 | [OMP002](/lint-rules/OMP002) | `accumulation-without-reduction` | warning | yes | - | A shared scalar is accumulated inside an OpenMP parallel region without `reduction`. |
 | [OMP003](/lint-rules/OMP003) | `collapse-imperfect-nest` | error | yes | - | `collapse(n)` on OpenMP loops that are not tightly nested. |
 | [OMP007](/lint-rules/OMP007) | `mpi-in-threaded-region-without-thread-support` | warning | yes | - | MPI is called inside an OpenMP parallel region but initialised with `mpi_init`, not `mpi_init_thread`. |
+| [OMP008](/lint-rules/OMP008) | `implicit-target-map` | warning | yes | - | The compiler maps data implicitly for an OpenMP target region (nvfortran: 'Generating implicit map'). |
 
 ## OpenACC (`ACC`)
 
 | Rule | Name | Severity | Default | Fortitude | Reports |
 |------|------|----------|---------|-----------|---------|
+| [ACC001](/lint-rules/ACC001) | `implicit-data-movement` | warning | yes | - | The compiler moves data implicitly for an OpenACC compute region (nvfortran: 'Generating implicit copy'). |
 | [ACC002](/lint-rules/ACC002) | `atomic-in-compute-region` | warning | yes | - | An `!$acc atomic` inside an OpenACC compute region or device routine. |
 | [ACC003](/lint-rules/ACC003) | `firstprivate-associate-name` | warning | yes | - | An `associate` name appears in an OpenACC `firstprivate` clause. |
 | [ACC004](/lint-rules/ACC004) | `reduction-into-device-module-variable` | error | yes | - | An OpenACC `reduction` targets a module allocatable declared `!$acc declare create`. |
 | [ACC006](/lint-rules/ACC006) | `missing-acc-routine` | warning | yes | - | A project procedure is called inside an OpenACC compute region but has no `!$acc routine`. |
 | [ACC008](/lint-rules/ACC008) | `timer-without-acc-wait` | warning | yes | - | A timer is read while asynchronous OpenACC work may still be running. |
 | [ACC011](/lint-rules/ACC011) | `acc-collapse-imperfect-nest` | error | yes | - | `collapse(n)` on OpenACC loops that are not tightly nested. |
+| [ACC012](/lint-rules/ACC012) | `sequential-device-loop` | warning | yes | - | A loop in an OpenACC compute region runs sequentially: the compiler found a loop-carried dependence. |
 
 ## MPI (`MPI`)
 
 | Rule | Name | Severity | Default | Fortitude | Reports |
 |------|------|----------|---------|-----------|---------|
 | [MPI001](/lint-rules/MPI001) | `request-never-completed` | warning | yes | - | A non-blocking MPI operation stores its request in a local variable that is never completed. |
+
+## Performance (`PRF`)
+
+| Rule | Name | Severity | Default | Fortitude | Reports |
+|------|------|----------|---------|-----------|---------|
+| [PRF001](/lint-rules/PRF001) | `loop-not-vectorized` | info | opt-in | - | gfortran could not vectorise a loop (`-fopt-info-vec-missed`). |
 
 ## Linter (`LNT`)
 

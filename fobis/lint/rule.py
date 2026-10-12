@@ -23,12 +23,13 @@ import hashlib
 import re
 import textwrap
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..analysis import FileUnits, SourceFile, Statement
     from ..analysis.project import ProjectIndex
+    from .feedback import FeedbackMessage
 
 SEVERITIES = ("error", "warning", "info")
 FAMILIES = {
@@ -40,6 +41,7 @@ FAMILIES = {
     "OMP": "OpenMP",
     "ACC": "OpenACC",
     "MPI": "MPI",
+    "PRF": "Performance",
     "LNT": "Linter",
 }
 
@@ -108,6 +110,7 @@ class LintContext:
     source: SourceFile
     units: FileUnits
     project: ProjectIndex
+    feedback: list[FeedbackMessage] = field(default_factory=list)
 
     def hit(self, stmt: Statement, message: str, fixes: tuple[Edit, ...] = ()) -> Hit:
         """A `Hit` on the lines of *stmt*."""
