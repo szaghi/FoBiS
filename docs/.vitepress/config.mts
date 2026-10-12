@@ -64,6 +64,7 @@ export default defineConfig({
           { text: 'Asking Questions', link: '/ai/ask' },
           { text: 'Explaining Failures', link: '/ai/explain' },
           { text: 'Reviewing a Change', link: '/ai/review' },
+          { text: 'Resolving Merge Conflicts', link: '/ai/merge-assist' },
           { text: 'MCP Server',    link: '/ai/mcp' },
           { text: 'Local LLM Runtime', link: '/ai/runtime' },
           { text: 'Local Models',  link: '/ai/models' },
@@ -174,6 +175,7 @@ export default defineConfig({
           items: [
             { text: 'lint',     link: '/reference/lint' },
             { text: 'review',   link: '/reference/review' },
+            { text: 'merge-assist', link: '/reference/merge-assist' },
             { text: 'kb',       link: '/reference/kb' },
             { text: 'ask',      link: '/ai/ask#options' },
             { text: 'mcp',      link: '/ai/mcp' },
@@ -194,6 +196,7 @@ export default defineConfig({
             { text: 'Asking Questions',  link: '/ai/ask' },
             { text: 'Explaining Failures', link: '/ai/explain' },
             { text: 'Reviewing a Change', link: '/ai/review' },
+            { text: 'Resolving Merge Conflicts', link: '/ai/merge-assist' },
             { text: 'MCP Server',        link: '/ai/mcp' },
             { text: 'Local LLM Runtime', link: '/ai/runtime' },
             { text: 'Local Models',      link: '/ai/models' },

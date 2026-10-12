@@ -39,6 +39,7 @@ from . import (  # noqa: F401
     introspect,
     lint,
     mcp,
+    merge_assist,
     review,
     rule,
     run,

@@ -99,6 +99,7 @@ fobis kb search "QUERY"  # search the knowledge packs (Fortran/OpenMP/OpenACC/MP
 fobis mcp                # MCP server (stdio) exposing lint, kb, introspect, check, build, test to AI agents
 fobis llm <...>          # local LLM harness: runtime install, pull models, serve, ask, doctor
 fobis review [--staged | --base REF]  # lint findings on the changed lines only (pre-commit, PR); --deep risk summary
+fobis merge-assist [--apply [--yes]]  # proposals for merge/rebase/cherry-pick conflicts, compiled; never stages
 fobis ask "QUESTION"     # answer from the knowledge packs (+ project procedures with -p DIR), with citations
 fobis build --explain    # on failure: explain from facts (missing module, unlinked object ...), then LLM
 fobis run --explain      # runtime crash: located facts, debug mode to use, known compiler bugs, then LLM
@@ -134,6 +135,13 @@ fobis test --explain     # the same for every failed test (LLM for the first one
   directive counts its whole region; `--context N`; formats text/markdown (PR comment)/json/sarif/github;
   `--deep` cited risks/to-check from the diff, touched regions, users of modules whose headers changed;
   `--deep-context`; exit 1 on error/warning findings unless `--exit-zero`. Pre-commit: `fobis review --staged`.
+- `merge-assist`: hunks from the index stages (`git merge-file --diff3`); rules (one side == base, same change or
+  whitespace, `use only` three-way union, fobos `tag=` pins -> higher version) at high confidence; adjacent edits
+  (one side appended, other edited) -> medium draft the LLM refines; LLM per remaining hunk (strategy
+  ours/theirs/both/custom, citations, intent = commit messages of each side; rebase sides named correctly);
+  syntax-only compile with the mode's compiler, <= 2 retries; `--apply` asks a/o/t/b/e/s/q and edits only the
+  blocks still in the file; `--yes` = high-confidence rules + compiling proposals; NEVER git add/--continue.
+  `scripts/merge_replay.py CLONE` measures the rules on historical merges.
 - `commit`: the scope comes from facts (`--show-facts` prints them, no model; `--no-facts` disables): the
   scopes past commits used for the staged files (or their directory), restricted in the structured answer;
   only `!$acc`/`!$omp` lines changed -> `perf(acc|omp)`; Fortran lines classified code/directive/comment.

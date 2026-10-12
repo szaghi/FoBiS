@@ -112,6 +112,8 @@ def run_fobis(fake_args=None):
             run_fobis_lint(configuration)
         if configuration.cliargs.which == "review":
             run_fobis_review(configuration)
+        if configuration.cliargs.which == "merge_assist":
+            run_fobis_merge_assist(configuration)
         if configuration.cliargs.which == "test":
             run_fobis_test(configuration)
         if configuration.cliargs.which == "introspect":
@@ -1792,6 +1794,181 @@ def run_fobis_check(configuration):
 
 
 DEFAULT_LINT_BASELINE = ".fobis-lint-baseline.json"
+
+
+def run_fobis_merge_assist(configuration):
+    """
+    Run FoBiS in merge-assist mode: propose resolutions for the conflicts of a merge, rebase or cherry-pick.
+
+    Deterministic rules first, then the LLM per remaining hunk, each file verified by a syntax-only compile with
+    the mode's compiler. With ``--apply`` the accepted resolutions are written to the working tree. The git state
+    is never changed: no ``git add``, no ``--continue``.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import shlex
+
+    from .ai.change import _git
+    from .ai.crash import mode_infos
+    from .ai.grounding import load_prompt
+    from .ai.merge import (
+        apply_to_worktree,
+        both_sides_touched,
+        build_bundle,
+        conflicted_files,
+        load_conflict,
+        operation,
+        pre_pass,
+        render_hunk,
+        resolve_file,
+    )
+
+    cliargs = configuration.cliargs
+    say = configuration.print_b
+    root = _git("rev-parse", "--show-toplevel").strip()
+    if not root:
+        configuration.print_r("Error: not inside a git repository")
+        sys.exit(1)
+    paths = conflicted_files()
+    if cliargs.merge_paths:
+        wanted = {os.path.relpath(os.path.abspath(p), root) for p in cliargs.merge_paths}
+        paths = [p for p in paths if p in wanted]
+    if not paths:
+        say("No conflicted file.")
+        return
+    op = operation()
+    say(f"{op.kind}: ours = {op.ours_name}; theirs = {op.theirs_name}")
+    if op.kind == "rebase":
+        say("(during a rebase, ours is the upstream and theirs is your commit being replayed)")
+    files = [load_conflict(p) for p in paths]
+    if cliargs.merge_context:
+        say(f"=== system prompt ===\n{load_prompt('merge')}")
+        for cf in files:
+            for hunk in cf.hunks:
+                draft = pre_pass(cf, hunk)
+                if draft is None or draft.confidence != "high":
+                    say(
+                        f"=== {cf.path}: conflict {hunk.index + 1} ===\n{build_bundle(cf, hunk, op, draft=draft).render()}"
+                    )
+        return
+    infos = mode_infos(configuration.fobos)
+    wanted_mode = getattr(cliargs, "mode", None) or getattr(configuration.fobos, "mode", None)
+    mode = next((m for m in infos if m.name == wanted_mode), infos[0] if infos else None)
+    compiler = mode.compiler if mode else "gnu"
+    cflags = mode.cflags if mode else ""
+    defines = [t for t in shlex.split(cflags) if t.startswith(("-D", "-U", "-I"))]
+    parser = configuration.fobos.fobos
+    fc = None
+    includes = []
+    if parser is not None and mode is not None:
+        fc = parser.get(mode.name, "fc") if parser.has_option(mode.name, "fc") else None
+        build_dir = parser.get(mode.name, "build_dir") if parser.has_option(mode.name, "build_dir") else "./"
+        mod_dir = parser.get(mode.name, "mod_dir") if parser.has_option(mode.name, "mod_dir") else "./mod/"
+        candidate = os.path.normpath(os.path.join(build_dir, mod_dir))
+        if os.path.isdir(candidate):
+            includes.append(os.path.abspath(candidate))
+    provider = None
+    if not cliargs.merge_no_model:
+        from .llm import LLMConfig, LLMError, get_provider
+        from .UserConfig import UserConfig
+
+        try:
+            provider = get_provider(LLMConfig.from_user_config(UserConfig()), on_status=say)
+        except LLMError as exc:
+            configuration.print_r(f"Warning: no model ({exc}): deterministic resolutions only")
+    try:
+        for cf in files:
+            file_includes = [os.path.join(root, os.path.dirname(cf.path)), *includes]
+            check = resolve_file(
+                cf, op, provider, compiler=compiler, fc=fc, includes=file_includes, defines=defines, on_status=say
+            )
+            say("")
+            for hunk in cf.hunks:
+                say(render_hunk(cf, hunk, op))
+            if check.elsewhere:
+                say(
+                    f"  {cf.path}: compile errors outside the conflicts: "
+                    + "; ".join(d.message for d in check.elsewhere[:3])
+                )
+    finally:
+        if provider is not None and hasattr(provider, "close"):
+            provider.close()
+    if cliargs.merge_apply:
+        if not cliargs.merge_yes and not sys.stdin.isatty():
+            configuration.print_r("Error: --apply asks hunk by hunk: run it in a terminal, or add --yes")
+            sys.exit(1)
+        for cf in files:
+            accepted, quit_ = _choose_hunks(cf, cliargs.merge_yes)
+            if accepted:
+                target = os.path.join(root, cf.path)
+                with open(target, encoding="utf-8", errors="replace") as handle:
+                    current = handle.read()
+                text, applied = apply_to_worktree(current, cf, accepted)
+                if applied:
+                    with open(target, "w", encoding="utf-8") as handle:
+                        handle.write(text)
+                missing = len(accepted) - len(applied)
+                say(
+                    f"{cf.path}: {len(applied)} conflict(s) resolved"
+                    + (f"; {missing} no longer in the file (already edited), left as they are" if missing else "")
+                )
+            if quit_:
+                break
+    touched = both_sides_touched(files)
+    say("")
+    if touched:
+        say("Changed by both sides (test them after the merge): " + ", ".join(touched))
+    say("Nothing was staged. Review with `git diff`, run `fobis test`, then `git add` the files yourself.")
+
+
+def _choose_hunks(cf, accept_all):
+    """The hunks of *cf* the user accepts (asking, or by rule with *accept_all*), and whether the user quit."""
+    import subprocess
+    import tempfile
+
+    from .ai.merge import Resolution
+
+    accepted = set()
+    for hunk in cf.hunks:
+        res = hunk.resolution
+        if accept_all:
+            safe = res is not None and (
+                (res.source == "pre-pass" and res.confidence == "high") or (res.source == "model" and res.verified)
+            )
+            if safe:
+                accepted.add(hunk.index)
+            continue
+        options = (
+            "[a]ccept [o]urs [t]heirs [b]oth [e]dit [s]kip [q]uit"
+            if res
+            else "[o]urs [t]heirs [b]oth [e]dit [s]kip [q]uit"
+        )
+        while True:
+            answer = input(f"{cf.path} conflict {hunk.index + 1}/{len(cf.hunks)}: {options}? ").strip().lower()[:1]
+            if answer == "a" and res is not None:
+                accepted.add(hunk.index)
+            elif answer in ("o", "t", "b"):
+                strategy = {"o": "ours", "t": "theirs", "b": "both"}[answer]
+                hunk.resolution = Resolution("user", strategy, list(hunk.side(strategy)))
+                accepted.add(hunk.index)
+            elif answer == "e":
+                start = res.lines if res is not None else hunk.ours
+                with tempfile.NamedTemporaryFile("w", suffix=os.path.splitext(cf.path)[1], delete=False) as tmp:
+                    tmp.write("".join(line + "\n" for line in start))
+                subprocess.run([os.environ.get("EDITOR", "vi"), tmp.name])
+                with open(tmp.name, encoding="utf-8") as handle:
+                    lines = handle.read().splitlines()
+                os.unlink(tmp.name)
+                hunk.resolution = Resolution("user", "custom", lines)
+                accepted.add(hunk.index)
+            elif answer == "q":
+                return accepted, True
+            elif answer != "s":
+                continue
+            break
+    return accepted, False
 
 
 def run_fobis_review(configuration):
