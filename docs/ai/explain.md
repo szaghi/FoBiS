@@ -1,6 +1,8 @@
-# Explaining build failures
+# Explaining failures
 
-`fobis build --explain` explains why a build failed. FoBiS answers the failures it can diagnose from the
+`fobis build --explain` explains why a build failed; `fobis run --explain` and `fobis test --explain` explain
+why a program failed at run time (see [Runtime failures](#runtime-failures)).
+For a build, FoBiS answers the failures it can diagnose from the
 project's own facts, with no model; for the first error that needs reading the code, it asks the LLM for a
 cause and a fix that cite the code they come from.
 
@@ -106,12 +108,64 @@ facts are still printed and FoBiS says why no model explanation is given.
   pack section qualifies, and the explanation rests on the code facts alone.
 - The fix is a suggestion, not compiled by FoBiS: read it before applying it.
 - Scanning the project after a failure takes a few seconds on large trees (about 5 s for 850 files).
-- Runtime failures (`fobis run`/`fobis test` crashes) are not explained yet.
 - With `--json` the build output is the JSON report; `--explain` is ignored.
+
+## Runtime failures
+
+```bash
+fobis run --explain                   # build (with --explain), run, explain a failure
+fobis run --mode debug --explain
+fobis test --explain                  # every failed test; the model only for the first one
+```
+
+The program's standard error is still printed as it runs, and recorded. When the program fails, FoBiS reads the
+runtime message (gfortran, Intel, nvfortran), the backtrace, and the exit status, then says from facts:
+
+| Failure | What FoBiS finds out |
+|---------|----------------------|
+| **Out-of-bounds access** | The array, index and bound, the failing statement, the array's declaration; for a dummy argument, the caller that passes it |
+| **Unassociated pointer** | Intel's message, or gfortran/nvfortran bounds of an empty pointer (`1:0`, `0:-1`) recognised as such |
+| **`error stop`** | The statement that printed the message, found by its text (Intel prints only the message) |
+| **Optimised build** | The mode is optimised, has no debug information or no runtime checks: the backtrace is not trusted, and FoBiS names the fobos mode to reproduce the crash with (unoptimised, `-g`, same compiler preferred), or the flags of a debug mode to add when there is none |
+| **Known compiler bugs** | gfortran -O2+ EFAULT (`errno=14`) on pointer sections passed to explicit-lower-bound dummies; nvfortran CUDA 719 on an OpenACC reduction into a `declare create` module allocatable, with the reductions of the project that match |
+| **No location at all** | In a debug build, how to get one with a debugger |
+
+**Optimised-build backtraces lie.** The frames of an `-O2`/`-O3` build are often mis-resolved: the reported
+routine or line need not be where the fault is. FoBiS never explains a crash from such frames. It uses a
+location only when the runtime message gives it (gfortran and nvfortran print the failing line even at
+`-O3`) or when the build is unoptimised with debug information. Two real outputs:
+
+```text
+Explanation (fobis run --explain)
+segmentation fault (invalid memory access)
+  - runtime message: SIGSEGV: Segmentation fault - invalid memory reference.
+
+mode opt is optimised (-O3), without debug information (-g), without runtime checks
+  - the backtrace of an optimised build is often wrong: the reported routine or line may not be where the fault is, so FoBiS does not explain the crash from it.
+  - with runtime checks a segmentation fault often becomes a located message (an index out of bounds, an unassociated pointer).
+  fix: reproduce it in a debug build first: fobis run --mode debug --explain
+  see: fobis kb show hpc-practice:gpu-practice#correctness-and-debugging-tools
+```
+
+```text
+Explanation (fobis run --explain)
+index 11 of array a is above its upper bound 10 at src/kernels.f90:18
+  - runtime message: Index '11' of dimension 1 of array 'a' above upper bound of 10
+  - statement: a(i) = 0.5 * (a(i) + a(i + 1))
+  - declaration: real, intent(inout) :: a(:) (src/kernels.f90:14)
+  - a is a dummy argument of smooth: the caller passes it, called from src/bounds.f90:6.
+```
+
+When the location is trusted, the model gets the runtime output, the build (flags, optimisation, debug
+information, checks), the code around the failing line **and around its caller** (from the backtrace of a
+debug build), and their declarations, and answers cited `cause`/`fix` claims as for build errors. In the
+example above, the failing loop runs `i` to `n` and reads `a(i + 1)`, and the caller passes `a(10)` with
+`n = 10`: both are in the model's sources.
 
 ## Options
 
 | Option | Description |
 |--------|-------------|
-| `--explain` | When the build fails, explain why: from facts, then with the model for the first error they do not cover |
+| `build --explain` | When the build fails, explain why: from facts, then with the model for the first error they do not cover |
+| `run --explain`, `test --explain` | When the program fails, explain why: from facts, then with the model when the location is trusted |
 | `--explain-context` | Like `--explain`, but print the model's input instead of running it |

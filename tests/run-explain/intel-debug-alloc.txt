@@ -1,0 +1,7 @@
+forrtl: severe (151): allocatable array is already allocated
+Image              PC                Routine            Line        Source             
+alloc              0000000000405527  alloc                       6  alloc.f90
+alloc              000000000040520D  Unknown               Unknown  Unknown
+libc.so.6          00007F9F6F62A1CA  Unknown               Unknown  Unknown
+libc.so.6          00007F9F6F62A28B  __libc_start_main     Unknown  Unknown
+alloc              0000000000405125  Unknown               Unknown  Unknown

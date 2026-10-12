@@ -1,0 +1,17 @@
+
+Program received signal SIGSEGV: Segmentation fault - invalid memory reference.
+
+Backtrace for this error:
+#0  0x73ee74a28d14 in ???
+#1  0x73ee74a27905 in ???
+#2  0x73ee7464532f in ???
+	at ./signal/../sysdeps/unix/sysv/linux/x86_64/libc_sigaction.c:0
+#3  0x5616c01c5411 in ???
+#4  0x5616c01c51f9 in ???
+#5  0x5616c01c50de in ???
+#6  0x73ee7462a1c9 in __libc_start_call_main
+	at ../sysdeps/nptl/libc_start_call_main.h:58
+#7  0x73ee7462a28a in __libc_start_main_impl
+	at ../csu/libc-start.c:360
+#8  0x5616c01c5114 in ???
+#9  0xffffffffffffffff in ???

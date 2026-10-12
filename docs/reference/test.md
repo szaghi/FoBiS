@@ -16,6 +16,8 @@ fobis test [options] [-- EXTRA_ARGS...]
 | `--no-build` | `False` | Skip compilation; execute pre-built binaries directly |
 | `--list` | `False` | Print discovered tests without running them |
 | `--coverage` | `False` | Enable coverage instrumentation during the test build |
+| `--explain` | `False` | Explain each failed test (see [Explaining failures](/ai/explain#runtime-failures)); the model is asked for the first one only |
+| `--explain-context` | `False` | Like `--explain`, but print what the model would receive instead of running it |
 
 ## fobos options
 

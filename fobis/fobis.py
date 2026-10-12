@@ -1020,8 +1020,7 @@ def _explain_build_failure(configuration, failure):
         Carries the output of the failed commands.
     """
     from .ai.diagnostics import parse_diagnostics
-    from .ai.explain import GROUPS, BuildFacts, build_bundle, classify, explain, render_diagnoses
-    from .ai.grounding import load_prompt, render_answer
+    from .ai.explain import BuildFacts, build_bundle, classify, explain, render_diagnoses
     from .analysis import parse_defines
     from .lint import discover_files
 
@@ -1063,34 +1062,120 @@ def _explain_build_failure(configuration, failure):
     if not remaining:
         return
     first = remaining[0]
+    bundle = build_bundle(first, facts, _knowledge_base())
+    answered = _model_explanation(configuration, bundle, "explain", explain, f"{first.where}: {first.message}")
+    if answered and len(remaining) > 1:
+        say(f"  ({len(remaining) - 1} more error(s) not explained: fix this one first, then rebuild)")
+
+
+def _knowledge_base():
+    """The shipped and installed knowledge packs, or None when they cannot be loaded."""
     from .kb import KnowledgeBase, PackError
 
     try:
-        kb = KnowledgeBase.load()
+        return KnowledgeBase.load()
     except PackError:
-        kb = None
-    bundle = build_bundle(first, facts, kb)
-    if cliargs.explain_context:
-        say(f"=== system prompt ===\n{load_prompt('explain')}\n=== user message ===\n{bundle.render()}")
-        return
+        return None
+
+
+def _model_explanation(configuration, bundle, prompt, ask, header) -> bool:
+    """Print the model's cited explanation of *bundle* (or, with ``--explain-context``, the model's input).
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    bundle : ContextBundle
+    prompt : str
+        Name of the system prompt template (``fobis/ai/prompts/<prompt>.md``).
+    ask : callable
+        ``ask(bundle, provider) -> Grounded``.
+    header : str
+        Line printed before the answer.
+
+    Returns
+    -------
+    bool
+        A model answer was printed.
+    """
+    from .ai.explain import GROUPS
+    from .ai.grounding import load_prompt, render_answer
     from .llm import LLMConfig, LLMError, get_provider
     from .UserConfig import UserConfig
 
-    say(f"{first.where}: {first.message}")
+    say = configuration.print_b
+    if getattr(configuration.cliargs, "explain_context", False):
+        say(f"=== system prompt ===\n{load_prompt(prompt)}\n=== user message ===\n{bundle.render()}")
+        return False
+    say(header)
     client = None
     try:
         cfg = LLMConfig.from_user_config(UserConfig())
         client = get_provider(cfg, on_status=say)
-        result = explain(bundle, client)
+        result = ask(bundle, client)
     except LLMError as exc:
         configuration.print_r(f"  no model explanation: {exc}")
-        return
+        return False
     finally:
         if client is not None and hasattr(client, "close"):
             client.close()
     say("\n".join(f"  {line}" if line else "" for line in render_answer(result, groups=GROUPS).splitlines()))
-    if len(remaining) > 1:
-        say(f"  ({len(remaining) - 1} more error(s) not explained: fix this one first, then rebuild)")
+    return True
+
+
+def _explain_crash(configuration, output, exit_code, command, mode=None, ask_model=True, title=None) -> bool:
+    """Explain a failed run (``fobis run/test --explain``): facts first, then the LLM when the location is trusted.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    output : str
+        What the program wrote on standard error.
+    exit_code : int
+        Its exit status (negative: killed by a signal).
+    command : str
+        ``run`` or ``test`` (for the advice).
+    mode : str or None
+        The fobos mode of the build.
+    ask_model : bool
+        Whether the model may be asked (``test`` asks it for the first failure only).
+    title : str or None
+        Heading (default ``Explanation (fobis <command> --explain)``).
+
+    Returns
+    -------
+    bool
+        The model was asked (or its input printed).
+    """
+    from .ai.crash import build_bundle, classify_crash, explain_crash, parse_crash, render_notes, scan_context
+
+    crash = parse_crash(output, exit_code)
+    if crash is None:
+        return False
+    say = configuration.print_b
+    ctx = scan_context(configuration.fobos, mode, command=command)
+    notes, wanted = classify_crash(crash, ctx)
+    say("")
+    say(title or f"Explanation (fobis {command} --explain)")
+    say(render_notes(notes))
+    if not (wanted and ask_model):
+        return False
+    header = f"{crash.file}:{crash.line}: {crash.message}"
+    _model_explanation(configuration, build_bundle(crash, ctx, _knowledge_base()), "crash", explain_crash, header)
+    return True
+
+
+def _run_tee(args):
+    """Run *args* with stdout inherited and stderr echoed while it is recorded; (exit status, stderr text)."""
+    import subprocess
+
+    proc = subprocess.Popen(args, stderr=subprocess.PIPE, text=True, errors="replace")
+    recorded = []
+    for line in proc.stderr:
+        sys.stderr.write(line)
+        sys.stderr.flush()
+        recorded.append(line)
+    proc.wait()
+    return proc.returncode, "".join(recorded)
 
 
 def build_nomodlibs(configuration, pfiles, builder):
@@ -1609,11 +1694,15 @@ def run_fobis_run(configuration):
         output_path = fobos.get_output_name(mode=mode, toprint=False) or ""
         build_mode = mode
 
+    explain = getattr(cliargs, "explain", False)
+
     # Build step
     if not no_build:
         build_args = ["build"]
         if build_mode:
             build_args += ["-mode", build_mode]
+        if explain:
+            build_args += ["--explain-context" if cliargs.explain_context else "--explain"]
         if dry_run:
             configuration.print_b("[build]  fobis build " + " ".join(build_args[1:]))
         else:
@@ -1638,6 +1727,11 @@ def run_fobis_run(configuration):
         return
 
     # Execute
+    if explain:
+        returncode, errors = _run_tee([output_path, *extra_args])
+        if returncode != 0:
+            _explain_crash(configuration, errors, returncode, "run", mode=build_mode)
+        sys.exit(returncode)
     result = subprocess.run([output_path, *extra_args])
     sys.exit(result.returncode)
 
@@ -1888,10 +1982,13 @@ def run_fobis_test(configuration):
         out_dir = os.path.join(build_dir, "test")
         os.makedirs(out_dir, exist_ok=True)
         binary = os.path.join(out_dir, test["name"])
-        build_args = ["build", "-target", src, "-output", binary]
+        # absolute: the builder joins -output to the mode's build_dir, which would prefix it twice
+        build_args = ["build", "-target", src, "-output", os.path.abspath(binary)]
         mode_val = getattr(cliargs, "mode", None)
         if mode_val:
             build_args += ["-mode", mode_val]
+        if getattr(cliargs, "explain", False):
+            build_args += ["--explain-context" if cliargs.explain_context else "--explain"]
         try:
             run_fobis(fake_args=build_args)
             return binary if os.path.isfile(binary) else None
@@ -1910,6 +2007,20 @@ def run_fobis_test(configuration):
         no_build=no_build,
     )
     configuration.print_b(runner.format_results(suite))
+    if getattr(cliargs, "explain", False):
+        asked = False
+        for result in suite.results:
+            if result.passed or result.exit_code == -3:  # -3: the build failed, explained by the build
+                continue
+            asked |= _explain_crash(
+                configuration,
+                result.stderr,
+                result.exit_code,
+                "test",
+                mode=getattr(cliargs, "mode", None),
+                ask_model=not asked,
+                title=f"Explanation of test {result.name} (fobis test --explain)",
+            )
 
     # Optionally run coverage after tests
     if do_coverage:

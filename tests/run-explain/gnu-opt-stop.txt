@@ -1,0 +1,13 @@
+ERROR STOP negative density
+
+Error termination. Backtrace:
+#0  0x7d0dbf428d14 in ???
+#1  0x7d0dbf429ab1 in ???
+#2  0x7d0dbf42b1c8 in ???
+#3  0x597333eca0ac in ???
+#4  0x7d0dbf02a1c9 in __libc_start_call_main
+	at ../sysdeps/nptl/libc_start_call_main.h:58
+#5  0x7d0dbf02a28a in __libc_start_main_impl
+	at ../csu/libc-start.c:360
+#6  0x597333eca0d4 in ???
+#7  0xffffffffffffffff in ???

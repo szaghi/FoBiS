@@ -1,0 +1,13 @@
+At line 9 of file kernels.f90
+Fortran runtime error: Index '1' of dimension 1 of array 'p' above upper bound of 0
+
+Error termination. Backtrace:
+#0  0x7a6964628d14 in ???
+#1  0x7a6964629ab1 in ???
+#2  0x7a696462a106 in ???
+#3  0x574f8f12a690 in __kernels_MOD_fill
+	at kernels.f90:9
+#4  0x574f8f12a1ee in segv
+	at segv.f90:5
+#5  0x574f8f12a32c in main
+	at segv.f90:2

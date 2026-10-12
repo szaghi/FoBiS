@@ -1,0 +1,9 @@
+forrtl: severe (174): SIGSEGV, segmentation fault occurred
+Image              PC                Routine            Line        Source             
+libc.so.6          00007C4A4F245330  Unknown               Unknown  Unknown
+segv               000000000040532C  Unknown               Unknown  Unknown
+segv               0000000000405259  Unknown               Unknown  Unknown
+segv               000000000040520D  Unknown               Unknown  Unknown
+libc.so.6          00007C4A4F22A1CA  Unknown               Unknown  Unknown
+libc.so.6          00007C4A4F22A28B  __libc_start_main     Unknown  Unknown
+segv               0000000000405125  Unknown               Unknown  Unknown

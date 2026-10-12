@@ -17,6 +17,8 @@ Arguments after `--` are forwarded verbatim to the binary.
 | `--no-build` | `False` | Skip the build step; execute the binary directly |
 | `--dry-run` | `False` | Print the build and run commands without executing either |
 | `--example NAME` | — | Run a `[[example.NAME]]` target from the fobos file |
+| `--explain` | `False` | When the program fails, explain why (see [Explaining failures](/ai/explain#runtime-failures)); also passed to the build |
+| `--explain-context` | `False` | Like `--explain`, but print what the model would receive instead of running it |
 
 ## fobos options
 

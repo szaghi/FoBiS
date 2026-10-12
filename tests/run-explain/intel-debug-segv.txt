@@ -1,0 +1,9 @@
+forrtl: severe (408): fort: (7): Attempt to use pointer P when it is not associated with a target
+
+Image              PC                Routine            Line        Source             
+segv               000000000040549D  fill                        9  kernels.f90
+segv               0000000000405262  segv                        5  segv.f90
+segv               000000000040520D  Unknown               Unknown  Unknown
+libc.so.6          000072E6DE42A1CA  Unknown               Unknown  Unknown
+libc.so.6          000072E6DE42A28B  __libc_start_main     Unknown  Unknown
+segv               0000000000405125  Unknown               Unknown  Unknown

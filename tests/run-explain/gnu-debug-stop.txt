@@ -1,0 +1,10 @@
+ERROR STOP negative density
+
+Error termination. Backtrace:
+#0  0x7a411c228d14 in ???
+#1  0x7a411c229ab1 in ???
+#2  0x7a411c22b1c8 in ???
+#3  0x5843410771e2 in stopper
+	at stop.f90:5
+#4  0x584341077231 in main
+	at stop.f90:6

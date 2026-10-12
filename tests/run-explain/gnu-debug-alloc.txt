@@ -1,0 +1,11 @@
+At line 6 of file alloc.f90
+Fortran runtime error: Attempting to allocate already allocated variable 'x'
+
+Error termination. Backtrace:
+#0  0x7c3cef828d14 in ???
+#1  0x7c3cef829ab1 in ???
+#2  0x7c3cef82a106 in ???
+#3  0x6501cf9034e4 in alloc
+	at alloc.f90:6
+#4  0x6501cf90363f in main
+	at alloc.f90:8

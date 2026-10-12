@@ -70,7 +70,7 @@ class FoBiSConfig:
         self.cliargs = _shared["cliargs"]
         self.colors = Colors()
         self.fobos = Fobos(cliargs=self.cliargs, print_n=self.print_b, print_w=self.print_r)
-        self.colors = Colors(enabled=self.cliargs.colors)  # reset colors accordingly fobos options
+        self.colors = Colors(enabled=getattr(self.cliargs, "colors", False))  # reset colors accordingly fobos options
         self._postinit()
 
     def _update_extensions(self) -> None:

@@ -35,6 +35,18 @@ def cmd_run(
         str | None,
         typer.Option("--example", help="Build and run a named [[example.*]] target"),
     ] = None,
+    explain: Annotated[
+        bool,
+        typer.Option(
+            "--explain",
+            help="When the program fails, explain why: from facts (location, declarations, debug mode to use, "
+            "known compiler bugs), then with the LLM (cited cause and fix) when the location can be trusted.",
+        ),
+    ] = False,
+    explain_context: Annotated[
+        bool,
+        typer.Option("--explain-context", help="Like --explain, but print what the model would receive instead."),
+    ] = False,
 ):
     """Build a target (if needed) and execute it."""
     ctx.ensure_object(dict)
@@ -51,4 +63,6 @@ def cmd_run(
         run_dry_run=dry_run,
         run_extra_args=extra_args,
         run_example=example,
+        explain=explain or explain_context,
+        explain_context=explain_context,
     )

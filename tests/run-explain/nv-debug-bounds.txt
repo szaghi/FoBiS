@@ -1,0 +1,2 @@
+0: Subscript out of range for array a (kernels.f90: 18)
+    subscript=11, lower bound=1, upper bound=10, dimension=1

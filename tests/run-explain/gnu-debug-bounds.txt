@@ -1,0 +1,13 @@
+At line 18 of file kernels.f90
+Fortran runtime error: Index '11' of dimension 1 of array 'a' above upper bound of 10
+
+Error termination. Backtrace:
+#0  0x7b43fcc28d14 in ???
+#1  0x7b43fcc29ab1 in ???
+#2  0x7b43fcc2a106 in ???
+#3  0x556b192314df in __kernels_MOD_smooth
+	at kernels.f90:18
+#4  0x556b19231282 in bounds
+	at bounds.f90:6
+#5  0x556b1923135e in main
+	at bounds.f90:2

@@ -1,0 +1,9 @@
+forrtl: severe (408): fort: (2): Subscript #1 of the array A has value 11 which is greater than the upper bound of 10
+
+Image              PC                Routine            Line        Source             
+bounds             000000000040594F  smooth                     18  kernels.f90
+bounds             00000000004052F4  bounds                      6  bounds.f90
+bounds             000000000040520D  Unknown               Unknown  Unknown
+libc.so.6          00007FF2F302A1CA  Unknown               Unknown  Unknown
+libc.so.6          00007FF2F302A28B  __libc_start_main     Unknown  Unknown
+bounds             0000000000405125  Unknown               Unknown  Unknown

@@ -1,0 +1,8 @@
+forrtl: error (73): floating divide by zero
+Image              PC                Routine            Line        Source             
+libc.so.6          000074780D045330  Unknown               Unknown  Unknown
+fpe                000000000040528B  fpe                         5  fpe.f90
+fpe                000000000040520D  Unknown               Unknown  Unknown
+libc.so.6          000074780D02A1CA  Unknown               Unknown  Unknown
+libc.so.6          000074780D02A28B  __libc_start_main     Unknown  Unknown
+fpe                0000000000405125  Unknown               Unknown  Unknown

@@ -100,6 +100,8 @@ fobis mcp                # MCP server (stdio) exposing lint, kb, introspect, che
 fobis llm <...>          # local LLM harness: runtime install, pull models, serve, ask, doctor
 fobis ask "QUESTION"     # answer from the knowledge packs (+ project procedures with -p DIR), with citations
 fobis build --explain    # on failure: explain from facts (missing module, unlinked object ...), then LLM
+fobis run --explain      # runtime crash: located facts, debug mode to use, known compiler bugs, then LLM
+fobis test --explain     # the same for every failed test (LLM for the first one)
 ```
 
 - `lint`: honours `--fobos`/`--mode` (sources, exclusions, `-D` defines of the mode) and the fobos
@@ -126,6 +128,13 @@ fobis build --explain    # on failure: explain from facts (missing module, unlin
   another compiler (stale `obj_dir`), multiple definition, internal compiler error. The first error left
   (syntax, type mismatch ...) goes to the LLM as cited `cause`/`fix` claims; `--explain-context` prints its
   input instead. Exit status stays 1.
+- `run --explain` / `test --explain`: stderr is echoed and recorded; the runtime message (gfortran, Intel
+  `forrtl`, nvfortran `0:`), backtrace and exit signal are parsed. Facts: out-of-bounds (array, index, bound,
+  statement, declaration, caller of a dummy), unassociated pointer, `error stop` traced to its statement by
+  text, known compiler bugs (gfortran -O2+ EFAULT; nvfortran CUDA 719 reduction into `declare create`).
+  **Optimised-build backtraces lie**: frames of an optimised/no-`-g` build are never used; FoBiS names the
+  fobos debug mode to rerun with (`fobis run --mode <debug> --explain`). The LLM is asked only when the location
+  is trusted (runtime message line, or debug-build frame), with the failing line and its caller.
 
 ### Cross-cutting facts
 

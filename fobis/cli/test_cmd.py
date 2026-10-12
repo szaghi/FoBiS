@@ -44,6 +44,18 @@ def cmd_test(
         bool,
         typer.Option("--coverage", help="Generate coverage report after running tests"),
     ] = False,
+    explain: Annotated[
+        bool,
+        typer.Option(
+            "--explain",
+            help="When the program fails, explain why: from facts (location, declarations, debug mode to use, "
+            "known compiler bugs), then with the LLM (cited cause and fix) when the location can be trusted.",
+        ),
+    ] = False,
+    explain_context: Annotated[
+        bool,
+        typer.Option("--explain-context", help="Like --explain, but print what the model would receive instead."),
+    ] = False,
 ):
     """Discover, build, and run Fortran test programs."""
     ctx.ensure_object(dict)
@@ -62,4 +74,6 @@ def cmd_test(
         test_list=list_tests,
         test_coverage=coverage,
         test_extra_args=extra_args,
+        explain=explain or explain_context,
+        explain_context=explain_context,
     )
