@@ -109,6 +109,22 @@ def test_parse_internal_compiler_errors():
     assert parse_diagnostics("random text\ncollect2: error: ld returned 1 exit status\n") == []
 
 
+def test_fobis_warning_does_not_swallow_the_next_message():
+    """FoBiS's own "warning: ..." lines look like LFortran headers: the gfortran error after them must survive
+    (found running testgen on StringiFor with unfetched dependencies)."""
+    output = (
+        "warning: the file 'src/lib/s.F90' depends on 'befor64' that is unreachable\n"
+        "Compiling src/lib/s.F90 serially\n"
+        "src/lib/s.F90:6:5:\n\n    6 | use befor64, only : b64_decode\n      |     1\n"
+        "Fatal Error: Cannot open module file 'befor64.mod' for reading at (1): No such file or directory\n"
+    )
+    found = parse_diagnostics(output)
+    assert [(d.tool, d.severity, d.file, d.line) for d in found] == [
+        ("lfortran", "warning", None, None),
+        ("gnu", "fatal", "src/lib/s.F90", 6),
+    ]
+
+
 def test_demangle():
     assert demangle("__geometry_MOD_area") == Symbol("area", "geometry")
     assert demangle("geometry_mp_area_") == Symbol("area", "geometry")

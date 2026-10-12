@@ -114,6 +114,8 @@ def run_fobis(fake_args=None):
             run_fobis_review(configuration)
         if configuration.cliargs.which == "merge_assist":
             run_fobis_merge_assist(configuration)
+        if configuration.cliargs.which == "testgen":
+            run_fobis_testgen(configuration)
         if configuration.cliargs.which == "test":
             run_fobis_test(configuration)
         if configuration.cliargs.which == "introspect":
@@ -1969,6 +1971,185 @@ def _choose_hunks(cf, accept_all):
                 continue
             break
     return accepted, False
+
+
+def _testgen_dirs(configuration) -> tuple[str, str]:
+    """``testgen``: the test directory (fobos ``[test] test_dir``) and the directory, relative to the project
+    root, where test programs are built in the scratch copy: the test directory when the mode's sources contain it
+    (a target outside the sources is not built), else the first source directory."""
+    cliargs = configuration.cliargs
+    fobos = configuration.fobos
+    test_dir = (fobos.get_test_config() if fobos.fobos else {}).get("test_dir", "test")
+    sources = [os.path.abspath(s) for s in cliargs.src or ["./"]]
+    scanned = os.path.abspath(test_dir)
+    if any(scanned == s or scanned.startswith(s.rstrip(os.sep) + os.sep) for s in sources):
+        return test_dir, os.path.relpath(scanned)
+    return test_dir, os.path.relpath(sources[0])
+
+
+def run_fobis_testgen(configuration):
+    """
+    Run FoBiS in testgen mode: generate a test program for the public procedures of a module.
+
+    The compile-checked skeleton comes from facts; the model completes it; its program is built and run in a
+    scratch copy of the project and kept only when it builds, runs with exit status 0 and checks something. The
+    user's tree is written only with ``--apply``, never over an existing file.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import json
+
+    from .ai.grounding import load_prompt
+    from .ai.testgen import (
+        Sandbox,
+        build_bundle,
+        checked_skeleton,
+        example_test,
+        find_module,
+        generate,
+        plan_cases,
+        program_name,
+        render_cases,
+    )
+    from .analysis import parse_defines
+    from .lint import discover_files
+
+    cliargs = configuration.cliargs
+    as_json = cliargs.testgen_format == "json"
+    say = configuration.print_b
+    warn = (lambda m: print(m, file=sys.stderr)) if as_json else configuration.print_r  # stdout: the JSON only
+    if cliargs.testgen_format not in ("text", "json"):
+        warn(f"Error: unknown format {cliargs.testgen_format!r}: use text or json")
+        sys.exit(2)
+    status = (lambda m: print(m, file=sys.stderr)) if as_json else say
+    files = discover_files(
+        cliargs.src,
+        extensions=cliargs.extensions,
+        exclude=cliargs.exclude,
+        exclude_dirs=cliargs.exclude_dirs,
+        recursive=not cliargs.disable_recursive_search,
+    )
+    target = find_module(cliargs.testgen_module, files, defines=parse_defines(_merged_preproc_flags(cliargs)))
+    if target is None:
+        warn(f"Error: module {cliargs.testgen_module!r} not found in the sources ({', '.join(cliargs.src)})")
+        sys.exit(2)
+    limit = cliargs.testgen_max if cliargs.testgen_max is not None else (None if cliargs.testgen_skeleton else 8)
+    cases = plan_cases(target, cliargs.testgen_procedures, limit)
+    if not cases:
+        wanted = ", ".join(cliargs.testgen_procedures)
+        warn(f"Error: module {target.name} has no public procedure to test" + (f" named {wanted}" if wanted else ""))
+        sys.exit(2)
+    test_dir, source_dir = _testgen_dirs(configuration)
+    build_args = []
+    if cliargs.fobos:
+        build_args += ["--fobos", cliargs.fobos]
+    if cliargs.fobos_case_insensitive:
+        build_args.append("--fobos-case-insensitive")
+    if cliargs.mode:
+        build_args += ["--mode", cliargs.mode]
+    if not configuration.fobos.fobos:
+        for src in cliargs.testgen_src_cli or []:
+            build_args += ["--src", src]
+    deps_dir = configuration.fobos.get_deps_dir() if configuration.fobos.fobos else ".fobis_deps"
+    status(f"Module {target.name} ({os.path.relpath(target.path)}): building the skeleton in a scratch copy...")
+    with Sandbox(".", source_dir, build_args, deps_dir, cliargs.testgen_timeout) as sandbox:
+        skel, built = checked_skeleton(target, cases, sandbox)
+        if built.project_errors:
+            warn("Error: the project does not build in the scratch copy:")
+            warn("\n".join(built.output.strip().splitlines()[-30:]))
+            sys.exit(1)
+        if not skel.active:
+            warn(f"Error: no public procedure of {target.name} can be called from a generated test:")
+            warn("\n".join(render_cases(skel)))
+            sys.exit(1)
+        if not built.ok and built.error_lines():
+            warn("Error: the skeleton does not compile:\n" + "\n".join(built.errors) + "\n\n" + skel.text)
+            sys.exit(1)
+        if not built.ok:  # no compiler message about the skeleton: the build itself failed
+            warn("Error: the build failed in the scratch copy:\n" + "\n".join(built.output.strip().splitlines()[-30:]))
+            sys.exit(1)
+        bundle = build_bundle(target, skel, example_test(test_dir, target.name))
+        if cliargs.testgen_context:
+            print(f"=== system prompt ===\n{load_prompt('testgen')}\n=== user message ===\n{bundle.render()}")
+            return
+        result = None
+        if not cliargs.testgen_skeleton:
+            from .llm import LLMConfig, LLMError, get_provider
+            from .UserConfig import UserConfig
+
+            provider = None
+            try:
+                provider = get_provider(LLMConfig.from_user_config(UserConfig()), on_status=status)
+                result = generate(
+                    target, skel, sandbox, provider, bundle, retries=cliargs.testgen_retries, on_status=status
+                )
+            except LLMError as exc:
+                warn(f"Error: no model: {exc} (fobis testgen --skeleton needs none)")
+                sys.exit(1)
+            finally:
+                if provider is not None and hasattr(provider, "close"):
+                    provider.close()
+    program = skel.text if cliargs.testgen_skeleton else (result.program if result else None)
+    written = None
+    if program is not None and cliargs.testgen_apply:
+        written = cliargs.testgen_output or os.path.join(test_dir, f"{program_name(target.name)}.f90")
+        if os.path.exists(written):
+            warn(f"Error: {written} exists: not overwritten (choose another path with --output)")
+            sys.exit(1)
+        os.makedirs(os.path.dirname(written) or ".", exist_ok=True)
+        with open(written, "w", encoding="utf-8") as handle:
+            handle.write(program)
+    if as_json:
+        data = {
+            "module": target.name,
+            "path": os.path.relpath(target.path),
+            "tested": [c.label for c in skel.active],
+            "skipped": {c.label: c.skipped for c in skel.cases if c.skipped},
+            "skeleton": skel.text,
+            "accepted": program is not None,
+            "program": program,
+            "written": written,
+        }
+        if result is not None:
+            data.update(
+                attempts=result.attempts,
+                notes=result.notes,
+                reason=result.reason,
+                last=result.last,
+                called=result.coverage.called if result.coverage else [],
+                checks=result.coverage.checks if result.coverage else 0,
+                output=result.output,
+            )
+        print(json.dumps(data, indent=2))
+    else:
+        say(f"\nTest of module {target.name}:")
+        say("\n".join(render_cases(skel)))
+        if cliargs.testgen_skeleton:
+            say("\nSkeleton (builds; give the inputs values and add the checks):\n")
+        elif result.program is not None:
+            cov = result.coverage
+            say(
+                f"\nAccepted after {result.attempts} attempt(s): builds, runs (exit 0), calls "
+                f"{', '.join(cov.called)}; {cov.checks} check(s). Review it before committing."
+            )
+            if result.notes:
+                say(f"Model notes: {result.notes}")
+            say("")
+        else:
+            warn(f"\nNo program accepted after {result.attempts} attempt(s): {result.reason}")
+            if result.last:
+                say("Last attempt (rejected, not written):\n")
+                say(result.last)
+            if result.output:
+                say("Its output:\n" + "\n".join(result.output.strip().splitlines()[-20:]))
+        if program is not None:
+            say(program if written is None else f"Written to {written}")
+            if written is None:
+                say(f"(fobis testgen {target.name} --apply writes it to {test_dir}/)")
+    if program is None:
+        sys.exit(1)
 
 
 def run_fobis_review(configuration):

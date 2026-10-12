@@ -45,6 +45,7 @@ from . import (  # noqa: F401
     run,
     scaffold,
     test_cmd,
+    testgen,
     tree,
 )
 from ._app import _normalize_args, app

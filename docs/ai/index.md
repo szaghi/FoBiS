@@ -27,6 +27,7 @@ is advisory: it is labelled as such and never fails a build unless you explicitl
 | Find out why a build failed: missing modules, unlinked objects, then a cited cause and fix | [`fobis build --explain`](/ai/explain) |
 | Report findings only on the lines a commit or pull request changes (pre-commit, CI) | [`fobis review`](/ai/review) |
 | Resolve merge, rebase or cherry-pick conflicts with compiled proposals, never touching git | [`fobis merge-assist`](/ai/merge-assist) |
+| Generate a test program for a module's public procedures, kept only when it builds, runs and checks | [`fobis testgen`](/ai/testgen) |
 | Have the LLM confirm or dismiss findings in their code, with citations | [`fobis lint --deep`](/ai/lint#review-with-the-llm-deep) |
 | Find out why a program crashed, without trusting an optimised backtrace | [`fobis run --explain`, `fobis test --explain`](/ai/explain#runtime-failures) |
 | Confirm GPU data movement and sequential loops with the compiler's own report | [`fobis lint --compiler-feedback build.log`](/ai/lint#compiler-feedback) |

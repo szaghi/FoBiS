@@ -100,6 +100,7 @@ fobis mcp                # MCP server (stdio) exposing lint, kb, introspect, che
 fobis llm <...>          # local LLM harness: runtime install, pull models, serve, ask, doctor
 fobis review [--staged | --base REF]  # lint findings on the changed lines only (pre-commit, PR); --deep risk summary
 fobis merge-assist [--apply [--yes]]  # proposals for merge/rebase/cherry-pick conflicts, compiled; never stages
+fobis testgen MODULE [--skeleton] [--apply]  # test program for a module's public API, kept only if it builds+runs+checks
 fobis ask "QUESTION"     # answer from the knowledge packs (+ project procedures with -p DIR), with citations
 fobis build --explain    # on failure: explain from facts (missing module, unlinked object ...), then LLM
 fobis run --explain      # runtime crash: located facts, debug mode to use, known compiler bugs, then LLM
@@ -147,6 +148,17 @@ fobis test --explain     # the same for every failed test (LLM for the first one
   syntax-only compile with the mode's compiler, <= 2 retries; `--apply` asks a/o/t/b/e/s/q and edits only the
   blocks still in the file; `--yes` = high-confidence rules + compiling proposals; NEVER git add/--continue.
   `scripts/merge_replay.py CLONE` measures the rules on historical merges.
+- `testgen MODULE`: cases = public procedures, specifics of public generics (called through the generic), public
+  type-bound procedures of public non-abstract types (`obj%binding`). Skeleton from facts (locals mirror the dummies:
+  intent/optional/value dropped, non-constant shapes/lengths -> allocatable deferred, `character(*), allocatable`
+  -> len=256, `class(t)` -> `type(t)`; `class(*)`/assumed-rank/procedure args skipped), built with `fobis build
+  --target` in a SCRATCH COPY (working copy + fetched deps copied; nothing of the user's tree written); a case that
+  does not compile is dropped with the compiler message. `--skeleton` = no model. The LLM completes it; build + run
+  + inspect (uses the module, calls a public name, >= 1 check: `error stop`/non-zero stop/failure counter++);
+  errors, failing run output or "checks nothing" sent back, `--retries` (3). `--apply` writes
+  `<[test] test_dir>/test_<module>.f90`, never over an existing file. `--max` (8 with the model), `-p NAME`,
+  `--context`, `--format json` (progress on stderr). The program is placed in the mode's sources in the copy: a
+  `--target` outside the sources is silently not built.
 - `commit`: the scope comes from facts (`--show-facts` prints them, no model; `--no-facts` disables): the
   scopes past commits used for the staged files (or their directory), restricted in the structured answer;
   only `!$acc`/`!$omp` lines changed -> `perf(acc|omp)`; Fortran lines classified code/directive/comment.

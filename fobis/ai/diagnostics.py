@@ -151,6 +151,16 @@ def _gnu_block(lines: list[str], i: int, head: re.Match) -> tuple[Diagnostic | N
     return diagnostic, i
 
 
+_LFORTRAN_BODY = re.compile(r"^(?:\s|\d+\s*\|)")
+
+
+def _lfortran_continues(line: str) -> bool:
+    """A line of an LFortran message block: blank, indented (`` --> file:l:c``, ``  |``) or a numbered source
+    line (``3 | x = 1``). Anything else starts something new: FoBiS's own ``warning: ...`` lines are matched as
+    LFortran headers and must not swallow the next compiler's message."""
+    return not line.strip() or bool(_LFORTRAN_BODY.match(line))
+
+
 def parse_diagnostics(output: str) -> list[Diagnostic]:
     """The diagnostics of a compile or link *output*, in order of appearance."""
     lines = strip_ansi(output).splitlines()
@@ -206,7 +216,7 @@ def parse_diagnostics(output: str) -> list[Diagnostic]:
         if lfortran:
             block = [line]
             where = None
-            while i < len(lines) and not _LFORTRAN.match(lines[i]) and not lines[i].startswith("Note"):
+            while i < len(lines) and _lfortran_continues(lines[i]):
                 where = where or _LFORTRAN_AT.match(lines[i])
                 if lines[i].strip():
                     block.append(lines[i])
