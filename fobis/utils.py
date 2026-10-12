@@ -26,6 +26,20 @@ import subprocess
 import sys
 
 
+class BuildFailed(SystemExit):
+    """A compile or link step failed: exits with status 1 (as before) and keeps the failing outputs.
+
+    Attributes
+    ----------
+    outputs : list of str
+        Output of each failed command, for ``fobis build --explain``.
+    """
+
+    def __init__(self, outputs: list[str]) -> None:
+        super().__init__(1)
+        self.outputs = outputs
+
+
 def print_fake(input_obj, end="\n"):
     """Rename print."""
     print(input_obj, end=end)
@@ -275,7 +289,7 @@ def check_results(results, log=None, print_w=None):
                 if log:
                     with open(log, "a") as logerror:
                         logerror.writelines(result[1])
-        sys.exit(1)
+        raise BuildFailed([result[1] for result in results if result[0] != 0])
 
 
 def auto_discover_src(root: str = ".") -> list[str]:

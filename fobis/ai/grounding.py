@@ -82,25 +82,29 @@ class ContextBundle:
         return "\n\n".join(parts) + "\n"
 
 
-def claims_schema(labels: list[str]) -> dict:
-    """JSON Schema of a cited answer whose citations can only be *labels*."""
+def claims_schema(labels: list[str], kinds: list[str] | None = None) -> dict:
+    """JSON Schema of a cited answer whose citations can only be *labels*.
+
+    With *kinds*, every claim also has a required ``kind`` among them (e.g. ``cause`` / ``fix``).
+    """
     citation = {"type": "string", "enum": labels} if labels else {"type": "string"}
+    claim = {
+        "type": "object",
+        "properties": {
+            "text": {"type": "string"},
+            "citations": {"type": "array", "items": citation},
+        },
+        "required": ["text", "citations"],
+        "additionalProperties": False,
+    }
+    if kinds:
+        claim["properties"] = {"kind": {"type": "string", "enum": list(kinds)}, **claim["properties"]}
+        claim["required"] = ["kind", "text", "citations"]
     return {
         "type": "object",
         "properties": {
             "insufficient": {"type": "boolean"},
-            "claims": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "text": {"type": "string"},
-                        "citations": {"type": "array", "items": citation},
-                    },
-                    "required": ["text", "citations"],
-                    "additionalProperties": False,
-                },
-            },
+            "claims": {"type": "array", "items": claim},
         },
         "required": ["insufficient", "claims"],
         "additionalProperties": False,
@@ -109,10 +113,11 @@ def claims_schema(labels: list[str]) -> dict:
 
 @dataclass(frozen=True)
 class Claim:
-    """A statement of the model and the sources it cites."""
+    """A statement of the model, the sources it cites and its kind (when the schema asks for one)."""
 
     text: str
     sources: tuple[Source, ...]
+    kind: str | None = None
 
 
 @dataclass
@@ -178,19 +183,36 @@ def check_claims(raw: str, bundle: ContextBundle) -> Grounded:
         labels = [str(c).strip().strip("[]").upper() for c in item.get("citations") or []]
         sources = tuple(dict.fromkeys(by_label[c] for c in labels if c in by_label))
         if sources:
-            kept.append(Claim(text, sources))
+            kind = item.get("kind")
+            kept.append(Claim(text, sources, str(kind).strip().lower() if kind else None))
         else:
             dropped.append(text)
     return Grounded(kept, dropped, bool(data.get("insufficient")) or not kept, raw)
 
 
-def render_answer(result: Grounded, verbose: bool = False) -> str:
-    """Claims with numbered references, the list of sources, and what was dropped."""
+def render_answer(result: Grounded, verbose: bool = False, groups: dict[str, str] | None = None) -> str:
+    """Claims with numbered references, the list of sources, and what was dropped.
+
+    *groups* maps claim kinds to headings (in order): claims are then listed under their heading, and claims
+    of another kind under the last one.
+    """
     if not result.claims:
         lines = ["The sources found do not answer this question."]
     else:
         numbers = {src.id: i for i, src in enumerate(result.cited, start=1)}
-        lines = [f"- {c.text} {''.join(f'[{numbers[s.id]}]' for s in c.sources)}" for c in result.claims]
+
+        def item(claim: Claim) -> str:
+            return f"- {claim.text} {''.join(f'[{numbers[s.id]}]' for s in claim.sources)}"
+
+        if groups:
+            lines = []
+            last = list(groups)[-1]
+            for kind, heading in groups.items():
+                members = [c for c in result.claims if c.kind == kind or (kind == last and c.kind not in groups)]
+                if members:
+                    lines += [f"{heading}:"] + [f"  {item(c)}" for c in members]
+        else:
+            lines = [item(c) for c in result.claims]
         lines += ["", "Sources:"] + [f"  [{numbers[s.id]}] {s.title}  ({s.id})" for s in result.cited]
     if result.dropped:
         lines += ["", f"{len(result.dropped)} statement(s) without a valid citation were dropped."]
@@ -205,7 +227,10 @@ def to_json(result: Grounded) -> dict:
     """Machine-readable form of *result*."""
     return {
         "insufficient": result.insufficient,
-        "claims": [{"text": c.text, "sources": [s.id for s in c.sources]} for c in result.claims],
+        "claims": [
+            {**({"kind": c.kind} if c.kind else {}), "text": c.text, "sources": [s.id for s in c.sources]}
+            for c in result.claims
+        ],
         "dropped": result.dropped,
         "sources": [{"id": s.id, "title": s.title} for s in result.cited],
     }

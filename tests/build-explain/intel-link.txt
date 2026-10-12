@@ -1,0 +1,3 @@
+ld: out-intel/linkmain.o: in function `MAIN__':
+linkmain.f90:(.text+0x30): undefined reference to `geometry_mp_area_'
+ld: linkmain.f90:(.text+0x78): undefined reference to `external_thing_'

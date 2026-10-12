@@ -1,0 +1,10 @@
+syntax.f90:7:14:
+
+    7 | if (i > 3 then
+      |              1
+Error: Missing ‘)’ in statement at or before (1)
+syntax.f90:9:3:
+
+    9 | end if
+      |   1
+Error: Expecting END PROGRAM statement at (1)

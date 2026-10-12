@@ -161,6 +161,21 @@ def cmd_build(
         bool,
         typer.Option("--examples", help="Also build [[example.*]] sections"),
     ] = False,
+    explain: Annotated[
+        bool,
+        typer.Option(
+            "--explain",
+            help="When the build fails, explain why: from the project's facts first, then with the LLM "
+            "(cited cause and fix) for the first error they do not cover.",
+        ),
+    ] = False,
+    explain_context: Annotated[
+        bool,
+        typer.Option(
+            "--explain-context",
+            help="Like --explain, but print what the model would receive instead of running it.",
+        ),
+    ] = False,
     target_filter: Annotated[
         str | None,
         typer.Option(
@@ -207,6 +222,8 @@ def cmd_build(
         cache_dir=cache_dir,
         examples=examples,
         target_filter=[t.strip() for t in (target_filter or "").split(",") if t.strip()],
+        explain=explain or explain_context,
+        explain_context=explain_context,
         mklib=mklib,
         ar=ar,
         arflags=arflags,

@@ -147,6 +147,13 @@ a `pkg-config` `.pc` file for your own project.
 | `-m`, `--makefile` | Export a GNU Makefile instead of building |
 | `--json` | Emit structured JSON to stdout (see [JSON output](/advanced/json-output)) |
 
+## Explain options
+
+| Option | Description |
+|---|---|
+| `--explain` | When the build fails, explain why: from the project's facts (missing modules, unlinked objects, objects of another compiler, internal compiler errors), then with the LLM (cited cause and fix) for the first error they do not cover. See [Explaining build failures](/ai/explain) |
+| `--explain-context` | Like `--explain`, but print what the model would receive instead of running it |
+
 ## Examples
 
 ```bash

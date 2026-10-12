@@ -1,0 +1,13 @@
+semantic.f90(9): error #6780: A dummy argument with the INTENT(IN) attribute shall not be defined nor become undefined.   [N]
+n = 3
+^
+semantic.f90(10): error #6784: The number of actual arguments cannot be greater than the number of dummy arguments.   [AREA]
+total = area(1, 2)
+--------^
+semantic.f90(10): error #6633: The type of the actual argument differs from the type of the dummy argument.   [1]
+total = area(1, 2)
+-------------^
+semantic.f90(11): error #6404: This name does not have a type, and must have an explicit type.   [UNDECLARED]
+total = undeclared + 1.0
+--------^
+compilation aborted for semantic.f90 (code 1)

@@ -1,0 +1,4 @@
+NVFORTRAN-S-0187-Too many arguments specified for area (semantic.f90: 10)
+NVFORTRAN-W-0194-INTENT(IN) argument cannot be defined - n (semantic.f90: 5)
+NVFORTRAN-S-0038-Symbol, undeclared, has not been explicitly declared (semantic.f90: 5)
+  0 inform,   1 warnings,   2 severes, 0 fatal for bad

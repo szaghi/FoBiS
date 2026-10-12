@@ -1,0 +1,9 @@
+[0;31;1msemantic error[0;0m[0;1m: Module 'penf' modfile was not found[0;0m
+ [0;34;1m-->[0;0m missing_mod.f90:2:1
+  [0;34;1m|[0;0m
+[0;34;1m2 |[0;0m use penf, only : R8P
+  [0;34;1m|[0;0m [0;31;1m^^^^^^^^^^^^^^^^^^^^ [0;0m
+
+
+[0;1mNote[0;0m: Please report unclear, confusing or incorrect messages as bugs at
+https://github.com/lfortran/lfortran/issues.

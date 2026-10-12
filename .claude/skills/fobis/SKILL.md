@@ -98,6 +98,8 @@ fobis lint [PATHS]       # rule-based checks: correctness, obsolescent, OpenMP/O
 fobis kb search "QUERY"  # search the knowledge packs (Fortran/OpenMP/OpenACC/MPI standards, HPC practice)
 fobis mcp                # MCP server (stdio) exposing lint, kb, introspect, check, build, test to AI agents
 fobis llm <...>          # local LLM harness: runtime install, pull models, serve, ask, doctor
+fobis ask "QUESTION"     # answer from the knowledge packs (+ project procedures with -p DIR), with citations
+fobis build --explain    # on failure: explain from facts (missing module, unlinked object ...), then LLM
 ```
 
 - `lint`: honours `--fobos`/`--mode` (sources, exclusions, `-D` defines of the mode) and the fobos
@@ -114,6 +116,16 @@ fobis llm <...>          # local LLM harness: runtime install, pull models, serv
 - `llm`: `recommended`, `pull MODEL`, `list [--json]`, `rm MODEL`; `runtime install [--variant V]
   [--build bN --sha256 H|--trust]`, `runtime list`, `runtime remove NAME`; `serve start [--model M]|stop|
   status`; `ask PROMPT [--schema F] [--system S]`; `doctor [--no-sample]`. Nothing is downloaded implicitly.
+- `ask`: `-p DIR` (repeatable), `--pack P`, `-k N`, `--show-context` (print the model's input, run no model),
+  `--verbose` (show dropped uncited claims), `--json`, `--provider`, `--model`. Claims that cite no source
+  are dropped; retrieval is lexical (rephrase with the standard's terms when nothing is found).
+- `build --explain`: after a failed build, deterministic diagnoses with no model: missing module (defined
+  where, excluded by `exclude`/`exclude_dirs`/outside `src`, disabled by a `#ifdef`, fetched dependency,
+  library module needing `--mpi`/`--openmp`, dependency not fetched), undefined reference (demangled; the
+  defining file and why it is not linked, incl. "file holds a module the program never uses"), objects of
+  another compiler (stale `obj_dir`), multiple definition, internal compiler error. The first error left
+  (syntax, type mismatch ...) goes to the LLM as cited `cause`/`fix` claims; `--explain-context` prints its
+  input instead. Exit status stays 1.
 
 ### Cross-cutting facts
 
@@ -592,6 +604,9 @@ FoBiS rebuilds project A if needed, then adds its `mod_dir` and built library to
 ## Diagnosing Common Errors
 
 ### "Module 'xyz' not found"
+
+Start with `fobis build --explain`: it locates the module's definition and says which of the causes below
+applies.
 
 1. **Missing source path** — the file defining `module xyz` is not in any `src` directory. Add it to `src`.
 2. **Wrong `mod_dir`** — `.mod` written one place, compiler looking elsewhere. Keep `mod_dir` consistent.

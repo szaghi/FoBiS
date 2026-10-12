@@ -1,0 +1,3 @@
+/usr/bin/ld: out-nv/linkmain.o: in function `MAIN_':
+linkmain.f90:4:(.text+0x45): undefined reference to `geometry_area_'
+/usr/bin/ld: linkmain.f90:5:(.text+0x6c): undefined reference to `external_thing_'

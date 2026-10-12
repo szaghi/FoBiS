@@ -1,0 +1,7 @@
+syntax.f90(7): error #5082: Syntax error, found IDENTIFIER 'THEN' when expecting one of: :: ) , : * <END-OF-STATEMENT> ; . (/ + - ] /) ' ** > PRIVATE / // ...
+if (i > 3 then
+----------^
+syntax.f90(9): error #6317: An ENDIF occurred without a corresponding IF THEN or ELSE statement.
+end if
+^
+compilation aborted for syntax.f90 (code 1)

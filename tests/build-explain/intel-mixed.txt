@@ -1,0 +1,13 @@
+ld: mix/linkmain.o: in function `main':
+linkmain.f90:(.text+0x98): multiple definition of `main'; /opt/intel/oneapi/compiler/2025.3/lib/for_main.o:for_main.c:(.text+0x0): first defined here
+ld: warning: libintlc.so.5, needed by /opt/intel/oneapi/compiler/2025.3/lib/libimf.so, not found (try using -rpath or -rpath-link)
+ld: /opt/intel/oneapi/compiler/2025.3/lib/for_main.o: in function `main':
+for_main.c:(.text+0x19): undefined reference to `MAIN__'
+ld: mix/linkmain.o: in function `MAIN__':
+linkmain.f90:(.text+0x42): undefined reference to `_gfortran_st_write'
+ld: linkmain.f90:(.text+0x73): undefined reference to `_gfortran_transfer_real_write'
+ld: linkmain.f90:(.text+0x82): undefined reference to `_gfortran_st_write_done'
+ld: linkmain.f90:(.text+0x91): undefined reference to `external_thing_'
+ld: mix/linkmain.o: in function `main':
+linkmain.f90:(.text+0xb4): undefined reference to `_gfortran_set_args'
+ld: linkmain.f90:(.text+0xc8): undefined reference to `_gfortran_set_options'

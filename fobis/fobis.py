@@ -31,7 +31,7 @@ from .Cleaner import Cleaner
 from .FoBiSConfig import FoBiSConfig
 from .Gcov import Gcov, _mermaid_pie
 from .ParsedFile import ParsedFile
-from .utils import dependency_hiearchy, remove_other_main, safe_mkdir, syswork
+from .utils import BuildFailed, dependency_hiearchy, remove_other_main, safe_mkdir, syswork
 
 
 def main():
@@ -82,7 +82,16 @@ def run_fobis(fake_args=None):
         if configuration.cliargs.which == "clean":
             run_fobis_clean_json(configuration) if _json else run_fobis_clean(configuration)
         if configuration.cliargs.which == "build":
-            run_fobis_build_json(configuration) if _json else run_fobis_build(configuration)
+            if _json:
+                run_fobis_build_json(configuration)
+            elif getattr(configuration.cliargs, "explain", False):
+                try:
+                    run_fobis_build(configuration)
+                except BuildFailed as failure:
+                    _explain_build_failure(configuration, failure)
+                    raise
+            else:
+                run_fobis_build(configuration)
         if configuration.cliargs.which == "install":
             run_fobis_install(configuration)
         if configuration.cliargs.which == "doctests":
@@ -527,6 +536,7 @@ def run_fobis_build(configuration):
 
         # Scan source files once for all targets
         pfiles_all = parse_files(configuration=configuration)
+        configuration.build_trace = {"pfiles": pfiles_all}
         for t_dict in all_build_targets:
             t_cliargs = _cliargs_for_target(cliargs, t_dict)
             t_builder = Builder(cliargs=t_cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
@@ -570,6 +580,7 @@ def run_fobis_build(configuration):
     builder = Builder(cliargs=cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
     configuration.print_b(builder.verbose(quiet=cliargs.quiet))
     pfiles = parse_files(configuration=configuration)
+    configuration.build_trace = {"pfiles": pfiles}
     dependency_hiearchy(
         builder=builder, pfiles=pfiles, print_w=configuration.print_r, force_compile=cliargs.force_compile
     )
@@ -982,6 +993,7 @@ def build_pfile(configuration, pfile, pfiles, nomodlibs, submodules, builder):
     """
     if pfile.program:
         remove_other_main(builder=builder, pfiles=pfiles, myself=pfile)
+    configuration.build_trace = {"pfiles": pfiles, "target": pfile}
     builder.build(
         file_to_build=pfile,
         output=configuration.cliargs.output,
@@ -996,6 +1008,89 @@ def build_pfile(configuration, pfile, pfiles, nomodlibs, submodules, builder):
         pfile.save_build_log(builder=builder)
     if configuration.cliargs.graph:
         pfile.save_dep_graph()
+
+
+def _explain_build_failure(configuration, failure):
+    """Explain a failed build (``fobis build --explain``): facts first, then the LLM for what they do not cover.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    failure : BuildFailed
+        Carries the output of the failed commands.
+    """
+    from .ai.diagnostics import parse_diagnostics
+    from .ai.explain import GROUPS, BuildFacts, build_bundle, classify, explain, render_diagnoses
+    from .ai.grounding import load_prompt, render_answer
+    from .analysis import parse_defines
+    from .lint import discover_files
+
+    cliargs = configuration.cliargs
+    say = configuration.print_b
+    diagnostics = parse_diagnostics("\n".join(failure.outputs))
+    if not any(d.is_error for d in diagnostics):
+        configuration.print_r("explain: no compiler or linker error recognised in the output")
+        return
+    trace = getattr(configuration, "build_trace", {})
+    pfiles = trace.get("pfiles")
+    target = trace.get("target")
+    linked = None
+    if target is not None:
+        linked = {os.path.abspath(p.name) for p in (target.pfile_dep_all or [])}
+        linked |= {os.path.abspath(target.name)} | {os.path.abspath(p.name) for p in pfiles if p.nomodlib}
+    fobos = configuration.fobos
+    sources = discover_files([*(cliargs.src or []), "."], extensions=cliargs.extensions)
+    facts = BuildFacts.scan(
+        sources,
+        deps_dir=fobos.get_deps_dir(),
+        defines=parse_defines(_merged_preproc_flags(cliargs)),
+        compiler=cliargs.compiler,
+        mode=getattr(cliargs, "mode", None),
+        cflags=cliargs.cflags or "",
+        built={os.path.abspath(p.name) for p in pfiles} if pfiles is not None else None,
+        linked=linked,
+        target=target.name if target is not None else None,
+        dependencies=fobos.get_dependencies(),
+        src=list(cliargs.src or []),
+        exclude=list(cliargs.exclude or []),
+        exclude_dirs=list(cliargs.exclude_dirs or []),
+    )
+    diagnoses, remaining = classify(diagnostics, facts)
+    say("")
+    say("Explanation (fobis build --explain)")
+    if diagnoses:
+        say(render_diagnoses(diagnoses))
+    if not remaining:
+        return
+    first = remaining[0]
+    from .kb import KnowledgeBase, PackError
+
+    try:
+        kb = KnowledgeBase.load()
+    except PackError:
+        kb = None
+    bundle = build_bundle(first, facts, kb)
+    if cliargs.explain_context:
+        say(f"=== system prompt ===\n{load_prompt('explain')}\n=== user message ===\n{bundle.render()}")
+        return
+    from .llm import LLMConfig, LLMError, get_provider
+    from .UserConfig import UserConfig
+
+    say(f"{first.where}: {first.message}")
+    client = None
+    try:
+        cfg = LLMConfig.from_user_config(UserConfig())
+        client = get_provider(cfg, on_status=say)
+        result = explain(bundle, client)
+    except LLMError as exc:
+        configuration.print_r(f"  no model explanation: {exc}")
+        return
+    finally:
+        if client is not None and hasattr(client, "close"):
+            client.close()
+    say("\n".join(f"  {line}" if line else "" for line in render_answer(result, groups=GROUPS).splitlines()))
+    if len(remaining) > 1:
+        say(f"  ({len(remaining) - 1} more error(s) not explained: fix this one first, then rebuild)")
 
 
 def build_nomodlibs(configuration, pfiles, builder):

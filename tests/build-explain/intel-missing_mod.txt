@@ -1,0 +1,16 @@
+missing_mod.f90(2): error #7002: Error in opening the compiled module file.  Check INCLUDE paths.   [PENF]
+use penf, only : R8P
+----^
+missing_mod.f90(4): error #6683: A kind type parameter must be a compile-time constant.   [R8P]
+real(R8P) :: x
+-----^
+missing_mod.f90(5): error #6406: Conflicting attributes or multiple declaration of name.   [R8P]
+x = 1.0_R8P
+--------^
+missing_mod.f90(5): error #6975: A kind-param must be a digit-string or a scalar-int-constant-name.   [R8P]
+x = 1.0_R8P
+--------^
+missing_mod.f90(2): error #6580: Name in only-list does not exist or is not accessible.   [R8P]
+use penf, only : R8P
+-----------------^
+compilation aborted for missing_mod.f90 (code 1)

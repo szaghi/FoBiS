@@ -1,0 +1,4 @@
+/usr/bin/ld: out-gnu/linkmain.o: in function `MAIN__':
+linkmain.f90:(.text+0x51): undefined reference to `__geometry_MOD_area'
+/usr/bin/ld: linkmain.f90:(.text+0x91): undefined reference to `external_thing_'
+collect2: error: ld returned 1 exit status

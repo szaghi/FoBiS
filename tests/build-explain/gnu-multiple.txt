@@ -1,0 +1,3 @@
+/usr/bin/ld: mix/dup_b.o: in function `helper_':
+dup_b.f90:(.text+0x0): multiple definition of `helper_'; mix/dup_a.o:dup_a.f90:(.text+0x0): first defined here
+collect2: error: ld returned 1 exit status

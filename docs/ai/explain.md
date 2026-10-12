@@ -1,0 +1,117 @@
+# Explaining build failures
+
+`fobis build --explain` explains why a build failed. FoBiS answers the failures it can diagnose from the
+project's own facts, with no model; for the first error that needs reading the code, it asks the LLM for a
+cause and a fix that cite the code they come from.
+
+```bash
+fobis build --explain                 # facts first, then the model for what they do not cover
+fobis build --explain-context         # print what the model would receive, run no model
+fobis build --mode gnu-debug --explain
+```
+
+Without `--explain` the build behaves as before. With it, the compiler output is printed as usual, followed by
+the explanation; the exit status is still 1.
+
+## Failures explained from facts
+
+These need no model. FoBiS parses the compiler or linker messages (gfortran, Intel ifx/ifort, nvfortran,
+LFortran, GNU ld, lld), scans the project, and looks at what the build compiled and linked.
+
+| Failure | What FoBiS finds out |
+|---------|----------------------|
+| **Missing module** (`Cannot open module file`, ifx `#7002`, `NVFORTRAN-F-0004`, LFortran `modfile was not found`) | Which file defines it, and whether this build compiles it (excluded by `exclude`/`exclude_dirs`, outside `src`); a definition hidden by a preprocessor branch the mode's `-D` flags disable; a fetched dependency defining it; a library module (`mpi`, `mpi_f08`, `omp_lib`, `openacc`, `cudafor`, `hdf5`, `netcdf`) with the flag it needs; a declared dependency not fetched yet |
+| **Undefined reference** | The symbol demangled (gfortran `__mod_MOD_proc`, ifx `mod_mp_proc_`, nvfortran `mod_proc_`), where it is defined, and why its object is not in the link: not compiled, in a file the program never reaches, a dependency not linked, a library (MPI, OpenMP, OpenACC, HDF5, netCDF, BLAS/LAPACK) missing from the link flags, no main program |
+| **Objects of another compiler** | Missing runtime symbols (`_gfortran_*`, `for_*`, `pgf90_*` ...) of a compiler other than the mode's: stale objects from another mode |
+| **Multiple definition** | The files that define the symbol, or two main programs in one link |
+| **Internal compiler error** | Reported as a compiler defect, with the usual workarounds |
+
+Errors that follow from an explained one are counted, not explained again: after a missing module, the
+compiler often reports every name the module would have provided.
+
+Two real outputs:
+
+```text
+Explanation (fobis build --explain)
+src/linkmain.f90:2: module geometry is not available when src/linkmain.f90 is compiled
+  - geometry is defined in extra/geometry.f90, which this build does not compile: `exclude_dirs` lists extra.
+  fix: add the file to the build (fobos mode `src`, `exclude`, `exclude_dirs`)
+```
+
+```text
+Explanation (fobis build --explain)
+link: external_thing is referenced (referenced from MAIN__) but not linked
+  - external_thing is defined in src/things.f90:6.
+  - the target src/main.f90 does not link that file: no file it links uses the module(s) things.
+  fix: FoBiS links the files a program reaches through `use`, plus the files without modules: put external_thing in a module that the caller uses, or in a file without modules
+```
+
+The second one is a FoBiS behaviour worth knowing: a program links the files it reaches through `use`
+statements, plus the files that contain no module. An external procedure placed in a file that also holds a
+module nobody uses is never linked.
+
+## Errors explained by the model
+
+For the first error no fact covers (a type mismatch, a syntax error, a constraint violation), FoBiS builds the
+model's input from facts and asks for claims of two kinds, `cause` and `fix`, each citing its sources:
+
+- the compiler message and the build settings (compiler, mode, flags);
+- the source lines around the error, the error line marked `>`;
+- the declarations of the procedure that contains it;
+- the interfaces of the project procedures named on the error line (their header and dummy arguments);
+- up to two sections of the knowledge packs found by searching the message, when they match well enough.
+
+As with [`fobis ask`](/ai/ask), a claim that cites nothing is dropped, and with the managed runtime the
+citations are constrained by a JSON Schema. Only the first such error is explained: fix it and rebuild,
+since later errors often follow from it.
+
+`--explain-context` prints that input and stops. For a type mismatch in a call, the sources are:
+
+```text
+[S1] semantic.f90 lines 4-14 (code:semantic.f90:4-14)
+4  | contains
+...
+10 > total = area(1, 2)
+...
+[S2] declarations of subroutine bad (semantic.f90:5) (fact:semantic.f90#bad)
+subroutine bad(n, x)
+integer, intent(in) :: n
+...
+[S3] interface of function area (module geometry), geometry.f90:6 (fact:geometry.f90#area)
+pure function area(r) result(a)
+real, intent(in) :: r
+real :: a
+```
+
+The answer has this shape (the wording depends on the model):
+
+```text
+semantic.f90:10: Type mismatch in argument ‘r’ at (1); passed INTEGER(4) to REAL(4)
+  Cause:
+    - Line 10 passes the integer literals 1 and 2 to area, whose dummy r is real. [1][2]
+  Fix:
+    - Pass one real argument, as in area(1.0). [2]
+
+  Sources:
+    [1] semantic.f90 lines 4-14  (code:semantic.f90:4-14)
+    [2] interface of function area (module geometry), geometry.f90:6  (fact:geometry.f90#area)
+```
+
+The model is configured as for every LLM feature (see [Local LLM Runtime](/ai/runtime)); without one, the
+facts are still printed and FoBiS says why no model explanation is given.
+
+## Limits
+
+- Pack retrieval matches the words of the compiler message, which share few words with the standard: often no
+  pack section qualifies, and the explanation rests on the code facts alone.
+- The fix is a suggestion, not compiled by FoBiS: read it before applying it.
+- Scanning the project after a failure takes a few seconds on large trees (about 5 s for 850 files).
+- Runtime failures (`fobis run`/`fobis test` crashes) are not explained yet.
+- With `--json` the build output is the JSON report; `--explain` is ignored.
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--explain` | When the build fails, explain why: from facts, then with the model for the first error they do not cover |
+| `--explain-context` | Like `--explain`, but print the model's input instead of running it |

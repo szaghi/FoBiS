@@ -1,0 +1,20 @@
+semantic.f90:11:18:
+
+   11 | total = undeclared + 1.0
+      |                  1
+Error: Symbol ‘undeclared’ at (1) has no IMPLICIT type
+semantic.f90:9:1:
+
+    9 | n = 3
+      | 1~
+Error: Dummy argument ‘n’ with INTENT(IN) in variable definition context (assignment) at (1)
+semantic.f90:10:8:
+
+   10 | total = area(1, 2)
+      |        1
+Error: Type mismatch in argument ‘r’ at (1); passed INTEGER(4) to REAL(4)
+semantic.f90:10:8:
+
+   10 | total = area(1, 2)
+      |        1
+Error: More actual than formal arguments in procedure call at (1)
