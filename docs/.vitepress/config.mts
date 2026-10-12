@@ -61,6 +61,7 @@ export default defineConfig({
           { text: 'Linting',       link: '/ai/lint' },
           { text: 'Lint Rules',    link: '/lint-rules/' },
           { text: 'Knowledge Packs', link: '/ai/knowledge-packs' },
+          { text: 'Asking Questions', link: '/ai/ask' },
           { text: 'MCP Server',    link: '/ai/mcp' },
           { text: 'Local LLM Runtime', link: '/ai/runtime' },
           { text: 'Local Models',  link: '/ai/models' },
@@ -171,6 +172,7 @@ export default defineConfig({
           items: [
             { text: 'lint',     link: '/reference/lint' },
             { text: 'kb',       link: '/reference/kb' },
+            { text: 'ask',      link: '/ai/ask#options' },
             { text: 'mcp',      link: '/ai/mcp' },
             { text: 'llm',      link: '/reference/llm' },
             { text: 'commit',   link: '/reference/commit' },
@@ -186,6 +188,7 @@ export default defineConfig({
             { text: 'Linting',           link: '/ai/lint' },
             { text: 'Lint Rules',        link: '/lint-rules/' },
             { text: 'Knowledge Packs',   link: '/ai/knowledge-packs' },
+            { text: 'Asking Questions',  link: '/ai/ask' },
             { text: 'MCP Server',        link: '/ai/mcp' },
             { text: 'Local LLM Runtime', link: '/ai/runtime' },
             { text: 'Local Models',      link: '/ai/models' },

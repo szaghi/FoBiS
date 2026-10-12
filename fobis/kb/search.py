@@ -89,16 +89,47 @@ _STOPWORDS = frozenset(
 )
 
 
+# Query-side synonyms: the words HPC users write next to the words the standards use. Expansion only adds terms
+# to the query; documents are indexed as written.
+SYNONYMS = {
+    "index": ("iteration",),
+    "counter": ("iteration",),
+    "hang": ("deadlock",),
+    "hangs": ("deadlock",),
+    "gpu": ("device",),
+    "race": ("conflict",),
+    "thread": ("threadprivate",),
+}
+_IRREGULAR = {"indices": "index", "vertices": "vertex", "matrices": "matrix"}
+
+
+def _fold(token: str) -> str:
+    """Fold a plural to its singular (``variables`` -> ``variable``); short words and ``-ss`` are kept."""
+    if token in _IRREGULAR:
+        return _IRREGULAR[token]
+    if len(token) > 4 and token.endswith("ies"):
+        return token[:-3] + "y"
+    if len(token) > 3 and token.endswith("s") and not token.endswith(("ss", "us", "is")):
+        return token[:-1]
+    return token
+
+
 def tokenize(text: str) -> list[str]:
-    """Lower-case terms of *text*; a snake_case term also yields its parts (``mpi_isend`` -> ``mpi``, ``isend``)."""
+    """Lower-case terms of *text*, plurals folded; a snake_case term also yields its parts (``mpi_isend`` ->
+    ``mpi``, ``isend``)."""
     terms = []
     for token in _TOKEN_RE.findall(text.lower()):
         if token in _STOPWORDS:
             continue
-        terms.append(token)
+        terms.append(_fold(token))
         if "_" in token.strip("_"):
-            terms.extend(part for part in token.split("_") if part and part not in _STOPWORDS)
+            terms.extend(_fold(part) for part in token.split("_") if part and part not in _STOPWORDS)
     return terms
+
+
+def expand(terms: list[str]) -> list[str]:
+    """*terms* plus their `SYNONYMS`."""
+    return terms + [syn for term in terms for syn in SYNONYMS.get(term, ())]
 
 
 @dataclass(frozen=True)
@@ -149,7 +180,7 @@ class KnowledgeBase:
     def search(self, query: str, k: int = 5, packs: Iterable[str] | None = None) -> list[Result]:
         """The *k* chunks best matching *query*, best first (only from *packs* when given)."""
         allowed = set(packs) if packs else None
-        terms = tokenize(query)
+        terms = expand(tokenize(query))
         phrase_symbols = {" ".join(query.lower().split())} | set(terms)
         results = []
         for idx, chunk in enumerate(self.chunks):

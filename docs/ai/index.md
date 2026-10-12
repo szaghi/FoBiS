@@ -8,7 +8,7 @@ features use that knowledge in layers.
 |-------|--------------|----------------|----------|
 | **Rules** | Deterministic checks of the sources: bug-prone, obsolescent and non-portable constructs, OpenMP/OpenACC/MPI defects | No | [`fobis lint`](/ai/lint) |
 | **Knowledge** | Reference material distilled from the Fortran, MPI, OpenMP and OpenACC standards and from HPC practice, searchable and cited by rule explanations | No | [`fobis kb`](/ai/knowledge-packs) |
-| **LLM assistance** | Generation and explanation on top of the two layers above, with open models run locally | Yes | [`fobis commit`](/advanced/commit), [`fobis llm`](/ai/models) |
+| **LLM assistance** | Generation and explanation on top of the two layers above, with open models run locally | Yes | [`fobis ask`](/ai/ask), [`fobis commit`](/advanced/commit), [`fobis llm`](/ai/models) |
 
 ## Trust tiers
 
@@ -23,6 +23,7 @@ is advisory: it is labelled as such and never fails a build unless you explicitl
 | Find bug-prone and obsolescent constructs, data races and GPU/MPI pitfalls | [`fobis lint`](/ai/lint) |
 | Read why a rule matters | `fobis lint --explain COR020`, or the [rule reference](/lint-rules/) |
 | Look up a standard's rule or an HPC pitfall | [`fobis kb search "firstprivate associate"`](/ai/knowledge-packs) |
+| Ask a question answered from the packs and your sources, with citations | [`fobis ask "..."`](/ai/ask) |
 | Confirm GPU data movement and sequential loops with the compiler's own report | [`fobis lint --compiler-feedback build.log`](/ai/lint#compiler-feedback) |
 | Let an AI agent lint, search the packs, build and test | [`fobis mcp`](/ai/mcp) |
 | Write a Conventional Commits message for the staged changes | [`fobis commit`](/advanced/commit) |
