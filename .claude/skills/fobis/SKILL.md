@@ -98,6 +98,7 @@ fobis lint [PATHS]       # rule-based checks: correctness, obsolescent, OpenMP/O
 fobis kb search "QUERY"  # search the knowledge packs (Fortran/OpenMP/OpenACC/MPI standards, HPC practice)
 fobis mcp                # MCP server (stdio) exposing lint, kb, introspect, check, build, test to AI agents
 fobis llm <...>          # local LLM harness: runtime install, pull models, serve, ask, doctor
+fobis review [--staged | --base REF]  # lint findings on the changed lines only (pre-commit, PR); --deep risk summary
 fobis ask "QUESTION"     # answer from the knowledge packs (+ project procedures with -p DIR), with citations
 fobis build --explain    # on failure: explain from facts (missing module, unlinked object ...), then LLM
 fobis run --explain      # runtime crash: located facts, debug mode to use, known compiler bugs, then LLM
@@ -128,6 +129,11 @@ fobis test --explain     # the same for every failed test (LLM for the first one
   another compiler (stale `obj_dir`), multiple definition, internal compiler error. The first error left
   (syntax, type mismatch ...) goes to the LLM as cited `cause`/`fix` claims; `--explain-context` prints its
   input instead. Exit status stays 1.
+- `review`: lints the whole project (mode, rules, `[lint]` as `lint`), reports only findings touching changed
+  lines (default: uncommitted; `--staged`; `--base origin/master` = since the merge base); a changed OpenMP/OpenACC
+  directive counts its whole region; `--context N`; formats text/markdown (PR comment)/json/sarif/github;
+  `--deep` cited risks/to-check from the diff, touched regions, users of modules whose headers changed;
+  `--deep-context`; exit 1 on error/warning findings unless `--exit-zero`. Pre-commit: `fobis review --staged`.
 - `commit`: the scope comes from facts (`--show-facts` prints them, no model; `--no-facts` disables): the
   scopes past commits used for the staged files (or their directory), restricted in the structured answer;
   only `!$acc`/`!$omp` lines changed -> `perf(acc|omp)`; Fortran lines classified code/directive/comment.

@@ -63,6 +63,7 @@ export default defineConfig({
           { text: 'Knowledge Packs', link: '/ai/knowledge-packs' },
           { text: 'Asking Questions', link: '/ai/ask' },
           { text: 'Explaining Failures', link: '/ai/explain' },
+          { text: 'Reviewing a Change', link: '/ai/review' },
           { text: 'MCP Server',    link: '/ai/mcp' },
           { text: 'Local LLM Runtime', link: '/ai/runtime' },
           { text: 'Local Models',  link: '/ai/models' },
@@ -172,6 +173,7 @@ export default defineConfig({
           text: 'Analysis & AI',
           items: [
             { text: 'lint',     link: '/reference/lint' },
+            { text: 'review',   link: '/reference/review' },
             { text: 'kb',       link: '/reference/kb' },
             { text: 'ask',      link: '/ai/ask#options' },
             { text: 'mcp',      link: '/ai/mcp' },
@@ -191,6 +193,7 @@ export default defineConfig({
             { text: 'Knowledge Packs',   link: '/ai/knowledge-packs' },
             { text: 'Asking Questions',  link: '/ai/ask' },
             { text: 'Explaining Failures', link: '/ai/explain' },
+            { text: 'Reviewing a Change', link: '/ai/review' },
             { text: 'MCP Server',        link: '/ai/mcp' },
             { text: 'Local LLM Runtime', link: '/ai/runtime' },
             { text: 'Local Models',      link: '/ai/models' },

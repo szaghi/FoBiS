@@ -55,6 +55,44 @@ _HUNK = re.compile(r"^@@ -(?P<old>\d+)(?:,(?P<olen>\d+))? \+(?P<new>\d+)(?:,(?P<
 Git = Callable[..., str]
 
 
+@dataclass(frozen=True)
+class Revision:
+    """Which change to read: the ``git diff`` arguments, and where the old and new versions of a file are.
+
+    Attributes
+    ----------
+    diff : tuple of str
+        Arguments selecting the change (``("--cached",)``, ``("abc123", "HEAD")``, ``("HEAD",)``).
+    old : str
+        Revision of the old side, for ``git show <old>:<path>``.
+    new : str
+        Revision of the new side: a commit, ``""`` for the index (``git show :<path>``), or ``WORKTREE``
+        (the file on disk).
+    root : str
+        Top directory of the repository (git paths are relative to it): used to read ``WORKTREE`` files.
+    """
+
+    diff: tuple[str, ...]
+    old: str
+    new: str
+    root: str = ""
+
+    def show(self, side: str, path: str, git: Git) -> str:
+        """The text of *path* on *side* (``old`` or ``new``)."""
+        rev = self.old if side == "old" else self.new
+        if rev == WORKTREE:
+            try:
+                with open(os.path.join(self.root, path), encoding="utf-8", errors="replace") as handle:
+                    return handle.read()
+            except OSError:
+                return ""
+        return git("show", f"{rev}:{path}")
+
+
+WORKTREE = "WORKTREE"
+STAGED = Revision(("--cached",), "HEAD", "")
+
+
 def _git(*args: str) -> str:
     result = subprocess.run(["git", *args], capture_output=True, text=True)
     return result.stdout if result.returncode == 0 else ""
@@ -84,10 +122,10 @@ def file_kind(path: str) -> str:
 # ── staged hunks and line kinds ───────────────────────────────────────────────
 
 
-def staged_changes(git: Git = _git) -> list[tuple[str, str, str]]:
-    """(status, path, old path) of every staged file (renames detected)."""
+def staged_changes(git: Git = _git, revision: Revision = STAGED) -> list[tuple[str, str, str]]:
+    """(status, path, old path) of every changed file of *revision* (staged by default; renames detected)."""
     found = []
-    for line in git("diff", "--no-color", "--cached", "--name-status", "-M").splitlines():
+    for line in git("diff", "--no-color", *revision.diff, "--name-status", "-M").splitlines():
         parts = line.split("\t")
         if len(parts) < 2:
             continue
@@ -96,11 +134,13 @@ def staged_changes(git: Git = _git) -> list[tuple[str, str, str]]:
     return found
 
 
-def hunks(path: str, git: Git = _git) -> tuple[set[int], set[int]]:
-    """(removed old line numbers, added new line numbers) of the staged diff of *path*."""
+def hunks(path: str, git: Git = _git, revision: Revision = STAGED, old: str | None = None) -> tuple[set[int], set[int]]:
+    """(removed old line numbers, added new line numbers) of the diff of *path* in *revision*."""
     removed: set[int] = set()
     added: set[int] = set()
-    for line in git("diff", "--no-color", "--cached", "-U0", "-M", "--", path).splitlines():
+    # git prints paths relative to the top of the repository; ":(top)" makes the pathspec match from any cwd
+    paths = [f":(top){p}" for p in ([old, path] if old and old != path else [path])]
+    for line in git("diff", "--no-color", *revision.diff, "-U0", "-M", "--", *paths).splitlines():
         match = _HUNK.match(line)
         if not match:
             continue
@@ -156,6 +196,8 @@ class FileChange:
         Units whose code lines changed (``module::procedure``).
     interfaces : list of str
         Procedures whose header statement changed.
+    added : set of int
+        Line numbers, in the new version, of the added or modified lines (Fortran sources only).
     """
 
     path: str
@@ -164,6 +206,7 @@ class FileChange:
     lines: Counter = field(default_factory=Counter)
     procedures: list[str] = field(default_factory=list)
     interfaces: list[str] = field(default_factory=list)
+    added: set[int] = field(default_factory=set)
 
 
 def _side(text: str, path: str, numbers: set[int], change: FileChange) -> None:
@@ -184,16 +227,17 @@ def _side(text: str, path: str, numbers: set[int], change: FileChange) -> None:
             change.interfaces.append(name)
 
 
-def file_change(status: str, path: str, old: str, git: Git = _git) -> FileChange:
-    """The facts of one staged file (Fortran sources are lexed on both sides of the diff)."""
+def file_change(status: str, path: str, old: str, git: Git = _git, revision: Revision = STAGED) -> FileChange:
+    """The facts of one changed file (Fortran sources are lexed on both sides of the diff)."""
     change = FileChange(path, status, file_kind(path))
     if not path.lower().endswith(FORTRAN_EXTENSIONS):
         return change
-    removed, added = hunks(path, git)
+    removed, added = hunks(path, git, revision, old)
+    change.added = added
     if status != "A" and removed:
-        _side(git("show", f"HEAD:{old}"), old, removed, change)
+        _side(revision.show("old", old, git), old, removed, change)
     if status != "D" and added:
-        _side(git("show", f":{path}"), path, added, change)
+        _side(revision.show("new", path, git), path, added, change)
     return change
 
 
@@ -367,9 +411,9 @@ def _hints(files: list[FileChange]) -> list[tuple[str, str]]:
     return hints
 
 
-def change_facts(git: Git = _git, depth: int = HISTORY_DEPTH) -> ChangeFacts:
-    """The facts of the change staged in the repository of the current directory."""
-    files = [file_change(status, path, old, git) for status, path, old in staged_changes(git)]
+def change_facts(git: Git = _git, depth: int = HISTORY_DEPTH, revision: Revision = STAGED) -> ChangeFacts:
+    """The facts of the change of *revision* (staged by default) in the repository of the current directory."""
+    files = [file_change(status, path, old, git, revision) for status, path, old in staged_changes(git, revision)]
     facts = ChangeFacts(files=files, hints=_hints(files))
     facts.scopes = scope_candidates([f.path for f in files], history_scopes(git, depth))
     directive = next((h for h, _ in facts.hints if h.startswith("perf(")), None)

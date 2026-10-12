@@ -110,6 +110,8 @@ def run_fobis(fake_args=None):
             run_fobis_check(configuration)
         if configuration.cliargs.which == "lint":
             run_fobis_lint(configuration)
+        if configuration.cliargs.which == "review":
+            run_fobis_review(configuration)
         if configuration.cliargs.which == "test":
             run_fobis_test(configuration)
         if configuration.cliargs.which == "introspect":
@@ -1792,6 +1794,155 @@ def run_fobis_check(configuration):
 DEFAULT_LINT_BASELINE = ".fobis-lint-baseline.json"
 
 
+def run_fobis_review(configuration):
+    """
+    Run FoBiS in review mode: the lint findings on the changed lines only, and an optional risk summary.
+
+    The change is the staged one (``--staged``), the commits since the merge base with ``--base``, else every
+    uncommitted change. The whole project is linted; only findings touching an added or modified line are kept.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import json
+
+    from .ai.change import WORKTREE
+    from .ai.grounding import load_prompt, render_answer, to_json
+    from .ai.review import (
+        GROUPS,
+        ReviewError,
+        diff_scope,
+        effective_lines,
+        in_scope,
+        render_markdown,
+        review_revision,
+        risk_bundle,
+        risk_summary,
+        scoped_result,
+    )
+    from .cli.review import REVIEW_FORMATS
+    from .lint import render
+    from .lint.report import render_json
+
+    cliargs = configuration.cliargs
+    if cliargs.lint_format not in REVIEW_FORMATS:
+        configuration.print_r(f"Error: unknown format '{cliargs.lint_format}': use one of {', '.join(REVIEW_FORMATS)}")
+        sys.exit(1)
+    try:
+        revision = review_revision(cliargs.review_base, cliargs.review_staged)
+    except ReviewError as exc:
+        configuration.print_r(f"Error: {exc}")
+        sys.exit(1)
+    scope = diff_scope(revision)
+    changed = list(scope.lines())
+    if revision.new != WORKTREE:  # lint reads the working tree: its lines must be those of the reviewed side
+        for change in scope.changes:
+            path = os.path.join(revision.root, change.path)
+            if change.added and os.path.isfile(path):
+                with open(path, encoding="utf-8", errors="replace") as handle:
+                    if handle.read() != revision.show("new", change.path, _git_text):
+                        configuration.print_r(
+                            f"Warning: {change.path} has uncommitted changes: its line numbers may not match the review"
+                        )
+    result = _lint_project(configuration, extra_files=[p for p in changed if os.path.isfile(p)])
+    kept = in_scope(result.findings, scope, cliargs.review_context, effective_lines(scope, result))
+    scoped = scoped_result(result, kept)
+    risk = None
+    if cliargs.review_deep and cliargs.lint_format in ("text", "markdown", "json"):
+        bundle = risk_bundle(result, scope, scoped.findings)
+        if cliargs.review_deep_context:
+            print(f"=== system prompt ===\n{load_prompt('review')}\n=== user message ===\n{bundle.render()}")
+            return
+        from .llm import LLMConfig, LLMError, get_provider
+        from .UserConfig import UserConfig
+
+        client = None
+        try:
+            client = get_provider(
+                LLMConfig.from_user_config(UserConfig()), on_status=lambda m: print(m, file=sys.stderr)
+            )
+            risk = risk_summary(bundle, client)
+        except LLMError as exc:
+            configuration.print_r(f"Warning: no risk summary: {exc}")
+        finally:
+            if client is not None and hasattr(client, "close"):
+                client.close()
+    elif cliargs.review_deep:
+        configuration.print_r(f"Warning: --deep adds to the text, markdown and json formats, not {cliargs.lint_format}")
+    fmt = cliargs.lint_format
+    if fmt == "markdown":
+        output = render_markdown(scoped, scope)
+        if risk is not None:
+            output += "\n\n#### Risk summary [llm]\n\n" + render_answer(risk, groups=GROUPS)
+    elif fmt == "json":
+        data = json.loads(render_json(scoped))
+        data["changed_lines"] = scope.changed_lines
+        if risk is not None:
+            data["risk"] = to_json(risk)
+        output = json.dumps(data, indent=2)
+    else:
+        output = render(scoped, fmt)
+        if fmt == "text":
+            output += f"\nReviewed {scope.changed_lines} changed line(s) in {len(changed)} Fortran file(s)."
+            if risk is not None:
+                output += "\n\nRisk summary [llm]:\n" + render_answer(risk, groups=GROUPS)
+    if output:
+        print(output)
+    failing = [f for f in scoped.findings if f.severity in ("error", "warning")]
+    if (failing or result.unreadable) and not cliargs.lint_exit_zero:
+        sys.exit(1)
+
+
+def _git_text(*args):
+    """Output of a git command ('' on failure)."""
+    import subprocess
+
+    done = subprocess.run(["git", *args], capture_output=True, text=True)
+    return done.stdout if done.returncode == 0 else ""
+
+
+def _lint_project(configuration, extra_files=()):
+    """Lint the sources of a lint-like command (``lint``, ``review``): the given paths, else the mode's sources.
+
+    Rule selection merges ``--select``/``--ignore`` with fobos ``[lint]``; ``--compiler-feedback`` is read;
+    conditional compilation follows the mode's ``-D`` flags. *extra_files* are linted too (``review``: changed
+    files outside the sources). Exits with status 1 on an invalid selection.
+    """
+    from .analysis import parse_defines
+    from .lint import discover_files, lint_files, select_rules
+
+    cliargs = configuration.cliargs
+    lint_cfg = configuration.fobos.get_lint_config()
+    try:
+        rules = select_rules(
+            _split_selectors(cliargs.lint_select) or lint_cfg["select"],
+            _split_selectors(cliargs.lint_ignore) + lint_cfg["ignore"],
+        )
+    except ValueError as exc:
+        configuration.print_r(f"Error: {exc} (see fobis lint --list-rules)")
+        sys.exit(1)
+    feedback = None
+    if cliargs.lint_compiler_feedback:
+        feedback = _read_feedback_log(cliargs.lint_compiler_feedback, cliargs, configuration)
+    files = discover_files(
+        cliargs.lint_paths or cliargs.src,
+        extensions=cliargs.extensions,
+        exclude=cliargs.exclude,
+        exclude_dirs=cliargs.exclude_dirs,
+        recursive=not cliargs.disable_recursive_search,
+    )
+    known = {os.path.abspath(f) for f in files}
+    files += [f for f in extra_files if os.path.abspath(f) not in known]
+    return lint_files(
+        files,
+        rules,
+        defines=parse_defines(_merged_preproc_flags(cliargs)),
+        openmp=bool(getattr(cliargs, "openmp", False)),
+        feedback=feedback,
+    )
+
+
 def _lint_deep(configuration, result):
     """``fobis lint --deep``: review the findings region by region with the LLM.
 
@@ -1936,18 +2087,14 @@ def run_fobis_lint(configuration):
     ----------
     configuration : FoBiSConfig()
     """
-    from .analysis import parse_defines
     from .lint import (
         FORMATS,
         RULES,
         BaselineError,
         apply_baseline,
-        discover_files,
-        lint_files,
         load_baseline,
         render,
         render_rule_list,
-        select_rules,
         write_baseline,
     )
     from .lint.report import render_json, render_text
@@ -1967,14 +2114,6 @@ def run_fobis_lint(configuration):
         configuration.print_r(f"Error: unknown format '{cliargs.lint_format}': use one of {', '.join(FORMATS)}")
         sys.exit(1)
     lint_cfg = configuration.fobos.get_lint_config()
-    try:
-        rules = select_rules(
-            _split_selectors(cliargs.lint_select) or lint_cfg["select"],
-            _split_selectors(cliargs.lint_ignore) + lint_cfg["ignore"],
-        )
-    except ValueError as exc:
-        configuration.print_r(f"Error: {exc} (see fobis lint --list-rules)")
-        sys.exit(1)
 
     ask_at = None
     if getattr(cliargs, "lint_ask", None):
@@ -1987,24 +2126,7 @@ def run_fobis_lint(configuration):
             sys.exit(1)
         cliargs.lint_paths = [p for p, _ in located]
 
-    feedback = None
-    if cliargs.lint_compiler_feedback:
-        feedback = _read_feedback_log(cliargs.lint_compiler_feedback, cliargs, configuration)
-
-    files = discover_files(
-        cliargs.lint_paths or cliargs.src,
-        extensions=cliargs.extensions,
-        exclude=cliargs.exclude,
-        exclude_dirs=cliargs.exclude_dirs,
-        recursive=not cliargs.disable_recursive_search,
-    )
-    result = lint_files(
-        files,
-        rules,
-        defines=parse_defines(_merged_preproc_flags(cliargs)),
-        openmp=bool(getattr(cliargs, "openmp", False)),
-        feedback=feedback,
-    )
+    result = _lint_project(configuration)
 
     baseline = cliargs.lint_baseline or lint_cfg["baseline"] or DEFAULT_LINT_BASELINE
     if cliargs.lint_update_baseline:
