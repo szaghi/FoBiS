@@ -25,6 +25,10 @@ Guide: [Linting](/ai/lint). Rules: [Lint Rules](/lint-rules/).
 | `--exit-zero` | Exit 0 even when findings are reported |
 | `--list-rules` | List every rule (id, name, severity, default, Fortitude equivalent) and exit |
 | `--explain ID` | Print the documentation of a rule and exit |
+| `--deep` | Review the findings with the LLM, region by region: a cited verdict per finding and advisory concerns; text and json formats. Nothing is hidden and the exit status is unchanged. See [Review with the LLM](/ai/lint#review-with-the-llm-deep) |
+| `--deep-max N` | Review at most `N` groups, regions first (default 10) |
+| `--deep-context` | With `--deep` or `--ask`: print the model's input, run no model |
+| `--ask QUESTION` | Answer a question about the code around `FILE:LINE` (given as the path), with citations |
 | `--src SRC` | Source directory (repeatable) when no `PATHS` are given |
 | `--varset NAMES` | Apply `[varset:NAME]` sections' `$variable` bindings before linting. See [Varsets](/advanced/varsets) |
 

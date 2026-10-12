@@ -128,6 +128,11 @@ fobis test --explain     # the same for every failed test (LLM for the first one
   another compiler (stale `obj_dir`), multiple definition, internal compiler error. The first error left
   (syntax, type mismatch ...) goes to the LLM as cited `cause`/`fix` claims; `--explain-context` prints its
   input instead. Exit status stays 1.
+- `lint --deep` (+ `--deep-max N` default 10, `--deep-context`): LLM review grouped by OpenMP/OpenACC region
+  (else procedure); verdict per finding confirmed/dismissed/uncertain with citations, plus advisory concerns
+  `[llm]`; mechanical families (OBS, MDN, PRT, STY, LNT) not sent; uncited verdict -> uncertain; dismissed
+  findings still printed and still count in the exit status. Narrow with paths + `--select OMP,ACC,MPI`.
+  `lint FILE:LINE --ask "question"`: cited answer about the region around that line.
 - `run --explain` / `test --explain`: stderr is echoed and recorded; the runtime message (gfortran, Intel
   `forrtl`, nvfortran `0:`), backtrace and exit signal are parsed. Facts: out-of-bounds (array, index, bound,
   statement, declaration, caller of a dummy), unassociated pointer, `error stop` traced to its statement by

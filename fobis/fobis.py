@@ -1078,7 +1078,7 @@ def _knowledge_base():
         return None
 
 
-def _model_explanation(configuration, bundle, prompt, ask, header) -> bool:
+def _model_explanation(configuration, bundle, prompt, ask, header, grouped=True, show_context=None) -> bool:
     """Print the model's cited explanation of *bundle* (or, with ``--explain-context``, the model's input).
 
     Parameters
@@ -1091,6 +1091,10 @@ def _model_explanation(configuration, bundle, prompt, ask, header) -> bool:
         ``ask(bundle, provider) -> Grounded``.
     header : str
         Line printed before the answer.
+    grouped : bool
+        Print the claims under their kind (Cause / Fix); False for plain cited answers.
+    show_context : bool or None
+        Print the model's input instead of asking (default: the ``--explain-context`` option).
 
     Returns
     -------
@@ -1103,7 +1107,9 @@ def _model_explanation(configuration, bundle, prompt, ask, header) -> bool:
     from .UserConfig import UserConfig
 
     say = configuration.print_b
-    if getattr(configuration.cliargs, "explain_context", False):
+    if show_context is None:
+        show_context = getattr(configuration.cliargs, "explain_context", False)
+    if show_context:
         say(f"=== system prompt ===\n{load_prompt(prompt)}\n=== user message ===\n{bundle.render()}")
         return False
     say(header)
@@ -1118,7 +1124,8 @@ def _model_explanation(configuration, bundle, prompt, ask, header) -> bool:
     finally:
         if client is not None and hasattr(client, "close"):
             client.close()
-    say("\n".join(f"  {line}" if line else "" for line in render_answer(result, groups=GROUPS).splitlines()))
+    text = render_answer(result, groups=GROUPS if grouped else None)
+    say("\n".join(f"  {line}" if line else "" for line in text.splitlines()))
     return True
 
 
@@ -1774,6 +1781,81 @@ def run_fobis_check(configuration):
 DEFAULT_LINT_BASELINE = ".fobis-lint-baseline.json"
 
 
+def _lint_deep(configuration, result):
+    """``fobis lint --deep``: review the findings region by region with the LLM.
+
+    Returns the merged `DeepReport` (verdicts left uncertain when no model is available), or None with
+    ``--deep-context`` (the bundles were printed instead).
+    """
+    from .ai.deep import DeepReport, build_bundle, group_findings, review
+    from .ai.grounding import load_prompt
+    from .llm import LLMConfig, LLMError, get_provider
+    from .UserConfig import UserConfig
+
+    cliargs = configuration.cliargs
+    groups = group_findings(result)
+    chosen = groups[: max(0, cliargs.lint_deep_max)]
+    report = DeepReport(groups=len(groups))
+    kb = _knowledge_base()
+    bundles = [build_bundle(g, result.units, result.project, kb, result.feedback.get(g.path, ())) for g in chosen]
+    if cliargs.lint_deep_context:
+        print(f"=== system prompt ===\n{load_prompt('deep')}")
+        for group, bundle in zip(chosen, bundles, strict=True):
+            print(f"=== review of {group.title} in {group.path} ===\n{bundle.render()}")
+        if len(groups) > len(chosen):
+            print(f"({len(groups) - len(chosen)} more group(s) not shown: raise --deep-max)")
+        return None
+    if not chosen:
+        return report
+    client = None
+    try:
+        cfg = LLMConfig.from_user_config(UserConfig())
+        client = get_provider(cfg, on_status=lambda m: print(m, file=sys.stderr))
+        for n, (group, bundle) in enumerate(zip(chosen, bundles, strict=True), start=1):
+            print(f"[llm] reviewing {n}/{len(chosen)}: {group.title} in {group.path}", file=sys.stderr)
+            report.add(review(group, bundle, client))
+    except LLMError as exc:
+        configuration.print_r(f"Warning: --deep review stopped: {exc}")
+    finally:
+        if client is not None and hasattr(client, "close"):
+            client.close()
+    return report
+
+
+def _lint_ask(configuration, result, ask_at):
+    """``fobis lint --ask QUESTION FILE:LINE``: answer a question about the code around that line, with citations."""
+    from .ai.deep import ask_region, build_bundle, locate
+    from .lint.engine import display_path
+
+    path, line = ask_at
+    shown = display_path(path)
+    units = result.units.get(shown)
+    if units is None:
+        configuration.print_r(f"Error: {path} was not linted (check the path, or the mode's sources)")
+        sys.exit(1)
+    group = locate(units, shown, line)
+    group.findings = [
+        (i, f) for i, f in enumerate(result.findings) if f.path == shown and group.first <= f.line <= group.last
+    ]
+    bundle = build_bundle(
+        group,
+        result.units,
+        result.project,
+        _knowledge_base(),
+        result.feedback.get(shown, ()),
+        question=configuration.cliargs.lint_ask,
+    )
+    _model_explanation(
+        configuration,
+        bundle,
+        "ask",
+        ask_region,
+        f"{group.title} in {shown}:",
+        grouped=False,
+        show_context=configuration.cliargs.lint_deep_context,
+    )
+
+
 def _split_selectors(values) -> list[str]:
     """Flatten repeatable, comma-separated rule selectors."""
     return [item for value in values or [] for item in value.replace(",", " ").split()]
@@ -1857,6 +1939,7 @@ def run_fobis_lint(configuration):
         select_rules,
         write_baseline,
     )
+    from .lint.report import render_json, render_text
 
     cliargs = configuration.cliargs
     if cliargs.lint_list_rules:
@@ -1881,6 +1964,17 @@ def run_fobis_lint(configuration):
     except ValueError as exc:
         configuration.print_r(f"Error: {exc} (see fobis lint --list-rules)")
         sys.exit(1)
+
+    ask_at = None
+    if getattr(cliargs, "lint_ask", None):
+        from .ai.deep import parse_location
+
+        located = [parse_location(p) for p in cliargs.lint_paths]
+        ask_at = next(((p, n) for p, n in located if n is not None), None)
+        if ask_at is None:
+            configuration.print_r("Error: --ask needs the code to ask about, as FILE:LINE (e.g. src/flux.F90:120)")
+            sys.exit(1)
+        cliargs.lint_paths = [p for p, _ in located]
 
     feedback = None
     if cliargs.lint_compiler_feedback:
@@ -1917,7 +2011,28 @@ def run_fobis_lint(configuration):
         if cliargs.lint_diff:
             return
 
-    output = render(result, cliargs.lint_format)
+    if ask_at is not None:
+        _lint_ask(configuration, result, ask_at)
+        return
+    notes = tail = reviews = review = None
+    if getattr(cliargs, "lint_deep", False):
+        if cliargs.lint_format not in ("text", "json"):
+            configuration.print_r(f"Warning: --deep annotates the text and json formats, not {cliargs.lint_format}")
+        else:
+            deep = _lint_deep(configuration, result)
+            if deep is None:  # --deep-context: the model's input was printed instead
+                return
+            from .ai.deep import annotations
+            from .ai.deep import to_json as deep_json
+
+            notes, tail = annotations(deep)
+            reviews, review = deep_json(deep)
+    if notes is not None and cliargs.lint_format == "text":
+        output = render_text(result, notes=notes, tail=tail)
+    elif reviews is not None:
+        output = render_json(result, reviews=reviews, review=review)
+    else:
+        output = render(result, cliargs.lint_format)
     if output:
         print(output)
     failing = [f for f in result.findings if f.severity in ("error", "warning")]

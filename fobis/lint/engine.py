@@ -114,6 +114,12 @@ class LintResult:
         Findings hidden by the baseline.
     skipped : list of str
         Files not linted because they are C headers (a ``.h`` include extension shared with C).
+    units : dict
+        Display path to the analysed file (kept for ``--deep``, which reviews findings in their code).
+    project : ProjectIndex or None
+        The cross-file facts the rules saw.
+    feedback : dict
+        Display path to the compiler feedback messages attributed to it.
     """
 
     findings: list[Finding] = field(default_factory=list)
@@ -123,6 +129,9 @@ class LintResult:
     skipped: list[str] = field(default_factory=list)
     feedback_messages: int = 0
     feedback_unattributed: int = 0
+    units: dict[str, FileUnits] = field(default_factory=dict, repr=False)
+    project: ProjectIndex | None = field(default=None, repr=False)
+    feedback: dict[str, list[FeedbackMessage]] = field(default_factory=dict, repr=False)
 
 
 def _statement_span(source: SourceFile, sup: Suppression) -> tuple[int, int]:
@@ -287,11 +296,14 @@ def lint_files(
             continue
         analysed.append(analyse(text, display_path(path), defines, openmp, fixed_line_length))
     project = build_index(analysed)
+    result.project = project
+    result.units = {units.source.path: units for units in analysed}
     by_path: dict[str, list[FeedbackMessage]] = {}
     if feedback is not None:
         messages = parse_log(feedback)
         attribution = attribute(messages, analysed, project)
         by_path = attribution.by_path
+        result.feedback = by_path
         result.feedback_messages = len(messages)
         result.feedback_unattributed = len(attribution.unattributed)
     for units in analysed:

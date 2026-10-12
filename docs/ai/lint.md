@@ -131,6 +131,59 @@ summary, never guessed. `-` reads the log from standard input.
 These rules see the code the compiler built with *those* flags: a finding refers to the build configuration
 of the log, so lint with the same `--mode`.
 
+## Review with the LLM: `--deep`
+
+The rules are deterministic and conservative: a finding says "this pattern is here", not "this is a bug in
+your code". `--deep` asks the LLM to judge each finding against the code it is in, with citations, and to
+point out related problems the rules missed.
+
+```bash
+fobis lint src/solver --select OMP,ACC,MPI --deep         # review the parallel findings
+fobis lint --deep --deep-max 25                          # more regions (default 10)
+fobis lint --deep-context                                # print what the model would receive, run no model
+fobis lint src/flux.F90:120 --ask "is this region race-free?"
+```
+
+How it works:
+
+1. **Groups.** Findings are grouped by the code they are about: the innermost OpenMP/OpenACC region, else the
+   enclosing procedure (a window around the findings when it is long). Regions are reviewed first. Findings
+   of the mechanical families (`OBS`, `MDN`, `PRT`, `STY`, `LNT`) are not sent: they are syntactic facts.
+2. **One request per group**, with the code (finding lines marked), the procedure's declarations, the
+   documentation of each rule and the pack sections it references, the compiler feedback for those lines
+   (with `--compiler-feedback`), the interfaces of the procedures the code calls, and pack sections matching
+   the directive's clauses.
+3. **A verdict per finding**: `confirmed`, `dismissed` or `uncertain`, with a reason and citations, plus
+   advisory concerns. The finding and source labels are enums of a JSON Schema, so a grammar-constrained
+   model cannot cite what it was not given.
+4. **FoBiS checks the answer.** A confirmed or dismissed verdict that cites nothing becomes `uncertain`; a
+   concern that cites nothing is dropped; a finding the model skipped stays `uncertain`.
+
+Nothing is hidden. A dismissed finding is still printed, with the model's reason under it, and still counts
+in the exit status: the review informs you, it does not suppress. To silence a finding you agree is a false
+positive, suppress it in the code with a reason (`! fobis: ignore[OMP001] ...`) or record it in the baseline.
+
+```text
+src/heat.f90:14: OMP001 [warning] 'flux' is shared and written by every thread (missing private?)
+    [llm] confirmed: flux is written at line 14 by every iteration and read at line 15, and it is not private. [1][2]
+src/heat.f90:16: OMP002 [warning] 'total' is accumulated by every thread: use reduction(+:total)
+    [llm] confirmed: total is updated at line 16 by all threads without a reduction clause. [1][3]
+
+Sources cited by the review:
+  [1] src/heat.f90 lines 12-17 (!$omp parallel do (line 12))  (code:src/heat.f90:12-17)
+  ...
+Review [llm]: 1 of 1 group(s); 2 confirmed, 0 dismissed, 0 uncertain. Dismissed findings are still reported and still count.
+```
+
+(The shape of the output; the wording depends on the model.) `--format json` adds a `review` object to each
+reviewed finding and a top-level `review` (concerns, sources, counts); other formats are not annotated.
+
+`--ask "QUESTION" FILE:LINE` builds the same input for the region or procedure around that line, findings
+included, and answers the question as cited claims (as [`fobis ask`](/ai/ask) does), without the lint report.
+
+Cost: one model request per group. A large code has many groups (850 files of an HPC solver gave 580), so
+narrow the review with paths and `--select`, and raise `--deep-max` deliberately.
+
 ## Automatic fixes
 
 Some rules carry a mechanical fix (`MDN011` array constructors, `MDN021` relational operators). Review

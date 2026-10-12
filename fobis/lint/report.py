@@ -32,9 +32,16 @@ _SARIF_LEVEL = {"error": "error", "warning": "warning", "info": "note"}
 _DOCS_URL = "https://szaghi.github.io/FoBiS/rules/"
 
 
-def render_text(result: LintResult) -> str:
-    """One line per finding plus a summary."""
-    lines = [f"{f.path}:{f.line}: {f.rule} [{f.severity}] {f.message}" for f in result.findings]
+def render_text(result: LintResult, notes: dict[int, list[str]] | None = None, tail: list[str] | None = None) -> str:
+    """One line per finding plus a summary.
+
+    *notes* are lines printed under the finding of that index, *tail* lines printed before the summary (the
+    ``--deep`` review).
+    """
+    lines = []
+    for index, f in enumerate(result.findings):
+        lines.append(f"{f.path}:{f.line}: {f.rule} [{f.severity}] {f.message}")
+        lines += (notes or {}).get(index, [])
     lines += [f"{path}: cannot read: {reason}" for path, reason in result.unreadable]
     counts = Counter(f.rule for f in result.findings)
     summary = f"{len(result.findings)} finding(s) in {result.files} file(s)"
@@ -50,32 +57,35 @@ def render_text(result: LintResult) -> str:
             summary += f", {result.feedback_unattributed} not attributable to a linted file"
     if counts:
         summary += "\nExplain a rule with: fobis lint --explain <ID>"
+    lines += tail or []
     return "\n".join([*lines, "", summary] if lines else [summary])
 
 
-def render_json(result: LintResult) -> str:
-    """Machine-readable findings."""
-    return json.dumps(
-        {
-            "files": result.files,
-            "baselined": result.baselined,
-            "unreadable": [{"path": p, "reason": r} for p, r in result.unreadable],
-            "findings": [
-                {
-                    "rule": f.rule,
-                    "name": RULES[f.rule].name,
-                    "severity": f.severity,
-                    "path": f.path,
-                    "line": f.line,
-                    "end_line": f.end_line,
-                    "message": f.message,
-                    "fingerprint": f.fingerprint,
-                }
-                for f in result.findings
-            ],
-        },
-        indent=2,
-    )
+def render_json(result: LintResult, reviews: dict[int, dict] | None = None, review: dict | None = None) -> str:
+    """Machine-readable findings; with ``--deep``, each finding's *reviews* entry and the top-level *review*."""
+    reviews = reviews or {}
+    data = {
+        "files": result.files,
+        "baselined": result.baselined,
+        "unreadable": [{"path": p, "reason": r} for p, r in result.unreadable],
+        "findings": [
+            {
+                "rule": f.rule,
+                "name": RULES[f.rule].name,
+                "severity": f.severity,
+                "path": f.path,
+                "line": f.line,
+                "end_line": f.end_line,
+                "message": f.message,
+                "fingerprint": f.fingerprint,
+                **({"review": reviews[i]} if i in reviews else {}),
+            }
+            for i, f in enumerate(result.findings)
+        ],
+    }
+    if review is not None:
+        data["review"] = review
+    return json.dumps(data, indent=2)
 
 
 def _sarif_rule(rul: Rule) -> dict:

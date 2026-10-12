@@ -68,6 +68,28 @@ def cmd_lint(
     ] = False,
     list_rules: Annotated[bool, typer.Option("--list-rules", help="List every rule and exit.")] = False,
     explain: Annotated[str | None, typer.Option("--explain", help="Explain a rule (by id) and exit.")] = None,
+    deep: Annotated[
+        bool,
+        typer.Option(
+            "--deep",
+            help="Review the findings with the LLM, region by region: a cited verdict per finding (confirmed, "
+            "dismissed, uncertain) and advisory concerns. Nothing is hidden; the exit status is unchanged.",
+        ),
+    ] = False,
+    deep_max: Annotated[
+        int, typer.Option("--deep-max", help="Review at most this many regions (most severe first).")
+    ] = 10,
+    deep_context: Annotated[
+        bool,
+        typer.Option("--deep-context", help="With --deep or --ask: print what the model would receive, run no model."),
+    ] = False,
+    ask: Annotated[
+        str | None,
+        typer.Option(
+            "--ask",
+            help="Ask a question about the code around FILE:LINE (given as the path), answered with citations.",
+        ),
+    ] = None,
     varset: Annotated[
         str | None,
         typer.Option(
@@ -93,6 +115,10 @@ def cmd_lint(
         lint_fix=fix,
         lint_list_rules=list_rules,
         lint_explain=explain,
+        lint_deep=deep or deep_context,
+        lint_deep_max=deep_max,
+        lint_deep_context=deep_context,
+        lint_ask=ask,
         fobos=fobos,
         fobos_case_insensitive=fobos_case_insensitive,
         mode=mode,
