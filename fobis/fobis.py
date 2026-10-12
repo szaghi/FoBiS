@@ -51,9 +51,9 @@ def main():
         _app()
         return
     # ``ecosystem`` streams the output of long multi-repo runs and asks for confirmations, ``mcp`` speaks
-    # JSON-RPC on stdin/stdout: the CliRunner of FoBiSConfig would buffer stdout and replace stdin, so run
-    # them directly.
-    if sys.argv[1:2] in (["ecosystem"], ["mcp"]):
+    # JSON-RPC on stdin/stdout, ``llm`` streams download progress: the CliRunner of FoBiSConfig would buffer
+    # stdout and replace stdin, so run them directly.
+    if sys.argv[1:2] in (["ecosystem"], ["mcp"], ["llm"]):
         from .cli import app as _app
 
         _app(prog_name=os.path.basename(sys.argv[0]))

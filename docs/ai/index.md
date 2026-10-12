@@ -8,7 +8,7 @@ features use that knowledge in layers.
 |-------|--------------|----------------|----------|
 | **Rules** | Deterministic checks of the sources: bug-prone, obsolescent and non-portable constructs, OpenMP/OpenACC/MPI defects | No | [`fobis lint`](/ai/lint) |
 | **Knowledge** | Reference material distilled from the Fortran, MPI, OpenMP and OpenACC standards and from HPC practice, searchable and cited by rule explanations | No | [`fobis kb`](/ai/knowledge-packs) |
-| **LLM assistance** | Generation and explanation on top of the two layers above | Yes | [`fobis commit`](/advanced/commit) |
+| **LLM assistance** | Generation and explanation on top of the two layers above, with open models run locally | Yes | [`fobis commit`](/advanced/commit), [`fobis llm`](/ai/models) |
 
 ## Trust tiers
 
@@ -26,3 +26,4 @@ is advisory: it is labelled as such and never fails a build unless you explicitl
 | Confirm GPU data movement and sequential loops with the compiler's own report | [`fobis lint --compiler-feedback build.log`](/ai/lint#compiler-feedback) |
 | Let an AI agent lint, search the packs, build and test | [`fobis mcp`](/ai/mcp) |
 | Write a Conventional Commits message for the staged changes | [`fobis commit`](/advanced/commit) |
+| Download and manage open models for local use | [`fobis llm pull coder-7b`](/ai/models) |

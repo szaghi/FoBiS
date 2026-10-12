@@ -24,7 +24,16 @@ any OpenAI-compatible server or hosted service, a scripted fake in tests) is the
 from __future__ import annotations
 
 from .config import PROVIDERS, LLMConfig, resolve_api_key
-from .errors import ApiKeyError, ConfigError, LLMError, ProviderResponseError, ProviderUnavailableError
+from .errors import (
+    ApiKeyError,
+    ChecksumMismatchError,
+    ConfigError,
+    DownloadError,
+    LLMError,
+    ModelMissingError,
+    ProviderResponseError,
+    ProviderUnavailableError,
+)
 from .fake import FakeProvider
 from .ollama import OllamaProvider
 from .openai import OpenAICompatProvider
@@ -33,12 +42,15 @@ from .provider import Completion, Message, Provider, messages
 __all__ = [
     "PROVIDERS",
     "ApiKeyError",
+    "ChecksumMismatchError",
     "Completion",
     "ConfigError",
+    "DownloadError",
     "FakeProvider",
     "LLMConfig",
     "LLMError",
     "Message",
+    "ModelMissingError",
     "OllamaProvider",
     "OpenAICompatProvider",
     "Provider",

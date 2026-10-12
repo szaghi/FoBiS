@@ -42,3 +42,15 @@ class ProviderResponseError(LLMError):
     def __init__(self, message: str, status: int) -> None:
         super().__init__(message)
         self.status = status
+
+
+class ModelMissingError(LLMError):
+    """The configured model is not in the local store (nothing is downloaded implicitly)."""
+
+
+class DownloadError(LLMError):
+    """A model could not be downloaded (network, HTTP status, gated repository, disk space)."""
+
+
+class ChecksumMismatchError(DownloadError):
+    """A downloaded file does not match the size or sha256 published by the Hub."""

@@ -57,6 +57,7 @@ from ._constants import (
 from .cache_cmd import cache_app as _cache_app
 from .ecosystem import ecosystem_app as _ecosystem_app
 from .kb import kb_app as _kb_app
+from .llm import llm_app as _llm_app
 
 app.add_typer(_cache_app, name="cache")
 
@@ -64,6 +65,8 @@ app.add_typer(_cache_app, name="cache")
 app.add_typer(_ecosystem_app, name="ecosystem")
 
 app.add_typer(_kb_app, name="kb")
+
+app.add_typer(_llm_app, name="llm")
 
 __all__ = [
     "__compiler_supported__",
