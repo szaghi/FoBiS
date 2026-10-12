@@ -411,6 +411,52 @@ When the staged diff exceeds `max_diff_chars`, `fobis commit` truncates at file 
 
 This ensures the model always has at least the file path and diff-stat entry for every staged file, even when the full hunk content cannot fit.
 
+### Scope from facts
+
+Before asking the model, FoBiS computes facts of the staged change, with no model, and adds them to the
+prompt as a `## Facts of the change` section:
+
+- **Scope candidates from the repository's history.** For each staged file, the scopes of the last 300
+  commits that touched it; when the file has fewer than 3 such commits (or is new), those of its nearest
+  directory that has them, stopping below `src/` and the package (their history is the whole project); the
+  file's own commits then break the ties. Projects name components
+  by directory, and this keeps their convention: in a repository whose commits say `feat(lib): ...` and
+  `fix(prism/fnl): ...`, those are the candidates, hierarchical names included. A path new to the whole
+  history is named after its directory under `src/` (or the package).
+- **Fortran line kinds**, from the staged and the HEAD versions lexed by FoBiS: each removed or added line is
+  code, an OpenMP or OpenACC directive, or a comment/blank line; the procedures whose code changed, and the
+  procedure headers (interfaces) that changed.
+- **Type hints**: only documentation, tests, CI or build files changed; only directives changed (`perf(acc)`:
+  the programming model becomes the first scope candidate); only comments changed; a procedure header changed
+  (a breaking change, if that API is published).
+
+With the structured answer, the scope is restricted to the candidates (or empty, for a cross-cutting change):
+the model chooses among the project's own names instead of inventing one. A candidate is kept as written
+(`prism/fnl`); without candidates the scope is free, normalised as before.
+
+```bash
+fobis commit --show-facts    # print the facts, run no model
+```
+
+A directive-only change in an HPC code (real output, OpenACC `async` added to one loop):
+
+```text
+## Facts of the change (computed by FoBiS from git and the sources)
+
+Scope candidates (use one of these, or an empty scope for a cross-cutting change):
+- acc: only these directives changed
+- lib: 9 of 24 past commits touching src/lib/fnl/ used it
+- fnl: 1 of 24 past commits touching src/lib/fnl/ used it; 1 of 2 past commits touching src/lib/fnl/adam_fnl_ib_kernels.F90 used it
+- lib/ib: 1 of 24 past commits touching src/lib/fnl/ used it; 1 of 2 past commits touching src/lib/fnl/adam_fnl_ib_kernels.F90 used it
+Type hint: perf(acc) (only OpenACC directive lines changed, no code)
+
+Fortran sources (changed lines classified by the lexer; comment = comment or blank):
+- src/lib/fnl/adam_fnl_ib_kernels.F90: changed lines (removed + added): 2 acc
+```
+
+`--no-facts` skips them. All `git diff` and `git log` calls use `--no-color`: a `color.ui = always` setting
+used to leak terminal escape codes into the stat and the diff sent to the model.
+
 ### Refine passes
 
 When `--refine-passes N` is used, the refine prompt carries the same authoritative file list so the model can self-critique against the complete change set — not just the files visible in the (possibly truncated) diff.

@@ -278,12 +278,12 @@ def _git(*args: str) -> str:
 
 
 def staged_stat() -> str:
-    return _git("diff", "--cached", "--stat")
+    return _git("diff", "--no-color", "--cached", "--stat")
 
 
 def staged_files() -> str:
     """Return a complete list of all staged files with their status (A/M/D/R)."""
-    return _git("diff", "--cached", "--name-status")
+    return _git("diff", "--no-color", "--cached", "--name-status")
 
 
 def staged_diff(max_chars: int) -> str:
@@ -294,7 +294,7 @@ def staged_diff(max_chars: int) -> str:
     omitted.  Files for which not even the header fits are listed explicitly at
     the end.
     """
-    diff = _git("diff", "--cached", "--unified=3")
+    diff = _git("diff", "--no-color", "--cached", "--unified=3")
     if len(diff) <= max_chars:
         return diff
 
@@ -342,19 +342,21 @@ def recent_commits(n: int = 5) -> str:
     head = subprocess.run(["git", "rev-parse", "--verify", "--quiet", "HEAD"], capture_output=True, text=True)
     if head.returncode != 0:
         return ""
-    return _git("log", "--oneline", f"-{n}")
+    return _git("log", "--no-color", "--oneline", f"-{n}")
 
 
-def build_prompt(stat: str, diff: str, commits: str, branch: str = "", files: str = "") -> str:
+def build_prompt(stat: str, diff: str, commits: str, branch: str = "", files: str = "", facts: str = "") -> str:
     branch_line = f"- Branch: {branch}\n" if branch else ""
     files_section = (
         (f"## Complete file list (authoritative — every staged file is here)\n\n{files}\n\n") if files else ""
     )
+    facts_section = f"{facts}\n\n" if facts else ""
     return (
         f"{branch_line}"
         "## Staged changes (stat)\n\n"
         f"{stat}\n\n"
         f"{files_section}"
+        f"{facts_section}"
         "## Staged diff (may be truncated)\n\n"
         f"{diff}\n\n"
         "## Recent commits (style reference — formatting only, not content)\n\n"
@@ -373,11 +375,12 @@ def build_prompt(stat: str, diff: str, commits: str, branch: str = "", files: st
     )
 
 
-def build_refine_prompt(draft: str, stat: str, diff: str, commits: str, files: str = "") -> str:
+def build_refine_prompt(draft: str, stat: str, diff: str, commits: str, files: str = "", facts: str = "") -> str:
     """Build a critique-and-rewrite prompt that feeds the draft back to the model."""
     files_section = (
         (f"## Complete file list (authoritative — every staged file is here)\n\n{files}\n\n") if files else ""
     )
+    files_section += f"{facts}\n\n" if facts else ""
     return (
         "You produced this commit message for the staged diff:\n\n"
         f"{draft}\n\n"
@@ -574,8 +577,19 @@ The examples above show finished messages; they are not the change to describe."
 _STATUS_UNSUPPORTED = (400, 422)  # the provider rejected response_format
 
 
-def render_message(data: dict) -> str:
+def commit_schema(scopes: list[str] | None = None) -> dict:
+    """`COMMIT_SCHEMA`, with the scope restricted to *scopes* (plus "" for a cross-cutting change) when given."""
+    if not scopes:
+        return COMMIT_SCHEMA
+    properties = {**COMMIT_SCHEMA["properties"], "scope": {"type": "string", "enum": [*scopes, ""]}}
+    return {**COMMIT_SCHEMA, "properties": properties}
+
+
+def render_message(data: dict, scopes: list[str] | None = None) -> str:
     """Build the commit message from a structured answer (see `COMMIT_SCHEMA`).
+
+    A scope among the fact-based *scopes* is kept as written (``prism/fnl``); any other is normalised to a
+    lowercase component name (a file path or name loses its directories and extension).
 
     Raises
     ------
@@ -590,8 +604,9 @@ def render_message(data: dict) -> str:
     description = re.sub(prefix, "", description, flags=re.IGNORECASE).rstrip(".").strip()
     if not re.match(r"^[A-Z]{2}", description):  # lowercase the first word, unless it is an acronym (API, MPI)
         description = description[:1].lower() + description[1:]
-    raw_scope = str(data.get("scope", "")).strip().strip("()").rsplit("/", 1)[-1]
-    scope = re.sub(r"\.\w+$", "", raw_scope).lower()  # a component name, never a file name
+    scope = str(data.get("scope", "")).strip().strip("()")
+    if scope not in (scopes or []):
+        scope = re.sub(r"\.\w+$", "", scope.rsplit("/", 1)[-1]).lower()  # a component name, never a file name
     footers = [str(f).strip() for f in data.get("footers") or [] if str(f).strip()]
     footers = [f for f in footers if not f.lower().startswith("co-authored-by")]
     breaking = bool(data.get("breaking")) or any(f.startswith("BREAKING CHANGE:") for f in footers)
@@ -628,6 +643,7 @@ def generate(
     print_n=print,
     print_w=print,
     structured: bool = True,
+    facts: bool = True,
 ) -> str:
     """
     Generate a Conventional Commits message for the currently staged changes.
@@ -649,6 +665,9 @@ def generate(
         Normal / warning message printers.
     structured : bool
         Ask for the structured answer (default); False uses the free-text pipeline only.
+    facts : bool
+        Add the facts of the change (`fobis.ai.change`: scope candidates from history and paths, Fortran line
+        kinds, type hints) to the prompt, and restrict the structured scope to the candidates.
 
     Returns
     -------
@@ -672,6 +691,17 @@ def generate(
     branch = current_branch()
 
     use_schema = structured
+    change = None
+    if facts:
+        from .ai.change import change_facts
+
+        try:
+            change = change_facts()
+        except (OSError, ValueError) as exc:  # facts are an aid: without them the message is still generated
+            print_w(f"facts of the change unavailable: {exc}")
+    facts_text = change.render() if change is not None else ""
+    scopes = change.scope_names if change is not None else []
+    schema = commit_schema(scopes)
 
     def _from_text(raw: str) -> str:
         """The legacy pipeline: clean a free-text answer."""
@@ -685,7 +715,7 @@ def generate(
         if use_schema:
             try:
                 raw = provider.chat(
-                    messages(prompt, system=_SYSTEM_PROMPT + _STRUCTURED_NOTE), schema=COMMIT_SCHEMA, temperature=0.0
+                    messages(prompt, system=_SYSTEM_PROMPT + _STRUCTURED_NOTE), schema=schema, temperature=0.0
                 ).text
             except ProviderResponseError as exc:
                 if exc.status not in _STATUS_UNSUPPORTED:
@@ -696,7 +726,7 @@ def generate(
                 data = _parse_structured(raw)
                 if data is not None:
                     try:
-                        return render_message(data)
+                        return render_message(data, scopes)
                     except ValueError:
                         pass
                 print_w(f"{label} the answer is not the requested JSON: using it as free text")
@@ -705,12 +735,12 @@ def generate(
 
     label = f"[{provider.name}:{provider.model}]"
     print_n(f"{label} Generating commit message…")
-    prompt = build_prompt(stat, diff, commits, branch=branch, files=files)
+    prompt = build_prompt(stat, diff, commits, branch=branch, files=files, facts=facts_text)
     draft = wrap_message(_ask(prompt), print_w=print_w)
 
     for i in range(refine_passes):
         print_n(f"{label} Refining… (pass {i + 1}/{refine_passes})")
-        refine_prompt = build_refine_prompt(draft, stat, diff, commits, files=files)
+        refine_prompt = build_refine_prompt(draft, stat, diff, commits, files=files, facts=facts_text)
         draft = wrap_message(_ask(refine_prompt), print_w=print_w)
 
     return draft

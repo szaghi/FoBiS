@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 import fobis.Commit as Commit
+from fobis.ai.change import ChangeFacts
 from fobis.llm import FakeProvider, LLMError
 
 # ── Pure utility functions ─────────────────────────────────────────────────────
@@ -350,6 +351,7 @@ def staged():
         patch("fobis.Commit.staged_diff", return_value="diff"),
         patch("fobis.Commit.recent_commits", return_value="abc feat: prior"),
         patch("fobis.Commit.current_branch", return_value="main"),
+        patch("fobis.ai.change.change_facts", return_value=ChangeFacts()),  # no git facts from the real cwd
     ):
         yield
 

@@ -22,6 +22,8 @@ fobis commit [options]
 | `--config PATH` | `-c` | Path to a custom FoBiS user config file |
 | `--show-config` | | Print the effective LLM configuration and exit |
 | `--init-config` | | Create a commented default config file and exit |
+| `--show-facts` | | Print the facts of the staged change (scope candidates, Fortran line kinds, type hints) and exit; no model is run |
+| `--no-facts` | | Do not compute the facts of the change: the scope is left free |
 
 ## Description
 
@@ -34,6 +36,7 @@ The prompt includes:
 - **Staged diff** — up to `max_diff_chars`; truncated at file boundaries (metadata headers preserved for all files even when hunks are cut)
 - **Recent commit history** — last 15 commits, used as a style reference
 - **Branch name** — gives the model deployment context
+- **Facts of the change** — scope candidates from the repository's history, Fortran lines classified as code, OpenMP/OpenACC directive or comment, type hints (see [Scope from facts](/advanced/commit#scope-from-facts))
 
 The generated message is printed to standard output. Passing `--apply` prompts for confirmation and then runs `git commit -m <message>` automatically.
 

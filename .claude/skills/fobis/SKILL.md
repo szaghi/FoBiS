@@ -128,6 +128,9 @@ fobis test --explain     # the same for every failed test (LLM for the first one
   another compiler (stale `obj_dir`), multiple definition, internal compiler error. The first error left
   (syntax, type mismatch ...) goes to the LLM as cited `cause`/`fix` claims; `--explain-context` prints its
   input instead. Exit status stays 1.
+- `commit`: the scope comes from facts (`--show-facts` prints them, no model; `--no-facts` disables): the
+  scopes past commits used for the staged files (or their directory), restricted in the structured answer;
+  only `!$acc`/`!$omp` lines changed -> `perf(acc|omp)`; Fortran lines classified code/directive/comment.
 - `lint --deep` (+ `--deep-max N` default 10, `--deep-context`): LLM review grouped by OpenMP/OpenACC region
   (else procedure); verdict per finding confirmed/dismissed/uncertain with citations, plus advisory concerns
   `[llm]`; mechanical families (OBS, MDN, PRT, STY, LNT) not sent; uncited verdict -> uncertain; dismissed

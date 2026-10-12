@@ -413,6 +413,16 @@ def run_fobis_commit(configuration):
         configuration.print_b(ucfg.show())
         return
 
+    if getattr(cliargs, "show_facts", False):
+        from .ai.change import change_facts
+
+        facts = change_facts()
+        if not facts.files:
+            configuration.print_r("Nothing staged. Run `git add <files>` first.")
+            sys.exit(1)
+        configuration.print_b(facts.render())
+        return
+
     # CLI flags override config file values
     max_diff = getattr(cliargs, "max_diff", None) or ucfg.llm_max_diff_chars
     refine_passes_cli = getattr(cliargs, "refine_passes", None)
@@ -434,6 +444,7 @@ def run_fobis_commit(configuration):
             refine_passes=refine_passes,
             print_n=configuration.print_b,
             print_w=configuration.print_r,
+            facts=not getattr(cliargs, "no_facts", False),
         )
     except (CommitError, LLMError) as exc:
         configuration.print_r(f"Error: {exc}")

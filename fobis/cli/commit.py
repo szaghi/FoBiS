@@ -74,6 +74,17 @@ def cmd_commit(
     config: _ConfigOpt = None,
     show_config: _ShowConfigOpt = False,
     init_config: _InitConfigOpt = False,
+    show_facts: Annotated[
+        bool,
+        typer.Option(
+            "--show-facts",
+            help="Print the facts of the staged change (scope candidates, Fortran line kinds, type hints) and exit; "
+            "no model is run.",
+        ),
+    ] = False,
+    no_facts: Annotated[
+        bool, typer.Option("--no-facts", help="Do not compute the facts of the change (free scope).")
+    ] = False,
 ):
     """Generate a Conventional Commits message for staged changes via a local LLM."""
     ctx.ensure_object(dict)
@@ -89,6 +100,8 @@ def cmd_commit(
         config=config,
         show_config=show_config,
         init_config=init_config,
+        show_facts=show_facts,
+        no_facts=no_facts,
         # unused by commit but required by FoBiSConfig common path
         fobos=None,
         fobos_case_insensitive=False,
