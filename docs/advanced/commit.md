@@ -82,6 +82,23 @@ python -m vllm.entrypoints.openai.api_server --model Qwen/Qwen2.5-Coder-7B-Instr
 fobis commit --backend openai --url http://localhost:8000 --model Qwen/Qwen2.5-Coder-7B-Instruct
 ```
 
+### Hosted OpenAI-compatible endpoints
+
+Hosted services require an API key. Name the environment variable that holds it; the key itself never
+appears on the command line or in the config file:
+
+```ini
+[llm]
+backend     = openai
+url         = https://api.openai.com
+model       = gpt-4o-mini
+api_key_env = OPENAI_API_KEY
+```
+
+FoBiS sends the key as `Authorization: Bearer <key>` only when `api_key_env` (or `--api-key-env`) is set,
+and stops with an error if the named variable is unset or empty. Note that a hosted endpoint receives
+your staged diff.
+
 ## Persisting configuration
 
 Create the default config once:
@@ -110,6 +127,7 @@ fobis commit --show-config
 #   [llm]
 #   backend       = ollama
 #   url           = http://localhost:11434
+#   api_key_env   = (none)
 #   model         = qwen2.5-coder:7b
 #   max_diff_chars= 12000
 #   refine_passes = 1

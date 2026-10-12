@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import io
 import urllib.error
 from unittest.mock import MagicMock, patch
 
@@ -267,12 +268,55 @@ def test_post_stream_skips_invalid_json():
     assert result == "ok"
 
 
-def test_post_stream_url_error_exits():
+def test_post_stream_url_error_raises_llm_error():
     ctx = MagicMock()
     ctx.__enter__.side_effect = urllib.error.URLError("connection refused")
     ctx.__exit__.return_value = False
-    with patch("urllib.request.urlopen", return_value=ctx), pytest.raises(SystemExit):
+    with patch("urllib.request.urlopen", return_value=ctx), pytest.raises(Commit.LLMError, match="cannot reach"):
         Commit._post_stream("http://localhost", {})
+
+
+def test_post_stream_http_error_reports_status_and_body():
+    err = urllib.error.HTTPError("http://x", 401, "Unauthorized", {}, io.BytesIO(b'{"error": "invalid api key"}'))
+    with patch("urllib.request.urlopen", side_effect=err), pytest.raises(Commit.LLMError) as excinfo:
+        Commit._post_stream("http://localhost", {})
+    assert "401" in str(excinfo.value)
+    assert "invalid api key" in str(excinfo.value)
+
+
+def test_post_stream_timeout_raises_llm_error():
+    with patch("urllib.request.urlopen", side_effect=TimeoutError("timed out")), pytest.raises(Commit.LLMError):
+        Commit._post_stream("http://localhost", {})
+
+
+def test_post_stream_sends_bearer_token_only_when_given():
+    lines = [b'{"message": {"content": "ok"}, "done": true}\n']
+    with patch("urllib.request.urlopen", return_value=_urlopen_mock(lines)) as mock_open:
+        Commit._post_stream("http://localhost", {}, api_key="sk-test")
+        Commit._post_stream("http://localhost", {})
+    with_key, without_key = (call.args[0] for call in mock_open.call_args_list)
+    assert with_key.get_header("Authorization") == "Bearer sk-test"
+    assert without_key.get_header("Authorization") is None
+
+
+# ── resolve_api_key ────────────────────────────────────────────────────────────
+
+
+def test_resolve_api_key_none_without_configured_variable(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-must-not-leak")
+    assert Commit.resolve_api_key(None) is None
+    assert Commit.resolve_api_key("") is None
+
+
+def test_resolve_api_key_reads_configured_variable(monkeypatch):
+    monkeypatch.setenv("MY_LLM_KEY", "  sk-abc  ")
+    assert Commit.resolve_api_key("MY_LLM_KEY") == "sk-abc"
+
+
+def test_resolve_api_key_unset_variable_raises(monkeypatch):
+    monkeypatch.delenv("MY_LLM_KEY", raising=False)
+    with pytest.raises(Commit.ApiKeyError, match="MY_LLM_KEY"):
+        Commit.resolve_api_key("MY_LLM_KEY")
 
 
 # ── ask_ollama / ask_openai ────────────────────────────────────────────────────
@@ -280,13 +324,21 @@ def test_post_stream_url_error_exits():
 
 def test_ask_ollama_builds_correct_url_and_payload():
     with patch("fobis.Commit._post_stream", return_value="feat: x") as mock_post:
-        result = Commit.ask_ollama("http://localhost:11434", "mymodel", "prompt")
+        result = Commit.ask_ollama("http://localhost:11434", "mymodel", "prompt", system="be terse", api_key="k")
     assert result == "feat: x"
     url, payload = mock_post.call_args[0]
     assert url == "http://localhost:11434/api/chat"
     assert payload["model"] == "mymodel"
     assert payload["stream"] is True
-    assert any(m["content"] == Commit._SYSTEM_PROMPT for m in payload["messages"])
+    assert payload["messages"] == [{"role": "system", "content": "be terse"}, {"role": "user", "content": "prompt"}]
+    assert mock_post.call_args.kwargs["api_key"] == "k"
+
+
+def test_ask_without_system_sends_only_the_user_message():
+    with patch("fobis.Commit._post_stream", return_value="ok") as mock_post:
+        Commit.ask_openai("http://localhost:1234", "m", "prompt")
+    _, payload = mock_post.call_args[0]
+    assert payload["messages"] == [{"role": "user", "content": "prompt"}]
 
 
 def test_ask_ollama_strips_trailing_slash():
@@ -317,8 +369,8 @@ def _proc(returncode=0, stdout="", stderr=""):
     return m
 
 
-def test_git_helper_exits_on_nonzero():
-    with patch("subprocess.run", return_value=_proc(returncode=1, stderr="fatal")), pytest.raises(SystemExit):
+def test_git_helper_raises_on_nonzero():
+    with patch("subprocess.run", return_value=_proc(returncode=1, stderr="fatal")), pytest.raises(Commit.GitError):
         Commit._git("status")
 
 
@@ -412,15 +464,39 @@ def test_recent_commits():
     assert "feat: foo" in result
 
 
+def test_recent_commits_empty_on_unborn_branch():
+    with patch("subprocess.run", return_value=_proc(returncode=1)) as mock_run:
+        assert Commit.recent_commits() == ""
+    assert mock_run.call_count == 1  # git log is never attempted
+
+
 # ── generate() ────────────────────────────────────────────────────────────────
 
 
 _STAGED_FILES = "M\tfobis/Commit.py\nA\ttests/test_commit.py"
 
 
-def test_generate_nothing_staged_exits():
-    with patch("fobis.Commit.staged_stat", return_value=""), pytest.raises(SystemExit):
+def test_generate_nothing_staged_raises():
+    with patch("fobis.Commit.staged_stat", return_value=""), pytest.raises(Commit.NothingStagedError):
         Commit.generate("ollama", "http://localhost", "model", 1000)
+
+
+def test_generate_unknown_backend_raises():
+    with pytest.raises(Commit.CommitError, match="unknown LLM backend"):
+        Commit.generate("olama", "http://localhost", "model", 1000)
+
+
+def test_generate_passes_commit_system_prompt_and_api_key():
+    with (
+        patch("fobis.Commit.staged_stat", return_value="1 file"),
+        patch("fobis.Commit.staged_files", return_value=_STAGED_FILES),
+        patch("fobis.Commit.staged_diff", return_value="diff"),
+        patch("fobis.Commit.recent_commits", return_value="abc"),
+        patch("fobis.Commit.current_branch", return_value="main"),
+        patch("fobis.Commit.ask_openai", return_value="feat: x") as mock_ask,
+    ):
+        Commit.generate("openai", "http://localhost", "m", 1000, api_key="sk-1")
+    assert mock_ask.call_args.kwargs == {"system": Commit._SYSTEM_PROMPT, "api_key": "sk-1"}
 
 
 def test_generate_ollama_single_pass():
@@ -485,7 +561,7 @@ def test_generate_file_list_threaded_into_prompt():
     """The complete file list must appear in the prompt sent to the LLM."""
     captured_prompt: list[str] = []
 
-    def capture_ask(url, model, prompt):
+    def capture_ask(url, model, prompt, **_):
         captured_prompt.append(prompt)
         return "feat: ok"
 
@@ -508,7 +584,7 @@ def test_generate_file_list_threaded_into_refine_prompt():
     """The complete file list must appear in the refine prompt too."""
     captured_prompts: list[str] = []
 
-    def capture_ask(url, model, prompt):
+    def capture_ask(url, model, prompt, **_):
         captured_prompts.append(prompt)
         return "feat: ok"
 

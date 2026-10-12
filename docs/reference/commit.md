@@ -14,6 +14,7 @@ fobis commit [options]
 |--------|-------|-------------|
 | `--backend TEXT` | `-b` | LLM backend: `ollama` (default) or `openai` |
 | `--url TEXT` | `-u` | Base URL of the LLM server (default: `http://localhost:11434`) |
+| `--api-key-env NAME` | | Name of the environment variable holding the API key, sent as `Authorization: Bearer <key>`; required by hosted endpoints. Without it no credentials are sent |
 | `--model TEXT` | `-m` | Model identifier (default: `qwen3-coder:30b-a3b-q4_K_M`) |
 | `--max-diff INT` | | Maximum staged-diff characters sent to the model (default: 12 000); truncation is file-boundary-aware — every file's metadata header is preserved |
 | `--refine-passes INT` | | Critique-and-rewrite iterations after the initial draft (default: 0 = single pass); 1–3 recommended for small/fast models |
@@ -60,12 +61,20 @@ Calls any OpenAI-compatible endpoint at `{url}/v1/chat/completions`. Covers:
 - [LM Studio](https://lmstudio.ai) — default URL: `http://localhost:1234`
 - [llama.cpp server](https://github.com/ggerganov/llama.cpp) — default URL: `http://localhost:8080`
 - [vLLM](https://docs.vllm.ai) — default URL: `http://localhost:8000`
-- Any cloud proxy exposing the OpenAI API
+- Hosted OpenAI-compatible services (OpenAI, Mistral, OpenRouter, ...), with `--api-key-env`
 
 ```bash
 # LM Studio example:
 fobis commit --backend openai --url http://localhost:1234 --model llama-3.2-3b
+
+# Hosted endpoint: the key is read from the named environment variable, never from the command line
+export OPENAI_API_KEY=sk-...
+fobis commit --backend openai --url https://api.openai.com --model gpt-4o-mini --api-key-env OPENAI_API_KEY
 ```
+
+The key is sent only when a variable is named explicitly (`--api-key-env` or `api_key_env` in the config):
+FoBiS never picks up `OPENAI_API_KEY` on its own, so a key cannot leak to a local server it was not meant for.
+A hosted endpoint receives your staged diff.
 
 Note: Ollama also exposes an OpenAI-compatible endpoint at `/v1/chat/completions`, so `--backend openai --url http://localhost:11434` works with Ollama too.
 
@@ -91,6 +100,10 @@ The generated file looks like:
 
 # Base URL of the LLM server (no trailing slash)
 # url = http://localhost:11434
+
+# Name of the environment variable holding the API key, sent as "Authorization: Bearer <key>".
+# Needed by hosted endpoints (OpenAI, Mistral, ...); unset = no credentials are sent.
+# api_key_env = OPENAI_API_KEY
 
 # Model to use for commit-message generation
 # model = qwen3-coder:30b-a3b-q4_K_M
@@ -126,6 +139,7 @@ fobis commit --show-config
 #   [llm]
 #   backend       = ollama
 #   url           = http://localhost:11434
+#   api_key_env   = (none)
 #   model         = qwen3-coder:30b-a3b-q4_K_M
 #   max_diff_chars= 12000
 #   refine_passes = 0

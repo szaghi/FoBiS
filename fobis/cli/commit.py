@@ -14,6 +14,13 @@ _UrlOpt = Annotated[
     str | None,
     typer.Option("--url", "-u", help="Base URL of the LLM server."),
 ]
+_ApiKeyEnvOpt = Annotated[
+    str | None,
+    typer.Option(
+        "--api-key-env",
+        help="Environment variable holding the API key, sent as a Bearer token (hosted endpoints).",
+    ),
+]
 _ModelOpt = Annotated[
     str | None,
     typer.Option("--model", "-m", help="Model identifier to use."),
@@ -53,6 +60,7 @@ def cmd_commit(
     ctx: typer.Context,
     backend: _BackendOpt = None,
     url: _UrlOpt = None,
+    api_key_env: _ApiKeyEnvOpt = None,
     model: _ModelOpt = None,
     max_diff: _MaxDiffOpt = None,
     refine_passes: _RefinePasses = None,
@@ -67,6 +75,7 @@ def cmd_commit(
         which="commit",
         backend=backend,
         url=url,
+        api_key_env=api_key_env,
         model=model,
         max_diff=max_diff,
         refine_passes=refine_passes,

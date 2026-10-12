@@ -20,12 +20,33 @@ Commit.py — LLM-assisted semantic commit-message generation for FoBiS.
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
 
 import json
+import os
 import re
 import subprocess
-import sys
 import textwrap
 import urllib.error
 import urllib.request
+
+
+class CommitError(Exception):
+    """Base class of the errors raised while generating a commit message."""
+
+
+class GitError(CommitError):
+    """A git command failed."""
+
+
+class NothingStagedError(CommitError):
+    """There are no staged changes to describe."""
+
+
+class LLMError(CommitError):
+    """The LLM endpoint could not be reached or answered with an error."""
+
+
+class ApiKeyError(LLMError):
+    """The environment variable configured to hold the API key is unset or empty."""
+
 
 _SYSTEM_PROMPT = """\
 You are an expert at writing Conventional Commits v1.0.0 messages.
@@ -254,8 +275,7 @@ the component name, not "Fetcher.py".)\
 def _git(*args: str) -> str:
     result = subprocess.run(["git", *args], capture_output=True, text=True)
     if result.returncode != 0:
-        print(f"git error: {result.stderr.strip()}", file=sys.stderr)
-        sys.exit(1)
+        raise GitError(f"git {' '.join(args)} failed: {result.stderr.strip()}")
     return result.stdout.strip()
 
 
@@ -320,6 +340,10 @@ def current_branch() -> str:
 
 
 def recent_commits(n: int = 5) -> str:
+    """The last *n* commits, one per line; empty on an unborn branch (the repository's first commit)."""
+    head = subprocess.run(["git", "rev-parse", "--verify", "--quiet", "HEAD"], capture_output=True, text=True)
+    if head.returncode != 0:
+        return ""
     return _git("log", "--oneline", f"-{n}")
 
 
@@ -380,10 +404,27 @@ def build_refine_prompt(draft: str, stat: str, diff: str, commits: str, files: s
 # ── LLM backends ──────────────────────────────────────────────────────────────
 
 
-def _post_stream(url: str, payload: dict, timeout: int = 120) -> str:
+def resolve_api_key(api_key_env: str | None) -> str | None:
+    """Return the API key held by the environment variable *api_key_env*.
+
+    No variable configured means no key: a key is never read from an implicit default variable, so it
+    cannot leak to a server it was not meant for.
+    """
+    if not api_key_env:
+        return None
+    key = os.environ.get(api_key_env, "").strip()
+    if not key:
+        raise ApiKeyError(f"api_key_env is set to {api_key_env!r}, but that environment variable is unset or empty")
+    return key
+
+
+def _post_stream(url: str, payload: dict, timeout: int = 120, api_key: str | None = None) -> str:
     """POST *payload* as JSON to *url* and collect streamed response tokens."""
     data = json.dumps(payload).encode()
-    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    req = urllib.request.Request(url, data=data, headers=headers)
     collected = []
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -413,38 +454,36 @@ def _post_stream(url: str, payload: dict, timeout: int = 120) -> str:
                     collected.append(token)
                 if chunk.get("done"):  # Ollama end-of-stream marker
                     break
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode(errors="replace").strip()[:500]
+        raise LLMError(
+            f"LLM at {url} answered HTTP {exc.code} {exc.reason}" + (f": {detail}" if detail else "")
+        ) from exc
     except urllib.error.URLError as exc:
-        print(f"\nError: cannot reach LLM at {url}\n{exc}", file=sys.stderr)
-        sys.exit(1)
+        raise LLMError(f"cannot reach LLM at {url}: {exc.reason}") from exc
+    except (TimeoutError, ConnectionError) as exc:
+        raise LLMError(f"connection to LLM at {url} failed: {exc}") from exc
     return "".join(collected).strip()
 
 
-def ask_ollama(base_url: str, model: str, prompt: str) -> str:
+def _messages(prompt: str, system: str | None) -> list[dict]:
+    """Chat messages for *prompt*, preceded by the *system* prompt when one is given."""
+    messages = [{"role": "system", "content": system}] if system else []
+    return [*messages, {"role": "user", "content": prompt}]
+
+
+def ask_ollama(base_url: str, model: str, prompt: str, system: str | None = None, api_key: str | None = None) -> str:
     """Call the Ollama native chat API."""
     url = base_url.rstrip("/") + "/api/chat"
-    payload = {
-        "model": model,
-        "messages": [
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user", "content": prompt},
-        ],
-        "stream": True,
-    }
-    return _post_stream(url, payload)
+    payload = {"model": model, "messages": _messages(prompt, system), "stream": True}
+    return _post_stream(url, payload, api_key=api_key)
 
 
-def ask_openai(base_url: str, model: str, prompt: str) -> str:
+def ask_openai(base_url: str, model: str, prompt: str, system: str | None = None, api_key: str | None = None) -> str:
     """Call any OpenAI-compatible chat-completions endpoint."""
     url = base_url.rstrip("/") + "/v1/chat/completions"
-    payload = {
-        "model": model,
-        "messages": [
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user", "content": prompt},
-        ],
-        "stream": True,
-    }
-    return _post_stream(url, payload)
+    payload = {"model": model, "messages": _messages(prompt, system), "stream": True}
+    return _post_stream(url, payload, api_key=api_key)
 
 
 # ── Message post-processing ────────────────────────────────────────────────────
@@ -601,6 +640,7 @@ def generate(
     refine_passes: int = 0,
     print_n=print,
     print_w=print,
+    api_key: str | None = None,
 ) -> str:
     """
     Generate a Conventional Commits message for the currently staged changes.
@@ -620,16 +660,25 @@ def generate(
         0 = single pass (default). 1-3 recommended for small models.
     print_n, print_w : callable
         Normal / warning message printers.
+    api_key : str or None
+        Bearer token sent to the LLM endpoint (see `resolve_api_key`); None sends no credentials.
 
     Returns
     -------
     str
         The generated commit message, ready to use.
+
+    Raises
+    ------
+    CommitError
+        Unknown backend, nothing staged (`NothingStagedError`), a failing git command (`GitError`), or an
+        unreachable or failing LLM endpoint (`LLMError`).
     """
+    if backend not in ("ollama", "openai"):
+        raise CommitError(f'unknown LLM backend {backend!r}: use "ollama" or "openai"')
     stat = staged_stat()
     if not stat:
-        print_w("Nothing staged. Run `git add <files>` first.")
-        sys.exit(1)
+        raise NothingStagedError("Nothing staged. Run `git add <files>` first.")
 
     files = staged_files()
     diff = staged_diff(max_diff_chars)
@@ -637,9 +686,8 @@ def generate(
     branch = current_branch()
 
     def _ask(prompt: str) -> str:
-        if backend == "openai":
-            return ask_openai(url, model, prompt)
-        return ask_ollama(url, model, prompt)
+        ask = ask_openai if backend == "openai" else ask_ollama
+        return ask(url, model, prompt, system=_SYSTEM_PROMPT, api_key=api_key)
 
     print_n(f"[{backend}:{model}] Generating commit message…")
     prompt = build_prompt(stat, diff, commits, branch=branch, files=files)

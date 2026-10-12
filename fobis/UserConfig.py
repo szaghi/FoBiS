@@ -43,6 +43,10 @@ _TEMPLATE = """\
 # Base URL of the LLM server (no trailing slash)
 # url = http://localhost:11434
 
+# Name of the environment variable holding the API key, sent as "Authorization: Bearer <key>".
+# Needed by hosted endpoints (OpenAI, Mistral, ...); unset = no credentials are sent.
+# api_key_env = OPENAI_API_KEY
+
 # Model to use for commit-message generation
 # model = qwen3-coder:30b-a3b-q4_K_M
 
@@ -114,6 +118,11 @@ class UserConfig:
     @property
     def llm_url(self) -> str:
         return self._get("llm", "url", self.DEFAULT_URL)
+
+    @property
+    def llm_api_key_env(self) -> str:
+        """Name of the environment variable holding the LLM API key ('' when not configured)."""
+        return self._get("llm", "api_key_env", "")
 
     @property
     def llm_model(self) -> str:
@@ -231,6 +240,7 @@ class UserConfig:
             "  [llm]",
             f"  backend       = {self.llm_backend}",
             f"  url           = {self.llm_url}",
+            f"  api_key_env   = {self.llm_api_key_env or '(none)'}",
             f"  model         = {self.llm_model}",
             f"  max_diff_chars= {self.llm_max_diff_chars}",
             f"  refine_passes = {self.llm_refine_passes}",
