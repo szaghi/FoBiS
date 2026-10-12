@@ -47,6 +47,14 @@ def cmd_lint(
         bool,
         typer.Option("--update-baseline", help="Record all current findings into the baseline file and exit."),
     ] = False,
+    diff: Annotated[
+        bool,
+        typer.Option("--diff", help="Print the automatic fixes as a unified diff; change nothing."),
+    ] = False,
+    fix: Annotated[
+        bool,
+        typer.Option("--fix", help="Apply the automatic fixes to the files, then report what remains."),
+    ] = False,
     exit_zero: Annotated[
         bool,
         typer.Option("--exit-zero", help="Exit 0 even when findings are reported."),
@@ -73,6 +81,8 @@ def cmd_lint(
         lint_baseline=baseline,
         lint_update_baseline=update_baseline,
         lint_exit_zero=exit_zero,
+        lint_diff=diff,
+        lint_fix=fix,
         lint_list_rules=list_rules,
         lint_explain=explain,
         fobos=fobos,

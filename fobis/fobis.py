@@ -1584,6 +1584,35 @@ def _split_selectors(values) -> list[str]:
     return [item for value in values or [] for item in value.replace(",", " ").split()]
 
 
+def _lint_fixes(findings, write: bool, print_n) -> list:
+    """Print (``write=False``) or apply the automatic fixes of *findings*; return the findings left unfixed."""
+    import difflib
+
+    from .analysis import read_source
+    from .lint import apply_fixes
+
+    by_path: dict[str, list] = {}
+    for finding in findings:
+        if finding.fixes:
+            by_path.setdefault(finding.path, []).append(finding)
+    applied_total = 0
+    for path, fixable in sorted(by_path.items()):
+        text = read_source(path)
+        fixed, applied = apply_fixes(text, fixable)
+        applied_total += applied
+        if write:
+            with open(path, "w", encoding="utf-8") as handle:
+                handle.write(fixed)
+        else:
+            diff = difflib.unified_diff(
+                text.splitlines(keepends=True), fixed.splitlines(keepends=True), f"a/{path}", f"b/{path}"
+            )
+            print("".join(diff), end="")
+    if write:
+        print_n(f"{applied_total} fix(es) applied in {len(by_path)} file(s)")
+    return [f for f in findings if not (write and f.fixes)]
+
+
 def run_fobis_lint(configuration):
     """
     Run FoBiS in lint mode: report bug-prone and obsolescent Fortran constructs.
@@ -1659,6 +1688,11 @@ def run_fobis_lint(configuration):
     except BaselineError as exc:
         configuration.print_r(f"Error: {exc}")
         sys.exit(1)
+
+    if cliargs.lint_diff or cliargs.lint_fix:
+        result.findings = _lint_fixes(result.findings, write=cliargs.lint_fix, print_n=configuration.print_b)
+        if cliargs.lint_diff:
+            return
 
     output = render(result, cliargs.lint_format)
     if output:

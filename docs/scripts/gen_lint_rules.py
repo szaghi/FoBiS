@@ -115,10 +115,12 @@ def index_page() -> str:
         "",
         "## Relation to Fortitude",
         "",
-        "The generic rules (`COR`, `OBS`) are a native reimplementation, in FoBiS's own words and on its own",
-        "source analysis, of rules catalogued by [Fortitude](https://fortitude.readthedocs.io/) (PlasmaFAIR, MIT",
-        "licence), whose rule set served as the reference. The *Fortitude* column gives the matching Fortitude",
-        "code, for users who know it. FoBiS does not depend on Fortitude.",
+        "The generic rules (`COR`, `OBS`, `MDN`, `PRT`) are a native reimplementation, in FoBiS's own words and",
+        "on its own source analysis, of rules catalogued by [Fortitude](https://fortitude.readthedocs.io/)",
+        "(PlasmaFAIR, MIT licence), whose rule set served as the reference. The *Fortitude* column gives the",
+        "matching Fortitude code, for users who know it. FoBiS does not depend on Fortitude. The `FOR`, `OMP`,",
+        "`ACC` and `MPI` rules are FoBiS's own, distilled from the OpenMP, OpenACC and MPI specifications and",
+        "from HPC practice.",
     ]
     return "\n".join(lines) + "\n"
 

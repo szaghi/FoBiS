@@ -28,13 +28,30 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..analysis import FileUnits, SourceFile, Statement
+    from ..analysis.project import ProjectIndex
 
 SEVERITIES = ("error", "warning", "info")
 FAMILIES = {
     "COR": "Correctness",
     "OBS": "Obsolescent",
+    "MDN": "Modernisation",
+    "PRT": "Portability",
+    "FOR": "Fortran practice",
+    "OMP": "OpenMP",
+    "ACC": "OpenACC",
+    "MPI": "MPI",
     "LNT": "Linter",
 }
+
+
+@dataclass(frozen=True)
+class Edit:
+    """A mechanical fix: replace columns ``[start, end)`` of physical line *line* (1-based) by *text*."""
+
+    line: int
+    start: int
+    end: int
+    text: str
 
 
 @dataclass(frozen=True)
@@ -45,6 +62,7 @@ class Hit:
     message: str
     end_line: int | None = None
     snippet: str = ""
+    fixes: tuple[Edit, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -73,6 +91,7 @@ class Finding:
     severity: str
     end_line: int = 0
     snippet: str = ""
+    fixes: tuple[Edit, ...] = ()
 
     @property
     def fingerprint(self) -> str:
@@ -88,10 +107,11 @@ class LintContext:
     path: str
     source: SourceFile
     units: FileUnits
+    project: ProjectIndex
 
-    def hit(self, stmt: Statement, message: str) -> Hit:
+    def hit(self, stmt: Statement, message: str, fixes: tuple[Edit, ...] = ()) -> Hit:
         """A `Hit` on the lines of *stmt*."""
-        return Hit(line=stmt.line, end_line=stmt.end_line, message=message, snippet=stmt.masked)
+        return Hit(line=stmt.line, end_line=stmt.end_line, message=message, snippet=stmt.masked, fixes=fixes)
 
 
 Check = Callable[[LintContext], Iterable[Hit]]

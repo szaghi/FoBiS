@@ -42,7 +42,7 @@ features:
     linkText: Ecosystem guide
   - icon: 🩺
     title: Fortran linter that sees your build
-    details: "`fobis lint` reports bug-prone and obsolescent constructs — missing `implicit none` and `intent`, silently saved locals, unchecked `stat=`, common blocks, `mpif.h` — analysing the code your fobos mode actually compiles (its `-D` defines decide every `#ifdef`). Inline suppressions with reasons, a baseline for existing codes, SARIF for GitHub code scanning."
+    details: "`fobis lint` reports bug-prone, obsolescent and non-portable constructs and parallel-code defects — OpenMP data races and missing reductions, OpenACC calls without `!$acc routine`, saved locals in GPU code, MPI requests never completed — analysing the code your fobos mode actually compiles (its `-D` defines decide every `#ifdef`), across the whole project. Inline suppressions with reasons, a baseline for existing codes, SARIF for GitHub code scanning, automatic fixes."
     link: /ai/lint
     linkText: Linting guide
   - icon: 🔬

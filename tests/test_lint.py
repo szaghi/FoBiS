@@ -159,6 +159,214 @@ CASES = [
 ]
 
 
+# ── wave A2: Fortran practice, OpenMP, OpenACC, MPI; wave G3: modernisation, portability ──
+_DRIVER = "subroutine drv(n)\ninteger, intent(in) :: n\n!$omp parallel do\ndo i = 1, n\ncall work(i)\nend do\nend subroutine\n"
+_PLOOP = "subroutine s(a, b, n)\ninteger, intent(in) :: n\nreal, intent(in) :: a(n)\nreal, intent(out) :: b(n)\nreal :: tmp, s\n"
+CASES += [
+    # FOR001 saved-local-in-parallel-procedure
+    (
+        "FOR001",
+        "module m\ncontains\nsubroutine k(q)\n!$acc routine seq\nreal, intent(inout) :: q\nreal :: w = 1.0\nq = q * w\n"
+        "end subroutine\nend module\n",
+        [6],
+    ),
+    (
+        "FOR001",
+        _DRIVER + "subroutine work(i)\ninteger, intent(in) :: i\ninteger, save :: calls\ncalls = i\nend subroutine\n",
+        [10],
+    ),
+    ("FOR001", "subroutine work(i)\ninteger, intent(in) :: i\ninteger, save :: calls\ncalls = i\nend subroutine\n", []),
+    # FOR004 function-result-component
+    (
+        "FOR004",
+        "module m\ncontains\nfunction g() result(r)\ntype(t) :: r\nend function\nsubroutine s()\nn = g()%ni\nend subroutine\nend module\n",
+        [7],
+    ),
+    ("FOR004", "subroutine s()\ntype(t) :: a(3)\nn = a(1)%x\nend subroutine\n", []),
+    # FOR005 cpu-time-for-wall-clock
+    ("FOR005", "subroutine s()\n!$omp parallel\n!$omp end parallel\ncall cpu_time(t)\nend subroutine\n", [4]),
+    ("FOR005", "subroutine s()\ncall cpu_time(t)\nend subroutine\n", []),
+    # OMP001 shared-scalar-written-in-parallel-region
+    (
+        "OMP001",
+        _PLOOP + "!$omp parallel do\ndo i = 1, n\ntmp = a(i) * 2\nb(i) = tmp\nend do\nend subroutine\n",
+        [8],
+    ),
+    (
+        "OMP001",
+        _PLOOP + "!$omp parallel do private(tmp)\ndo i = 1, n\ntmp = a(i)\nb(i) = tmp\nend do\nend subroutine\n",
+        [],
+    ),
+    ("OMP001", _PLOOP + "!$omp parallel do default(private)\ndo i = 1, n\ntmp = a(i)\nend do\nend subroutine\n", []),
+    (
+        "OMP001",
+        _PLOOP
+        + "!$omp parallel\n!$omp do\ndo i = 1, n\ndo j = 1, n\nb(i) = a(j)\nend do\nend do\n!$omp critical\ntmp = 1\n"
+        "!$omp end critical\n!$omp end parallel\nend subroutine\n",
+        [],
+    ),
+    # OMP002 accumulation-without-reduction
+    ("OMP002", _PLOOP + "!$omp parallel do\ndo i = 1, n\ns = s + a(i)\nend do\nend subroutine\n", [8]),
+    ("OMP002", _PLOOP + "!$omp parallel do reduction(+:s)\ndo i = 1, n\ns = s + a(i)\nend do\nend subroutine\n", []),
+    # OMP003 collapse-imperfect-nest
+    (
+        "OMP003",
+        "subroutine s()\n!$omp parallel do collapse(2)\ndo j = 1, m\nc = 1\ndo i = 1, n\nend do\nend do\nend subroutine\n",
+        [2],
+    ),
+    (
+        "OMP003",
+        "subroutine s()\n!$omp parallel do collapse(2)\ndo j = 1, m\ndo i = 1, n\nend do\nx = 1\nend do\nend subroutine\n",
+        [2],
+    ),
+    (
+        "OMP003",
+        "subroutine s()\n!$omp parallel do collapse(2)\ndo j = 1, m\ndo i = 1, n\nend do\nend do\nend subroutine\n",
+        [],
+    ),
+    # ACC011 acc-collapse-imperfect-nest
+    (
+        "ACC011",
+        "subroutine s()\n!$acc parallel loop collapse(2)\ndo j = 1, m\nc = 1\ndo i = 1, n\nend do\nend do\nend subroutine\n",
+        [2],
+    ),
+    (
+        "ACC011",
+        "subroutine s()\n!$acc parallel loop collapse(2)\ndo j = 1, m\ndo i = 1, n\nend do\nend do\nend subroutine\n",
+        [],
+    ),
+    # OMP007 mpi-in-threaded-region-without-thread-support
+    (
+        "OMP007",
+        "program p\ncall mpi_init(ierr)\n!$omp parallel\ncall mpi_barrier(comm, ierr)\n!$omp end parallel\nend program\n",
+        [4],
+    ),
+    (
+        "OMP007",
+        "program p\ncall mpi_init_thread(3, prov, ierr)\n!$omp parallel\ncall mpi_barrier(comm, ierr)\n!$omp end parallel\nend program\n",
+        [],
+    ),
+    # ACC002 atomic-in-compute-region
+    (
+        "ACC002",
+        "subroutine s(n)\n!$acc parallel loop\ndo i = 1, n\n!$acc atomic update\nx = x + 1\nend do\nend subroutine\n",
+        [4],
+    ),
+    ("ACC002", "subroutine s()\n!$acc atomic update\nx = x + 1\nend subroutine\n", []),
+    # ACC003 firstprivate-associate-name
+    (
+        "ACC003",
+        "subroutine s(g)\nassociate (dx => g%dx)\n!$acc parallel loop firstprivate(dx)\ndo i = 1, n\nend do\nend associate\nend subroutine\n",
+        [3],
+    ),
+    (
+        "ACC003",
+        "subroutine s(g)\nassociate (dx => g%dx)\n!$acc parallel loop copyin(dx)\ndo i = 1, n\nend do\nend associate\nend subroutine\n",
+        [],
+    ),
+    # ACC004 reduction-into-device-module-variable
+    (
+        "ACC004",
+        "module m\nreal, allocatable :: tot\n!$acc declare create(tot)\ncontains\nsubroutine s(n)\ninteger, intent(in) :: n\n"
+        "!$acc parallel loop reduction(+:tot)\ndo i = 1, n\ntot = tot + 1\nend do\nend subroutine\nend module\n",
+        [7],
+    ),
+    (
+        "ACC004",
+        "module m\nreal, allocatable :: tot\n!$acc declare create(tot)\ncontains\nsubroutine s(n)\nreal :: tot\n"
+        "!$acc parallel loop reduction(+:tot)\ndo i = 1, n\ntot = tot + 1\nend do\nend subroutine\nend module\n",
+        [],
+    ),
+    # ACC006 missing-acc-routine
+    (
+        "ACC006",
+        "module m\ncontains\nsubroutine cell(x)\nreal, intent(inout) :: x\nend subroutine\nsubroutine s(a, n)\n"
+        "!$acc parallel loop\ndo i = 1, n\ncall cell(a(i))\nend do\nend subroutine\nend module\n",
+        [9],
+    ),
+    (
+        "ACC006",
+        "module m\ncontains\nsubroutine cell(x)\n!$acc routine seq\nreal, intent(inout) :: x\nend subroutine\nsubroutine s(a, n)\n"
+        "!$acc parallel loop\ndo i = 1, n\ncall cell(a(i))\nend do\nend subroutine\nend module\n",
+        [],
+    ),
+    # ACC008 timer-without-acc-wait
+    (
+        "ACC008",
+        "subroutine s()\n!$acc parallel loop async(1)\ndo i = 1, n\nend do\ncall system_clock(t1)\nend subroutine\n",
+        [5],
+    ),
+    (
+        "ACC008",
+        "subroutine s()\ncall system_clock(t0)\n!$acc parallel loop async(1)\ndo i = 1, n\nend do\n!$acc wait\ncall system_clock(t1)\nend subroutine\n",
+        [],
+    ),
+    # MPI001 request-never-completed
+    (
+        "MPI001",
+        "subroutine s(buf, n)\ninteger :: req, ierr\ncall mpi_isend(buf, n, mpi_real, 1, 0, comm, req, ierr)\nend subroutine\n",
+        [3],
+    ),
+    (
+        "MPI001",
+        "subroutine s(buf, n)\ninteger :: req, ierr\ncall mpi_isend(buf, n, mpi_real, 1, 0, comm, req, ierr)\n"
+        "call mpi_wait(req, mpi_status_ignore, ierr)\nend subroutine\n",
+        [],
+    ),
+    (
+        "MPI001",
+        "subroutine s(buf, n, req)\ncall mpi_isend(buf, n, mpi_real, 1, 0, comm, req, ierr)\nend subroutine\n",
+        [],
+    ),
+    # MDN001 double-precision (opt-in)
+    ("MDN001", "subroutine s()\ndouble precision :: x\nend subroutine\n", [2]),
+    ("MDN001", "subroutine s()\nreal(rk) :: x\nend subroutine\n", []),
+    # MDN002 double-precision-literal (opt-in)
+    ("MDN002", "subroutine s()\nx = 1.0d-3\nend subroutine\n", [2]),
+    ("MDN002", "subroutine s()\nx = 1.0e-3_rk + d1\nend subroutine\n", []),
+    # MDN011 old-style-array-constructor
+    ("MDN011", "subroutine s()\na = (/ 1, 2 /)\nend subroutine\n", [2]),
+    ("MDN011", "subroutine s()\na = [1, 2]\n100 format (/, a)\nend subroutine\n", []),
+    # MDN021 deprecated-relational-operator
+    ("MDN021", "subroutine s()\nif (a .eq. b .or. c .GE. d) x = 1\nend subroutine\n", [2]),
+    ("MDN021", "subroutine s()\nl = a .eqv. b\nprint *, '.eq.'\nend subroutine\n", []),
+    # MDN031 include-statement (opt-in)
+    ("MDN031", "subroutine s()\ninclude 'consts.inc'\nend subroutine\n", [2]),
+    ("MDN031", "subroutine s()\nuse consts, only: pi\nend subroutine\n", []),
+    # MDN041 out-of-line-attribute
+    (
+        "MDN041",
+        "subroutine s(a, b)\nreal :: a, b\ndimension a(10)\nintent(in) :: b\nparameter (n = 1)\nend subroutine\n",
+        [3, 4, 5],
+    ),
+    ("MDN041", "module m\nreal, dimension(10) :: a\nprivate :: a\nsave\nend module\n", []),
+    # MDN051 superfluous-save
+    ("MDN051", "module m\nreal, save :: t\nsave\nend module\n", [2, 3]),
+    ("MDN051", "subroutine s()\nreal, save :: t\nend subroutine\n", []),
+    # MDN201 old-mpi-module (opt-in)
+    ("MDN201", "subroutine s()\nuse mpi\nend subroutine\n", [2]),
+    ("MDN201", "subroutine s()\nuse mpi_f08\nend subroutine\n", []),
+    # PRT011 literal-kind
+    ("PRT011", "subroutine s()\nreal(8) :: x\ninteger(kind=4) :: i\nend subroutine\n", [2, 3]),
+    ("PRT011", "subroutine s()\nreal(rk) :: x\nend subroutine\n", []),
+    # PRT012 literal-kind-suffix
+    ("PRT012", "subroutine s()\nx = 1.0_8 + 2_4\nend subroutine\n", [2]),
+    ("PRT012", "subroutine s()\nx = 1.0_rk + a_1\nend subroutine\n", []),
+    # PRT021 star-kind
+    ("PRT021", "subroutine s()\nreal*8 :: x\ninteger * 4 i\nend subroutine\n", [2, 3]),
+    ("PRT021", "subroutine s()\ncharacter*8 :: c\nend subroutine\n", []),
+    # PRT031 invalid-tab
+    ("PRT031", "subroutine s()\n\tx = 1\nend subroutine\n", [2]),
+    ("PRT031", "subroutine s()\nx = 1 ! a\tb\nend subroutine\n", []),
+    # PRT061 non-portable-system-call (opt-in)
+    ("PRT061", "subroutine s()\ncall system('ls')\nend subroutine\n", [2]),
+    ("PRT061", "subroutine s()\ncall execute_command_line('ls')\nend subroutine\n", []),
+    # PRT062 gfortran-random-extension (opt-in)
+    ("PRT062", "subroutine s()\nx = rand()\nend subroutine\n", [2]),
+    ("PRT062", "subroutine s()\ncall random_number(x)\nend subroutine\n", []),
+]
+
+
 @pytest.mark.parametrize(("rule_id", "code", "expected"), CASES, ids=[f"{c[0]}-{i}" for i, c in enumerate(CASES)])
 def test_rule_cases(rule_id, code, expected):
     assert _lines(rule_id, code) == expected
@@ -396,3 +604,81 @@ def test_cli_rejects_unknown_selector_and_format(tmp_path, monkeypatch, capsys):
     _cli_project(tmp_path, monkeypatch)
     assert _run(["--select", "XYZ"], capsys)[0] == 1
     assert _run(["--format", "xml"], capsys)[0] == 1
+
+
+# ── fixes ──────────────────────────────────────────────────────────────────────
+
+
+def test_apply_fixes_rewrites_only_code():
+    from fobis.lint import apply_fixes
+
+    code = "subroutine s()\nif (a .eq. b) x = (/ 1, 2 /) ! keep .eq. in comment\nprint *, '.ne.'\nend subroutine\n"
+    findings = lint_text(code, "t.f90", [RULES["MDN021"], RULES["MDN011"]])
+    fixed, applied = apply_fixes(code, findings)
+    assert applied == 3
+    assert fixed.splitlines()[1] == "if (a == b) x = [ 1, 2 ] ! keep .eq. in comment"
+    assert fixed.splitlines()[2] == "print *, '.ne.'"
+    assert not lint_text(fixed, "t.f90", [RULES["MDN021"], RULES["MDN011"]])
+
+
+def test_apply_fixes_on_continued_statement():
+    from fobis.lint import apply_fixes
+
+    code = "subroutine s()\nif (a .lt. b .and. &\n    c .ge. d) x = 1\nend subroutine\n"
+    fixed, applied = apply_fixes(code, lint_text(code, "t.f90", [RULES["MDN021"]]))
+    assert applied == 2
+    assert "a < b" in fixed and "c >= d" in fixed
+
+
+def test_cli_diff_and_fix(tmp_path, monkeypatch, capsys):
+    (tmp_path / "s.f90").write_text("subroutine s()\nif (a .eq. b) x = 1\nend subroutine\n")
+    monkeypatch.chdir(tmp_path)
+    code, out = _run(["s.f90", "--select", "MDN021", "--diff"], capsys)
+    assert code == 0
+    assert "-if (a .eq. b) x = 1" in out and "+if (a == b) x = 1" in out
+    assert ".eq." in (tmp_path / "s.f90").read_text()  # --diff changes nothing
+    code, out = _run(["s.f90", "--select", "MDN021", "--fix"], capsys)
+    assert code == 0
+    assert "if (a == b) x = 1" in (tmp_path / "s.f90").read_text()
+
+
+# ── cross-file rules ───────────────────────────────────────────────────────────
+
+
+def test_cross_file_device_routine_and_saved_local(tmp_path):
+    (tmp_path / "kernels.f90").write_text(
+        "module kernels\ncontains\nsubroutine cell(x)\nreal, intent(inout) :: x\nreal :: w = 2.0\nx = x * w\n"
+        "end subroutine\nend module\n"
+    )
+    (tmp_path / "driver.f90").write_text(
+        "module driver\nuse kernels, only: cell\ncontains\nsubroutine run(a, n)\ninteger, intent(in) :: n\n"
+        "real, intent(inout) :: a(n)\n!$acc parallel loop\ndo i = 1, n\ncall cell(a(i))\nend do\nend subroutine\nend module\n"
+    )
+    files = discover_files([str(tmp_path)], extensions=[".f90"])
+    result = lint_files(files, [RULES["ACC006"], RULES["FOR001"]])
+    found = sorted((f.rule, f.path.split("/")[-1], f.line) for f in result.findings)
+    assert found == [("ACC006", "driver.f90", 9), ("FOR001", "kernels.f90", 5)]
+
+
+def test_omp_temporary_updated_in_iteration_is_not_an_accumulation():
+    code = (
+        "subroutine s(a, n)\ninteger, intent(in) :: n\nreal, intent(in) :: a(n)\nreal :: t\n"
+        "!$omp parallel do\ndo i = 1, n\nt = a(i)\nt = t * 2\nt = t + 1\nend do\nend subroutine\n"
+    )
+    found = [(f.rule, f.line) for f in lint_text(code, "t.f90", [RULES["OMP001"], RULES["OMP002"]])]
+    assert found == [("OMP001", 7)]  # reported once, at the first write, as a shared temporary
+
+
+def test_c_headers_are_skipped(tmp_path):
+    (tmp_path / "zlib.h").write_text("/* C */\ntypedef int z_int;\nextern int deflate(void);\n")
+    (tmp_path / "consts.h").write_text("integer, parameter :: n = 1\ncommon /c/ x\n")
+    files = discover_files([str(tmp_path)], extensions=[".h"])
+    result = lint_files(files, [RULES["OBS001"]])
+    assert [f.path.split("/")[-1] for f in result.findings] == ["consts.h"]
+    assert [p.split("/")[-1] for p in result.skipped] == ["zlib.h"]
+    assert "1 C header(s) skipped" in render(result, "text")
+
+
+def test_tabs_reported_once_per_file():
+    findings = lint_text("subroutine s()\n\tx = 1\n\ty = 2\nend subroutine\n", "t.f90", [RULES["PRT031"]])
+    assert [(f.line, f.message) for f in findings] == [(2, "tab character in code (and 1 more line(s))")]

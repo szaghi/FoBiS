@@ -6,7 +6,7 @@ title: Lint Rules
 
 # Lint Rules
 
-`fobis lint` has 33 rules. Rules marked *default* run unless a selection is given;
+`fobis lint` has 61 rules. Rules marked *default* run unless a selection is given;
 *opt-in* rules run only when selected (`--select COR003`, a prefix like `--select COR`, or `ALL`).
 Run `fobis lint --explain <ID>` for the same documentation in the terminal. How to run, select and
 suppress rules: [Linting](/ai/lint).
@@ -50,6 +50,64 @@ suppress rules: [Linting](/ai/lint).
 | [OBS020](/lint-rules/OBS020) | `deprecated-mpi-include` | warning | yes | OB201 | `include 'mpif.h'` instead of the `mpi_f08` module. |
 | [OBS021](/lint-rules/OBS021) | `deprecated-omp-include` | warning | yes | OB211 | `include 'omp_lib.h'` instead of the `omp_lib` module. |
 
+## Modernisation (`MDN`)
+
+| Rule | Name | Severity | Default | Fortitude | Reports |
+|------|------|----------|---------|-----------|---------|
+| [MDN001](/lint-rules/MDN001) | `double-precision` | warning | opt-in | MOD001 | A `double precision` (or `double complex`) declaration. |
+| [MDN002](/lint-rules/MDN002) | `double-precision-literal` | warning | opt-in | MOD002 | A double precision literal with exponent letter `d` (`1.0d0`). |
+| [MDN011](/lint-rules/MDN011) | `old-style-array-constructor` | warning | yes | MOD011 | An array constructor written `(/ ... /)` instead of `[ ... ]`. |
+| [MDN021](/lint-rules/MDN021) | `deprecated-relational-operator` | warning | yes | MOD021 | A relational operator written `.eq.`, `.ne.`, `.lt.`, `.le.`, `.gt.`, `.ge.`. |
+| [MDN031](/lint-rules/MDN031) | `include-statement` | warning | opt-in | MOD031 | A Fortran `include` line. |
+| [MDN041](/lint-rules/MDN041) | `out-of-line-attribute` | warning | yes | MOD041 | An attribute given in a separate statement (`dimension a(n)`, `intent(in) :: x`, `parameter (...)`). |
+| [MDN051](/lint-rules/MDN051) | `superfluous-save` | warning | yes | MOD051 | `save` in a module specification part. |
+| [MDN201](/lint-rules/MDN201) | `old-mpi-module` | warning | opt-in | MOD201 | `use mpi` instead of `use mpi_f08`. |
+
+## Portability (`PRT`)
+
+| Rule | Name | Severity | Default | Fortitude | Reports |
+|------|------|----------|---------|-----------|---------|
+| [PRT011](/lint-rules/PRT011) | `literal-kind` | warning | yes | PORT011 | A kind given as a number in a type declaration (`real(8)`, `integer(kind=4)`). |
+| [PRT012](/lint-rules/PRT012) | `literal-kind-suffix` | warning | yes | PORT012 | A literal with a numeric kind suffix (`1.0_8`, `10_4`). |
+| [PRT021](/lint-rules/PRT021) | `star-kind` | warning | yes | PORT021 | A non-standard `type*size` declaration (`real*8`, `integer*4`). |
+| [PRT031](/lint-rules/PRT031) | `invalid-tab` | warning | yes | PORT031 | Tab characters in Fortran code (reported once per file). |
+| [PRT061](/lint-rules/PRT061) | `non-portable-system-call` | warning | opt-in | PORT061 | `system()` (a compiler extension) runs a shell command. |
+| [PRT062](/lint-rules/PRT062) | `gfortran-random-extension` | warning | opt-in | PORT062 | The extensions `rand`, `srand`, `irand` generate random numbers. |
+
+## Fortran practice (`FOR`)
+
+| Rule | Name | Severity | Default | Fortitude | Reports |
+|------|------|----------|---------|-----------|---------|
+| [FOR001](/lint-rules/FOR001) | `saved-local-in-parallel-procedure` | warning | yes | - | A procedure that runs in parallel has a saved local variable (one copy shared by all threads). |
+| [FOR004](/lint-rules/FOR004) | `function-result-component` | error | yes | - | A component of a function result is referenced directly: `f(x)%c`. |
+| [FOR005](/lint-rules/FOR005) | `cpu-time-for-wall-clock` | warning | yes | - | `cpu_time` measures time in code that runs in parallel (OpenMP, OpenACC, MPI). |
+
+## OpenMP (`OMP`)
+
+| Rule | Name | Severity | Default | Fortitude | Reports |
+|------|------|----------|---------|-----------|---------|
+| [OMP001](/lint-rules/OMP001) | `shared-scalar-written-in-parallel-region` | warning | yes | - | A shared scalar is assigned inside an OpenMP parallel region: a data race. |
+| [OMP002](/lint-rules/OMP002) | `accumulation-without-reduction` | warning | yes | - | A shared scalar is accumulated inside an OpenMP parallel region without `reduction`. |
+| [OMP003](/lint-rules/OMP003) | `collapse-imperfect-nest` | error | yes | - | `collapse(n)` on OpenMP loops that are not tightly nested. |
+| [OMP007](/lint-rules/OMP007) | `mpi-in-threaded-region-without-thread-support` | warning | yes | - | MPI is called inside an OpenMP parallel region but initialised with `mpi_init`, not `mpi_init_thread`. |
+
+## OpenACC (`ACC`)
+
+| Rule | Name | Severity | Default | Fortitude | Reports |
+|------|------|----------|---------|-----------|---------|
+| [ACC002](/lint-rules/ACC002) | `atomic-in-compute-region` | warning | yes | - | An `!$acc atomic` inside an OpenACC compute region or device routine. |
+| [ACC003](/lint-rules/ACC003) | `firstprivate-associate-name` | warning | yes | - | An `associate` name appears in an OpenACC `firstprivate` clause. |
+| [ACC004](/lint-rules/ACC004) | `reduction-into-device-module-variable` | error | yes | - | An OpenACC `reduction` targets a module allocatable declared `!$acc declare create`. |
+| [ACC006](/lint-rules/ACC006) | `missing-acc-routine` | warning | yes | - | A project procedure is called inside an OpenACC compute region but has no `!$acc routine`. |
+| [ACC008](/lint-rules/ACC008) | `timer-without-acc-wait` | warning | yes | - | A timer is read while asynchronous OpenACC work may still be running. |
+| [ACC011](/lint-rules/ACC011) | `acc-collapse-imperfect-nest` | error | yes | - | `collapse(n)` on OpenACC loops that are not tightly nested. |
+
+## MPI (`MPI`)
+
+| Rule | Name | Severity | Default | Fortitude | Reports |
+|------|------|----------|---------|-----------|---------|
+| [MPI001](/lint-rules/MPI001) | `request-never-completed` | warning | yes | - | A non-blocking MPI operation stores its request in a local variable that is never completed. |
+
 ## Linter (`LNT`)
 
 | Rule | Name | Severity | Default | Fortitude | Reports |
@@ -61,7 +119,9 @@ suppress rules: [Linting](/ai/lint).
 
 ## Relation to Fortitude
 
-The generic rules (`COR`, `OBS`) are a native reimplementation, in FoBiS's own words and on its own
-source analysis, of rules catalogued by [Fortitude](https://fortitude.readthedocs.io/) (PlasmaFAIR, MIT
-licence), whose rule set served as the reference. The *Fortitude* column gives the matching Fortitude
-code, for users who know it. FoBiS does not depend on Fortitude.
+The generic rules (`COR`, `OBS`, `MDN`, `PRT`) are a native reimplementation, in FoBiS's own words and
+on its own source analysis, of rules catalogued by [Fortitude](https://fortitude.readthedocs.io/)
+(PlasmaFAIR, MIT licence), whose rule set served as the reference. The *Fortitude* column gives the
+matching Fortitude code, for users who know it. FoBiS does not depend on Fortitude. The `FOR`, `OMP`,
+`ACC` and `MPI` rules are FoBiS's own, distilled from the OpenMP, OpenACC and MPI specifications and
+from HPC practice.

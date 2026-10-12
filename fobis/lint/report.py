@@ -40,6 +40,8 @@ def render_text(result: LintResult) -> str:
     summary = f"{len(result.findings)} finding(s) in {result.files} file(s)"
     if result.baselined:
         summary += f", {result.baselined} hidden by the baseline"
+    if result.skipped:
+        summary += f", {len(result.skipped)} C header(s) skipped"
     if counts:
         summary += ": " + ", ".join(f"{rid} x{n}" for rid, n in sorted(counts.items()))
         summary += "\nExplain a rule with: fobis lint --explain <ID>"

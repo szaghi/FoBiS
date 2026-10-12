@@ -1,6 +1,7 @@
 # `lint` command
 
-Report bug-prone and obsolescent Fortran constructs.
+Report bug-prone, obsolescent and non-portable Fortran constructs and parallel-code defects (OpenMP,
+OpenACC, MPI).
 
 ```bash
 fobis lint [PATHS...] [options]
@@ -18,6 +19,8 @@ Guide: [Linting](/ai/lint). Rules: [Lint Rules](/lint-rules/).
 | `--format FMT` | `text` (default), `json`, `sarif` or `github` |
 | `--baseline FILE` | Baseline file: findings recorded there are not reported [default: fobos `baseline`, else `.fobis-lint-baseline.json` when present] |
 | `--update-baseline` | Record all current findings into the baseline file and exit |
+| `--diff` | Print the automatic fixes of the reported findings as a unified diff; change nothing |
+| `--fix` | Apply the automatic fixes to the files, then report the findings that remain |
 | `--exit-zero` | Exit 0 even when findings are reported |
 | `--list-rules` | List every rule (id, name, severity, default, Fortitude equivalent) and exit |
 | `--explain ID` | Print the documentation of a rule and exit |
@@ -53,6 +56,10 @@ fobis lint --select OBS --format json
 # Adopt on an existing code: record today's findings, report only new ones
 fobis lint --update-baseline
 fobis lint
+
+# Review, then apply, the mechanical fixes
+fobis lint --select MDN021 --diff
+fobis lint --select MDN021 --fix
 
 # Why is COR020 reported?
 fobis lint --explain COR020

@@ -21,14 +21,18 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from collections import Counter
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 
-from ..analysis import SourceFile, Suppression, build_units, lex, read_source
+from ..analysis import FileUnits, SourceFile, Suppression, build_units, lex, read_source
+from ..analysis.project import ProjectIndex, build_index
 from .rule import RULES, Finding, Hit, LintContext, Rule, rule
 
 BASELINE_VERSION = 1
+_C_HEADER_EXTENSIONS = (".h", ".H")
+_C_MARKERS_RE = re.compile(r"/\*|\btypedef\b|\bextern\b|^\s*#\s*include\s*<", re.MULTILINE)
 DEFAULT_EXCLUDED_DIRS = frozenset((".fobis_deps", ".git", ".svn", ".hg", "node_modules"))
 
 
@@ -107,12 +111,15 @@ class LintResult:
         Files that could not be read (path, reason).
     baselined : int
         Findings hidden by the baseline.
+    skipped : list of str
+        Files not linted because they are C headers (a ``.h`` include extension shared with C).
     """
 
     findings: list[Finding] = field(default_factory=list)
     files: int = 0
     unreadable: list[tuple[str, str]] = field(default_factory=list)
     baselined: int = 0
+    skipped: list[str] = field(default_factory=list)
 
 
 def _statement_span(source: SourceFile, sup: Suppression) -> tuple[int, int]:
@@ -155,18 +162,22 @@ def _apply_suppressions(
     return kept, meta
 
 
-def lint_text(
+def analyse(
     text: str,
     path: str,
-    rules: Iterable[Rule],
     defines: dict[str, str] | None = None,
     openmp: bool = False,
     fixed_line_length: int | None = 72,
-) -> list[Finding]:
-    """Lint Fortran *text* reported as *path*; suppressions are applied, the baseline is not."""
+) -> FileUnits:
+    """Lex *text* (reported as *path*) and build its units."""
+    return build_units(lex(text, path=path, defines=defines, openmp=openmp, fixed_line_length=fixed_line_length))
+
+
+def check_units(units: FileUnits, rules: Iterable[Rule], project: ProjectIndex) -> list[Finding]:
+    """Run *rules* on one analysed file; suppressions are applied, the baseline is not."""
     rules = list(rules)
-    source = lex(text, path=path, defines=defines, openmp=openmp, fixed_line_length=fixed_line_length)
-    ctx = LintContext(path=path, source=source, units=build_units(source))
+    source = units.source
+    ctx = LintContext(path=source.path, source=source, units=units, project=project)
     findings = []
     for rul in rules:
         if rul.id in _ENGINE_RULES:
@@ -175,16 +186,30 @@ def lint_text(
             findings.append(
                 Finding(
                     rule=rul.id,
-                    path=path,
+                    path=source.path,
                     line=hit.line,
                     end_line=hit.end_line or hit.line,
                     message=hit.message,
                     severity=rul.severity,
                     snippet=hit.snippet,
+                    fixes=hit.fixes,
                 )
             )
-    findings, meta = _apply_suppressions(source, path, findings, {r.id for r in rules})
+    findings, meta = _apply_suppressions(source, source.path, findings, {r.id for r in rules})
     return sorted([*findings, *meta], key=lambda f: (f.line, f.rule))
+
+
+def lint_text(
+    text: str,
+    path: str,
+    rules: Iterable[Rule],
+    defines: dict[str, str] | None = None,
+    openmp: bool = False,
+    fixed_line_length: int | None = 72,
+) -> list[Finding]:
+    """Lint Fortran *text* reported as *path*, as a project of one file."""
+    units = analyse(text, path, defines, openmp, fixed_line_length)
+    return check_units(units, rules, build_index([units]))
 
 
 def discover_files(
@@ -236,18 +261,54 @@ def lint_files(
     openmp: bool = False,
     fixed_line_length: int | None = 72,
 ) -> LintResult:
-    """Lint *files*; findings carry display paths (see `display_path`)."""
+    """Lint *files* as one project; findings carry display paths (see `display_path`).
+
+    Every file is analysed first, so that cross-file rules see the whole project (see
+    `fobis.analysis.project`).
+    """
     rules = list(rules)
     result = LintResult()
+    analysed = []
     for path in files:
         try:
             text = read_source(path)
         except OSError as exc:
             result.unreadable.append((path, str(exc)))
             continue
+        if path.endswith(_C_HEADER_EXTENSIONS) and _C_MARKERS_RE.search(text):
+            result.skipped.append(path)
+            continue
+        analysed.append(analyse(text, display_path(path), defines, openmp, fixed_line_length))
+    project = build_index(analysed)
+    for units in analysed:
         result.files += 1
-        result.findings.extend(lint_text(text, display_path(path), rules, defines, openmp, fixed_line_length))
+        result.findings.extend(check_units(units, rules, project))
     return result
+
+
+# ── fixes ─────────────────────────────────────────────────────────────────────
+
+
+def apply_fixes(text: str, findings: Iterable[Finding]) -> tuple[str, int]:
+    """*text* with the edits of *findings* applied; overlapping edits after the first are skipped.
+
+    Returns
+    -------
+    (str, int)
+        The fixed text and the number of edits applied.
+    """
+    lines = text.splitlines(keepends=True)
+    edits = sorted({e for f in findings for e in f.fixes}, key=lambda e: (e.line, e.start), reverse=True)
+    applied, taken = 0, {}
+    for edit in edits:
+        idx = edit.line - 1
+        if idx >= len(lines) or any(s < edit.end and edit.start < e for s, e in taken.get(idx, [])):
+            continue
+        line = lines[idx]
+        lines[idx] = line[: edit.start] + edit.text + line[edit.end :]
+        taken.setdefault(idx, []).append((edit.start, edit.end))
+        applied += 1
+    return "".join(lines), applied
 
 
 # ── baseline ──────────────────────────────────────────────────────────────────

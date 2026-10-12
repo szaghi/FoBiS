@@ -1,9 +1,22 @@
 # Linting
 
-`fobis lint` reports bug-prone and obsolescent Fortran constructs: missing `implicit none` and `intent`,
-local variables that are silently `save`d, assumed-size dummies, unchecked `stat=`, common blocks,
-labelled DO loops, deprecated `mpif.h` includes, and more. Every rule is documented in the
+`fobis lint` reports bug-prone, obsolescent and non-portable Fortran constructs, and defects specific to
+parallel code: data races in OpenMP regions, missing `reduction` clauses, `collapse` on loops that are not
+tightly nested, OpenACC device calls without `!$acc routine`, saved locals in procedures that run in
+parallel, timers read before `!$acc wait`, MPI requests never completed. Every rule is documented in the
 [rule reference](/lint-rules/) and in the terminal with `fobis lint --explain <ID>`.
+
+| Family | Covers |
+|--------|--------|
+| `COR` | Correctness: implicit typing, `intent`, implicit `save`, `stat=` handling, accessibility |
+| `OBS` | Obsolescent and deleted features: `common`, labelled DO, computed GO TO, `mpif.h` |
+| `MDN` | Modernisation: `(/ /)` constructors, `.eq.` operators, attribute statements |
+| `PRT` | Portability: numeric kinds (`real(8)`, `real*8`, `1.0_8`), tabs, compiler extensions |
+| `FOR` | Fortran practice for HPC: saved locals in parallel code, `f(x)%c`, `cpu_time` timing |
+| `OMP` | OpenMP: shared scalars written in parallel regions, missing reductions, `collapse`, MPI thread level |
+| `ACC` | OpenACC: missing `!$acc routine`, atomics in device code, `declare create` reductions, async timing |
+| `MPI` | MPI: non-blocking requests never completed |
+| `LNT` | The linter's own suppressions and preprocessor assumptions |
 
 ```bash
 fobis lint                     # the sources of the fobos mode (or ./), default rules
@@ -29,12 +42,49 @@ Explain a rule with: fobis lint --explain <ID>
   ignores columns beyond 72, like the compilers' default).
 - **Which files.** The paths given on the command line; otherwise the `src` directories of the fobos mode
   (default `./`), honouring the mode's `exclude` and `exclude_dirs`. Fetched dependencies (`.fobis_deps/`)
-  and VCS directories are always skipped: lint your own code, not your dependencies'.
+  and VCS directories are always skipped: lint your own code, not your dependencies'. A `.h` file that is
+  a C header (it contains `/*`, `typedef`, `extern` or `#include <...>`) is skipped and counted in the
+  summary.
+- **The whole project at once.** All files are analysed before any rule runs, so rules can use facts
+  from other files: a procedure called inside an OpenACC compute region is checked for `!$acc routine`
+  wherever it is defined, and a procedure called inside a parallel region is checked for saved locals in
+  its own file. Lint the project (or the mode's sources), not a single file, to get these checks.
 
 The analysis works statement by statement; it is not a compiler. On syntax it does not recognise it skips
 the statement and continues, so one unusual construct never hides the rest of a file. Macros used inside
 Fortran code (a type spelled `VARTYPE(KKP)`) are not expanded; declarations written with them are still
 recognised.
+
+## Parallel code
+
+The `FOR`, `OMP`, `ACC` and `MPI` rules analyse the directive regions of each procedure: the statements
+between `!$omp parallel` and `!$omp end parallel`, the loop nest following `!$acc parallel loop`, and so on.
+Their limits:
+
+- Regions do not cross procedure boundaries: a variable written in a procedure called from a parallel
+  region is checked only for SAVE (`FOR001`), not as a shared variable of the caller.
+- Procedures are matched across files by name, without resolving `use` renames.
+- `OMP001`/`OMP002` apply the Fortran data-sharing rules (loop variables of the region's DO loops are
+  private; `private`, `firstprivate`, `lastprivate`, `reduction`, `linear` and `threadprivate` are
+  honoured; writes inside `critical`, `atomic`, `single`, `master`/`masked` and `ordered` are not
+  reported). Each shared variable is reported once per region, at its first write. A variable first
+  assigned and then updated in the same iteration is reported as a shared temporary (`OMP001`), not as a
+  missing reduction.
+
+When a finding is wrong for a reason the linter cannot see, suppress it with the reason (below): the
+reason documents why the code is safe.
+
+## Automatic fixes
+
+Some rules carry a mechanical fix (`MDN011` array constructors, `MDN021` relational operators). Review
+the fixes as a diff, then apply them:
+
+```bash
+fobis lint --select MDN011,MDN021 --diff   # print a unified diff, change nothing
+fobis lint --select MDN011,MDN021 --fix    # rewrite the files, then report what remains
+```
+
+Fixes touch code only: comments and character literals are left alone.
 
 ## Choosing rules
 

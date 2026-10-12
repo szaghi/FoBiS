@@ -137,6 +137,154 @@
     ]
   },
   {
+    "text": "Modernisation (MDN)",
+    "collapsed": true,
+    "items": [
+      {
+        "text": "MDN001 double-precision",
+        "link": "/lint-rules/MDN001"
+      },
+      {
+        "text": "MDN002 double-precision-literal",
+        "link": "/lint-rules/MDN002"
+      },
+      {
+        "text": "MDN011 old-style-array-constructor",
+        "link": "/lint-rules/MDN011"
+      },
+      {
+        "text": "MDN021 deprecated-relational-operator",
+        "link": "/lint-rules/MDN021"
+      },
+      {
+        "text": "MDN031 include-statement",
+        "link": "/lint-rules/MDN031"
+      },
+      {
+        "text": "MDN041 out-of-line-attribute",
+        "link": "/lint-rules/MDN041"
+      },
+      {
+        "text": "MDN051 superfluous-save",
+        "link": "/lint-rules/MDN051"
+      },
+      {
+        "text": "MDN201 old-mpi-module",
+        "link": "/lint-rules/MDN201"
+      }
+    ]
+  },
+  {
+    "text": "Portability (PRT)",
+    "collapsed": true,
+    "items": [
+      {
+        "text": "PRT011 literal-kind",
+        "link": "/lint-rules/PRT011"
+      },
+      {
+        "text": "PRT012 literal-kind-suffix",
+        "link": "/lint-rules/PRT012"
+      },
+      {
+        "text": "PRT021 star-kind",
+        "link": "/lint-rules/PRT021"
+      },
+      {
+        "text": "PRT031 invalid-tab",
+        "link": "/lint-rules/PRT031"
+      },
+      {
+        "text": "PRT061 non-portable-system-call",
+        "link": "/lint-rules/PRT061"
+      },
+      {
+        "text": "PRT062 gfortran-random-extension",
+        "link": "/lint-rules/PRT062"
+      }
+    ]
+  },
+  {
+    "text": "Fortran practice (FOR)",
+    "collapsed": true,
+    "items": [
+      {
+        "text": "FOR001 saved-local-in-parallel-procedure",
+        "link": "/lint-rules/FOR001"
+      },
+      {
+        "text": "FOR004 function-result-component",
+        "link": "/lint-rules/FOR004"
+      },
+      {
+        "text": "FOR005 cpu-time-for-wall-clock",
+        "link": "/lint-rules/FOR005"
+      }
+    ]
+  },
+  {
+    "text": "OpenMP (OMP)",
+    "collapsed": true,
+    "items": [
+      {
+        "text": "OMP001 shared-scalar-written-in-parallel-region",
+        "link": "/lint-rules/OMP001"
+      },
+      {
+        "text": "OMP002 accumulation-without-reduction",
+        "link": "/lint-rules/OMP002"
+      },
+      {
+        "text": "OMP003 collapse-imperfect-nest",
+        "link": "/lint-rules/OMP003"
+      },
+      {
+        "text": "OMP007 mpi-in-threaded-region-without-thread-support",
+        "link": "/lint-rules/OMP007"
+      }
+    ]
+  },
+  {
+    "text": "OpenACC (ACC)",
+    "collapsed": true,
+    "items": [
+      {
+        "text": "ACC002 atomic-in-compute-region",
+        "link": "/lint-rules/ACC002"
+      },
+      {
+        "text": "ACC003 firstprivate-associate-name",
+        "link": "/lint-rules/ACC003"
+      },
+      {
+        "text": "ACC004 reduction-into-device-module-variable",
+        "link": "/lint-rules/ACC004"
+      },
+      {
+        "text": "ACC006 missing-acc-routine",
+        "link": "/lint-rules/ACC006"
+      },
+      {
+        "text": "ACC008 timer-without-acc-wait",
+        "link": "/lint-rules/ACC008"
+      },
+      {
+        "text": "ACC011 acc-collapse-imperfect-nest",
+        "link": "/lint-rules/ACC011"
+      }
+    ]
+  },
+  {
+    "text": "MPI (MPI)",
+    "collapsed": true,
+    "items": [
+      {
+        "text": "MPI001 request-never-completed",
+        "link": "/lint-rules/MPI001"
+      }
+    ]
+  },
+  {
     "text": "Linter (LNT)",
     "collapsed": true,
     "items": [

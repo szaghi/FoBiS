@@ -6,7 +6,7 @@ features use that knowledge in layers.
 
 | Layer | What it does | Needs a model? | Commands |
 |-------|--------------|----------------|----------|
-| **Rules** | Deterministic checks of the sources: bug-prone and obsolescent constructs | No | [`fobis lint`](/ai/lint) |
+| **Rules** | Deterministic checks of the sources: bug-prone, obsolescent and non-portable constructs, OpenMP/OpenACC/MPI defects | No | [`fobis lint`](/ai/lint) |
 | **Knowledge** | Reference material distilled from the Fortran, MPI, OpenMP and OpenACC standards, used to ground explanations | No | *planned* |
 | **LLM assistance** | Generation and explanation on top of the two layers above | Yes | [`fobis commit`](/advanced/commit) |
 
@@ -20,6 +20,6 @@ is advisory: it is labelled as such and never fails a build unless you explicitl
 
 | Job | Command |
 |-----|---------|
-| Find bug-prone and obsolescent constructs | [`fobis lint`](/ai/lint) |
+| Find bug-prone and obsolescent constructs, data races and GPU/MPI pitfalls | [`fobis lint`](/ai/lint) |
 | Read why a rule matters | `fobis lint --explain COR020`, or the [rule reference](/lint-rules/) |
 | Write a Conventional Commits message for the staged changes | [`fobis commit`](/advanced/commit) |
