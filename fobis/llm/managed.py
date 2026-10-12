@@ -35,7 +35,7 @@ from .models import ModelStore, default_root
 from .openai import OpenAICompatProvider
 from .provider import Completion, Message
 from .runtime import RuntimeManager
-from .server import LlamaServer
+from .server import LlamaServer, running_state
 
 
 class ManagedProvider:
@@ -88,6 +88,7 @@ class ManagedProvider:
         self.on_status = on_status
         self.popen = popen
         self.server: LlamaServer | None = None
+        self.attached: dict | None = None
         self._client: OpenAICompatProvider | None = None
 
     def resolve(self) -> tuple[str, str]:
@@ -114,10 +115,33 @@ class ManagedProvider:
             raise RuntimeMissingError("; ".join(problems))
         return binary, model_path
 
-    def start(self) -> LlamaServer:
-        """Start the server unless already running; returns it."""
-        if self.server is not None:
+    def attach(self) -> dict | None:
+        """Use the persistent server (``fobis llm serve start``) when it is alive and serves this model.
+
+        Returns its record, None when there is none to use (an ephemeral server is started instead).
+        """
+        state = running_state(self.root)
+        if state is None:
+            return None
+        try:
+            model_path = ModelStore(self.root).locate(self.model)
+        except ModelMissingError:
+            return None
+        if os.path.realpath(state.get("model_path", "")) != os.path.realpath(model_path):
+            return None
+        self.attached = state
+        self._client = OpenAICompatProvider(state["url"], self.model, api_key=state["api_key"], timeout=self.timeout)
+        return state
+
+    def start(self) -> LlamaServer | None:
+        """Start the server unless one is running (own or persistent); returns the own server, None when attached
+        to the persistent one."""
+        if self.server is not None or self._client is not None:
             return self.server
+        if self.attach() is not None:
+            if self.on_status:
+                self.on_status(f"Using the running llama-server at {self.attached['url']}")
+            return None
         binary, model_path = self.resolve()
         server = LlamaServer(
             binary,
@@ -154,11 +178,12 @@ class ManagedProvider:
         return Completion(text=completion.text, provider=self.name, model=self.model)
 
     def close(self) -> None:
-        """Stop the server, if one was started."""
+        """Stop the server this provider started; a persistent server it attached to keeps running."""
         if self.server is not None:
             self.server.stop()
-            self.server = None
-            self._client = None
+        self.server = None
+        self.attached = None
+        self._client = None
 
     def __enter__(self) -> ManagedProvider:
         return self

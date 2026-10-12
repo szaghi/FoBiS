@@ -361,10 +361,19 @@ class ModelStore:
             return {}
         except (OSError, ValueError) as exc:
             raise ConfigError(f"unreadable model manifest {self.manifest_path}: {exc}") from exc
-        return data if isinstance(data, dict) else {}
+        if not isinstance(data, dict):
+            return {}
+        for entry in data.values():  # paths are stored relative to the store: it can be moved or copied
+            for part in entry.get("parts", []):
+                part["path"] = os.path.join(self.root, part["path"])
+        return data
 
     def _save(self, data: dict) -> None:
         os.makedirs(self.root, exist_ok=True)
+        data = json.loads(json.dumps(data))
+        for entry in data.values():
+            for part in entry.get("parts", []):
+                part["path"] = os.path.relpath(part["path"], self.root)
         tmp = self.manifest_path + ".tmp"
         with open(tmp, "w", encoding="utf-8") as handle:
             json.dump(data, handle, indent=2, sort_keys=True)

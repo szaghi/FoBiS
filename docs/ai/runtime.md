@@ -6,6 +6,8 @@ With the `managed` provider (the default), FoBiS runs language models itself: it
 install or keep running, no Python native extension, and the [standalone archive](#clusters-and-the-standalone-archive)
 works the same way.
 
+![fobis llm doctor and fobis commit with a local model](/gifs/12_llm_commit.gif)
+
 ## Setup
 
 ```bash
@@ -18,10 +20,10 @@ fobis llm doctor              # check everything, time a short answer
 
 ```text
 ok   provider   managed  (model coder-0.5b)
+ok   directory  /home/me/.fobis/llm
 ok   platform   linux/x86_64, variants cpu, cuda12, cuda13, vulkan, rocm, sycl; auto -> cuda13 (NVIDIA driver supports CUDA 13.2)
-ok   runtime    /home/me/.fobis/llm/runtime/b11308-cpu/llama-server
-                version: 0.5.0-dev (build 11308, commit feb9a3d6d)
-ok   model      /home/me/.fobis/llm/models/Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF/ebb20151.../qwen2.5-coder-0.5b-instruct-q4_k_m.gguf
+ok   runtime    runtime/b11308-cpu/llama-server  (version: 0.5.0-dev (build 11308, commit feb9a3d6d))
+ok   model      models/Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF/ebb20151.../qwen2.5-coder-0.5b-instruct-q4_k_m.gguf
 ok   start      server ready in 0.6 s
 ok   sample     'ready' in 0.1 s, 112 tokens/s
 ```
@@ -81,7 +83,8 @@ When a command needs the model, FoBiS:
 2. starts `llama-server` on `127.0.0.1`, on a free port, with a random API key generated for that process;
 3. waits until the model is loaded (`startup_timeout`);
 4. sends the requests, with JSON-Schema-constrained output where the feature needs structure;
-5. stops the server when the command ends, also on Ctrl-C or `kill`.
+5. stops the server when the command ends, also on Ctrl-C or `kill` (unless it is the persistent server of
+   `fobis llm serve`, see below).
 
 The server log is `~/.fobis/llm/logs/llama-server.log`; when the server fails to start, the error shows its
 last lines.
@@ -89,6 +92,22 @@ last lines.
 **Shared machines.** The server listens on loopback only and refuses requests without its per-process key, so
 other users of a login node cannot use it. Login nodes often forbid heavy computation: limit the CPU threads
 with `threads`, or run on a compute node.
+
+## Keeping the model loaded
+
+Loading a model takes a few seconds (longer for large models on CPU). When you run several LLM commands in a
+row, keep a server running:
+
+```bash
+fobis llm serve start          # the configured model (or --model coder-14b)
+fobis commit                   # uses the running server: no start-up
+fobis llm serve status
+fobis llm serve stop
+```
+
+A command uses the running server only when it serves the same model; otherwise it starts its own, as usual.
+The server keeps running after the terminal closes, until `serve stop` (or a reboot). Its address and key are
+in `~/.fobis/llm/server.json`, readable by you only; its log is `~/.fobis/llm/logs/llama-server-persistent.log`.
 
 ## Configuration
 

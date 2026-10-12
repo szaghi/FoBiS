@@ -27,6 +27,8 @@ an exit or a timeout raises `ServerStartError` with the tail of the server log.
 from __future__ import annotations
 
 import atexit
+import contextlib
+import json
 import os
 import re
 import secrets
@@ -108,6 +110,7 @@ class LlamaServer:
         startup_timeout: float = 120.0,
         extra_args: list[str] | None = None,
         popen: Callable = subprocess.Popen,
+        persistent: bool = False,
     ) -> None:
         self.binary = binary
         self.model = model
@@ -118,6 +121,7 @@ class LlamaServer:
         self.startup_timeout = startup_timeout
         self.extra_args = list(extra_args or [])
         self.popen = popen
+        self.persistent = persistent
         self.api_key = secrets.token_urlsafe(24)
         self.port = 0
         self.process: subprocess.Popen | None = None
@@ -163,6 +167,8 @@ class LlamaServer:
                 env=runtime_env(self.binary),
                 start_new_session=os.name == "posix",
             )
+        if self.persistent:
+            return  # outlives this process: no teardown at exit (fobis llm serve stop)
         with _LOCK:
             _LIVE.add(self)
         if threading.current_thread() is threading.main_thread() and self._previous_sigterm is None:
@@ -244,3 +250,98 @@ class LlamaServer:
 
     def __exit__(self, *exc) -> None:
         self.stop()
+
+
+# ── persistent server (fobis llm serve) ────────────────────────────────────────
+
+STATE_FILE = "server.json"
+
+
+def state_path(root: str) -> str:
+    return os.path.join(root, STATE_FILE)
+
+
+def write_state(root: str, server: LlamaServer, model: str) -> dict:
+    """Record the persistent *server* in ``<root>/server.json`` (mode 0600: it holds the API key)."""
+    state = {
+        "pid": server.process.pid,
+        "port": server.port,
+        "url": server.url,
+        "api_key": server.api_key,
+        "model": model,
+        "model_path": server.model,
+        "binary": server.binary,
+        "log": server.log_path,
+        "started_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    os.makedirs(root, exist_ok=True)
+    path = state_path(root)
+    fd = os.open(path + ".tmp", os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        json.dump(state, handle, indent=2)
+        handle.write("\n")
+    os.replace(path + ".tmp", path)
+    return state
+
+
+def _pid_alive(pid: int) -> bool:
+    if hasattr(os, "WNOHANG"):  # POSIX: reap it if it is our own exited child (a zombie still answers kill 0)
+        with contextlib.suppress(ChildProcessError, OSError):
+            os.waitpid(pid, os.WNOHANG)
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def running_state(root: str) -> dict | None:
+    """The recorded persistent server when its process is alive and ``/health`` answers 200; a stale record
+    (dead process) is deleted."""
+    path = state_path(root)
+    try:
+        with open(path, encoding="utf-8") as handle:
+            state = json.load(handle)
+        pid, url = int(state["pid"]), state["url"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    if not _pid_alive(pid):
+        with contextlib.suppress(OSError):
+            os.remove(path)
+        return None
+    try:
+        with urllib.request.urlopen(f"{url}/health", timeout=5) as response:
+            healthy = response.status == 200
+    except (urllib.error.URLError, OSError):
+        healthy = False
+    return state if healthy else None
+
+
+def stop_persistent(root: str, grace: float = 10.0) -> dict | None:
+    """Stop the recorded persistent server (SIGTERM to its process group, then SIGKILL) and delete the record;
+    returns the record, None when nothing was recorded."""
+    path = state_path(root)
+    try:
+        with open(path, encoding="utf-8") as handle:
+            state = json.load(handle)
+    except (OSError, ValueError):
+        return None
+    pid = int(state.get("pid", 0))
+    if pid and _pid_alive(pid):
+        try:
+            if os.name == "posix":
+                os.killpg(pid, signal.SIGTERM)
+            else:
+                os.kill(pid, signal.SIGTERM)
+        except (ProcessLookupError, PermissionError):
+            pass
+        deadline = time.monotonic() + grace
+        while _pid_alive(pid) and time.monotonic() < deadline:
+            time.sleep(0.1)
+        if _pid_alive(pid) and os.name == "posix":
+            with contextlib.suppress(ProcessLookupError, PermissionError):
+                os.killpg(pid, signal.SIGKILL)
+    os.remove(path)
+    return state

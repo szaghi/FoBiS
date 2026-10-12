@@ -305,6 +305,16 @@ def test_install_non_pinned_build_needs_sha_or_trust(tmp_path, release):
         manager.install("rocm")
 
 
+def test_installed_runtime_can_be_moved(tmp_path, release):
+    import shutil
+
+    manager = RuntimeManager(str(tmp_path / "a"), key=("linux", "x86_64"), urlopen=release[1])
+    manager.install("cpu")
+    shutil.move(str(tmp_path / "a"), str(tmp_path / "b"))
+    moved = RuntimeManager(str(tmp_path / "b"), key=("linux", "x86_64"))
+    assert moved.resolve("pinned", "cpu") == str(tmp_path / "b" / "runtime" / f"{PINNED_BUILD}-cpu" / "llama-server")
+
+
 def test_resolve_and_remove(tmp_path, release, stub, monkeypatch):
     manager = RuntimeManager(str(tmp_path), key=("linux", "x86_64"), urlopen=release[1])
     with pytest.raises(RuntimeMissingError, match="fobis llm runtime install --variant cuda13"):
@@ -529,3 +539,55 @@ def test_real_runtime_and_model(tmp_path):
         pid = provider.server.process.pid
     assert json.loads(reply.text)["answer"] in ("yes", "no")
     assert not _alive(pid)
+
+
+# ── persistent server (fobis llm serve) ────────────────────────────────────────
+
+
+def test_serve_start_attach_status_stop(cli_env, tmp_path, monkeypatch):
+    from fobis.llm.server import running_state, state_path
+
+    runner, app = cli_env
+    root = os.environ["FOBIS_LLM_DIR"]
+    monkeypatch.setenv("STUB_STATE", str(tmp_path / "pids"))
+    started = runner.invoke(app, ["llm", "serve", "start"])
+    assert started.exit_code == 0 and "Serving" in started.output, started.output
+    assert oct(os.stat(state_path(root)).st_mode & 0o777) == "0o600"  # it holds the API key
+    state = running_state(root)
+    assert state is not None and _alive(state["pid"])
+    assert "already running" in runner.invoke(app, ["llm", "serve", "start"]).output
+    # a command using the same model attaches: no second llama-server, and closing it leaves the server running
+    asked = runner.invoke(app, ["llm", "ask", "hi"])
+    assert "Using the running llama-server" in asked.output and "ready hi" in asked.output
+    assert len((tmp_path / "pids").read_text().split()) == 1 and _alive(state["pid"])
+    status = json.loads(runner.invoke(app, ["llm", "serve", "status", "--json"]).output)
+    assert status["pid"] == state["pid"] and "api_key" not in status
+    assert "Stopped" in runner.invoke(app, ["llm", "serve", "stop"]).output
+    assert not _alive(state["pid"]) and not os.path.exists(state_path(root))
+    assert runner.invoke(app, ["llm", "serve", "status"]).exit_code == 1
+    assert "No persistent" in runner.invoke(app, ["llm", "serve", "stop"]).output
+
+
+def test_provider_does_not_attach_to_another_model_or_a_stale_record(tmp_path, stub, monkeypatch):
+    from fobis.llm.server import write_state
+
+    root = str(tmp_path / "llm")
+    _install_stub(root, stub)
+    served, other = tmp_path / "served.gguf", tmp_path / "other.gguf"
+    served.write_bytes(b"GGUF")
+    other.write_bytes(b"GGUF")
+    persistent = LlamaServer(stub, str(served), log_path=str(tmp_path / "p.log"), persistent=True).start()
+    try:
+        write_state(root, persistent, str(served))
+        with ManagedProvider(str(other), root=root, startup_timeout=10) as provider:
+            provider.chat(messages("x"))
+            assert provider.attached is None and provider.server is not None  # own server for another model
+        with ManagedProvider(str(served), root=root, startup_timeout=10) as provider:
+            provider.chat(messages("x"))
+            assert provider.attached is not None and provider.server is None
+    finally:
+        persistent.stop()
+    with ManagedProvider(str(served), root=root, startup_timeout=10) as provider:  # record left behind: stale
+        provider.chat(messages("x"))
+        assert provider.attached is None
+    assert not os.path.exists(os.path.join(root, "server.json"))  # the stale record was removed

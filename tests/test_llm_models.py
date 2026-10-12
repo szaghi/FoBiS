@@ -326,3 +326,20 @@ def test_cli_pull_list_rm_recommended(hub, tmp_path, monkeypatch):
     assert "Removed" in runner.invoke(app, ["llm", "rm", "hf:org/repo/m.gguf"]).output
     failed = runner.invoke(app, ["llm", "pull", "hf:org/gated/m.gguf"])
     assert failed.exit_code == 1 and "HF_TOKEN" in failed.output
+
+
+def test_store_can_be_moved_or_copied(hub, tmp_path):
+    """Pull on one machine, copy the directory elsewhere (offline clusters): the manifest still resolves."""
+    import shutil
+
+    store = ModelStore(root=str(tmp_path / "connected"), hub=HubClient(endpoint=hub.endpoint, timeout=5))
+    model, _ = store.pull("hf:org/repo/big-00001-of-00002.gguf")
+    with open(store.manifest_path) as handle:
+        recorded = json.load(handle)
+    assert not os.path.isabs(recorded[model.spec]["parts"][0]["path"])
+    moved = tmp_path / "elsewhere"
+    shutil.copytree(os.path.dirname(store.root), moved)
+    shutil.rmtree(os.path.dirname(store.root))
+    copy = ModelStore(root=str(moved), hub=store.hub)
+    assert copy.locate("hf:org/repo/big-00001-of-00002.gguf").startswith(str(moved))
+    assert all(os.path.isfile(p["path"]) for p in copy.entries()[0].parts)

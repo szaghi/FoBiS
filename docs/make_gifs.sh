@@ -3,8 +3,10 @@
 #
 # Install VHS: https://github.com/charmbracelet/vhs#installation
 # Prerequisites: gfortran must be in PATH (and git; the ecosystem tapes also need git-cliff).
+# The *_llm_* tapes need an LLM directory with the runtime and coder-7b already installed
+# (fobis llm runtime install && fobis llm pull coder-7b, or FOBIS_LLM_DIR pointing to one).
 # The tapes run the `fobis` found on PATH: to record unreleased features, put the dev one first,
-# e.g.  PATH=../.venv/bin:$PATH bash make_gifs.sh 09 10 11
+# e.g.  PATH="$(realpath ../.venv/bin):$PATH" bash make_gifs.sh 09 10 11  (absolute: tapes cd elsewhere)
 #
 # Usage:
 #   bash make_gifs.sh           — generate all GIFs
@@ -69,6 +71,19 @@ run_tape() {
         bash "$SCRIPT_DIR/demo/ecosystem-demo/setup.sh" "$work_dir" </dev/null >/dev/null
     else
         work_dir=$(_make_work_dir "$SCRIPT_DIR/demo")
+    fi
+
+    if [[ "$name" == *_llm_* ]]; then
+        # the managed provider with coder-7b, whatever the recorder's own [llm] settings are
+        local xdg
+        xdg=$(mktemp -d)
+        _cleanup_dirs+=("$xdg")
+        mkdir -p "$xdg/fobis"
+        printf '[llm]\nprovider = managed\nmodel = coder-7b\n' > "$xdg/fobis/config.ini"
+        # a short path for the recording: the work dir links to the recorder's LLM directory
+        ln -s "${FOBIS_LLM_DIR:-$HOME/.fobis/llm}" "$xdg/llm"
+        FOBIS_DEMO_DIR="$work_dir" XDG_CONFIG_HOME="$xdg" FOBIS_LLM_DIR="$xdg/llm" vhs "$tape"
+        return
     fi
 
     FOBIS_DEMO_DIR="$work_dir" vhs "$tape"

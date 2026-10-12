@@ -261,8 +261,20 @@ def cmd_llm_doctor(
         cfg = _llm_config(None, None)
     except LLMError as exc:
         _fail(str(exc))
+    import os
+
+    from ..llm.models import default_root
+
+    def short(path: str) -> str:
+        """*path* relative to the LLM directory when inside it."""
+        relative = os.path.relpath(path, root)
+        return path if relative.startswith("..") else relative
+
+    root = default_root()
     key = platform_key()
     report("provider", f"{cfg.provider}  (model {cfg.model})")
+    if cfg.provider == "managed":
+        report("directory", root)
     if cfg.provider != "managed":
         report("server", f"{cfg.url} (not managed by fobis: start it yourself)")
     else:
@@ -277,15 +289,13 @@ def cmd_llm_doctor(
         try:
             binary = _manager().resolve(cfg.runtime, cfg.runtime_variant)
             version = server_version(binary)
-            report(
-                "runtime", f"{binary}\n                {version or 'does not run (--version failed)'}", bool(version)
-            )
+            report("runtime", f"{short(binary)}  ({version or 'does not run: --version failed'})", bool(version))
             if cfg.runtime == "pinned" and f"build {PINNED_BUILD[1:]}" not in version:
                 report("build", f"expected {PINNED_BUILD}", False)
         except LLMError as exc:
             report("runtime", str(exc), False)
         try:
-            report("model", _store().locate(cfg.model))
+            report("model", short(_store().locate(cfg.model)))
         except LLMError as exc:
             report("model", str(exc), False)
     if sample and ok:
@@ -310,3 +320,89 @@ def cmd_llm_doctor(
                 client.close()
     if not ok:
         raise typer.Exit(1)
+
+
+serve_app = typer.Typer(
+    name="serve",
+    help="Keep a llama-server running between commands (start, stop, status).",
+    no_args_is_help=True,
+)
+llm_app.add_typer(serve_app, name="serve")
+
+
+@serve_app.command("start")
+def cmd_serve_start(
+    model: Annotated[
+        str | None, typer.Option("--model", "-m", help="Model to serve (default: the configured one).")
+    ] = None,
+) -> None:
+    """Start a persistent llama-server; later commands with the same model use it instead of starting their own."""
+    import os
+
+    from ..llm import LLMError
+    from ..llm.managed import ManagedProvider
+    from ..llm.server import LlamaServer, running_state, write_state
+
+    cfg = _llm_config("managed", model)
+    provider = ManagedProvider(
+        cfg.model,
+        runtime=cfg.runtime,
+        variant=cfg.runtime_variant,
+        n_ctx=cfg.n_ctx,
+        n_gpu_layers=cfg.n_gpu_layers,
+        threads=cfg.threads,
+        startup_timeout=cfg.startup_timeout,
+    )
+    state = running_state(provider.root)
+    if state is not None:
+        _fail(f"a llama-server is already running (pid {state['pid']}, {state['model']}): fobis llm serve stop first")
+    try:
+        binary, model_path = provider.resolve()
+        server = LlamaServer(
+            binary,
+            model_path,
+            log_path=os.path.join(provider.root, "logs", "llama-server-persistent.log"),
+            n_ctx=cfg.n_ctx,
+            n_gpu_layers=cfg.n_gpu_layers,
+            threads=cfg.threads,
+            startup_timeout=cfg.startup_timeout,
+            persistent=True,
+        )
+        typer.echo(f"Starting llama-server with {os.path.basename(model_path)}...")
+        server.start()
+    except LLMError as exc:
+        _fail(str(exc))
+    state = write_state(provider.root, server, cfg.model)
+    typer.echo(f"Serving {cfg.model} at {state['url']} (pid {state['pid']}); stop it with: fobis llm serve stop")
+
+
+@serve_app.command("stop")
+def cmd_serve_stop() -> None:
+    """Stop the persistent llama-server."""
+    from ..llm.models import default_root
+    from ..llm.server import stop_persistent
+
+    state = stop_persistent(default_root())
+    if state is None:
+        typer.echo("No persistent llama-server is recorded.")
+    else:
+        typer.echo(f"Stopped llama-server (pid {state['pid']}, {state['model']})")
+
+
+@serve_app.command("status")
+def cmd_serve_status(
+    as_json: Annotated[bool, typer.Option("--json", help="Machine-readable output (without the API key).")] = False,
+) -> None:
+    """Show the persistent llama-server, if one is running."""
+    from ..llm.models import default_root
+    from ..llm.server import running_state
+
+    state = running_state(default_root())
+    if as_json:
+        typer.echo(json.dumps({k: v for k, v in (state or {}).items() if k != "api_key"}, indent=2))
+        return
+    if state is None:
+        typer.echo("No persistent llama-server running. Start one with: fobis llm serve start")
+        raise typer.Exit(1)
+    typer.echo(f"Running since {state['started_at']}: {state['model']} at {state['url']} (pid {state['pid']})")
+    typer.echo(f"  log: {state['log']}")

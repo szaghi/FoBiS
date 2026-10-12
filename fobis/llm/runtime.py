@@ -266,7 +266,7 @@ class RuntimeManager:
                 InstalledRuntime(
                     build=meta["build"],
                     variant=meta["variant"],
-                    binary=meta["binary"],
+                    binary=os.path.join(self.root, name, meta["binary"]),  # relative: the directory can move
                     directory=os.path.join(self.root, name),
                     version=meta.get("version", ""),
                 )
@@ -353,7 +353,7 @@ class RuntimeManager:
         meta = {
             "build": build,
             "variant": variant,
-            "binary": binary,
+            "binary": os.path.basename(binary),
             "assets": recorded,
             "installed_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "version": version,

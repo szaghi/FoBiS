@@ -1,7 +1,7 @@
 ---
 name: fobis
 description: >
-  Expert knowledge of FoBiS.py (Fortran Building System for poor men) — an automatic Fortran build tool that resolves module dependency hierarchies without manual makefiles. Use this skill whenever the user asks about: writing or editing a fobos file; running any fobis subcommand (build, clean, fetch, install, rule, doctests, scaffold, check, test, coverage, tree, introspect, run, cache, commit, ecosystem); managing several interconnected FoBiS repositories as a whole (fobis ecosystem: registry, dashboard, cross-repo exec/fetch/check/scaffold, release train); Fortran project build configuration; diagnosing FoBiS build errors; adding GitHub dependencies to a Fortran project; the --json output flag; multi-mode builds; templates; variables and varsets; library builds (static/shared); MPI/OpenMP/coarray/OpenMP-offload builds; feature flags and conditional compilation; build profiles; the build cache; external-library auto-detection and pkg-config (.pc) generation; multi-target builds; convention-based source auto-discovery; the lock file and semver dependency constraints; the first-class test runner and coverage reports; LLM-assisted commit messages; the cflags-heritage feature; parallel compilation; or any question that mentions "fobos", "FoBiS", or building Fortran projects. When in doubt, trigger this skill — it is better to consult it unnecessarily than to miss it.
+  Expert knowledge of FoBiS.py (Fortran Building System for poor men) — an automatic Fortran build tool that resolves module dependency hierarchies without manual makefiles. Use this skill whenever the user asks about: writing or editing a fobos file; running any fobis subcommand (build, clean, fetch, install, rule, doctests, scaffold, check, test, coverage, tree, introspect, run, cache, commit, ecosystem, lint, kb, mcp, llm); linting Fortran code (fobis lint: correctness, obsolescent features, OpenMP/OpenACC/MPI defects, compiler feedback, baselines, suppressions); the knowledge packs (fobis kb); the MCP server (fobis mcp); running local LLMs (fobis llm: runtime, models, serve, doctor); managing several interconnected FoBiS repositories as a whole (fobis ecosystem: registry, dashboard, cross-repo exec/fetch/check/scaffold, release train); Fortran project build configuration; diagnosing FoBiS build errors; adding GitHub dependencies to a Fortran project; the --json output flag; multi-mode builds; templates; variables and varsets; library builds (static/shared); MPI/OpenMP/coarray/OpenMP-offload builds; feature flags and conditional compilation; build profiles; the build cache; external-library auto-detection and pkg-config (.pc) generation; multi-target builds; convention-based source auto-discovery; the lock file and semver dependency constraints; the first-class test runner and coverage reports; LLM-assisted commit messages; the cflags-heritage feature; parallel compilation; or any question that mentions "fobos", "FoBiS", or building Fortran projects. When in doubt, trigger this skill — it is better to consult it unnecessarily than to miss it.
 ---
 
 # FoBiS.py Expert Knowledge
@@ -18,8 +18,8 @@ FoBiS.py scans your source directories, parses every `.f90` (and related) file f
 
 ## CLI Commands
 
-16 subcommands, grouped by purpose. Every command except `commit` and the `cache`/`scaffold`/`ecosystem`
-sub-apps accepts `--fobos`/`-f <path>` (non-default fobos file) and `--mode <name>` (select a build mode).
+20 subcommands, grouped by purpose. Every command except `commit`, `kb`, `mcp`, `llm` and the
+`cache`/`scaffold`/`ecosystem` sub-apps accepts `--fobos`/`-f <path>` (non-default fobos file) and `--mode <name>` (select a build mode).
 
 ### Build & run
 
@@ -87,8 +87,33 @@ fobis commit             # generate a Conventional-Commits message via a local L
   managed files the project owns (e.g. a customised `scripts/release.sh`): reported `SKIPPED`, not
   drift, never written. A confirmation that cannot be answered (no tty) means *no*; `--yes` is the
   unattended path (and makes `init` prompt for nothing).
-- `commit`: `--backend/-b ollama|openai`, `--url/-u`, `--model/-m`, `--max-diff`, `--refine-passes`,
-  `--apply` (runs `git commit`), `--config/-c`, `--show-config`, `--init-config`. **No `--fobos`/`--mode`.**
+- `commit`: `--provider/--backend/-b managed|ollama|openai`, `--url/-u`, `--model/-m`, `--api-key-env`,
+  `--max-diff`, `--refine-passes`, `--apply` (runs `git commit`), `--config/-c`, `--show-config`,
+  `--init-config`. **No `--fobos`/`--mode`.**
+
+### Analysis & AI
+
+```bash
+fobis lint [PATHS]       # rule-based checks: correctness, obsolescent, OpenMP/OpenACC/MPI defects
+fobis kb search "QUERY"  # search the knowledge packs (Fortran/OpenMP/OpenACC/MPI standards, HPC practice)
+fobis mcp                # MCP server (stdio) exposing lint, kb, introspect, check, build, test to AI agents
+fobis llm <...>          # local LLM harness: runtime install, pull models, serve, ask, doctor
+```
+
+- `lint`: honours `--fobos`/`--mode` (sources, exclusions, `-D` defines of the mode) and the fobos
+  `[lint]` section (`select`, `ignore`, `baseline`). `--select/--ignore` ids or prefixes (`COR`, `OMP`,
+  `ALL`; explicit selection enables opt-in rules), `--format text|json|sarif|github`, `--baseline FILE`,
+  `--update-baseline`, `--compiler-feedback LOG` (nvfortran `-Minfo`, gfortran `-fopt-info` logs, produced
+  by the user's own build), `--diff`/`--fix` (mechanical fixes), `--exit-zero`, `--list-rules`,
+  `--explain ID`. Families: COR, OBS, MDN, PRT, STY, FOR, NUM, OMP, ACC, MPI, PRF, LNT. Suppress one
+  finding with `! fobis: ignore[ID] reason` (a reason is required). Rule pages: `/lint-rules/`.
+- `kb`: `list`, `search QUERY [-k N] [--pack P] [--json]`, `show ID [-C N]`, `notice PACK`,
+  `build SOURCES --name N`, `add DIR`, `remove NAME` (`--project` for `.fobis/kb`). Shipped packs are
+  CC-BY-4.0.
+- `mcp`: `--root DIR`. Register in Claude Code with `claude mcp add fobis -- fobis mcp`.
+- `llm`: `recommended`, `pull MODEL`, `list [--json]`, `rm MODEL`; `runtime install [--variant V]
+  [--build bN --sha256 H|--trust]`, `runtime list`, `runtime remove NAME`; `serve start [--model M]|stop|
+  status`; `ask PROMPT [--schema F] [--system S]`; `doctor [--no-sample]`. Nothing is downloaded implicitly.
 
 ### Cross-cutting facts
 
@@ -413,18 +438,33 @@ tests; `--suite`, `--filter`, `--timeout`, `--no-build` refine the run.
 
 ---
 
-## LLM Commit Messages
+## LLM Commit Messages and the Local LLM
 
-`fobis commit` drafts a Conventional-Commits message from your **staged** diff via a local LLM.
-Backends: `ollama` (default, `http://localhost:11434`) and `openai` (any OpenAI-compatible endpoint).
-Config: `~/.config/fobis/config.ini` (`$XDG_CONFIG_HOME` honoured), `[llm]` section keys `backend`,
-`url`, `model` (default `qwen3-coder:30b-a3b-q4_K_M`), `max_diff_chars` (12000), `refine_passes` (0).
+`fobis commit` drafts a Conventional-Commits message from your **staged** diff. The model answers a JSON
+object constrained by a schema and FoBiS builds the `type(scope)!: description` header itself (free-text
+fallback when a server rejects the schema).
+
+Providers (`[llm] provider`, or `--provider`):
+- `managed` (default): FoBiS installs a pinned llama.cpp `llama-server` and runs it on loopback with a
+  per-process API key, around each command (or keeps it with `fobis llm serve start`). Setup once:
+  `fobis llm runtime install && fobis llm pull coder-7b`; check with `fobis llm doctor`. Models: aliases
+  from `fobis llm recommended` (Apache-2.0, pinned commits) or `hf:<org>/<repo>[@<rev>]/<file>.gguf` or a
+  GGUF path. Use 7B or larger: 0.5B/1.5B models copy the prompt instead of reading the diff.
+- `ollama` (`http://localhost:11434`) and `openai` (any OpenAI-compatible endpoint; `api_key_env` names the
+  environment variable holding a hosted service's key).
+
+A `[llm]` section that sets `model`/`url` without `provider` keeps meaning Ollama (configs from before the
+managed runtime). Config: `~/.config/fobis/config.ini` (`$XDG_CONFIG_HOME` honoured), `[llm]` keys
+`provider`, `model`, `url`, `api_key_env`, `runtime` (`pinned`|`PATH`|path), `runtime_variant`, `n_ctx`,
+`n_gpu_layers`, `threads`, `startup_timeout`, `max_diff_chars` (12000), `refine_passes` (0). The LLM directory
+is `$FOBIS_LLM_DIR` or `~/.fobis/llm` (models, runtime, logs; relocatable: copy it to an offline cluster).
 
 ```bash
 fobis commit --init-config            # write a commented config template
 fobis commit --show-config            # print effective config
 fobis commit --refine-passes 2        # critique-and-rewrite iterations
 fobis commit --apply                  # run `git commit` with the generated message
+fobis llm ask "question"              # quick question to the configured model
 ```
 
 ---
