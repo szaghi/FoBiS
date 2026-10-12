@@ -135,6 +135,11 @@ fobis test --explain     # the same for every failed test (LLM for the first one
   directive counts its whole region; `--context N`; formats text/markdown (PR comment)/json/sarif/github;
   `--deep` cited risks/to-check from the diff, touched regions, users of modules whose headers changed;
   `--deep-context`; exit 1 on error/warning findings unless `--exit-zero`. Pre-commit: `fobis review --staged`.
+- `ecosystem impact PROJECT [--base REF] [--format text|markdown|json] [--deep]`: public API diff of PROJECT's
+  Fortran modules (procedure signatures, generics, types, variables, constants; access lists; re-exports through
+  facade modules) between REF (default latest tag) and the working tree, then the references to changed names in
+  every (transitive) dependent's OWN files (git ls-files: no fetched deps, no submodules). Plain `use` without a
+  reference = not affected. Exit 1 when a dependent is affected. Complements `ecosystem check` (builds).
 - `merge-assist`: hunks from the index stages (`git merge-file --diff3`); rules (one side == base, same change or
   whitespace, `use only` three-way union, fobos `tag=` pins -> higher version) at high confidence; adjacent edits
   (one side appended, other edited) -> medium draft the LLM refines; LLM per remaining hunk (strategy

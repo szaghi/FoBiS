@@ -371,6 +371,90 @@ def cmd_ecosystem_check(
         raise typer.Exit(1)
 
 
+@ecosystem_app.command("impact")
+def cmd_ecosystem_impact(
+    project: Annotated[str, typer.Argument(help="The changed project")],
+    base: Annotated[
+        str | None,
+        typer.Option("--base", help="Compare its working tree with this revision [default: its latest tag, else HEAD]"),
+    ] = None,
+    output_format: Annotated[str, typer.Option("--format", help="text, markdown or json")] = "text",
+    deep: Annotated[bool, typer.Option("--deep", help="Add a cited LLM summary for the release train")] = False,
+    deep_context: Annotated[
+        bool, typer.Option("--deep-context", help="Print what the model would receive for --deep, run no model")
+    ] = False,
+    config: ConfigOpt = None,
+) -> None:
+    """Which dependent projects a change of PROJECT's public Fortran interfaces breaks, and where.
+
+    The public API of PROJECT's changed modules (procedures and their signatures, generics, types, variables,
+    constants, re-exports through other modules) is compared between BASE and the working tree; every project
+    depending on PROJECT, directly or not, is scanned for references to what changed. Exit 1 when a dependent is
+    affected.
+    """
+    from ..ai.impact import (
+        GROUPS,
+        Impact,
+        fortran_sources,
+        impact_bundle,
+        impact_summary,
+        project_changes,
+        render_markdown,
+        render_text,
+        usages_in,
+    )
+    from ..Ecosystem import transitive_dependents
+
+    if output_format not in ("text", "markdown", "json"):
+        typer.echo(f"Unknown format {output_format!r}: use text, markdown or json", err=True)
+        raise typer.Exit(2)
+    _, eco = _load(config)
+    (name,) = _selected(eco, project, None)
+    changed = eco.projects[name]
+    used_base, changes = project_changes(changed.path, base)
+    dependents = transitive_dependents(eco, name)
+    usages = []
+    if any(c.breaking for c in changes):  # nothing to look for otherwise
+        for dependent in dependents:
+            path = eco.projects[dependent].path
+            usages += usages_in(dependent, path, changes, fortran_sources(path))
+    impact = Impact(name, used_base, changes, dependents, usages)
+    summary = None
+    if deep or deep_context:
+        from ..ai.grounding import load_prompt, render_answer
+
+        bundle = impact_bundle(impact)
+        if deep_context:
+            typer.echo(f"=== system prompt ===\n{load_prompt('impact')}\n=== user message ===\n{bundle.render()}")
+            return
+        if impact.breaking:
+            from ..llm import LLMConfig, LLMError, get_provider
+            from ..UserConfig import UserConfig
+
+            client = None
+            try:
+                client = get_provider(
+                    LLMConfig.from_user_config(UserConfig()), on_status=lambda m: typer.echo(m, err=True)
+                )
+                summary = render_answer(impact_summary(bundle, client), groups=GROUPS)
+            except LLMError as exc:
+                typer.echo(f"Warning: no summary: {exc}", err=True)
+            finally:
+                if client is not None and hasattr(client, "close"):
+                    client.close()
+    if output_format == "json":
+        data = impact.to_dict()
+        if summary is not None:
+            data["summary"] = summary
+        typer.echo(json.dumps(data, indent=2))
+    elif output_format == "markdown":
+        typer.echo(render_markdown(impact) + (f"\n\n#### Summary [llm]\n\n{summary}" if summary else ""))
+    else:
+        typer.echo(render_text(impact) + (f"\n\nSummary [llm]:\n{summary}" if summary else ""))
+    if impact.affected():
+        raise typer.Exit(1)
+
+
 scaffold_app = typer.Typer(
     name="scaffold",
     help="Scaffold drift across the projects (honours each fobos [scaffold] skip).",

@@ -376,6 +376,34 @@ The staging directories are removed after a full pass and kept — their path pr
 fails, for inspection (`--keep` keeps them always). A dependent whose dependencies were never
 fetched is reported as `skipped`; `check` exits 1 unless every dependent passed.
 
+### What a change breaks: `impact`
+
+`check` builds the dependents; `impact` reads them. For a project with uncommitted (or unreleased) changes, it
+compares the **public interface** of its Fortran modules between its latest tag and its working tree, then finds
+every place in the dependent projects that uses what changed:
+
+```bash
+fobis ecosystem impact PENF                    # since PENF's latest tag
+fobis ecosystem impact PENF --base v1.1.7      # since an older release
+fobis ecosystem impact PENF --format markdown  # for a release note or an issue
+```
+
+- **The public interface** of a module: its public procedures with their signature (prefixes, dummy arguments
+  and their declarations, function result), generic interfaces and their specific procedures, derived types and
+  their components, variables and named constants with their value (a kind constant that changes is an
+  interface change). `private`/`public` defaults and access lists (`public :: str, strz`) are honoured.
+- **Re-exports**: a facade module that `use`s a changed module and makes the changed name public changes too
+  (PENF's `penf` re-exports `penf_global_parameters_variables`, and dependents only `use penf`).
+- **Usages**: in every project depending on the changed one, directly or not, each `use` of a changed module
+  whose code references a changed name (`only` lists and renames resolved), or whose `only` list imports a
+  removed name. A plain `use` that never references what changed is not affected. Only the dependent's own files
+  are read: fetched dependencies and git submodules (vendored copies) are not its code.
+
+On the author's ecosystem, PENF since `v1.1.7` (58 changed constants, among them the byte sizes `BYR8P`,
+`BYI4P` ...): 2 of its 15 dependents, BeFoR64 and VTKFortran, reference them; the 13 others use PENF without
+touching them. The command exits 1 when a dependent is affected. `--deep` adds an LLM summary for the release
+train (what breaks, what to do), cited on these facts; `--deep-context` prints its input.
+
 ### Sync the boilerplate: `scaffold`
 
 ```bash
@@ -499,6 +527,7 @@ fobis ecosystem exec -- git status -s      # then review and commit in each repo
 
 ```bash
 # hack on PENF, do not commit yet
+fobis ecosystem impact PENF                # which dependents use what changed, file by file
 fobis ecosystem check PENF                 # do BeFoR64, FLAP, StringiFor still build and pass?
 git -C ~/fortran/PENF commit -am "feat(io): ..." && git -C ~/fortran/PENF push
 fobis ecosystem release --dry-run          # PENF, and anything else that needs a release

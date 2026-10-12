@@ -66,6 +66,7 @@ _ATTR_STMT_RE = re.compile(
     r"|protected|asynchronous|volatile|contiguous)\b)\s*(?:::)?\s*(.*)$"
 )
 _PARAMETER_STMT_RE = re.compile(r"^parameter\s*\((.*)\)\s*$")
+_ACCESS_STMT_RE = re.compile(r"^(public|private)\s*(?:::)?\s*(\S.*)$")
 # A declaration whose type is not recognised, typically a preprocessor macro: "VARTYPE(KKP), intent(in) :: q".
 _MACRO_DECL_RE = re.compile(r"^([a-z_]\w*)\s*(?:\((?:[^()]|\([^()]*\))*\))?\s*(?:,[^:]*)?::")
 _NOT_DECL_KEYWORDS = frozenset(
@@ -235,6 +236,10 @@ class Unit:
     uses : list of Use
     default_access : str or None
         ``private`` / ``public`` default accessibility statement.
+    access : dict
+        Name (lower case; ``operator(+)``, ``assignment(=)`` as written) to ``public``/``private``, from access
+        statements with a list (``public :: str, strz``). Kept apart from ``decls``: the names are often
+        procedures and generic interfaces, not data.
     access_line : int
         Line of the default accessibility statement.
     contains_line : int
@@ -260,6 +265,7 @@ class Unit:
     save_all: bool = False
     uses: list[Use] = field(default_factory=list)
     default_access: str | None = None
+    access: dict[str, str] = field(default_factory=dict)
     access_line: int = 0
     contains_line: int = 0
     abstract: bool = False
@@ -467,6 +473,13 @@ def _record_spec(unit: Unit, stmt: Statement) -> None:
         return
     if masked in ("private", "public"):
         unit.default_access, unit.access_line = masked, stmt.line
+        return
+    match = _ACCESS_STMT_RE.match(masked)
+    if match:
+        for item in split_top(match.group(2)):
+            name = "".join(item.split())
+            if name:
+                unit.access[name] = match.group(1)
         return
     if masked == "contains":
         unit.contains_line = stmt.line

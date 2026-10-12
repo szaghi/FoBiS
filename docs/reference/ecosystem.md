@@ -22,6 +22,7 @@ a guided tour and recipes, read the [Ecosystem guide](/advanced/ecosystem).
 | Act | [`exec`](#exec) | run a command in every project | whatever the command writes |
 | | [`fetch`](#fetch) | `fobis fetch --update` in every project | fetched dependencies, locks |
 | | [`check`](#check) | build and test the dependents against a local working copy | temporary copies only |
+| | [`impact`](#impact) | the public-interface changes of a project and where its dependents use them | — |
 | | [`scaffold status`](#scaffold-status) | scaffold drift across the projects | — |
 | | [`scaffold sync`](#scaffold-sync) | show or apply the scaffold changes | managed files (`--apply`) |
 | Release | [`release`](#release) | the release train | commits, tags, pushes (via `release.sh`) |
@@ -283,6 +284,25 @@ dependent whose dependencies were never fetched is reported as `skipped`.
 
 Exit codes: `0` when every dependent passed (or there is none); `1` otherwise, `skipped` dependents
 included; `2` for an unknown project.
+
+### `impact`
+
+```bash
+fobis ecosystem impact PROJECT [--base REF] [--format text|markdown|json] [--deep] [--deep-context]
+```
+
+The public-interface changes of `PROJECT`'s Fortran modules between `REF` (default: its latest tag, else
+`HEAD`) and its working tree, re-exports included, and every place a dependent project (direct or transitive)
+references a changed name. See [What a change breaks](/advanced/ecosystem#what-a-change-breaks-impact).
+
+| Option | Description |
+|--------|-------------|
+| `--base REF` | Compare with this revision instead of the latest tag |
+| `--format FMT` | `text` (default), `markdown`, `json` |
+| `--deep` | Add a cited LLM summary for the release train |
+| `--deep-context` | Print what the model would receive, run no model |
+
+Exit codes: `0` when no dependent is affected; `1` when one is; `2` for an unknown project or format.
 
 ### `scaffold status`
 
