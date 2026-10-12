@@ -43,7 +43,7 @@ def test_create_default_writes_file(tmp_path):
     assert cfg_path.exists()
     text = cfg_path.read_text()
     assert "[llm]" in text
-    assert "backend" in text
+    assert "provider" in text
 
 
 def test_create_default_is_idempotent(tmp_path):
@@ -58,7 +58,7 @@ def test_create_default_is_idempotent(tmp_path):
 def test_show_returns_all_keys(tmp_path):
     cfg = UserConfig(path=str(tmp_path / "nonexistent.ini"))
     output = cfg.show()
-    assert "backend" in output
+    assert "provider" in output
     assert "url" in output
     assert "model" in output
     assert "max_diff_chars" in output

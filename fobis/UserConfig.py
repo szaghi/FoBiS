@@ -37,8 +37,9 @@ _TEMPLATE = """\
 # All values shown are the defaults.  Uncomment and edit to override.
 
 [llm]
-# LLM backend: "ollama" (native API) or "openai" (any OpenAI-compatible endpoint)
-# backend = ollama
+# LLM provider: "ollama" (native API) or "openai" (any OpenAI-compatible endpoint)
+# (the former key name `backend` is still read)
+# provider = ollama
 
 # Base URL of the LLM server (no trailing slash)
 # url = http://localhost:11434
@@ -94,7 +95,8 @@ class UserConfig:
     LLM settings with hardcoded defaults as fallback.
     """
 
-    DEFAULT_BACKEND = "ollama"
+    DEFAULT_PROVIDER = "ollama"
+    DEFAULT_BACKEND = DEFAULT_PROVIDER  # former name, kept for compatibility
     DEFAULT_URL = "http://localhost:11434"
     DEFAULT_MODEL = "qwen3-coder:30b-a3b-q4_K_M"
     DEFAULT_MAX_DIFF_CHARS = 12_000
@@ -112,8 +114,14 @@ class UserConfig:
     # ── LLM settings ──────────────────────────────────────────────────────────
 
     @property
+    def llm_provider(self) -> str:
+        """The LLM provider: key ``provider``, else the former key ``backend``, else the default."""
+        return self._get("llm", "provider", self._get("llm", "backend", self.DEFAULT_PROVIDER))
+
+    @property
     def llm_backend(self) -> str:
-        return self._get("llm", "backend", self.DEFAULT_BACKEND)
+        """Former name of `llm_provider`, kept for compatibility."""
+        return self.llm_provider
 
     @property
     def llm_url(self) -> str:
@@ -238,7 +246,7 @@ class UserConfig:
         lines = [
             f"Config file : {self.path}",
             "  [llm]",
-            f"  backend       = {self.llm_backend}",
+            f"  provider      = {self.llm_provider}",
             f"  url           = {self.llm_url}",
             f"  api_key_env   = {self.llm_api_key_env or '(none)'}",
             f"  model         = {self.llm_model}",

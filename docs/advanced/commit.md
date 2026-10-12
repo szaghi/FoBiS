@@ -38,7 +38,7 @@ ollama list          # should show the pulled model
 curl http://localhost:11434/api/tags   # should return JSON
 ```
 
-No extra configuration needed — `fobis commit` defaults to `backend=ollama`, `url=http://localhost:11434`.
+No extra configuration needed — `fobis commit` defaults to `provider=ollama`, `url=http://localhost:11434`.
 
 ### LM Studio
 
@@ -57,7 +57,7 @@ fobis commit --init-config
 
 ```ini
 [llm]
-backend = openai
+provider = openai
 url     = http://localhost:1234
 model   = qwen2.5-coder-7b-instruct
 ```
@@ -69,7 +69,7 @@ model   = qwen2.5-coder-7b-instruct
 ./llama-server -m model.gguf --port 8080
 
 # Configure FoBiS:
-fobis commit --backend openai --url http://localhost:8080 --model model
+fobis commit --provider openai --url http://localhost:8080 --model model
 ```
 
 ### vLLM
@@ -79,7 +79,7 @@ fobis commit --backend openai --url http://localhost:8080 --model model
 python -m vllm.entrypoints.openai.api_server --model Qwen/Qwen2.5-Coder-7B-Instruct
 
 # Configure FoBiS:
-fobis commit --backend openai --url http://localhost:8000 --model Qwen/Qwen2.5-Coder-7B-Instruct
+fobis commit --provider openai --url http://localhost:8000 --model Qwen/Qwen2.5-Coder-7B-Instruct
 ```
 
 ### Hosted OpenAI-compatible endpoints
@@ -89,7 +89,7 @@ appears on the command line or in the config file:
 
 ```ini
 [llm]
-backend     = openai
+provider    = openai
 url         = https://api.openai.com
 model       = gpt-4o-mini
 api_key_env = OPENAI_API_KEY
@@ -112,7 +112,7 @@ Edit it to match your setup:
 
 ```ini
 [llm]
-backend        = ollama
+provider       = ollama
 url            = http://localhost:11434
 model          = qwen2.5-coder:7b
 max_diff_chars = 12000
@@ -125,7 +125,7 @@ Verify the effective configuration:
 fobis commit --show-config
 # Config file : /home/user/.config/fobis/config.ini
 #   [llm]
-#   backend       = ollama
+#   provider      = ollama
 #   url           = http://localhost:11434
 #   api_key_env   = (none)
 #   model         = qwen2.5-coder:7b
@@ -133,7 +133,7 @@ fobis commit --show-config
 #   refine_passes = 1
 ```
 
-**Priority rule:** CLI flags always win over the config file, which wins over built-in defaults. This means you can keep a comfortable default in the config file and override per-run with `--model` or `--backend` without editing the file.
+**Priority rule:** CLI flags always win over the config file, which wins over built-in defaults. This means you can keep a comfortable default in the config file and override per-run with `--model` or `--provider` without editing the file.
 
 ## Typical workflow
 
@@ -327,7 +327,7 @@ If Ollama runs on a different host (e.g. a workstation with a GPU):
 
 ```ini
 [llm]
-backend = ollama
+provider = ollama
 url     = http://192.168.1.100:11434
 model   = qwen2.5-coder:14b
 ```

@@ -385,7 +385,8 @@ def run_fobis_commit(configuration):
     """
     import subprocess
 
-    from .Commit import CommitError, generate, resolve_api_key
+    from .Commit import CommitError, generate
+    from .llm import LLMConfig, LLMError, get_provider
     from .UserConfig import UserConfig
 
     cliargs = configuration.cliargs
@@ -401,27 +402,26 @@ def run_fobis_commit(configuration):
         return
 
     # CLI flags override config file values
-    backend = getattr(cliargs, "backend", None) or ucfg.llm_backend
-    url = getattr(cliargs, "url", None) or ucfg.llm_url
-    model = getattr(cliargs, "model", None) or ucfg.llm_model
     max_diff = getattr(cliargs, "max_diff", None) or ucfg.llm_max_diff_chars
     refine_passes_cli = getattr(cliargs, "refine_passes", None)
     refine_passes = refine_passes_cli if refine_passes_cli is not None else ucfg.llm_refine_passes
 
-    api_key_env = getattr(cliargs, "api_key_env", None) or ucfg.llm_api_key_env
-
     try:
+        llm_cfg = LLMConfig.from_user_config(
+            ucfg,
+            provider=getattr(cliargs, "provider", None),
+            url=getattr(cliargs, "url", None),
+            model=getattr(cliargs, "model", None),
+            api_key_env=getattr(cliargs, "api_key_env", None),
+        )
         message = generate(
-            backend=backend,
-            url=url,
-            model=model,
+            provider=get_provider(llm_cfg),
             max_diff_chars=max_diff,
             refine_passes=refine_passes,
             print_n=configuration.print_b,
             print_w=configuration.print_r,
-            api_key=resolve_api_key(api_key_env),
         )
-    except CommitError as exc:
+    except (CommitError, LLMError) as exc:
         configuration.print_r(f"Error: {exc}")
         sys.exit(1)
 

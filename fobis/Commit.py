@@ -19,13 +19,17 @@ Commit.py — LLM-assisted semantic commit-message generation for FoBiS.
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
 
-import json
-import os
+from __future__ import annotations
+
 import re
 import subprocess
 import textwrap
-import urllib.error
-import urllib.request
+from typing import TYPE_CHECKING
+
+from .llm.provider import messages
+
+if TYPE_CHECKING:
+    from .llm.provider import Provider
 
 
 class CommitError(Exception):
@@ -38,14 +42,6 @@ class GitError(CommitError):
 
 class NothingStagedError(CommitError):
     """There are no staged changes to describe."""
-
-
-class LLMError(CommitError):
-    """The LLM endpoint could not be reached or answered with an error."""
-
-
-class ApiKeyError(LLMError):
-    """The environment variable configured to hold the API key is unset or empty."""
 
 
 _SYSTEM_PROMPT = """\
@@ -401,91 +397,6 @@ def build_refine_prompt(draft: str, stat: str, diff: str, commits: str, files: s
     )
 
 
-# ── LLM backends ──────────────────────────────────────────────────────────────
-
-
-def resolve_api_key(api_key_env: str | None) -> str | None:
-    """Return the API key held by the environment variable *api_key_env*.
-
-    No variable configured means no key: a key is never read from an implicit default variable, so it
-    cannot leak to a server it was not meant for.
-    """
-    if not api_key_env:
-        return None
-    key = os.environ.get(api_key_env, "").strip()
-    if not key:
-        raise ApiKeyError(f"api_key_env is set to {api_key_env!r}, but that environment variable is unset or empty")
-    return key
-
-
-def _post_stream(url: str, payload: dict, timeout: int = 120, api_key: str | None = None) -> str:
-    """POST *payload* as JSON to *url* and collect streamed response tokens."""
-    data = json.dumps(payload).encode()
-    headers = {"Content-Type": "application/json"}
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
-    req = urllib.request.Request(url, data=data, headers=headers)
-    collected = []
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            for raw_line in resp:
-                line = raw_line.decode().strip()
-                if not line:
-                    continue
-                # OpenAI SSE: "data: {...}" or "data: [DONE]"
-                if line.startswith("data:"):
-                    line = line[5:].strip()
-                    if line == "[DONE]":
-                        break
-                try:
-                    chunk = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                # Ollama native format
-                token = chunk.get("message", {}).get("content", "")
-                # OpenAI-compatible format
-                if not token:
-                    token = (
-                        (chunk.get("choices", [{}])[0].get("delta", {}).get("content", ""))
-                        if chunk.get("choices")
-                        else ""
-                    )
-                if token:
-                    collected.append(token)
-                if chunk.get("done"):  # Ollama end-of-stream marker
-                    break
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode(errors="replace").strip()[:500]
-        raise LLMError(
-            f"LLM at {url} answered HTTP {exc.code} {exc.reason}" + (f": {detail}" if detail else "")
-        ) from exc
-    except urllib.error.URLError as exc:
-        raise LLMError(f"cannot reach LLM at {url}: {exc.reason}") from exc
-    except (TimeoutError, ConnectionError) as exc:
-        raise LLMError(f"connection to LLM at {url} failed: {exc}") from exc
-    return "".join(collected).strip()
-
-
-def _messages(prompt: str, system: str | None) -> list[dict]:
-    """Chat messages for *prompt*, preceded by the *system* prompt when one is given."""
-    messages = [{"role": "system", "content": system}] if system else []
-    return [*messages, {"role": "user", "content": prompt}]
-
-
-def ask_ollama(base_url: str, model: str, prompt: str, system: str | None = None, api_key: str | None = None) -> str:
-    """Call the Ollama native chat API."""
-    url = base_url.rstrip("/") + "/api/chat"
-    payload = {"model": model, "messages": _messages(prompt, system), "stream": True}
-    return _post_stream(url, payload, api_key=api_key)
-
-
-def ask_openai(base_url: str, model: str, prompt: str, system: str | None = None, api_key: str | None = None) -> str:
-    """Call any OpenAI-compatible chat-completions endpoint."""
-    url = base_url.rstrip("/") + "/v1/chat/completions"
-    payload = {"model": model, "messages": _messages(prompt, system), "stream": True}
-    return _post_stream(url, payload, api_key=api_key)
-
-
 # ── Message post-processing ────────────────────────────────────────────────────
 
 
@@ -633,26 +544,19 @@ def wrap_message(message: str, width: int = 90, print_w=None) -> str:
 
 
 def generate(
-    backend: str,
-    url: str,
-    model: str,
+    provider: Provider,
     max_diff_chars: int,
     refine_passes: int = 0,
     print_n=print,
     print_w=print,
-    api_key: str | None = None,
 ) -> str:
     """
     Generate a Conventional Commits message for the currently staged changes.
 
     Parameters
     ----------
-    backend : str
-        "ollama" or "openai"
-    url : str
-        Base URL of the LLM server.
-    model : str
-        Model identifier.
+    provider : Provider
+        The LLM to ask (see `fobis.llm.get_provider`).
     max_diff_chars : int
         Maximum diff characters to include in the prompt.
     refine_passes : int
@@ -660,8 +564,6 @@ def generate(
         0 = single pass (default). 1-3 recommended for small models.
     print_n, print_w : callable
         Normal / warning message printers.
-    api_key : str or None
-        Bearer token sent to the LLM endpoint (see `resolve_api_key`); None sends no credentials.
 
     Returns
     -------
@@ -671,11 +573,10 @@ def generate(
     Raises
     ------
     CommitError
-        Unknown backend, nothing staged (`NothingStagedError`), a failing git command (`GitError`), or an
-        unreachable or failing LLM endpoint (`LLMError`).
+        Nothing staged (`NothingStagedError`) or a failing git command (`GitError`).
+    LLMError
+        The provider failed to answer (see `fobis.llm.errors`).
     """
-    if backend not in ("ollama", "openai"):
-        raise CommitError(f'unknown LLM backend {backend!r}: use "ollama" or "openai"')
     stat = staged_stat()
     if not stat:
         raise NothingStagedError("Nothing staged. Run `git add <files>` first.")
@@ -686,10 +587,10 @@ def generate(
     branch = current_branch()
 
     def _ask(prompt: str) -> str:
-        ask = ask_openai if backend == "openai" else ask_ollama
-        return ask(url, model, prompt, system=_SYSTEM_PROMPT, api_key=api_key)
+        return provider.chat(messages(prompt, system=_SYSTEM_PROMPT)).text
 
-    print_n(f"[{backend}:{model}] Generating commit message…")
+    label = f"[{provider.name}:{provider.model}]"
+    print_n(f"{label} Generating commit message…")
     prompt = build_prompt(stat, diff, commits, branch=branch, files=files)
     raw = _ask(prompt)
     draft = wrap_message(
@@ -701,7 +602,7 @@ def generate(
     )
 
     for i in range(refine_passes):
-        print_n(f"[{backend}:{model}] Refining… (pass {i + 1}/{refine_passes})")
+        print_n(f"{label} Refining… (pass {i + 1}/{refine_passes})")
         refine_prompt = build_refine_prompt(draft, stat, diff, commits, files=files)
         raw = _ask(refine_prompt)
         draft = wrap_message(

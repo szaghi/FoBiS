@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import io
-import urllib.error
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 import fobis.Commit as Commit
+from fobis.llm import FakeProvider, LLMError
 
 # ── Pure utility functions ─────────────────────────────────────────────────────
 
@@ -223,141 +222,6 @@ def test_build_refine_prompt_includes_complete_file_list():
     assert "new_test.py" in result
 
 
-# ── _post_stream ───────────────────────────────────────────────────────────────
-
-
-def _urlopen_mock(lines: list[bytes]) -> MagicMock:
-    ctx = MagicMock()
-    ctx.__enter__.return_value = lines
-    ctx.__exit__.return_value = False
-    return ctx
-
-
-def test_post_stream_ollama_format():
-    lines = [
-        b'{"message": {"content": "feat"}, "done": false}\n',
-        b'{"message": {"content": "(cli)"}, "done": true}\n',
-    ]
-    with patch("urllib.request.urlopen", return_value=_urlopen_mock(lines)):
-        result = Commit._post_stream("http://localhost", {})
-    assert result == "feat(cli)"
-
-
-def test_post_stream_openai_sse_format():
-    lines = [
-        b'data: {"choices": [{"delta": {"content": "fix"}}]}\n',
-        b'data: {"choices": [{"delta": {"content": ": bug"}}]}\n',
-        b"data: [DONE]\n",
-    ]
-    with patch("urllib.request.urlopen", return_value=_urlopen_mock(lines)):
-        result = Commit._post_stream("http://localhost", {})
-    assert result == "fix: bug"
-
-
-def test_post_stream_skips_blank_lines():
-    lines = [b"\n", b"   \n", b'{"message": {"content": "ok"}, "done": true}\n']
-    with patch("urllib.request.urlopen", return_value=_urlopen_mock(lines)):
-        result = Commit._post_stream("http://localhost", {})
-    assert result == "ok"
-
-
-def test_post_stream_skips_invalid_json():
-    lines = [b"not-json\n", b'{"message": {"content": "ok"}, "done": true}\n']
-    with patch("urllib.request.urlopen", return_value=_urlopen_mock(lines)):
-        result = Commit._post_stream("http://localhost", {})
-    assert result == "ok"
-
-
-def test_post_stream_url_error_raises_llm_error():
-    ctx = MagicMock()
-    ctx.__enter__.side_effect = urllib.error.URLError("connection refused")
-    ctx.__exit__.return_value = False
-    with patch("urllib.request.urlopen", return_value=ctx), pytest.raises(Commit.LLMError, match="cannot reach"):
-        Commit._post_stream("http://localhost", {})
-
-
-def test_post_stream_http_error_reports_status_and_body():
-    err = urllib.error.HTTPError("http://x", 401, "Unauthorized", {}, io.BytesIO(b'{"error": "invalid api key"}'))
-    with patch("urllib.request.urlopen", side_effect=err), pytest.raises(Commit.LLMError) as excinfo:
-        Commit._post_stream("http://localhost", {})
-    assert "401" in str(excinfo.value)
-    assert "invalid api key" in str(excinfo.value)
-
-
-def test_post_stream_timeout_raises_llm_error():
-    with patch("urllib.request.urlopen", side_effect=TimeoutError("timed out")), pytest.raises(Commit.LLMError):
-        Commit._post_stream("http://localhost", {})
-
-
-def test_post_stream_sends_bearer_token_only_when_given():
-    lines = [b'{"message": {"content": "ok"}, "done": true}\n']
-    with patch("urllib.request.urlopen", return_value=_urlopen_mock(lines)) as mock_open:
-        Commit._post_stream("http://localhost", {}, api_key="sk-test")
-        Commit._post_stream("http://localhost", {})
-    with_key, without_key = (call.args[0] for call in mock_open.call_args_list)
-    assert with_key.get_header("Authorization") == "Bearer sk-test"
-    assert without_key.get_header("Authorization") is None
-
-
-# ── resolve_api_key ────────────────────────────────────────────────────────────
-
-
-def test_resolve_api_key_none_without_configured_variable(monkeypatch):
-    monkeypatch.setenv("OPENAI_API_KEY", "sk-must-not-leak")
-    assert Commit.resolve_api_key(None) is None
-    assert Commit.resolve_api_key("") is None
-
-
-def test_resolve_api_key_reads_configured_variable(monkeypatch):
-    monkeypatch.setenv("MY_LLM_KEY", "  sk-abc  ")
-    assert Commit.resolve_api_key("MY_LLM_KEY") == "sk-abc"
-
-
-def test_resolve_api_key_unset_variable_raises(monkeypatch):
-    monkeypatch.delenv("MY_LLM_KEY", raising=False)
-    with pytest.raises(Commit.ApiKeyError, match="MY_LLM_KEY"):
-        Commit.resolve_api_key("MY_LLM_KEY")
-
-
-# ── ask_ollama / ask_openai ────────────────────────────────────────────────────
-
-
-def test_ask_ollama_builds_correct_url_and_payload():
-    with patch("fobis.Commit._post_stream", return_value="feat: x") as mock_post:
-        result = Commit.ask_ollama("http://localhost:11434", "mymodel", "prompt", system="be terse", api_key="k")
-    assert result == "feat: x"
-    url, payload = mock_post.call_args[0]
-    assert url == "http://localhost:11434/api/chat"
-    assert payload["model"] == "mymodel"
-    assert payload["stream"] is True
-    assert payload["messages"] == [{"role": "system", "content": "be terse"}, {"role": "user", "content": "prompt"}]
-    assert mock_post.call_args.kwargs["api_key"] == "k"
-
-
-def test_ask_without_system_sends_only_the_user_message():
-    with patch("fobis.Commit._post_stream", return_value="ok") as mock_post:
-        Commit.ask_openai("http://localhost:1234", "m", "prompt")
-    _, payload = mock_post.call_args[0]
-    assert payload["messages"] == [{"role": "user", "content": "prompt"}]
-
-
-def test_ask_ollama_strips_trailing_slash():
-    with patch("fobis.Commit._post_stream", return_value="ok") as mock_post:
-        Commit.ask_ollama("http://localhost:11434/", "m", "p")
-    url, _ = mock_post.call_args[0]
-    assert url == "http://localhost:11434/api/chat"
-
-
-def test_ask_openai_builds_correct_url_and_payload():
-    with patch("fobis.Commit._post_stream", return_value="fix: y") as mock_post:
-        result = Commit.ask_openai("http://localhost:1234/", "gpt4", "prompt")
-    assert result == "fix: y"
-    url, payload = mock_post.call_args[0]
-    assert url == "http://localhost:1234/v1/chat/completions"
-    assert payload["model"] == "gpt4"
-    assert payload["stream"] is True
-
-
 # ── git helper functions ──────────────────────────────────────────────────────
 
 
@@ -476,130 +340,91 @@ def test_recent_commits_empty_on_unborn_branch():
 _STAGED_FILES = "M\tfobis/Commit.py\nA\ttests/test_commit.py"
 
 
-def test_generate_nothing_staged_raises():
-    with patch("fobis.Commit.staged_stat", return_value=""), pytest.raises(Commit.NothingStagedError):
-        Commit.generate("ollama", "http://localhost", "model", 1000)
-
-
-def test_generate_unknown_backend_raises():
-    with pytest.raises(Commit.CommitError, match="unknown LLM backend"):
-        Commit.generate("olama", "http://localhost", "model", 1000)
-
-
-def test_generate_passes_commit_system_prompt_and_api_key():
-    with (
-        patch("fobis.Commit.staged_stat", return_value="1 file"),
-        patch("fobis.Commit.staged_files", return_value=_STAGED_FILES),
-        patch("fobis.Commit.staged_diff", return_value="diff"),
-        patch("fobis.Commit.recent_commits", return_value="abc"),
-        patch("fobis.Commit.current_branch", return_value="main"),
-        patch("fobis.Commit.ask_openai", return_value="feat: x") as mock_ask,
-    ):
-        Commit.generate("openai", "http://localhost", "m", 1000, api_key="sk-1")
-    assert mock_ask.call_args.kwargs == {"system": Commit._SYSTEM_PROMPT, "api_key": "sk-1"}
-
-
-def test_generate_ollama_single_pass():
+@pytest.fixture
+def staged():
+    """Patch the git helpers with a fixed staged change."""
     with (
         patch("fobis.Commit.staged_stat", return_value="1 file"),
         patch("fobis.Commit.staged_files", return_value=_STAGED_FILES),
         patch("fobis.Commit.staged_diff", return_value="diff"),
         patch("fobis.Commit.recent_commits", return_value="abc feat: prior"),
         patch("fobis.Commit.current_branch", return_value="main"),
-        patch("fobis.Commit.ask_ollama", return_value="feat(cli): new feature") as mock_ask,
     ):
-        result = Commit.generate("ollama", "http://localhost", "mymodel", 1000)
+        yield
+
+
+def test_generate_nothing_staged_raises():
+    with patch("fobis.Commit.staged_stat", return_value=""), pytest.raises(Commit.NothingStagedError):
+        Commit.generate(FakeProvider([]), 1000)
+
+
+def test_generate_single_pass(staged):
+    provider = FakeProvider(["feat(cli): new feature"])
+    result = Commit.generate(provider, 1000)
     assert result == "feat(cli): new feature"
-    assert mock_ask.call_count == 1
+    assert len(provider.calls) == 1
 
 
-def test_generate_openai_single_pass():
-    with (
-        patch("fobis.Commit.staged_stat", return_value="1 file"),
-        patch("fobis.Commit.staged_files", return_value=_STAGED_FILES),
-        patch("fobis.Commit.staged_diff", return_value="diff"),
-        patch("fobis.Commit.recent_commits", return_value="abc fix: prior"),
-        patch("fobis.Commit.current_branch", return_value="feature"),
-        patch("fobis.Commit.ask_openai", return_value="fix(api): resolve timeout") as mock_ask,
-    ):
-        result = Commit.generate("openai", "http://localhost", "gpt4", 1000)
-    assert result == "fix(api): resolve timeout"
-    assert mock_ask.call_count == 1
+def test_generate_sends_commit_system_prompt_then_user_prompt(staged):
+    provider = FakeProvider(["feat: x"])
+    Commit.generate(provider, 1000)
+    sent = provider.calls[0].messages
+    assert [m["role"] for m in sent] == ["system", "user"]
+    assert sent[0]["content"] == Commit._SYSTEM_PROMPT
 
 
-def test_generate_strips_think_tags_from_response():
-    raw = "<think>lengthy reasoning</think>feat(scope): clean subject"
-    with (
-        patch("fobis.Commit.staged_stat", return_value="1 file"),
-        patch("fobis.Commit.staged_files", return_value=_STAGED_FILES),
-        patch("fobis.Commit.staged_diff", return_value="diff"),
-        patch("fobis.Commit.recent_commits", return_value="abc"),
-        patch("fobis.Commit.current_branch", return_value="main"),
-        patch("fobis.Commit.ask_ollama", return_value=raw),
-    ):
-        result = Commit.generate("ollama", "http://localhost", "model", 1000)
+def test_generate_strips_think_tags_from_response(staged):
+    provider = FakeProvider(["<think>lengthy reasoning</think>feat(scope): clean subject"])
+    result = Commit.generate(provider, 1000)
     assert "<think>" not in result
     assert result == "feat(scope): clean subject"
 
 
-def test_generate_refine_passes_calls_ask_n_plus_one_times():
-    responses = iter(["feat: initial draft", "feat(cli): refined version"])
-
-    with (
-        patch("fobis.Commit.staged_stat", return_value="1 file"),
-        patch("fobis.Commit.staged_files", return_value=_STAGED_FILES),
-        patch("fobis.Commit.staged_diff", return_value="diff"),
-        patch("fobis.Commit.recent_commits", return_value="abc"),
-        patch("fobis.Commit.current_branch", return_value="main"),
-        patch("fobis.Commit.ask_ollama", side_effect=responses),
-    ):
-        result = Commit.generate("ollama", "http://localhost", "model", 1000, refine_passes=1)
+def test_generate_refine_passes_calls_provider_n_plus_one_times(staged):
+    provider = FakeProvider(["feat: initial draft", "feat(cli): refined version"])
+    result = Commit.generate(provider, 1000, refine_passes=1)
     assert result == "feat(cli): refined version"
+    assert len(provider.calls) == 2
+
+
+def test_generate_propagates_provider_errors(staged):
+    with pytest.raises(LLMError):
+        Commit.generate(FakeProvider([]), 1000)
 
 
 def test_generate_file_list_threaded_into_prompt():
     """The complete file list must appear in the prompt sent to the LLM."""
-    captured_prompt: list[str] = []
-
-    def capture_ask(url, model, prompt, **_):
-        captured_prompt.append(prompt)
-        return "feat: ok"
-
+    provider = FakeProvider(["feat: ok"])
     with (
         patch("fobis.Commit.staged_stat", return_value="2 files"),
         patch("fobis.Commit.staged_files", return_value="M\tfobis/Builder.py\nA\ttests/new.py"),
         patch("fobis.Commit.staged_diff", return_value="diff"),
         patch("fobis.Commit.recent_commits", return_value="abc"),
         patch("fobis.Commit.current_branch", return_value="main"),
-        patch("fobis.Commit.ask_ollama", side_effect=capture_ask),
     ):
-        Commit.generate("ollama", "http://localhost", "model", 1000)
+        Commit.generate(provider, 1000)
 
-    assert len(captured_prompt) == 1
-    assert "fobis/Builder.py" in captured_prompt[0]
-    assert "tests/new.py" in captured_prompt[0]
+    assert len(provider.calls) == 1
+    prompt = provider.calls[0].messages[-1]["content"]
+    assert "fobis/Builder.py" in prompt
+    assert "tests/new.py" in prompt
 
 
 def test_generate_file_list_threaded_into_refine_prompt():
     """The complete file list must appear in the refine prompt too."""
-    captured_prompts: list[str] = []
-
-    def capture_ask(url, model, prompt, **_):
-        captured_prompts.append(prompt)
-        return "feat: ok"
-
+    provider = FakeProvider(["feat: ok", "feat: ok"])
     with (
         patch("fobis.Commit.staged_stat", return_value="2 files"),
         patch("fobis.Commit.staged_files", return_value="M\tfobis/Commit.py\nA\ttests/x.py"),
         patch("fobis.Commit.staged_diff", return_value="diff"),
         patch("fobis.Commit.recent_commits", return_value="abc"),
         patch("fobis.Commit.current_branch", return_value="main"),
-        patch("fobis.Commit.ask_ollama", side_effect=capture_ask),
     ):
-        Commit.generate("ollama", "http://localhost", "model", 1000, refine_passes=1)
+        Commit.generate(provider, 1000, refine_passes=1)
 
-    assert len(captured_prompts) == 2
+    assert len(provider.calls) == 2
     # Both the initial and refine prompts must carry the file list
-    for p in captured_prompts:
-        assert "fobis/Commit.py" in p
-        assert "tests/x.py" in p
+    for call in provider.calls:
+        prompt = call.messages[-1]["content"]
+        assert "fobis/Commit.py" in prompt
+        assert "tests/x.py" in prompt

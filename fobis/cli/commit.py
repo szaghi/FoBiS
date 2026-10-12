@@ -6,9 +6,14 @@ import typer
 
 from ._app import _ns, app
 
-_BackendOpt = Annotated[
+_ProviderOpt = Annotated[
     str | None,
-    typer.Option("--backend", "-b", help='LLM backend: "ollama" or "openai".'),
+    typer.Option(
+        "--provider",
+        "--backend",
+        "-b",
+        help='LLM provider: "ollama" or "openai" (--backend is the former name).',
+    ),
 ]
 _UrlOpt = Annotated[
     str | None,
@@ -58,7 +63,7 @@ _InitConfigOpt = Annotated[
 @app.command("commit")
 def cmd_commit(
     ctx: typer.Context,
-    backend: _BackendOpt = None,
+    provider: _ProviderOpt = None,
     url: _UrlOpt = None,
     api_key_env: _ApiKeyEnvOpt = None,
     model: _ModelOpt = None,
@@ -73,7 +78,7 @@ def cmd_commit(
     ctx.ensure_object(dict)
     ctx.obj["cliargs"] = _ns(
         which="commit",
-        backend=backend,
+        provider=provider,
         url=url,
         api_key_env=api_key_env,
         model=model,

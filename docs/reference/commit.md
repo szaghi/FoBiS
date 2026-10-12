@@ -12,7 +12,7 @@ fobis commit [options]
 
 | Option | Short | Description |
 |--------|-------|-------------|
-| `--backend TEXT` | `-b` | LLM backend: `ollama` (default) or `openai` |
+| `--provider TEXT` | `-b` | LLM provider: `ollama` (default) or `openai`. `--backend` is accepted as the former name |
 | `--url TEXT` | `-u` | Base URL of the LLM server (default: `http://localhost:11434`) |
 | `--api-key-env NAME` | | Name of the environment variable holding the API key, sent as `Authorization: Bearer <key>`; required by hosted endpoints. Without it no credentials are sent |
 | `--model TEXT` | `-m` | Model identifier (default: `qwen3-coder:30b-a3b-q4_K_M`) |
@@ -65,18 +65,18 @@ Calls any OpenAI-compatible endpoint at `{url}/v1/chat/completions`. Covers:
 
 ```bash
 # LM Studio example:
-fobis commit --backend openai --url http://localhost:1234 --model llama-3.2-3b
+fobis commit --provider openai --url http://localhost:1234 --model llama-3.2-3b
 
 # Hosted endpoint: the key is read from the named environment variable, never from the command line
 export OPENAI_API_KEY=sk-...
-fobis commit --backend openai --url https://api.openai.com --model gpt-4o-mini --api-key-env OPENAI_API_KEY
+fobis commit --provider openai --url https://api.openai.com --model gpt-4o-mini --api-key-env OPENAI_API_KEY
 ```
 
 The key is sent only when a variable is named explicitly (`--api-key-env` or `api_key_env` in the config):
 FoBiS never picks up `OPENAI_API_KEY` on its own, so a key cannot leak to a local server it was not meant for.
 A hosted endpoint receives your staged diff.
 
-Note: Ollama also exposes an OpenAI-compatible endpoint at `/v1/chat/completions`, so `--backend openai --url http://localhost:11434` works with Ollama too.
+Note: Ollama also exposes an OpenAI-compatible endpoint at `/v1/chat/completions`, so `--provider openai --url http://localhost:11434` works with Ollama too.
 
 ## User config file
 
@@ -95,8 +95,9 @@ The generated file looks like:
 # All values shown are the defaults.  Uncomment and edit to override.
 
 [llm]
-# LLM backend: "ollama" (native API) or "openai" (any OpenAI-compatible endpoint)
-# backend = ollama
+# LLM provider: "ollama" (native API) or "openai" (any OpenAI-compatible endpoint)
+# (the former key name `backend` is still read)
+# provider = ollama
 
 # Base URL of the LLM server (no trailing slash)
 # url = http://localhost:11434
@@ -137,7 +138,7 @@ Inspect effective settings at any time:
 fobis commit --show-config
 # Config file : /home/user/.config/fobis/config.ini
 #   [llm]
-#   backend       = ollama
+#   provider      = ollama
 #   url           = http://localhost:11434
 #   api_key_env   = (none)
 #   model         = qwen3-coder:30b-a3b-q4_K_M
@@ -189,7 +190,7 @@ fobis commit --model llama3.2
 ### Use LM Studio
 
 ```bash
-fobis commit --backend openai --url http://localhost:1234 --model llama-3.2-3b-instruct
+fobis commit --provider openai --url http://localhost:1234 --model llama-3.2-3b-instruct
 ```
 
 ### Use a custom config file

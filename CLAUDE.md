@@ -155,7 +155,8 @@ ruff format fobis/ tests/
 - **TestRunner.py** (`TestResult`, `TestRunner`): first-class test runner behind `fobis test`; `--suite` tag filtering; passthrough args
 - **Coverage.py** (`CoverageReporter`) + **Gcov.py**: coverage reporting behind `fobis coverage` (html/xml/text/all); gcov markdown reports embed mermaid pie charts
 - **Cache.py**: build-artifact cache behind the `fobis cache` sub-app (`list`/`clean`/`show`)
-- **Commit.py**: LLM-assisted Conventional-Commit message generation behind `fobis commit` (`--backend ollama|openai`, `--url`, `--model`; iterative prompt refinement)
+- **Commit.py**: LLM-assisted Conventional-Commit message generation behind `fobis commit` (`--provider ollama|openai` (`--backend` alias), `--url`, `--model`, `--api-key-env`; iterative prompt refinement). Task logic only: `generate(provider, ...)` builds the prompts and calls `provider.chat()`; git failures raise `GitError`/`NothingStagedError` (`CommitError`), never `sys.exit`
+- **llm/** (package): provider-agnostic LLM layer (plan: `PLAN-llm.md`, features: `PLAN-ai-features.md`). `Provider` protocol (`chat(messages, *, schema, temperature, seed, max_tokens, on_token) -> Completion`); `OllamaProvider` (native `/api/chat`, schema -> `format`) and `OpenAICompatProvider` (`/v1/chat/completions`, schema -> `response_format.json_schema`) over the stdlib streaming client `http.post_stream`; `FakeProvider` (scripted replies, records calls) for tests; `LLMConfig.from_user_config()` + `get_provider()`; errors under `LLMError` (`ConfigError`/`ApiKeyError`, `ProviderUnavailableError`, `ProviderResponseError`). API keys only via an explicitly named env var (`api_key_env`), never an implicit default. Stdlib only: the zipapp must keep working
 - **Cleaner.py**: cleaning-phase controller
 - **Externals.py** (`ExternalFlags`): resolved compiler/linker flags for one or more external libraries
 - **PkgConfig.py** (`PkgConfigSpec`): generates `.pc` pkg-config files
@@ -271,6 +272,7 @@ Tests use **pytest** and live in `tests/`:
 | `tests/test_variables.py` | `$variable` substitution + `[varset:NAME]` mechanism |
 | `tests/test_compiler_lfortran.py` | first-class LFortran compiler support |
 | `tests/test_commit.py` | `Commit` — LLM-assisted commit-message generation |
+| `tests/test_llm.py` | `fobis.llm` — streaming client, providers' payloads, `FakeProvider`, `LLMConfig`/`get_provider`, API-key resolution |
 | `tests/test_userconfig.py` | `UserConfig` — user-level LLM configuration |
 | `tests/test_ecosystem.py` | `Ecosystem` — `fobis ecosystem` (graph, status, pins, CI via mocked `gh`, renderers, CLI) on temporary git repos |
 | `tests/test_release_script.py` | the scaffolded `scripts/release.sh` run for real (local bare origin, git-cliff stub, failures injected via `gpg.program=false` or a bad push URL): each failure stage prints a recovery hint that, followed, really recovers |
