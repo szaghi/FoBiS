@@ -163,7 +163,9 @@ def test_fobis_command_from_a_package_directory():
 
 def test_lint_tool_runs_fobis_for_real():
     server = Server(root=FIXTURE)
-    text, is_error = _call(server, "lint", {"mode": "nv", "select": ["ACC001"], "compiler_feedback": "nvfortran-build.txt"})
+    text, is_error = _call(
+        server, "lint", {"mode": "nv", "select": ["ACC001"], "compiler_feedback": "nvfortran-build.txt"}
+    )
     assert not is_error
     findings = json.loads(text)["findings"]
     assert [(f["rule"], f["line"]) for f in findings] == [("ACC001", 9), ("ACC001", 18)]

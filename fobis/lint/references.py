@@ -57,4 +57,33 @@ REFERENCES: dict[str, tuple[str, ...]] = {
     "ACC008": ("hpc-practice:gpu-practice#gpu-benchmark-timing", "openacc:ch07-procedures-async-fortran#anti-patterns"),
     "ACC011": ("openacc:patterns#collapse-reduction-for-dense-nests",),
     "MPI001": ("mpi:ch02-terms-conventions#anti-patterns",),
+    "FOR002": ("hpc-practice:fortran-practice#array-loop-ordering-column-major",),
+    "FOR003": (
+        "hpc-practice:fortran-practice#array-programming",
+        "fortran-std:ch08-attribute-declarations#array-dummy-bounds-the-rebasing-trap",
+    ),
+    "FOR006": ("hpc-practice:fortran-practice#finalisers-final-for-arrays-of-types",),
+    "FOR007": (
+        "hpc-practice:fortran-practice#kind-specifications-portability",
+        "hpc-practice:fortran-practice#forbidden-kind-violating-patterns",
+    ),
+    "NUM001": (
+        "hpc-practice:gpu-practice#diagnostic-precision-floor-pairwise-kahan-sum-in-measurement",
+        "hpc-practice:gpu-practice#floating-point-reproducibility",
+    ),
+    "OMP004": ("openmp:ch13-work-distribution#anti-patterns", "openmp:ch13-work-distribution#key-concepts"),
+    "OMP005": ("openmp:ch16-synchronization#anti-patterns", "openmp:cheatsheet#synchronization"),
+    "OMP006": ("hpc-practice:gpu-practice#data-movement",),
+    "ACC005": ("hpc-practice:gpu-practice#device-code-pitfalls",),
+    "ACC007": ("hpc-practice:gpu-practice#device-code-pitfalls",),
+    "ACC009": (
+        "hpc-practice:gpu-practice#gpu-mpi-coherence",
+        "openacc:cheatsheet#mpi-openacc",
+        "openacc:patterns#host-data-for-library-device-aware-mpi-interop",
+    ),
+    "ACC010": ("hpc-practice:gpu-practice#device-code-pitfalls",),
+    "MPI002": ("mpi:ch03-point-to-point#anti-patterns", "mpi:cheatsheet#tells-smells"),
+    "MPI004": ("mpi:ch06-collective#anti-patterns", "mpi:ch06-collective#key-concepts"),
+    "MPI005": ("mpi:cheatsheet#avoid-deadlock", "mpi:overview#point-to-point-ch-3-and-deadlock"),
+    "MPI006": ("hpc-practice:gpu-practice#floating-point-reproducibility",),
 }

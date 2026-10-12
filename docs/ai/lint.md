@@ -3,19 +3,22 @@
 `fobis lint` reports bug-prone, obsolescent and non-portable Fortran constructs, and defects specific to
 parallel code: data races in OpenMP regions, missing `reduction` clauses, `collapse` on loops that are not
 tightly nested, OpenACC device calls without `!$acc routine`, saved locals in procedures that run in
-parallel, timers read before `!$acc wait`, MPI requests never completed. Every rule is documented in the
+parallel, timers read before `!$acc wait`, MPI requests never completed or their buffers touched too
+early, collectives inside rank branches. Every rule is documented in the
 [rule reference](/lint-rules/) and in the terminal with `fobis lint --explain <ID>`.
 
 | Family | Covers |
 |--------|--------|
-| `COR` | Correctness: implicit typing, `intent`, implicit `save`, `stat=` handling, accessibility |
-| `OBS` | Obsolescent and deleted features: `common`, labelled DO, computed GO TO, `mpif.h` |
+| `COR` | Correctness: implicit typing, `intent`, implicit `save`, `stat=` handling, accessibility, `select` without default, misleading one-line `if`, `present()` tested and used in one condition, unreachable code |
+| `OBS` | Obsolescent and deleted features: `common`, labelled DO, computed GO TO, `go to` an `end do`, `mpif.h` |
 | `MDN` | Modernisation: `(/ /)` constructors, `.eq.` operators, attribute statements |
 | `PRT` | Portability: numeric kinds (`real(8)`, `real*8`, `1.0_8`), tabs, compiler extensions |
-| `FOR` | Fortran practice for HPC: saved locals in parallel code, `f(x)%c`, `cpu_time` timing |
-| `OMP` | OpenMP: shared scalars written in parallel regions, missing reductions, `collapse`, MPI thread level |
-| `ACC` | OpenACC: missing `!$acc routine`, atomics in device code, `declare create` reductions, async timing |
-| `MPI` | MPI: non-blocking requests never completed |
+| `STY` | Structure (opt-in mostly): modules per file, declaration shapes, procedure complexity and argument count. Formatting is left to formatters |
+| `FOR` | Fortran practice for HPC: saved locals in parallel code, `f(x)%c`, `cpu_time` timing, default-real literals in double-precision code, finalisers that miss arrays, loop order, ghost-cell bounds lost in assumed-shape dummies |
+| `OMP` | OpenMP: shared scalars written in parallel regions, missing reductions, `collapse`, MPI thread level, `critical`/`atomic` in the innermost loop, `nowait` races, per-iteration `target` maps |
+| `ACC` | OpenACC: missing `!$acc routine`, atomics in device code, `declare create` reductions, async timing, strided sections passed in kernels, MPI on device data without updates |
+| `MPI` | MPI: requests never completed, buffers touched while a request is pending, collectives in rank branches, send-before-receive deadlocks, `MPI_ANY_SOURCE` sums |
+| `NUM` | Numerics: global floating-point sums of diagnostics (opt-in) |
 | `PRF` | Performance reported by the compiler (needs `--compiler-feedback`) |
 | `LNT` | The linter's own suppressions and preprocessor assumptions |
 
@@ -71,6 +74,24 @@ Their limits:
   reported). Each shared variable is reported once per region, at its first write. A variable first
   assigned and then updated in the same iteration is reported as a shared temporary (`OMP001`), not as a
   missing reduction.
+
+- Data-flow rules follow the statements of one procedure in source order, without unrolling loops:
+  `OMP004` (reads after `nowait`, up to the next barrier), `MPI002`/`MPI003` (a request is pending from
+  its non-blocking call to the first statement that uses the request again), `ACC009` (updates in the same
+  procedure). `MPI002`/`MPI003` check whole-array buffers only: with `buf(k)` the message covers part of
+  `buf`, and accesses to other parts are legal.
+- `MPI004`/`MPI005` know a branch is rank-dependent when its condition uses a variable that
+  `mpi_comm_rank` fills somewhere in the project (`myrank`, `self%rank`, ...).
+- Kinds are resolved through the integer named constants of the linted sources (`R8P =
+  selected_real_kind(15, 307)`, `rk = real64`, `kind(1.d0)` ...); a kind module outside them (a fetched
+  dependency) is unknown, except the PENF names `R4P`/`R8P`/`R16P`. `FOR007` reports only literals that a
+  single-precision real cannot represent exactly (`0.1`, `1.e-12`, not `0.5`).
+- GPU code is not CPU code: `FOR002` (loop order) skips OpenACC compute regions, OpenMP `target` regions,
+  device routines and CUDA Fortran `device` arrays, where the parallel index leads on purpose.
+
+Several of these rules are **opt-in** because they are heuristics or matter only in some codes
+(`FOR002`, `FOR003`, `NUM001`, `OMP004`, `OMP006`, `ACC007`, `ACC009`, `ACC010`, `MPI005`, `MPI006`): run
+them with `--select` when reviewing parallel code.
 
 When a finding is wrong for a reason the linter cannot see, suppress it with the reason (below): the
 reason documents why the code is safe.

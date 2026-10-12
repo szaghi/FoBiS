@@ -367,6 +367,391 @@ CASES += [
 ]
 
 
+# ── wave A3: G4 (correctness, style, obsolescent) and medium-confidence HPC rules ──
+_KINDS = "module k\ninteger, parameter :: r8p = selected_real_kind(15, 307)\ninteger, parameter :: r4p = kind(1.0)\nend module\n"
+_WS = "subroutine s(a, b, n)\ninteger, intent(in) :: n\nreal :: a(n), b(n)\n!$omp parallel\n!$omp do\ndo i = 1, n\na(i) = i\nend do\n"
+_RANK = "subroutine init()\ncall mpi_comm_rank(comm, myrank, ierr)\nend subroutine\n"
+CASES += [
+    # COR022 missing-default-pointer-initialisation
+    (
+        "COR022",
+        "module m\ntype :: node\ntype(node), pointer :: next, prev => null()\nreal :: x\ncontains\n"
+        "procedure, pointer :: p\nend type\nend module\n",
+        [3],
+    ),
+    (
+        "COR022",
+        "module m\ntype :: node\ntype(node), pointer :: next => null()\nend type\nreal, pointer :: q\nend module\n",
+        [],
+    ),
+    # COR062 stat-without-errmsg (opt-in)
+    ("COR062", "subroutine s(n)\nallocate(a(n), stat=ierr)\nif (ierr /= 0) stop\nend subroutine\n", [2]),
+    ("COR062", "subroutine s(n)\nallocate(a(n), stat=ierr, errmsg=msg)\nallocate(b(n))\nend subroutine\n", []),
+    # COR070 missing-default-case
+    (
+        "COR070",
+        "subroutine s(k)\nselect case (k)\ncase (1)\nselect case (k)\ncase (2)\ncase default\nend select\nend select\n"
+        "end subroutine\n",
+        [2],
+    ),
+    ("COR070", "subroutine s(k)\nselect case (k)\ncase (1)\ncase default\nend select\nend subroutine\n", []),
+    ("COR070", "subroutine s(q)\nselect type (q)\ntype is (real)\nend select\nend subroutine\n", []),
+    # COR071 missing-class-default (opt-in)
+    ("COR071", "subroutine s(q)\nselect type (q)\ntype is (real)\nend select\nend subroutine\n", [2]),
+    ("COR071", "subroutine s(q)\nselect type (q)\ntype is (real)\nclass default\nend select\nend subroutine\n", []),
+    # COR072 missing-rank-default (opt-in)
+    ("COR072", "subroutine s(a)\nselect rank (a)\nrank (1)\nend select\nend subroutine\n", [2]),
+    ("COR072", "subroutine s(a)\nselect rank (a)\nrank (1)\nrank default\nend select\nend subroutine\n", []),
+    # COR080 magic-number-in-array-size (opt-in)
+    ("COR080", "subroutine s()\nreal :: q(5, 0:100)\nend subroutine\n", [2]),
+    ("COR080", "subroutine s(n)\nreal :: q(nvar, 0:n), w(1), x(:)\nend subroutine\n", []),
+    # COR081 magic-io-unit (opt-in)
+    (
+        "COR081",
+        "subroutine s()\nopen(10, file='a')\nwrite(unit=6, fmt=*) x\nif (ok) read(5, *) y\nend subroutine\n",
+        [2, 3, 4],
+    ),
+    ("COR081", "subroutine s()\nopen(newunit=u, file='a')\nwrite(*, *) x\nwrite(u, *) y\nend subroutine\n", []),
+    # COR082 missing-action-specifier (opt-in)
+    ("COR082", "subroutine s()\nopen(newunit=u, file='a')\nend subroutine\n", [2]),
+    ("COR082", "subroutine s()\nopen(newunit=u, file='a', action='read')\nend subroutine\n", []),
+    # COR090 missing-exit-or-cycle-label
+    ("COR090", "subroutine s()\nouter: do i = 1, n\nif (i > 2) exit\nend do outer\nend subroutine\n", [3]),
+    (
+        "COR090",
+        "subroutine s()\nouter: do i = 1, n\ndo j = 1, n\nif (j > 2) exit\nend do\nif (i > 2) exit outer\nend do outer\n"
+        "end subroutine\n",
+        [],
+    ),
+    # COR091 exit-or-cycle-in-unlabelled-loop (opt-in)
+    ("COR091", "subroutine s()\ndo i = 1, n\nif (i > 2) cycle\nend do\nend subroutine\n", [3]),
+    ("COR091", "subroutine s()\nl: do i = 1, n\nif (i > 2) cycle l\nend do l\nend subroutine\n", []),
+    # COR092 missing-end-label
+    (
+        "COR092",
+        "subroutine s()\nouter: do i = 1, n\nend do\nchk: if (x > 0) then\nend if\nsel: select case (k)\nend select\n"
+        "end subroutine\n",
+        [3, 5, 7],
+    ),
+    (
+        "COR092",
+        "subroutine s()\nouter: do i = 1, n\nif (x > 0) then\nend if\nend do outer\nb: block\nend block b\n"
+        "w: where (a > 0) a = 1\nend subroutine\n",
+        [],
+    ),
+    # COR100 misleading-inline-if-semicolon
+    ("COR100", "subroutine s()\nif (e /= 0) print *, 'x'; stop\nend subroutine\n", [2]),
+    ("COR100", "subroutine s()\nx = 1; y = 2\nif (e /= 0) then; stop; end if\nend subroutine\n", []),
+    # COR101 misleading-inline-if-continuation
+    ("COR101", "subroutine s()\nif (verbose) &\n  call report(x)\nend subroutine\n", [2]),
+    ("COR101", "subroutine s()\nif (verbose) call report(x, &\n  y)\nif (a .and. &\n  b) x = 1\nend subroutine\n", []),
+    # COR110 nonportable-shortcircuit-inquiry
+    (
+        "COR110",
+        "subroutine s(t, p)\nif (present(t) .and. t > 0) x = t\n"
+        "do while (associated(p) .and. p%v > 0)\nend do\nend subroutine\n",
+        [2, 3],
+    ),
+    (
+        "COR110",
+        "subroutine s(t, u)\nif (present(t) .and. present(u)) x = t\nif (present(t)) then\nend if\n"
+        "if (allocated(a) .and. associated(p, q)) x = 1\nend subroutine\n",
+        [],
+    ),
+    # COR120 unreachable-statement
+    ("COR120", "subroutine s(x)\nx = x + 1\nreturn\nprint *, x\nend subroutine\n", [4]),
+    (
+        "COR120",
+        "subroutine s(x)\nif (x > 0) return\nprint *, x\ndo i = 1, n\nif (i > 2) then\ncycle\nend if\nend do\n"
+        "go to 10\n10 continue\nselect case (i)\ncase (1)\nstop\ncase default\nend select\nstop = 1\nx = 2\n"
+        "end subroutine\n",
+        [],
+    ),
+    # OBS014 goto-end-do
+    ("OBS014", "subroutine s()\ndo i = 1, n\nif (b(i)) go to 10\na(i) = 0\n10 end do\nend subroutine\n", [3]),
+    ("OBS014", "subroutine s()\ndo i = 1, n\nif (b(i)) go to 20\n10 end do\n20 continue\nend subroutine\n", []),
+    # STY001 multiple-modules (opt-in)
+    ("STY001", "module a\nend module\nmodule b\nend module\n", [3]),
+    ("STY001", "module a\nend module\n", []),
+    # STY002 program-with-module (opt-in)
+    ("STY002", "module a\nend module\nprogram p\nend program\n", [3]),
+    ("STY002", "program p\ncontains\nsubroutine s()\nend subroutine\nend program\n", []),
+    # STY003 function-missing-result (opt-in)
+    ("STY003", "module m\ncontains\nfunction f(x)\nend function\nend module\n", [3]),
+    ("STY003", "module m\ncontains\nfunction f(x) result(r)\nend function\nend module\n", []),
+    # STY010 inconsistent-array-declaration
+    ("STY010", "subroutine s()\nreal, dimension(5) :: x, y(2)\nend subroutine\n", [2]),
+    ("STY010", "subroutine s()\nreal, dimension(5) :: x, y\nreal :: z(2)\nend subroutine\n", []),
+    # STY011 mixed-scalar-array-declaration (opt-in)
+    ("STY011", "subroutine s()\nreal :: x, y(3)\nend subroutine\n", [2]),
+    ("STY011", "subroutine s()\nreal :: x, y\nreal :: a(3), b(2)\nend subroutine\n", []),
+    # STY020 too-complex (opt-in)
+    ("STY020", "subroutine s()\n" + "if (x > 0) y = 1\n" * 10 + "end subroutine\n", [1]),
+    ("STY020", "subroutine s()\n" + "if (x > 0) y = 1\n" * 9 + "end subroutine\n", []),
+    # STY021 too-many-arguments (opt-in)
+    ("STY021", "subroutine s(a, b, c, d, e, f, g, h, i)\nend subroutine\n", [1]),
+    ("STY021", "subroutine s(a, b, c, d, e, f, g, h)\nend subroutine\n", []),
+    # FOR002 loop-order-not-column-major (opt-in)
+    (
+        "FOR002",
+        "subroutine s(a, b, n)\nreal :: a(n, n), b(n, n)\ndo i = 1, n\ndo j = 1, n\na(i, j) = b(i, j) + f(j, i)\n"
+        "end do\nend do\nend subroutine\n",
+        [4],
+    ),
+    (
+        "FOR002",
+        "subroutine s(a, b, n)\nreal :: a(n, n), b(n, n)\ndo j = 1, n\ndo i = 1, n\na(i, j) = b(i, j)\nend do\nend do\n"
+        "do i = 1, n\ndo j = 1, n\na(i, j) = b(j, i)\nend do\nend do\nend subroutine\n",
+        [],
+    ),
+    (
+        "FOR002",
+        "subroutine s(q, nb, nv)\nreal :: q(nb, nv)\n!$acc parallel loop\ndo b = 1, nb\ndo v = 1, nv\nq(b, v) = 0\n"
+        "end do\nend do\nend subroutine\n",
+        [],
+    ),
+    # FOR003 lower-bounds-lost-in-assumed-shape (opt-in)
+    (
+        "FOR003",
+        "module m\ncontains\nsubroutine smooth(u, v)\nreal, intent(inout) :: u(:), v(0:)\nu(1) = v(0)\nend subroutine\n"
+        "subroutine drv(ng, ni)\nreal :: q(1-ng:ni+ng), w(ni)\nreal, allocatable :: z(:)\nallocate(z(0:ni))\n"
+        "call smooth(q, q)\ncall smooth(w, w)\ncall smooth(v=w, u=z)\nend subroutine\nend module\n",
+        [11, 13],
+    ),
+    (
+        "FOR003",
+        "module m\ncontains\nsubroutine relay(u)\nreal, intent(inout) :: u(:)\ncall work(u)\nend subroutine\n"
+        "subroutine drv(ng, ni)\nreal :: q(1-ng:ni+ng)\ncall relay(q)\nend subroutine\nend module\n",
+        [],
+    ),
+    (
+        "FOR003",
+        "module m\ncontains\nsubroutine smooth(u)\nreal, intent(inout), allocatable :: u(:)\nend subroutine\n"
+        "subroutine drv(ng, ni)\nreal, allocatable :: q(:)\nallocate(q(1-ng:ni))\ncall smooth(q)\ncall other(q)\n"
+        "end subroutine\nend module\n",
+        [],
+    ),
+    # FOR006 array-of-finalizable-type-not-finalised
+    (
+        "FOR006",
+        "module m\ntype :: field\ncontains\nfinal :: free\nend type\ncontains\nsubroutine free(self)\n"
+        "type(field), intent(inout) :: self\nend subroutine\nsubroutine use_it()\ntype(field), allocatable :: f(:)\n"
+        "type(field) :: g\nend subroutine\nend module\n",
+        [11],
+    ),
+    (
+        "FOR006",
+        "module m\ntype :: field\ncontains\nfinal :: free\nend type\ncontains\nimpure elemental subroutine free(self)\n"
+        "type(field), intent(inout) :: self\nend subroutine\nsubroutine use_it()\ntype(field), allocatable :: f(:)\n"
+        "end subroutine\nend module\n",
+        [],
+    ),
+    # FOR007 default-real-literal-precision-loss
+    (
+        "FOR007",
+        _KINDS + "subroutine s()\nuse k\nreal(r8p) :: dt, c = 0.1\ndouble precision :: e\ndt = 0.1 * cfl\ne = 1.0e-3\n"
+        "end subroutine\n",
+        [7, 9, 10],
+    ),
+    (
+        "FOR007",
+        _KINDS
+        + "subroutine s()\nuse k\nreal(r8p) :: dt, h = 0.5\nreal(r4p) :: x\nreal :: y\ndt = 0.1_r8p + 2.0 + 1.0d-1\n"
+        "x = 0.1\ny = 0.1\nz = 0.1\nend subroutine\n",
+        [],
+    ),
+    # NUM001 uncompensated-global-sum (opt-in)
+    (
+        "NUM001",
+        "subroutine s()\ncall mpi_allreduce(res_loc, residual, 1, mpi_double_precision, mpi_sum, comm, ierr)\nend subroutine\n",
+        [2],
+    ),
+    (
+        "NUM001",
+        "subroutine s()\ncall mpi_allreduce(n_loc, n_tot, 1, mpi_integer, mpi_sum, comm, ierr)\n"
+        "call mpi_allreduce(res_loc, residual, 1, mpi_double_precision, mpi_max, comm, ierr)\nend subroutine\n",
+        [],
+    ),
+    # OMP004 nowait-dependent-read (opt-in)
+    (
+        "OMP004",
+        _WS + "!$omp end do nowait\n!$omp do\ndo i = 1, n\nb(i) = a(n - i + 1)\nend do\n!$omp end do\n"
+        "!$omp end parallel\nend subroutine\n",
+        [12],
+    ),
+    (
+        "OMP004",
+        _WS + "!$omp end do nowait\n!$omp barrier\n!$omp do\ndo i = 1, n\nb(i) = a(i)\nend do\n!$omp end parallel\n"
+        "end subroutine\n",
+        [],
+    ),
+    (
+        "OMP004",
+        "subroutine s(a, b, n)\n!$omp parallel\n!$omp do schedule(static)\ndo i = 1, n\na(i) = i\nend do\n"
+        "!$omp end do nowait\n!$omp do schedule(static)\ndo i = 1, n\nb(i) = a(i)\nend do\n!$omp end parallel\n"
+        "end subroutine\n",
+        [],
+    ),
+    # OMP005 serialisation-in-innermost-loop
+    (
+        "OMP005",
+        "subroutine s()\n!$omp parallel do\ndo i = 1, n\n!$omp critical\nt = t + w(i)\n!$omp end critical\nend do\n"
+        "end subroutine\n",
+        [4],
+    ),
+    (
+        "OMP005",
+        "subroutine s()\n!$omp parallel\n!$omp critical\nt = t + 1\n!$omp end critical\n!$omp end parallel\n"
+        "do i = 1, n\n!$omp atomic\nt = t + 1\nend do\nend subroutine\n",
+        [],
+    ),
+    # OMP006 target-map-in-loop (opt-in)
+    (
+        "OMP006",
+        "subroutine s(u, f, n)\ndo it = 1, 10\n!$omp target teams distribute parallel do map(tofrom: u) map(to: f)\n"
+        "do i = 1, n\nu(i) = u(i) + f(i)\nend do\nend do\nend subroutine\n",
+        [3],
+    ),
+    (
+        "OMP006",
+        "subroutine s(u, f, n)\n!$omp target data map(tofrom: u) map(to: f)\ndo it = 1, 10\n"
+        "!$omp target teams distribute parallel do map(tofrom: u)\ndo i = 1, n\nu(i) = u(i) + f(i)\nend do\nend do\n"
+        "!$omp end target data\n!$omp target map(tofrom: u)\n!$omp end target\nend subroutine\n",
+        [],
+    ),
+    # ACC005 strided-section-argument-in-kernel
+    (
+        "ACC005",
+        "subroutine s(d, v, nb)\nreal :: d(nb, 3), v(nb)\n!$acc parallel loop\ndo b = 1, nb\n"
+        "call metrics(dxyz=d(b, 1:3), vol=v(b))\ncall other(d(1:nb:2, 1))\nend do\nend subroutine\n",
+        [5, 6],
+    ),
+    (
+        "ACC005",
+        "subroutine s(d, v, nb)\nreal :: d(nb, 3), v(nb), w(3, 4)\n!$acc parallel loop private(w)\ndo b = 1, nb\n"
+        "call metrics(d(:, 1), v(b))\ncall other(w(1, 1:3))\nend do\ncall metrics(d(b, 1:3), v)\nend subroutine\n",
+        [],
+    ),
+    # ACC007 device-routine-assumed-shape-lower-bound
+    (
+        "ACC007",
+        "subroutine st(q, r, i)\n!$acc routine seq\nreal, intent(in) :: q(1-ng:), r(:, 0:)\ninteger, value :: i\nend subroutine\n",
+        [3, 3],
+    ),
+    (
+        "ACC007",
+        "subroutine st(q, lo, hi)\n!$acc routine seq\nreal, intent(in) :: q(lo:hi)\nend subroutine\n"
+        "subroutine host(q)\nreal, intent(in) :: q(0:)\nend subroutine\n",
+        [],
+    ),
+    # ACC009 mpi-on-device-data-without-update (opt-in)
+    (
+        "ACC009",
+        "subroutine s(halo, hin, n)\n!$acc data copy(halo, hin)\n"
+        "call mpi_sendrecv(halo, n, mpi_real8, 1, 0, hin, n, mpi_real8, 0, 0, comm, st, ierr)\n!$acc end data\n"
+        "end subroutine\n",
+        [3, 3],
+    ),
+    (
+        "ACC009",
+        "subroutine s(halo, hin, n)\n!$acc data copy(halo, hin)\n!$acc update self(halo)\n"
+        "call mpi_sendrecv(halo, n, mpi_real8, 1, 0, hin, n, mpi_real8, 0, 0, comm, st, ierr)\n!$acc update device(hin)\n"
+        "!$acc host_data use_device(halo)\ncall mpi_send(halo, n, mpi_real8, 1, 0, comm, ierr)\n!$acc end host_data\n"
+        "!$acc end data\ncall mpi_send(other, n, mpi_real8, 1, 0, comm, ierr)\nend subroutine\n",
+        [],
+    ),
+    # ACC010 private-array-in-contained-kernel (opt-in)
+    (
+        "ACC010",
+        "subroutine outer()\ncall fill()\ncontains\nsubroutine fill()\nreal :: buf(5), t\n"
+        "!$acc parallel loop private(buf, t)\ndo i = 1, n\nend do\nend subroutine\nend subroutine\n",
+        [6],
+    ),
+    (
+        "ACC010",
+        "module m\ncontains\nsubroutine fill()\nreal :: buf(5)\n!$acc parallel loop private(buf)\ndo i = 1, n\nend do\n"
+        "end subroutine\nend module\n",
+        [],
+    ),
+    # MPI002 isend-buffer-modified-before-completion
+    (
+        "MPI002",
+        "subroutine s(n)\ncall mpi_isend(halo, n, mpi_real8, 1, 0, comm, req, ierr)\nhalo = 0\n"
+        "call mpi_wait(req, mpi_status_ignore, ierr)\nend subroutine\n",
+        [3],
+    ),
+    (
+        "MPI002",
+        "subroutine s(n)\ncall mpi_isend(halo, n, mpi_real8, 1, 0, comm, req(1), ierr)\nx = halo(1)\n"
+        "call mpi_waitall(1, req, mpi_statuses_ignore, ierr)\nhalo = 0\nend subroutine\n",
+        [],
+    ),
+    # MPI003 irecv-buffer-used-before-completion
+    (
+        "MPI003",
+        "subroutine s(n)\ncall mpi_irecv(halo, n, mpi_real8, 1, 0, comm, req, ierr)\nq(0) = halo(1)\n"
+        "call mpi_wait(req, mpi_status_ignore, ierr)\nend subroutine\n",
+        [3],
+    ),
+    (
+        "MPI003",
+        "subroutine s(n)\ncall mpi_irecv(halo, n, mpi_real8, 1, 0, comm, req, ierr)\n"
+        "call mpi_isend(sb, n, mpi_real8, 1, 0, comm, req2, ierr)\ncall mpi_wait(req, mpi_status_ignore, ierr)\n"
+        "q(0) = halo(1)\nend subroutine\n",
+        [],
+    ),
+    (
+        "MPI003",
+        "subroutine s(n)\ncall mpi_irecv(rbuf(k), n, mpi_real8, 1, 0, comm, req, ierr)\nrbuf(1:n) = sbuf(1:n)\n"
+        "call mpi_wait(req, mpi_status_ignore, ierr)\nend subroutine\n",
+        [],
+    ),
+    # MPI004 collective-in-rank-branch
+    (
+        "MPI004",
+        _RANK
+        + "subroutine s()\nif (myrank == 0) then\nread(u, *) dt\ncall mpi_bcast(dt, 1, mpi_real8, 0, comm, ierr)\n"
+        "else\ncall mpi_barrier(comm, ierr)\nend if\nif (myrank > 0) call mpi_barrier(comm, ierr)\nend subroutine\n",
+        [7, 9, 11],
+    ),
+    (
+        "MPI004",
+        _RANK + "subroutine s()\nif (myrank == 0) then\nread(u, *) dt\nend if\nif (nproc > 1) then\n"
+        "call mpi_bcast(dt, 1, mpi_real8, 0, comm, ierr)\nend if\nend subroutine\n",
+        [],
+    ),
+    # MPI005 blocking-send-before-receive (opt-in)
+    (
+        "MPI005",
+        "subroutine s()\ncall mpi_send(sb, n, mpi_real8, right, 0, comm, ierr)\n"
+        "call mpi_recv(rb, n, mpi_real8, left, 0, comm, st, ierr)\nend subroutine\n",
+        [2],
+    ),
+    (
+        "MPI005",
+        _RANK + "subroutine s()\nif (mod(myrank, 2) == 0) then\ncall mpi_send(sb, n, mpi_real8, 1, 0, comm, ierr)\n"
+        "call mpi_recv(rb, n, mpi_real8, 1, 0, comm, st, ierr)\nelse\n"
+        "call mpi_recv(rb, n, mpi_real8, 0, 0, comm, st, ierr)\ncall mpi_send(sb, n, mpi_real8, 0, 0, comm, ierr)\n"
+        "end if\nend subroutine\n",
+        [],
+    ),
+    # MPI006 any-source-order-dependent-sum (opt-in)
+    (
+        "MPI006",
+        "subroutine s()\nreal(8) :: total, part\ndo k = 1, np\n"
+        "call mpi_recv(part, 1, mpi_real8, mpi_any_source, 0, comm, st, ierr)\ntotal = total + part\nend do\nend subroutine\n",
+        [4],
+    ),
+    (
+        "MPI006",
+        "subroutine s()\nreal(8) :: total, part\ninteger :: cnt\ndo k = 1, np\n"
+        "call mpi_recv(part, 1, mpi_real8, k, 0, comm, st, ierr)\ntotal = total + part\n"
+        "call mpi_recv(ip, 1, mpi_integer, mpi_any_source, 0, comm, st, ierr)\ncnt = cnt + ip\nend do\nend subroutine\n",
+        [],
+    ),
+]
+
+
 @pytest.mark.parametrize(("rule_id", "code", "expected"), CASES, ids=[f"{c[0]}-{i}" for i, c in enumerate(CASES)])
 def test_rule_cases(rule_id, code, expected):
     assert _lines(rule_id, code) == expected

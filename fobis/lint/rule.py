@@ -37,11 +37,13 @@ FAMILIES = {
     "OBS": "Obsolescent",
     "MDN": "Modernisation",
     "PRT": "Portability",
+    "STY": "Style",
     "FOR": "Fortran practice",
     "OMP": "OpenMP",
     "ACC": "OpenACC",
     "MPI": "MPI",
     "PRF": "Performance",
+    "NUM": "Numerics",
     "LNT": "Linter",
 }
 

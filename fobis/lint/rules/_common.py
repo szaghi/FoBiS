@@ -21,9 +21,11 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterator
+from dataclasses import dataclass
 
-from ...analysis import Statement, Unit, mask_strings
+from ...analysis import Decl, Statement, Unit, mask_strings
 from ...analysis.lexer import _scan
+from ...analysis.regions import is_do, loop_end
 from ..rule import Edit, LintContext
 
 
@@ -81,3 +83,54 @@ def uses_parallelism(ctx: LintContext) -> bool:
     if any(name.lower() in ("mpif.h", "omp_lib.h") for _, name in ctx.source.includes):
         return True
     return any(use.module in ("mpi", "mpi_f08", "omp_lib", "openacc") for unit in ctx.units.walk() for use in unit.uses)
+
+
+_DO_HEAD_RE = re.compile(r"^(?:([a-z_]\w*)\s*:\s*)?do\b(?!\s*=)\s*(?:\d+\s*,?\s*)?(?:([a-z_]\w*)\s*=)?")
+
+
+@dataclass(frozen=True)
+class Loop:
+    """A DO loop of a unit: statement indices of its header and closing statement, construct name, DO variable."""
+
+    start: int
+    end: int
+    name: str | None
+    index: str | None
+    concurrent: bool
+
+
+def do_loops(statements: list[Statement]) -> list[Loop]:
+    """The DO loops among *statements* (a unit's statement list), in source order."""
+    loops = []
+    for idx, stmt in enumerate(statements):
+        if not is_do(stmt):
+            continue
+        masked = stmt.masked.strip()
+        match = _DO_HEAD_RE.match(masked)
+        concurrent = bool(re.match(r"^(?:\w+\s*:\s*)?do\s+concurrent\b", masked))
+        index = None if concurrent or match is None else match.group(2)
+        loops.append(Loop(idx, loop_end(statements, idx), match.group(1) if match else None, index, concurrent))
+    return loops
+
+
+def innermost_loop(loops: list[Loop], index: int) -> Loop | None:
+    """The innermost loop whose body contains the statement at *index*."""
+    inside = [loop for loop in loops if loop.start < index <= loop.end]
+    return max(inside, key=lambda loop: loop.start) if inside else None
+
+
+def lookup(unit: Unit | None, name: str) -> tuple[Unit, Decl] | None:
+    """The declaration of *name* visible from *unit* (own scope first, then hosts)."""
+    while unit is not None:
+        if name in unit.decls:
+            return unit, unit.decls[name]
+        unit = unit.parent
+    return None
+
+
+def is_array(unit: Unit, name: str, module_arrays: set[str] = frozenset()) -> bool:
+    """*name* is an array in the scope of *unit*: declared with a shape locally or by a host, or a module array."""
+    found = lookup(unit, name)
+    if found is not None:
+        return bool(found[1].dims) or "dimension" in found[1].attrs
+    return name in module_arrays

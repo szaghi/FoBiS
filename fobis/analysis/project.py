@@ -31,10 +31,23 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 
 from .regions import call_name, parse_directive, regions
-from .units import FileUnits, Unit
+from .units import FileUnits, Unit, balanced_end, split_top
 
 _MPI_INIT_RE = re.compile(r"\bmpi_init\s*\(")
 _MPI_INIT_THREAD_RE = re.compile(r"\bmpi_init_thread\s*\(")
+_COMM_RANK_RE = re.compile(r"^call\s+mpi_comm_rank\s*\(")
+_TYPE_DEF_RE = re.compile(r"^type\s*(?:,[^:]*)?::\s*(\w+)|^type\s+(?!is\b)(\w+)\s*(?:\(.*\))?\s*$")
+_END_TYPE_RE = re.compile(r"^end\s*type\b")
+_FINAL_RE = re.compile(r"^final\s*(?:::)?\s*(.*)$")
+_KIND_NAMES = {
+    "real32": 6,
+    "c_float": 6,
+    "real64": 15,
+    "c_double": 15,
+    "real128": 33,
+    "c_long_double": 18,
+}
+_KIND_LITERAL_PRECISION = {"4": 6, "8": 15, "10": 18, "16": 33}
 
 
 @dataclass(frozen=True)
@@ -64,6 +77,17 @@ class ProjectIndex:
         Procedures called (``call``) inside an OpenMP parallel or OpenACC compute region somewhere.
     mpi_init, mpi_init_thread : bool
         ``mpi_init`` / ``mpi_init_thread`` is called somewhere.
+    kind_parameters : dict
+        Integer named constant to its initialiser text (``r8p`` -> ``selected_real_kind(15,307)``).
+    module_arrays : set of str
+        Names of the arrays declared in modules (visible to their users).
+    finalisers : dict
+        Derived type name to the names of its final procedures.
+    enter_data : set of str
+        Variables listed in ``!$acc enter data`` / ``!$omp target enter data`` anywhere (device-resident
+        beyond one unit).
+    rank_variables : set of str
+        Variables receiving the rank of ``mpi_comm_rank`` somewhere.
     """
 
     procedures: dict[str, list[tuple[Unit, str]]] = field(default_factory=dict)
@@ -72,23 +96,88 @@ class ProjectIndex:
     parallel_callees: set[str] = field(default_factory=set)
     mpi_init: bool = False
     mpi_init_thread: bool = False
+    kind_parameters: dict[str, str] = field(default_factory=dict)
+    module_arrays: set[str] = field(default_factory=set)
+    finalisers: dict[str, list[str]] = field(default_factory=dict)
+    enter_data: set[str] = field(default_factory=set)
+    rank_variables: set[str] = field(default_factory=set)
 
     def functions(self) -> set[str]:
         """Names of the functions defined in the project."""
         return {name for name, defs in self.procedures.items() if any(u.kind == "function" for u, _ in defs)}
 
+    def procedure(self, name: str) -> Unit | None:
+        """The unit defining procedure *name* when exactly one does, else None."""
+        defs = self.procedures.get(name, [])
+        return defs[0][0] if len(defs) == 1 else None
+
+    def real_precision(self, kind: str, local: dict[str, str] | None = None, depth: int = 0) -> int | None:
+        """Decimal precision of the real kind *kind* (a literal, an intrinsic-module name or a named constant).
+
+        Named constants are resolved through *local* (the unit's own constants) and then the project's;
+        None when the kind cannot be resolved.
+        """
+        kind = kind.strip().lower()
+        if kind in _KIND_LITERAL_PRECISION:
+            return _KIND_LITERAL_PRECISION[kind]
+        if kind in _KIND_NAMES:
+            return _KIND_NAMES[kind]
+        if depth > 8 or not re.fullmatch(r"[a-z_]\w*", kind):
+            return None
+        init = (local or {}).get(kind) or self.kind_parameters.get(kind)
+        if init is None:
+            # PENF naming convention (R4P/R8P/R16P = bytes), for kind modules outside the linted sources
+            penf = re.fullmatch(r"r(4|8|10|16)p", kind)
+            return _KIND_LITERAL_PRECISION[penf.group(1)] if penf else None
+        init = init.replace(" ", "")
+        if init.startswith("selected_real_kind("):
+            args = split_top(init[len("selected_real_kind(") : balanced_end(init, len("selected_real_kind")) - 1])
+            precision = args[0].split("=", 1)[1] if args and args[0].startswith("p=") else (args[0] if args else "")
+            return int(precision) if precision.isdigit() else None
+        literal = re.fullmatch(r"kind\((?:\d+\.\d*|\.\d+)([de][-+]?\d+)?(?:_(\w+))?\)", init)
+        if literal:
+            if literal.group(2):
+                return self.real_precision(literal.group(2), local, depth + 1)
+            return 15 if (literal.group(1) or "").startswith("d") else 6
+        return self.real_precision(init, local, depth + 1)
+
 
 def _index_unit(index: ProjectIndex, unit: Unit, path: str) -> None:
     if unit.is_procedure and unit.name and not unit.is_interface_body:
         index.procedures.setdefault(unit.name, []).append((unit, path))
+    for decl in unit.decls.values():
+        if "parameter" in decl.attrs and decl.init is not None and decl.type_spec.startswith("integer"):
+            index.kind_parameters[decl.name] = decl.init
+        if unit.kind == "module" and (decl.dims or "dimension" in decl.attrs):
+            index.module_arrays.add(decl.name)
+    current_type = None
     for stmt in unit.statements:
         if stmt.sentinel is None:
-            if _MPI_INIT_THREAD_RE.search(stmt.masked):
+            masked = stmt.masked.strip()
+            if _MPI_INIT_THREAD_RE.search(masked):
                 index.mpi_init_thread = True
-            elif _MPI_INIT_RE.search(stmt.masked):
+            elif _MPI_INIT_RE.search(masked):
                 index.mpi_init = True
+            elif _COMM_RANK_RE.match(masked):
+                args = split_top(masked[masked.index("(") + 1 : balanced_end(masked, masked.index("(")) - 1])
+                rank = re.sub(r"^rank\s*=\s*", "", args[1]) if len(args) > 1 else ""
+                last = re.search(r"([a-z_]\w*)\s*$", rank)  # the component for "self%rank"
+                if last:
+                    index.rank_variables.add(last.group(1))
+            typedef = _TYPE_DEF_RE.match(masked)
+            if typedef:
+                current_type = typedef.group(1) or typedef.group(2)
+            elif _END_TYPE_RE.match(masked):
+                current_type = None
+            elif current_type:
+                final = _FINAL_RE.match(masked)
+                if final:
+                    names = [n.strip() for n in final.group(1).split(",") if n.strip()]
+                    index.finalisers.setdefault(current_type, []).extend(names)
             continue
         directive = parse_directive(stmt)
+        if directive.construct in ("enter data", "target enter data"):
+            index.enter_data.update(directive.variables("copyin", "create", "map", "attach"))
         if directive.construct == "routine" or (stmt.sentinel == "omp" and directive.construct == "declare target"):
             named = re.match(r"^(?:routine|declare\s+target)\s*\(\s*(\w+)\s*\)", stmt.masked.strip())
             if named:

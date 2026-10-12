@@ -124,12 +124,16 @@ def index_page() -> str:
         "",
         "## Relation to Fortitude",
         "",
-        "The generic rules (`COR`, `OBS`, `MDN`, `PRT`) are a native reimplementation, in FoBiS's own words and",
-        "on its own source analysis, of rules catalogued by [Fortitude](https://fortitude.readthedocs.io/)",
+        "The generic rules (`COR`, `OBS`, `MDN`, `PRT`, `STY`) are a native reimplementation, in FoBiS's own",
+        "words and on its own source analysis, of rules catalogued by [Fortitude](https://fortitude.readthedocs.io/)",
         "(PlasmaFAIR, MIT licence), whose rule set served as the reference. The *Fortitude* column gives the",
-        "matching Fortitude code, for users who know it. FoBiS does not depend on Fortitude. The `FOR`, `OMP`,",
-        "`ACC` and `MPI` rules are FoBiS's own, distilled from the OpenMP, OpenACC and MPI specifications and",
-        "from HPC practice.",
+        "matching Fortitude code, for users who know it. FoBiS does not depend on Fortitude. The `FOR`, `NUM`,",
+        "`OMP`, `ACC`, `MPI` and `PRF` rules are FoBiS's own, distilled from the OpenMP, OpenACC and MPI",
+        "specifications and from HPC practice.",
+        "",
+        "Not reimplemented: Fortitude's formatting rules (line length, whitespace, keyword case, quotes:",
+        "formatters own them) and `S263` (a project-configured preference between `dimension(n)` and `x(n)`).",
+        "The thresholds of `STY020` and `STY021` are fixed (complexity 10, 8 arguments).",
     ]
     return "\n".join(lines) + "\n"
 

@@ -33,7 +33,7 @@ from ...analysis import Decl, Statement, Unit, split_top
 from ...analysis.regions import Region, assignment, call_name, is_do, loop_end, parse_directive, regions, strip_if
 from ...analysis.units import balanced_end
 from ..rule import Hit, LintContext, rule
-from ._common import declared_in_scope
+from ._common import declared_in_scope, do_loops, innermost_loop, is_array
 
 _PRIVATE_CLAUSES = ("private", "firstprivate", "lastprivate", "reduction", "linear")
 _SERIALISING = frozenset(("critical", "atomic", "single", "master", "masked", "ordered", "section", "sections"))
@@ -637,3 +637,509 @@ def check_request_completed(ctx: LintContext) -> Iterator[Hit]:
             later = unit.statements[idx + 1 :]
             if not any(used.search(s.masked) and (call_name(s) or "") not in _REQUEST_POSITION for s in later):
                 yield ctx.hit(stmt, f"request '{base_name}' of {name} is never completed (mpi_wait/mpi_test)")
+
+
+_WORKSHARING = frozenset(("do", "do simd", "sections", "single", "workshare"))
+_TARGET_DATA = frozenset(("target data", "target enter data", "target exit data", "target update"))
+
+
+def _nowait(statements: list[Statement], region: Region) -> bool:
+    """The worksharing *region* ends without a barrier (``nowait`` on the directive or on its end directive)."""
+    if "nowait" in region.directive.clauses:
+        return True
+    after = region.last + 1
+    if after < len(statements) and statements[after].sentinel == "omp":
+        end = parse_directive(statements[after])
+        return end.is_end and "nowait" in end.clauses
+    return False
+
+
+def _reads(stmt: Statement, name: str) -> bool:
+    """*stmt* reads *name* (a write as assignment target alone is not a read)."""
+    pattern = re.compile(rf"(?<![%\w]){name}\b")
+    target = assignment(stmt)
+    if target is None:
+        return bool(pattern.search(strip_if(stmt.masked)))
+    full = stmt.masked.strip()
+    masked = strip_if(full)
+    condition = full[: len(full) - len(masked)]  # the condition of a one-line if, '' otherwise
+    subscripts = masked[len(target[0]) : len(masked) - len(target[3])].rsplit("=", 1)[0]
+    return any(pattern.search(text) for text in (condition, subscripts, target[3]))
+
+
+def _same_static_loops(statements: list[Statement], first: Region, second: Region) -> bool:
+    """Both loops have ``schedule(static)`` and identical headers: OpenMP maps their iterations alike."""
+    static = all(
+        any(arg.strip().startswith("static") for arg in r.directive.clauses.get("schedule", []))
+        for r in (first, second)
+    )
+    if not static or not (first.is_loop and second.is_loop):
+        return False
+    heads = []
+    for region in (first, second):
+        start = next((i for i in range(region.first, region.last + 1) if is_do(statements[i])), None)
+        heads.append(re.sub(r"^\w+\s*:\s*", "", statements[start].masked.strip()) if start is not None else None)
+    return heads[0] is not None and heads[0] == heads[1]
+
+
+@rule(
+    "OMP004",
+    "nowait-dependent-read",
+    summary="Data written by a `nowait` worksharing construct is read before the next barrier.",
+    rationale="""
+        `nowait` removes the barrier at the end of a worksharing construct: a thread that finished its
+        share goes on while others are still writing. Reading what the construct wrote, before an explicit
+        `!$omp barrier` or the barrier of a later construct, reads values that may not be written yet.
+        The one exception the standard guarantees is two loops with `schedule(static)` and the same
+        iteration space, where each thread gets the same iterations: such pairs are not reported.
+        """,
+    bad="""
+        !$omp parallel
+        !$omp do
+        do i = 1, n
+          a(i) = f(i)
+        end do
+        !$omp end do nowait
+        !$omp do
+        do i = 1, n
+          b(i) = a(n - i + 1)    ! another thread may not have written it yet
+        end do
+        !$omp end do
+        !$omp end parallel
+        """,
+    good="""
+        !$omp end do            ! keep the barrier, or add !$omp barrier before the read
+        """,
+    default=False,
+)
+def check_nowait_dependent_read(ctx: LintContext) -> Iterator[Hit]:
+    for unit in ctx.units.walk():
+        statements = unit.statements
+        omp = [r for r in regions(statements) if r.directive.sentinel == "omp"]
+        worksharing = {r.first: r for r in omp if r.directive.construct in _WORKSHARING}
+        by_directive = {r.directive.statement.line: r for r in omp if r.directive.construct in _WORKSHARING}
+        for region in worksharing.values():
+            if not _nowait(statements, region):
+                continue
+            parallel = [p for p in omp if p.is_omp_parallel and p.first <= region.first and region.last <= p.last]
+            if not parallel or parallel[-1] is region:
+                continue
+            private = region.directive.variables(*_PRIVATE_CLAUSES) | _do_indices(region.statements)
+            written = {t[0] for s in region.statements if (t := assignment(s)) and t[0] not in private}
+            if not written:
+                continue
+            reported: set[str] = set()
+            stop_at, current = None, None
+            for idx in range(region.last + 1, parallel[-1].last + 1):
+                stmt = statements[idx]
+                if stmt.sentinel == "omp":
+                    directive = parse_directive(stmt)
+                    if directive.construct == "barrier":
+                        break
+                    following = by_directive.get(stmt.line)
+                    if following is not None and following is not region:
+                        current = following
+                        if not _nowait(statements, following):
+                            stop_at = following.last
+                    continue
+                if stmt.sentinel is not None:
+                    continue
+                if current is not None and _same_static_loops(statements, region, current) and idx <= current.last:
+                    continue
+                for name in sorted(written - reported):
+                    if _reads(stmt, name):
+                        reported.add(name)
+                        yield ctx.hit(
+                            stmt,
+                            f"'{name}' is written by the nowait construct at line {region.directive.statement.line} "
+                            "and read here before a barrier",
+                        )
+                if stop_at is not None and idx >= stop_at:
+                    break
+
+
+@rule(
+    "OMP005",
+    "serialisation-in-innermost-loop",
+    summary="An OpenMP `critical` or `atomic` is inside the innermost loop of a parallel loop.",
+    rationale="""
+        `critical` lets one thread at a time through, `atomic` serialises the threads that update the same
+        location: inside the innermost loop they run once per iteration and the parallel loop runs at the
+        speed of its serial part, or slower. Accumulate in a private variable (or a `reduction` clause) and
+        combine once per thread, outside the loop.
+        """,
+    bad="""
+        !$omp parallel do
+        do i = 1, n
+          !$omp critical
+          total = total + w(i)
+          !$omp end critical
+        end do
+        """,
+    good="""
+        !$omp parallel do reduction(+:total)
+        do i = 1, n
+          total = total + w(i)
+        end do
+        """,
+)
+def check_serialisation_in_loop(ctx: LintContext) -> Iterator[Hit]:
+    for unit in ctx.units.walk():
+        statements = unit.statements
+        omp = [r for r in regions(statements) if r.directive.sentinel == "omp" and (r.is_loop or r.is_omp_parallel)]
+        if not omp:
+            continue
+        loops = do_loops(statements)
+        for idx, stmt in enumerate(statements):
+            if stmt.sentinel != "omp":
+                continue
+            construct = parse_directive(stmt).construct
+            if construct not in ("critical", "atomic"):
+                continue
+            loop = innermost_loop(loops, idx)
+            if loop is None or any(loop.start < other.start <= loop.end for other in loops):
+                continue
+            if any(r.first <= loop.start and loop.end <= r.last for r in omp):
+                yield ctx.hit(
+                    stmt,
+                    f"{construct} inside the innermost loop (line {statements[loop.start].line}) "
+                    "of a parallel loop: runs once per iteration",
+                )
+
+
+@rule(
+    "OMP006",
+    "target-map-in-loop",
+    summary="An OpenMP `target` region inside a loop maps data on every iteration, with no `target data` around it.",
+    rationale="""
+        `map(to: a)` / `map(tofrom: a)` on a `target` construct copies the array to the device when the
+        region starts and back when it ends, unless the data is already present. Inside a time or iteration
+        loop that means two full transfers per iteration, usually far more expensive than the kernel.
+        Make the data resident once: a `!$omp target data` region around the loop, or
+        `!$omp target enter data` at allocation and `exit data` at deallocation, then `target update` only
+        for what the host really needs.
+        """,
+    bad="""
+        do it = 1, nsteps
+          !$omp target teams distribute parallel do map(tofrom: u) map(to: f)
+          do i = 1, n
+            u(i) = u(i) + dt * f(i)
+          end do
+        end do
+        """,
+    good="""
+        !$omp target data map(tofrom: u) map(to: f)
+        do it = 1, nsteps
+          !$omp target teams distribute parallel do
+          do i = 1, n
+            u(i) = u(i) + dt * f(i)
+          end do
+        end do
+        !$omp end target data
+        """,
+    default=False,
+)
+def check_target_map_in_loop(ctx: LintContext) -> Iterator[Hit]:
+    resident = ctx.project.enter_data
+    for unit in ctx.units.walk():
+        statements = unit.statements
+        all_regions = regions(statements)
+        data = [r for r in all_regions if r.directive.sentinel == "omp" and r.directive.construct == "target data"]
+        loops = do_loops(statements)
+        for region in all_regions:
+            construct = region.directive.construct
+            if region.directive.sentinel != "omp" or not construct.startswith("target") or construct in _TARGET_DATA:
+                continue
+            idx = statements.index(region.directive.statement)
+            loop = innermost_loop(loops, idx)
+            if loop is None or any(d.first <= idx <= d.last for d in data):
+                continue
+            mapped = sorted(region.directive.variables("map") - resident)
+            if mapped:
+                yield ctx.hit(
+                    region.directive.statement,
+                    f"target region in the loop at line {statements[loop.start].line} maps "
+                    f"{', '.join(repr(m) for m in mapped)} on every iteration",
+                )
+
+
+def _device_code(ctx: LintContext, unit: Unit) -> Iterator[tuple[Statement, set[str]]]:
+    """Statements executed on the device (in compute regions, or the whole body of a device routine), with the
+    variables private to them."""
+    if unit.name and unit.name in ctx.project.device_routines and unit.is_procedure:
+        for stmt in unit.statements:
+            if stmt.sentinel is None:
+                yield stmt, set(unit.decls) - set(unit.args)
+        return
+    for region in _compute_regions(unit):
+        private = region.directive.variables("private", "firstprivate", "reduction")
+        for stmt in region.statements:
+            if stmt.sentinel is None:
+                yield stmt, private
+
+
+def _strided(section: str) -> bool:
+    """The array section *section* (``a(i, 1:3)``) is not contiguous: a scalar subscript before a range, or a
+    stride."""
+    start = section.index("(")
+    subscripts = split_top(section[start + 1 : balanced_end(section, start) - 1])
+    seen_scalar = False
+    for sub in subscripts:
+        if ":" in sub:
+            if seen_scalar or sub.count(":") == 2:
+                return True
+        else:
+            seen_scalar = True
+    return False
+
+
+@rule(
+    "ACC005",
+    "strided-section-argument-in-kernel",
+    summary="A non-contiguous section of a shared array is passed to a procedure inside OpenACC device code.",
+    rationale="""
+        A non-contiguous section (`q(b, 1:3)`, `a(i, :)`, `a(1:n:2)`) passed to a procedure is copied into
+        a contiguous temporary. Inside a kernel that temporary is not privatised by nvfortran: all threads
+        share it and race. The race is invisible while every thread writes the same values (uniform grids,
+        constant coefficients) and corrupts results as soon as the values differ. Copy the elements into a
+        private fixed-size local before the call, or pass the whole array and the indices.
+        """,
+    bad="""
+        !$acc parallel loop
+        do b = 1, nb
+          call cell_metrics(dxyz=dxyz_gpu(b, 1:3), vol=vol(b))
+        end do
+        """,
+    good="""
+        !$acc parallel loop private(dxyz_b)
+        do b = 1, nb
+          dxyz_b(1) = dxyz_gpu(b, 1); dxyz_b(2) = dxyz_gpu(b, 2); dxyz_b(3) = dxyz_gpu(b, 3)
+          call cell_metrics(dxyz=dxyz_b, vol=vol(b))
+        end do
+        """,
+)
+def check_strided_section_in_kernel(ctx: LintContext) -> Iterator[Hit]:
+    project = ctx.project
+    functions = project.functions()
+    for unit in ctx.units.walk():
+        for stmt, private in _device_code(ctx, unit):
+            masked = strip_if(stmt.masked.strip())
+            calls = []
+            called = call_name(stmt)
+            if called:
+                calls.append(masked.find("(", masked.index(called)))
+            for match in _FUNCTION_REF_RE.finditer(masked):
+                if match.group(1) in functions and not declared_in_scope(unit, match.group(1)):
+                    calls.append(match.end() - 1)
+            for start in calls:
+                if start < 0:
+                    continue
+                for arg in split_top(masked[start + 1 : balanced_end(masked, start) - 1]):
+                    arg = re.sub(r"^[a-z_]\w*\s*=(?!=)\s*", "", arg)
+                    match = re.match(r"^([a-z_]\w*)\s*\(", arg)
+                    if not match or match.group(1) in private or balanced_end(arg, match.end() - 1) != len(arg):
+                        continue
+                    if _strided(arg):
+                        yield ctx.hit(stmt, f"non-contiguous section '{arg}' passed in device code: a shared temporary")
+
+
+@rule(
+    "ACC007",
+    "device-routine-assumed-shape-lower-bound",
+    summary="A device routine has an assumed-shape dummy with a non-default lower bound (`q(0:)`, `q(1-ng:)`).",
+    rationale="""
+        In device code, assumed-shape dummies with explicit lower bounds go through array descriptors that
+        nvfortran handles unreliably (wrong offsets, failing launches). Pass the bounds as integer
+        arguments and declare the dummy with explicit shape (`q(lo:hi)`), indexing with them.
+        """,
+    bad="""
+        subroutine stencil(q, i)
+          !$acc routine seq
+          real, intent(in) :: q(1-ng:)
+        """,
+    good="""
+        subroutine stencil(q, lo, hi, i)
+          !$acc routine seq
+          integer, intent(in) :: lo, hi, i
+          real, intent(in) :: q(lo:hi)
+        """,
+    default=False,
+)
+def check_device_routine_lower_bound(ctx: LintContext) -> Iterator[Hit]:
+    device = ctx.project.device_routines
+    for unit in ctx.units.walk():
+        if not unit.is_procedure or unit.name not in device:
+            continue
+        for arg in unit.args:
+            decl = unit.decls.get(arg)
+            if decl is None or not decl.dims or {"allocatable", "pointer"} & set(decl.attrs):
+                continue
+            extents = split_top(decl.dims)
+            if not all(re.fullmatch(r"[^:]*:", e.strip()) for e in extents):
+                continue  # not assumed-shape
+            lower = [e.strip()[:-1].strip() for e in extents if e.strip()[:-1].strip() not in ("", "1")]
+            if lower:
+                yield Hit(
+                    line=decl.line or unit.line,
+                    message=f"dummy '{arg}' of device routine '{unit.name}' is assumed-shape with lower bound "
+                    f"{lower[0]}: pass the bounds explicitly",
+                    snippet=f"{unit.name}:{arg}",
+                )
+
+
+_SEND_BUFFERS = {
+    "mpi_send": (0,),
+    "mpi_ssend": (0,),
+    "mpi_bsend": (0,),
+    "mpi_rsend": (0,),
+    "mpi_isend": (0,),
+    "mpi_issend": (0,),
+    "mpi_ibsend": (0,),
+    "mpi_irsend": (0,),
+    "mpi_sendrecv": (0,),
+    "mpi_allreduce": (0,),
+    "mpi_reduce": (0,),
+    "mpi_iallreduce": (0,),
+    "mpi_ireduce": (0,),
+    "mpi_allgather": (0,),
+    "mpi_gather": (0,),
+    "mpi_scatter": (0,),
+    "mpi_alltoall": (0,),
+    "mpi_bcast": (0,),
+}
+_RECV_BUFFERS = {
+    "mpi_recv": (0,),
+    "mpi_irecv": (0,),
+    "mpi_sendrecv": (5,),
+    "mpi_allreduce": (1,),
+    "mpi_reduce": (1,),
+    "mpi_iallreduce": (1,),
+    "mpi_ireduce": (1,),
+    "mpi_allgather": (3,),
+    "mpi_gather": (3,),
+    "mpi_scatter": (3,),
+    "mpi_alltoall": (3,),
+    "mpi_bcast": (0,),
+}
+_DATA_CLAUSES = ("copy", "copyin", "copyout", "create", "present", "deviceptr", "pcopy", "pcopyin", "pcreate")
+
+
+def _updates(statements: list[Statement]) -> list[tuple[int, str, set[str]]]:
+    """(index, direction, variables) of the host/device update directives: 'host' (device -> host) or 'device'."""
+    found = []
+    for idx, stmt in enumerate(statements):
+        if stmt.sentinel is None:
+            continue
+        directive = parse_directive(stmt)
+        if directive.construct == "update" and stmt.sentinel == "acc":
+            found.append((idx, "host", directive.variables("self", "host")))
+            found.append((idx, "device", directive.variables("device")))
+        elif directive.construct == "target update":
+            found.append((idx, "host", directive.variables("from")))
+            found.append((idx, "device", directive.variables("to")))
+    return found
+
+
+@rule(
+    "ACC009",
+    "mpi-on-device-data-without-update",
+    summary="MPI sends or receives a device-resident array with no host update around the call and no `host_data`.",
+    rationale="""
+        When an array lives on the GPU, the host copy is stale until `!$acc update self(buf)` and the device
+        copy is stale after a receive until `!$acc update device(buf)`. An MPI call on the host copy without
+        those updates sends old data or leaves the received data on the host only: results look right on
+        one rank and diverge as the decomposition is refined. Either stage through the host (update self
+        before sending, update device after receiving) or give MPI the device address with
+        `!$acc host_data use_device(buf)` (GPU-aware MPI). Reported in the unit of the call only: updates
+        done in another procedure are not seen.
+        """,
+    bad="""
+        !$acc data copy(halo)
+        call mpi_sendrecv(halo, n, MPI_REAL8, dst, 0, halo_in, n, MPI_REAL8, src, 0, comm, st, ierr)
+        """,
+    good="""
+        !$acc update self(halo)
+        call mpi_sendrecv(halo, n, MPI_REAL8, dst, 0, halo_in, n, MPI_REAL8, src, 0, comm, st, ierr)
+        !$acc update device(halo_in)
+        """,
+    default=False,
+)
+def check_mpi_device_coherence(ctx: LintContext) -> Iterator[Hit]:
+    project = ctx.project
+    for unit in ctx.units.walk():
+        statements = unit.statements
+        acc = [r for r in regions(statements) if r.directive.sentinel == "acc"]
+        data = [r for r in acc if r.directive.construct == "data"]
+        host_data = [r for r in acc if r.directive.construct == "host_data"]
+        updates = None
+        for idx, stmt in enumerate(statements):
+            name = call_name(stmt)
+            if name not in _SEND_BUFFERS and name not in _RECV_BUFFERS:
+                continue
+            args = _call_arguments(strip_if(stmt.masked.strip()))
+            resident = set(project.enter_data) | set(project.device_variables)
+            for region in data:
+                if region.first <= idx <= region.last:
+                    resident |= region.directive.variables(*_DATA_CLAUSES)
+            use_device = set().union(
+                *(r.directive.variables("use_device") for r in host_data if r.first <= idx <= r.last)
+            )
+            if updates is None:
+                updates = _updates(statements)
+            for direction, table in (("host", _SEND_BUFFERS), ("device", _RECV_BUFFERS)):
+                for position in table.get(name, ()):
+                    if position >= len(args):
+                        continue
+                    base = re.match(r"\s*([a-z_]\w*)", args[position])
+                    buf = base.group(1) if base else ""
+                    if buf not in resident or buf in use_device:
+                        continue
+                    if direction == "host":
+                        synced = any(i < idx and d == "host" and buf in v for i, d, v in updates)
+                    else:
+                        synced = any(i > idx and d == "device" and buf in v for i, d, v in updates)
+                    if not synced:
+                        need = "update self(...) before" if direction == "host" else "update device(...) after"
+                        yield ctx.hit(stmt, f"{name} on device-resident '{buf}' without '!$acc {need}' or host_data")
+
+
+@rule(
+    "ACC010",
+    "private-array-in-contained-kernel",
+    summary="A compute region of a contained (internal) procedure has a private array.",
+    rationale="""
+        nvfortran has been observed to mis-privatise arrays listed in `private` inside OpenACC kernels of
+        *contained* procedures: runtime-sized private arrays get garbage that depends on the gang count,
+        and even fixed-size ones can bleed between threads. Advisory: prefer scalar accumulation, or move
+        the kernel to a module procedure, and verify against a CPU run.
+        """,
+    bad="""
+        contains
+          subroutine fill()
+            real :: buf(5)
+            !$acc parallel loop private(buf)
+        """,
+    good="""
+        ! module procedure, or scalar temporaries instead of buf(5)
+        """,
+    severity="info",
+    default=False,
+)
+def check_private_array_contained(ctx: LintContext) -> Iterator[Hit]:
+    module_arrays = ctx.project.module_arrays
+    for unit in ctx.units.walk():
+        parent = unit.parent
+        if (
+            not unit.is_procedure
+            or parent is None
+            or parent.kind not in ("subroutine", "function", "program", "module procedure")
+        ):
+            continue
+        for region in _compute_regions(unit):
+            arrays = sorted(n for n in region.directive.variables("private") if is_array(unit, n, module_arrays))
+            if arrays:
+                yield ctx.hit(
+                    region.directive.statement,
+                    f"private array(s) {', '.join(repr(a) for a in arrays)} in a kernel of contained {unit.kind} "
+                    f"'{unit.name}'",
+                )

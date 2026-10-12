@@ -6,7 +6,7 @@ title: Lint Rules
 
 # Lint Rules
 
-`fobis lint` has 65 rules. Rules marked *default* run unless a selection is given;
+`fobis lint` has 105 rules. Rules marked *default* run unless a selection is given;
 *opt-in* rules run only when selected (`--select COR003`, a prefix like `--select COR`, or `ALL`).
 Run `fobis lint --explain <ID>` for the same documentation in the terminal. How to run, select and
 suppress rules: [Linting](/ai/lint).
@@ -22,6 +22,7 @@ suppress rules: [Linting](/ai/lint).
 | [COR011](/lint-rules/COR011) | `assumed-size` | warning | yes | C071 | A dummy array is assumed-size (`a(*)`, `a(n,*)`). |
 | [COR020](/lint-rules/COR020) | `initialisation-in-declaration` | warning | yes | C081 | A procedure's local variable is initialised in its declaration, which implies `save`. |
 | [COR021](/lint-rules/COR021) | `pointer-initialisation-in-declaration` | warning | yes | C082 | A procedure's local pointer is initialised in its declaration (`=> null()`), which implies `save`. |
+| [COR022](/lint-rules/COR022) | `missing-default-pointer-initialisation` | warning | yes | C101 | A pointer component of a derived type has no default initialisation (`=> null()`). |
 | [COR030](/lint-rules/COR030) | `external-procedure` | warning | yes | C091 | A procedure is declared `external`. |
 | [COR031](/lint-rules/COR031) | `procedure-not-in-module` | warning | yes | C092 | A subroutine or function is defined outside a module (an external procedure). |
 | [COR040](/lint-rules/COR040) | `use-all` | warning | yes | C121 | A `use` statement imports everything (no `only:` list). |
@@ -29,6 +30,20 @@ suppress rules: [Linting](/ai/lint).
 | [COR050](/lint-rules/COR050) | `missing-accessibility-statement` | warning | yes | C131 | A module has no default accessibility statement (`private` or `public`). |
 | [COR060](/lint-rules/COR060) | `unchecked-stat` | warning | yes | C181 | The `stat=` variable of an `allocate`/`deallocate` is never read afterwards. |
 | [COR061](/lint-rules/COR061) | `multiple-allocations-with-stat` | warning | yes | C182 | One `allocate`/`deallocate` with `stat=` handles several objects. |
+| [COR062](/lint-rules/COR062) | `stat-without-errmsg` | warning | opt-in | C183 | An `allocate`/`deallocate` has `stat=` but no `errmsg=`. |
+| [COR070](/lint-rules/COR070) | `missing-default-case` | warning | yes | C011 | A `select case` construct has no `case default`. |
+| [COR071](/lint-rules/COR071) | `missing-class-default` | warning | opt-in | - | A `select type` construct has no `class default`. |
+| [COR072](/lint-rules/COR072) | `missing-rank-default` | warning | opt-in | - | A `select rank` construct has no `rank default`. |
+| [COR080](/lint-rules/COR080) | `magic-number-in-array-size` | warning | opt-in | C031 | An array is declared with a literal size other than 0 or 1. |
+| [COR081](/lint-rules/COR081) | `magic-io-unit` | warning | opt-in | C032 | An I/O statement uses a literal unit number. |
+| [COR082](/lint-rules/COR082) | `missing-action-specifier` | warning | opt-in | C043 | An `open` statement has no `action=` specifier. |
+| [COR090](/lint-rules/COR090) | `missing-exit-or-cycle-label` | warning | yes | C141 | An `exit` or `cycle` inside a named DO loop does not name the loop. |
+| [COR091](/lint-rules/COR091) | `exit-or-cycle-in-unlabelled-loop` | warning | opt-in | C142 | An `exit` or `cycle` appears in a DO loop that has no construct name. |
+| [COR092](/lint-rules/COR092) | `missing-end-label` | error | yes | C143 | The `end` statement of a named construct does not repeat the construct name. |
+| [COR100](/lint-rules/COR100) | `misleading-inline-if-semicolon` | warning | yes | C151 | A statement follows a one-line `if` after a semicolon: it is not conditional. |
+| [COR101](/lint-rules/COR101) | `misleading-inline-if-continuation` | warning | yes | C152 | A one-line `if` continues its action on the next line. |
+| [COR110](/lint-rules/COR110) | `nonportable-shortcircuit-inquiry` | warning | yes | C161 | A condition tests `present`/`allocated`/`associated` and uses the same entity in one expression. |
+| [COR120](/lint-rules/COR120) | `unreachable-statement` | warning | yes | C191 | A statement follows `return`, `stop`, `exit`, `cycle` or `go to` in the same block: it never runs. |
 
 ## Obsolescent (`OBS`)
 
@@ -47,6 +62,7 @@ suppress rules: [Linting](/ai/lint).
 | [OBS011](/lint-rules/OBS011) | `labelled-do-loop` | warning | yes | OB091 | A labelled `do 10 i = ...` loop. |
 | [OBS012](/lint-rules/OBS012) | `shared-do-termination` | warning | yes | OB092 | Several `do` loops end on the same labelled statement. |
 | [OBS013](/lint-rules/OBS013) | `bad-do-termination` | warning | yes | OB093 | A labelled `do` loop ends on a statement other than `continue` or `end do`. |
+| [OBS014](/lint-rules/OBS014) | `goto-end-do` | warning | yes | OB094 | A `go to` jumps to the `end do` of a loop. |
 | [OBS020](/lint-rules/OBS020) | `deprecated-mpi-include` | warning | yes | OB201 | `include 'mpif.h'` instead of the `mpi_f08` module. |
 | [OBS021](/lint-rules/OBS021) | `deprecated-omp-include` | warning | yes | OB211 | `include 'omp_lib.h'` instead of the `omp_lib` module. |
 
@@ -74,13 +90,29 @@ suppress rules: [Linting](/ai/lint).
 | [PRT061](/lint-rules/PRT061) | `non-portable-system-call` | warning | opt-in | PORT061 | `system()` (a compiler extension) runs a shell command. |
 | [PRT062](/lint-rules/PRT062) | `gfortran-random-extension` | warning | opt-in | PORT062 | The extensions `rand`, `srand`, `irand` generate random numbers. |
 
+## Style (`STY`)
+
+| Rule | Name | Severity | Default | Fortitude | Reports |
+|------|------|----------|---------|-----------|---------|
+| [STY001](/lint-rules/STY001) | `multiple-modules` | warning | opt-in | S211 | A file defines more than one module or submodule. |
+| [STY002](/lint-rules/STY002) | `program-with-module` | warning | opt-in | S212 | A file defines both a program and a module. |
+| [STY003](/lint-rules/STY003) | `function-missing-result` | warning | opt-in | S221 | A function has no `result(...)` clause. |
+| [STY010](/lint-rules/STY010) | `inconsistent-array-declaration` | warning | yes | S261 | A declaration has a `dimension` attribute and an entity with its own shape. |
+| [STY011](/lint-rules/STY011) | `mixed-scalar-array-declaration` | warning | opt-in | S262 | One declaration statement declares both scalars and arrays. |
+| [STY020](/lint-rules/STY020) | `too-complex` | warning | opt-in | S901 | A procedure's cyclomatic complexity exceeds 10. |
+| [STY021](/lint-rules/STY021) | `too-many-arguments` | warning | opt-in | S902 | A procedure has more than 8 dummy arguments. |
+
 ## Fortran practice (`FOR`)
 
 | Rule | Name | Severity | Default | Fortitude | Reports |
 |------|------|----------|---------|-----------|---------|
 | [FOR001](/lint-rules/FOR001) | `saved-local-in-parallel-procedure` | warning | yes | - | A procedure that runs in parallel has a saved local variable (one copy shared by all threads). |
+| [FOR002](/lint-rules/FOR002) | `loop-order-not-column-major` | warning | opt-in | - | The innermost loop runs over a non-leading array dimension while an outer loop runs over the leading one. |
+| [FOR003](/lint-rules/FOR003) | `lower-bounds-lost-in-assumed-shape` | warning | opt-in | - | An array with non-default lower bounds is passed to an assumed-shape dummy: inside, its bounds restart at 1. |
 | [FOR004](/lint-rules/FOR004) | `function-result-component` | error | yes | - | A component of a function result is referenced directly: `f(x)%c`. |
 | [FOR005](/lint-rules/FOR005) | `cpu-time-for-wall-clock` | warning | yes | - | `cpu_time` measures time in code that runs in parallel (OpenMP, OpenACC, MPI). |
+| [FOR006](/lint-rules/FOR006) | `array-of-finalizable-type-not-finalised` | warning | yes | - | An array of a derived type with final procedures, none of which finalises arrays of that rank. |
+| [FOR007](/lint-rules/FOR007) | `default-real-literal-precision-loss` | warning | yes | - | A real literal without kind is assigned to a higher-precision real and cannot be represented in default precision. |
 
 ## OpenMP (`OMP`)
 
@@ -89,6 +121,9 @@ suppress rules: [Linting](/ai/lint).
 | [OMP001](/lint-rules/OMP001) | `shared-scalar-written-in-parallel-region` | warning | yes | - | A shared scalar is assigned inside an OpenMP parallel region: a data race. |
 | [OMP002](/lint-rules/OMP002) | `accumulation-without-reduction` | warning | yes | - | A shared scalar is accumulated inside an OpenMP parallel region without `reduction`. |
 | [OMP003](/lint-rules/OMP003) | `collapse-imperfect-nest` | error | yes | - | `collapse(n)` on OpenMP loops that are not tightly nested. |
+| [OMP004](/lint-rules/OMP004) | `nowait-dependent-read` | warning | opt-in | - | Data written by a `nowait` worksharing construct is read before the next barrier. |
+| [OMP005](/lint-rules/OMP005) | `serialisation-in-innermost-loop` | warning | yes | - | An OpenMP `critical` or `atomic` is inside the innermost loop of a parallel loop. |
+| [OMP006](/lint-rules/OMP006) | `target-map-in-loop` | warning | opt-in | - | An OpenMP `target` region inside a loop maps data on every iteration, with no `target data` around it. |
 | [OMP007](/lint-rules/OMP007) | `mpi-in-threaded-region-without-thread-support` | warning | yes | - | MPI is called inside an OpenMP parallel region but initialised with `mpi_init`, not `mpi_init_thread`. |
 | [OMP008](/lint-rules/OMP008) | `implicit-target-map` | warning | yes | - | The compiler maps data implicitly for an OpenMP target region (nvfortran: 'Generating implicit map'). |
 
@@ -100,8 +135,12 @@ suppress rules: [Linting](/ai/lint).
 | [ACC002](/lint-rules/ACC002) | `atomic-in-compute-region` | warning | yes | - | An `!$acc atomic` inside an OpenACC compute region or device routine. |
 | [ACC003](/lint-rules/ACC003) | `firstprivate-associate-name` | warning | yes | - | An `associate` name appears in an OpenACC `firstprivate` clause. |
 | [ACC004](/lint-rules/ACC004) | `reduction-into-device-module-variable` | error | yes | - | An OpenACC `reduction` targets a module allocatable declared `!$acc declare create`. |
+| [ACC005](/lint-rules/ACC005) | `strided-section-argument-in-kernel` | warning | yes | - | A non-contiguous section of a shared array is passed to a procedure inside OpenACC device code. |
 | [ACC006](/lint-rules/ACC006) | `missing-acc-routine` | warning | yes | - | A project procedure is called inside an OpenACC compute region but has no `!$acc routine`. |
+| [ACC007](/lint-rules/ACC007) | `device-routine-assumed-shape-lower-bound` | warning | opt-in | - | A device routine has an assumed-shape dummy with a non-default lower bound (`q(0:)`, `q(1-ng:)`). |
 | [ACC008](/lint-rules/ACC008) | `timer-without-acc-wait` | warning | yes | - | A timer is read while asynchronous OpenACC work may still be running. |
+| [ACC009](/lint-rules/ACC009) | `mpi-on-device-data-without-update` | warning | opt-in | - | MPI sends or receives a device-resident array with no host update around the call and no `host_data`. |
+| [ACC010](/lint-rules/ACC010) | `private-array-in-contained-kernel` | info | opt-in | - | A compute region of a contained (internal) procedure has a private array. |
 | [ACC011](/lint-rules/ACC011) | `acc-collapse-imperfect-nest` | error | yes | - | `collapse(n)` on OpenACC loops that are not tightly nested. |
 | [ACC012](/lint-rules/ACC012) | `sequential-device-loop` | warning | yes | - | A loop in an OpenACC compute region runs sequentially: the compiler found a loop-carried dependence. |
 
@@ -110,12 +149,23 @@ suppress rules: [Linting](/ai/lint).
 | Rule | Name | Severity | Default | Fortitude | Reports |
 |------|------|----------|---------|-----------|---------|
 | [MPI001](/lint-rules/MPI001) | `request-never-completed` | warning | yes | - | A non-blocking MPI operation stores its request in a local variable that is never completed. |
+| [MPI002](/lint-rules/MPI002) | `isend-buffer-modified-before-completion` | warning | yes | - | The buffer of a pending `mpi_isend` is written before the request is completed. |
+| [MPI003](/lint-rules/MPI003) | `irecv-buffer-used-before-completion` | warning | yes | - | The buffer of a pending `mpi_irecv` is used before the request is completed. |
+| [MPI004](/lint-rules/MPI004) | `collective-in-rank-branch` | warning | yes | - | An MPI collective is called inside a branch that depends on the rank. |
+| [MPI005](/lint-rules/MPI005) | `blocking-send-before-receive` | warning | opt-in | - | Every rank does a blocking `mpi_send` and then the matching `mpi_recv`: a deadlock for large messages. |
+| [MPI006](/lint-rules/MPI006) | `any-source-order-dependent-sum` | info | opt-in | - | Messages received from `MPI_ANY_SOURCE` are summed in arrival order: the result is not reproducible. |
 
 ## Performance (`PRF`)
 
 | Rule | Name | Severity | Default | Fortitude | Reports |
 |------|------|----------|---------|-----------|---------|
 | [PRF001](/lint-rules/PRF001) | `loop-not-vectorized` | info | opt-in | - | gfortran could not vectorise a loop (`-fopt-info-vec-missed`). |
+
+## Numerics (`NUM`)
+
+| Rule | Name | Severity | Default | Fortitude | Reports |
+|------|------|----------|---------|-----------|---------|
+| [NUM001](/lint-rules/NUM001) | `uncompensated-global-sum` | info | opt-in | - | A diagnostic quantity (residual, norm, mass, energy ...) is summed across ranks with `MPI_SUM`. |
 
 ## Linter (`LNT`)
 
@@ -128,9 +178,13 @@ suppress rules: [Linting](/ai/lint).
 
 ## Relation to Fortitude
 
-The generic rules (`COR`, `OBS`, `MDN`, `PRT`) are a native reimplementation, in FoBiS's own words and
-on its own source analysis, of rules catalogued by [Fortitude](https://fortitude.readthedocs.io/)
+The generic rules (`COR`, `OBS`, `MDN`, `PRT`, `STY`) are a native reimplementation, in FoBiS's own
+words and on its own source analysis, of rules catalogued by [Fortitude](https://fortitude.readthedocs.io/)
 (PlasmaFAIR, MIT licence), whose rule set served as the reference. The *Fortitude* column gives the
-matching Fortitude code, for users who know it. FoBiS does not depend on Fortitude. The `FOR`, `OMP`,
-`ACC` and `MPI` rules are FoBiS's own, distilled from the OpenMP, OpenACC and MPI specifications and
-from HPC practice.
+matching Fortitude code, for users who know it. FoBiS does not depend on Fortitude. The `FOR`, `NUM`,
+`OMP`, `ACC`, `MPI` and `PRF` rules are FoBiS's own, distilled from the OpenMP, OpenACC and MPI
+specifications and from HPC practice.
+
+Not reimplemented: Fortitude's formatting rules (line length, whitespace, keyword case, quotes:
+formatters own them) and `S263` (a project-configured preference between `dimension(n)` and `x(n)`).
+The thresholds of `STY020` and `STY021` are fixed (complexity 10, 8 arguments).

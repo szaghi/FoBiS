@@ -24,6 +24,7 @@ import re
 from collections.abc import Iterator
 
 from ...analysis import Statement, Unit
+from ...analysis.regions import strip_if
 from ...analysis.units import balanced_end
 from ..rule import Hit, LintContext, rule
 
@@ -382,6 +383,46 @@ def check_bad_do_termination(ctx: LintContext) -> Iterator[Hit]:
             target = labelled.get(label)
             if target is not None and not re.match(r"^(continue|end\s*do)\s*$", target.masked):
                 yield ctx.hit(stmt, f"do loop terminates on a non-continue statement at line {target.line}")
+
+
+@rule(
+    "OBS014",
+    "goto-end-do",
+    summary="A `go to` jumps to the `end do` of a loop.",
+    rationale="""
+        Jumping to the labelled `end do` of a loop is the pre-Fortran 90 way of starting the next
+        iteration. `cycle` says the same thing without a label, and keeps working when the loop is moved
+        or renamed.
+        """,
+    bad="""
+        do i = 1, n
+          if (skip(i)) go to 10
+          a(i) = 0.0
+        10 end do
+        """,
+    good="""
+        do i = 1, n
+          if (skip(i)) cycle
+          a(i) = 0.0
+        end do
+        """,
+    equivalent="OB094",
+)
+def check_goto_end_do(ctx: LintContext) -> Iterator[Hit]:
+    for unit in ctx.units.walk():
+        end_do = {
+            stmt.label.lstrip("0") or "0"
+            for stmt in unit.statements
+            if stmt.label is not None and stmt.sentinel is None and re.match(r"^end\s*do\b", stmt.masked.strip())
+        }
+        if not end_do:
+            continue
+        for stmt in unit.statements:
+            if stmt.sentinel is not None:
+                continue
+            match = re.match(r"^go\s*to\s*(\d+)\s*$", strip_if(stmt.masked.strip()))
+            if match and (match.group(1).lstrip("0") or "0") in end_do:
+                yield ctx.hit(stmt, f"go to the end do labelled {match.group(1)}: use cycle")
 
 
 def _include_rule(header: str, message: str):

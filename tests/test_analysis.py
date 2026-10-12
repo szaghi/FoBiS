@@ -290,3 +290,30 @@ def test_implicit_statements():
     ).units
     assert units[0].implicit_none and units[0].implicit_none_external
     assert not units[1].implicit_none and len(units[1].implicit_mappings) == 1
+
+
+def test_project_index_kinds_finalisers_ranks_and_enter_data():
+    from fobis.analysis.project import build_index
+
+    code = (
+        "module k\ninteger, parameter :: dp = selected_real_kind(p=15, r=307)\ninteger, parameter :: rk = dp\n"
+        "integer, parameter :: sp = kind(1.0)\ninteger, parameter :: qp = kind(1.0_dp)\nreal :: grid(10)\n"
+        "type :: t\ncontains\nfinal :: free_t, free_t1\nend type\nend module\n"
+        "subroutine s()\ncall mpi_comm_rank(comm, self%myrank, ierr)\n!$acc enter data copyin(u, v)\n"
+        "!$omp target enter data map(to: w)\nend subroutine\n"
+    )
+    index = build_index([build_units(lex(code, "k.f90"))])
+    assert [index.real_precision(k) for k in ("dp", "rk", "sp", "qp", "real64", "8", "r8p", "R16P")] == [
+        15,
+        15,
+        6,
+        15,
+        15,
+        15,
+        15,
+        33,
+    ]
+    assert index.real_precision("unknown") is None and index.real_precision("r8p", {"r8p": "4"}) == 6
+    assert index.finalisers == {"t": ["free_t", "free_t1"]}
+    assert index.rank_variables == {"myrank"} and index.enter_data == {"u", "v", "w"}
+    assert index.module_arrays == {"grid"}
