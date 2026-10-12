@@ -1,0 +1,1786 @@
+{
+"version": 1,
+"chunks": [
+{
+"id": "openacc:overview#openacc-application-programming-interface-version-3-4",
+"doc": "overview",
+"heading": "OpenACC Application Programming Interface — Version 3.4",
+"text": "**Publisher**: OpenACC-Standard.org | **Pages**: ~175 | **Chapters**: 11 (6 spec chapters; Directives split for navigability) | **`_OPENACC`**: 202506 | **Generated**: 2026-06-09",
+"symbols": [
+"_openacc"
+]
+},
+{
+"id": "openacc:overview#execution-model-ch-1-three-levels-six-modes",
+"doc": "overview",
+"heading": "OpenACC Application Programming Interface — Version 3.4 > Core Frameworks & Mental Models > Execution model (Ch 1) — three levels, six modes",
+"text": "- **gang** (coarse, 1–3D grid) ⊃ **worker** (fine) ⊃ **vector** (SIMD) ⊃ **seq** (none). A `loop` maps iterations to a level.\n- Modes govern which lanes are active: **GR** (gang-redundant — all gangs run the same code) vs **GP** (gang-partitioned — iterations split); likewise WS/WP, VS/VP.\n- **No portable synchronization across gangs/workers/vector lanes** — a cross-gang barrier or busy-wait lock can deadlock (the scheduler may run some to completion first). Restructure instead.",
+"symbols": [
+"loop"
+]
+},
+{
+"id": "openacc:overview#memory-model-ch-1-4-discrete-device-data-environment",
+"doc": "overview",
+"heading": "OpenACC Application Programming Interface — Version 3.4 > Core Frameworks & Mental Models > Memory model (Ch 1, 4) — discrete device data environment",
+"text": "- Device memory is (usually) **separate** from host; movement is implicit/compiler-managed via data clauses. A host pointer is meaningless on the device.\n- **Reference-counter model** (structured + dynamic): data allocated at 0→1, freed at →0 — makes nested/repeated data regions compose safely.\n- Weak memory model: explicit synchronization needed for shared data; races silently corrupt numerics.",
+"symbols": []
+},
+{
+"id": "openacc:overview#the-three-compute-constructs-ch-3",
+"doc": "overview",
+"heading": "OpenACC Application Programming Interface — Version 3.4 > Core Frameworks & Mental Models > The three compute constructs (Ch 3)",
+"text": "- **`parallel`** — you assert parallelism + control geometry (`num_gangs`/`num_workers`/`vector_length`). Code *outside* an inner `loop` runs **redundantly per gang** (GR mode) — use **`parallel loop`**.\n- **`kernels`** — the compiler analyzes dependencies and parallelizes each loop.\n- **`serial`** — one gang/worker/lane; sequential device code without a host round-trip.",
+"symbols": [
+"kernels",
+"loop",
+"num_gangs",
+"num_workers",
+"parallel",
+"serial",
+"vector_length"
+]
+},
+{
+"id": "openacc:overview#data-clauses-ch-4-the-dominant-optimization-lever",
+"doc": "overview",
+"heading": "OpenACC Application Programming Interface — Version 3.4 > Core Frameworks & Mental Models > Data clauses (Ch 4) — the dominant optimization lever",
+"text": "- `copyin`=input, `copyout`=output, `copy`=both, `create`=scratch, `present`=already-there, `no_create`=reuse-or-local, `deviceptr`=interop, `attach`=pointer members.\n- **Hoist data out of loops**: `enter data copyin(...)` once + `present(...)` in every kernel + `exit data copyout(...)` — eliminates per-iteration H2D/D2H. This single pattern usually decides whether offload wins.\n- `default(none)` forces explicit data attributes — adopt it like `implicit none`.",
+"symbols": [
+"attach",
+"copy",
+"copyin",
+"copyout",
+"create",
+"data",
+"default",
+"deviceptr",
+"enter",
+"exit",
+"implicit",
+"no_create",
+"none",
+"present"
+]
+},
+{
+"id": "openacc:overview#loop-mapping-ch-5",
+"doc": "overview",
+"heading": "OpenACC Application Programming Interface — Version 3.4 > Core Frameworks & Mental Models > loop mapping (Ch 5)",
+"text": "- `gang`/`worker`/`vector`/`seq`, `independent` (assert parallel-safe; default on `parallel`), `auto`, `collapse([force:]n)` (fuse nests; `force` for non-tight — v3.4), `tile`, `private`, `reduction`.\n- Nesting must be **outer→inner gang⊃worker⊃vector**; equal/higher level nested inside is illegal.\n- `host_data use_device(v)` exposes the device address — the bridge to CUDA/cuBLAS/device-aware MPI.",
+"symbols": [
+"auto",
+"collapse",
+"force",
+"gang",
+"host_data",
+"independent",
+"parallel",
+"private",
+"reduction",
+"seq",
+"tile",
+"use_device",
+"vector",
+"worker"
+]
+},
+{
+"id": "openacc:overview#async-ch-7",
+"doc": "overview",
+"heading": "OpenACC Application Programming Interface — Version 3.4 > Core Frameworks & Mental Models > Async (Ch 7)",
+"text": "- `async[(value)]` enqueues on an activity queue. **Same value = same queue = ordered; different values = may overlap.** `wait[(q)]` blocks host; `wait(q1) async(q2)` builds a device-side dependency. Special: `acc_async_sync`/`_noval`/`_default`.\n- `async` on `data` overlaps only transfers and is **not inherited** by nested constructs — a race source.",
+"symbols": [
+"_default",
+"_noval",
+"acc_async_sync",
+"async",
+"data",
+"value",
+"wait"
+]
+},
+{
+"id": "openacc:overview#correctness-accuracy-routine-atomic",
+"doc": "overview",
+"heading": "OpenACC Application Programming Interface — Version 3.4 > Core Frameworks & Mental Models > Correctness & accuracy (`routine`, `atomic`)",
+"text": "- Device-called procedures need **`routine [gang|worker|vector|seq]`** (`seq` is universal). v3.4 generalized *implicit* `routine` to all procedures.\n- `reduction(op:vars)` for accumulation; `atomic update`/`capture` for irregular scatter (histograms/counters).",
+"symbols": [
+"atomic",
+"capture",
+"gang",
+"reduction",
+"routine",
+"seq",
+"update",
+"vars",
+"vector",
+"worker"
+]
+},
+{
+"id": "openacc:overview#gpu-practice-traps-cross-referenced-to-the-hpc-practice-pack",
+"doc": "overview",
+"heading": "OpenACC Application Programming Interface — Version 3.4 > Core Frameworks & Mental Models > GPU practice traps (cross-referenced to the hpc-practice pack)",
+"text": "- **`>100×` speedup ≈ a missing `wait`** before the timer (async returns immediately); time with `system_clock`, not `cpu_time`.\n- **Consumer NVIDIA GPUs**: 1:64 FP64:FP32 ratio → FP32-store/FP64-compute is *slower* than full FP64, not an optimization.\n- **nvfortran: `reduction` into a `declare create` module allocatable** → `CUDA_ERROR_LAUNCH_FAILED (719)` at launch (reduction epilogue addressed via the static global descriptor symbol, not the present-table pointer). Spec-conforming code; NVHPC defect. Reduce into a procedure-local array instead; `declare create` scalars and procedure-locals are unaffected. (hpc-practice pack (gpu-practice) → Compiler Pitfalls)\n\n---",
+"symbols": [
+"cpu_time",
+"create",
+"cuda_error_launch_failed",
+"declare",
+"reduction",
+"system_clock",
+"wait"
+]
+},
+{
+"id": "openacc:overview#chapter-index",
+"doc": "overview",
+"heading": "OpenACC Application Programming Interface — Version 3.4 > Chapter Index",
+"text": "| # | Covers | Key topics |\n|---|--------|------------|\n| [ch01](chapters/ch01-introduction.md) | Ch 1 | execution model (gang/worker/vector, GR/GP), discrete memory model |\n| [ch02](chapters/ch02-directive-basics.md) | §2.1–2.4 | directive syntax, `_OPENACC`, ICVs, `device_type`/`dtype` |\n| [ch03](chapters/ch03-compute-constructs.md) | §2.5 | `parallel` / `kernels` / `serial`, geometry, reduction |\n| [ch04](chapters/ch04-data-environment-clauses.md) | §2.6–2.7 | data clauses, reference counters, `enter/exit data`, attach |\n| [ch05](chapters/ch05-loop-host-cache-combined.md) | §2.8–2.11 | `loop`, `collapse`/`tile`, `host_data`, `cache`, combined |\n| [ch06](chapters/ch06-atomic-declare-executable.md) | §2.12–2.14 | `atomic`, `declare`, `update`/`wait`/`init`/`set` |\n| [ch07](chapters/ch07-procedures-async-fortran.md) | §2.15–2.17 | `routine`, async queues, Fortran-specific |\n| [ch08](chapters/ch08-runtime-library.md) | Ch 3 | `acc_*` runtime API; directive↔API map |\n| [ch09](chapters/ch09-environment-variables.md) | Ch 4 | `ACC_DEVICE_TYPE`/`_NUM`/`ACC_PROFLIB` |\n| [ch10](chapters/ch10-profiling-interface.md) | Ch 5 | event/error callbacks, tools interface |\n| [ch11](chapters/ch11-glossary.md) | Ch 6 | normative terminology |",
+"symbols": [
+"_num",
+"_openacc",
+"acc_",
+"acc_device_type",
+"acc_proflib",
+"atomic",
+"cache",
+"collapse",
+"data",
+"declare",
+"device_type",
+"dtype",
+"enter",
+"exit",
+"host_data",
+"init",
+"kernels",
+"loop",
+"parallel",
+"routine",
+"serial",
+"set",
+"tile",
+"update",
+"wait"
+]
+},
+{
+"id": "openacc:overview#topic-index",
+"doc": "overview",
+"heading": "OpenACC Application Programming Interface — Version 3.4 > Topic Index",
+"text": "- **async / wait / queues** → ch07, ch06\n- **atomic** → ch06\n- **attach / detach / pointers** → ch04\n- **cache** → ch05\n- **collapse / tile** → ch05\n- **combined constructs** → ch05\n- **compute constructs (parallel/kernels/serial)** → ch03\n- **conditional compilation / `_OPENACC`** → ch02\n- **data clauses (copy/copyin/copyout/create/present)** → ch04\n- **declare** → ch06\n- **default(none|present)** → ch03, ch04\n- **device_type / dtype** → ch02\n- **enter data / exit data** → ch04, ch06\n- **environment variables** → ch09\n- **execution model / gang-worker-vector** → ch01, ch05\n- **firstprivate / private** → ch03, ch05\n- **host_data / use_device** → ch05\n- **ICVs** → ch02\n- **if clause** → ch03, ch04\n- **loop / independent / seq / auto** → ch05\n- **memory model / discrete / shared** → ch01, ch04\n- **MPI interop / device-aware** → ch05, ch07\n- **profiling / error callbacks** → ch10\n- **reduction** → ch03, ch05\n- **reference counters / present** → ch04\n- **routine** → ch07\n- **runtime API (acc_*)** → ch08\n- **update (self/device)** → ch06\n- **v3.4 changes** → cheatsheet, ch05/ch07/ch08",
+"symbols": [
+"_openacc"
+]
+},
+{
+"id": "openacc:overview#supporting-files",
+"doc": "overview",
+"heading": "OpenACC Application Programming Interface — Version 3.4 > Supporting Files",
+"text": "- [glossary.md](glossary.md) — normative terms + directive/clause vocabulary\n- [patterns.md](patterns.md) — GPU offload idioms (persistent data, pipelines, interop)\n- [cheatsheet.md](cheatsheet.md) — clause/construct decision rules + GPU tells & smells\n\n---",
+"symbols": []
+},
+{
+"id": "openacc:overview#scope-limits",
+"doc": "overview",
+"heading": "OpenACC Application Programming Interface — Version 3.4 > Scope & Limits",
+"text": "Covers the OpenACC API v3.4 specification (June 2025, updated October 2025), extracted with pdftotext (docling garbles this class of spec PDF — see the fortran-2023-standard note). This is the *spec*, not a vendor manual — device-specific behavior, supported architectures, and launch-geometry tuning are implementation-defined (NVHPC, GCC, etc.). For Fortran base-language rules use `fortran-2023-standard`; for the broader GPU/HPC practice (FP64 traps, benchmark timing) see hpc-practice pack (gpu-practice).",
+"symbols": [
+"fortran",
+"standard"
+]
+},
+{
+"id": "openacc:cheatsheet#new-in-3-4-vs-3-3",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — OpenACC 3.4 > New in 3.4 (vs 3.3)",
+"text": "| Change | Where |\n|---|---|\n| `collapse(force:n)` — collapse **non-tightly**-nested loops | Ch5 (§2.9.1) |\n| Implicit `routine` generalized to **all procedures** (not just C++ lambdas) | Ch7 (§2.15.1) |\n| Fortran interfaces added for `acc_malloc`/`acc_free`/`acc_map_data`/`acc_memcpy_*`/`acc_attach`/`acc_detach` etc. | Ch8 |\n| `acc_map_data` error when `bytes == 0` | Ch8 |\n| `_OPENACC` = **202506** | Ch2 |",
+"symbols": [
+"_openacc",
+"acc_attach",
+"acc_detach",
+"acc_free",
+"acc_malloc",
+"acc_map_data",
+"acc_memcpy_",
+"bytes",
+"collapse",
+"force",
+"routine"
+]
+},
+{
+"id": "openacc:cheatsheet#which-compute-construct",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — OpenACC 3.4 > Decision rules > Which compute construct?",
+"text": "- Know the loop nest is parallel, want control → **`parallel loop`**.\n- Unsure / let compiler analyze dependencies → **`kernels`**.\n- Sequential work on already-resident data → **`serial`** (avoids host round-trip).",
+"symbols": [
+"kernels",
+"loop",
+"parallel",
+"serial"
+]
+},
+{
+"id": "openacc:cheatsheet#which-data-clause",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — OpenACC 3.4 > Decision rules > Which data clause?",
+"text": "| Need | Clause |\n|---|---|\n| read-only input | `copyin` |\n| write-only output | `copyout` |\n| in and out | `copy` |\n| device scratch only | `create` |\n| already staged elsewhere | `present` |\n| reuse if present, else local | `no_create` |\n| raw device pointer (interop) | `deviceptr` |\n| pointer member of struct/DT | `attach` |",
+"symbols": [
+"attach",
+"copy",
+"copyin",
+"copyout",
+"create",
+"deviceptr",
+"no_create",
+"present"
+]
+},
+{
+"id": "openacc:cheatsheet#structured-vs-unstructured-data",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — OpenACC 3.4 > Decision rules > Structured vs unstructured data",
+"text": "- Lifetime = lexical block → **`data`** construct.\n- Lifetime spans functions / whole solver run → **`enter data` / `exit data`** (or `declare`).",
+"symbols": [
+"data",
+"declare",
+"enter",
+"exit"
+]
+},
+{
+"id": "openacc:cheatsheet#loop-mapping-must-nest-outer-inner",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — OpenACC 3.4 > Decision rules > Loop mapping (must nest outer→inner)",
+"text": "`gang` ⊃ `worker` ⊃ `vector` ⊃ `seq`. At most one `gang` per loop. Never nest equal/higher level inside.",
+"symbols": [
+"gang",
+"seq",
+"vector",
+"worker"
+]
+},
+{
+"id": "openacc:cheatsheet#sync-overlap",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — OpenACC 3.4 > Decision rules > Sync / overlap",
+"text": "- Block host on device work → `wait` (or `wait(q)`).\n- Overlap independent work → distinct `async(q)` values (same value = serialized in one queue).\n- Build device-side dependency without blocking host → `wait(q1) async(q2)`.",
+"symbols": [
+"async",
+"wait"
+]
+},
+{
+"id": "openacc:cheatsheet#thresholds-defaults",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — OpenACC 3.4 > Thresholds & defaults",
+"text": "- Offload pays off only at **high compute intensity** (flops ÷ bytes-moved) — low intensity → transfer-bound, keep on host.\n- Default async queue when `async` has no arg → `acc-default-async-var` (`ACC_DEVICE_*`/`acc_set_default_async`).\n- Adopt `default(none)` on compute constructs like `implicit none`.\n- Prefer combined `parallel loop` over bare `parallel`.",
+"symbols": [
+"acc",
+"acc_device_",
+"acc_set_default_async",
+"async",
+"default",
+"implicit",
+"loop",
+"none",
+"parallel",
+"var"
+]
+},
+{
+"id": "openacc:cheatsheet#tells-smells-gpu-correctness-perf",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — OpenACC 3.4 > Tells & smells (GPU correctness/perf)",
+"text": "- **`>100×` \"speedup\"** → almost always a missing `wait`/`!$acc wait` before the timer; async kernels return immediately. Time with `system_clock`, never `cpu_time`. (the hpc-practice pack)\n- **Bare `parallel` (no inner `loop`)** → body runs **redundantly per gang** (GR mode), not parallelized.\n- **`copy` inside a hot loop** → re-transfers every iteration; hoist to `enter data` + `present`.\n- **Kernel reads garbage / crashes** → host pointer dereferenced on device, or data not `present`/`attach`ed.\n- **Wrong results, run-to-run varying** → race on weak memory model, or `independent` asserted on a dependent loop, or cross-gang sync attempt.\n- **Trying to barrier/lock across gangs/workers** → deadlock; restructure, don't synchronize.\n- **Device library call gets host address** → wrap in `host_data use_device(...)`.\n- **`update` \"does nothing\"** → it doesn't allocate; data was never staged. Use `enter data`/`copyin` first or `if_present`.\n- **Consumer NVIDIA GPU, FP64 code slow** → 1:64 FP64:FP32 ratio (vs 1:2 datacenter); FP32-store/FP64-compute is a *trap*, strictly slower than full FP64. (reference_consumer_gpu_fp64_trap)\n- **nvfortran: launch error 719 on a reduction kernel** → the reduction target is a module allocatable with module-scope `declare create`; the combine is generated against the static descriptor symbol (invalid data pointer). `enter data` presence is irrelevant. Reduce into a procedure-local array (automatic or allocatable, procedure-scope `declare create`), copy to module storage on host. Spec-conforming code — NVHPC codegen defect. (hpc-practice pack (gpu-practice) → Compiler Pitfalls; Xall audit_l2res_openacc_reduction.md)",
+"symbols": [
+"!$acc wait",
+"attach",
+"copy",
+"copyin",
+"cpu_time",
+"create",
+"data",
+"declare",
+"enter",
+"host_data",
+"if_present",
+"independent",
+"loop",
+"parallel",
+"present",
+"system_clock",
+"update",
+"use_device",
+"wait"
+]
+},
+{
+"id": "openacc:cheatsheet#mpi-openacc",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — OpenACC 3.4 > MPI + OpenACC",
+"text": "- Map ranks → GPUs via `ACC_DEVICE_NUM` (node-local rank) or `acc_set_device_num`.\n- Halo exchange: `update self(halo)` → MPI → `update device(halo)`; or device-aware MPI via `host_data use_device(halo)` (no host bounce).\n- `async` data transfers are **not inherited** by nested constructs — synchronize halos deliberately.",
+"symbols": [
+"acc_device_num",
+"acc_set_device_num",
+"async",
+"device",
+"halo",
+"host_data",
+"self",
+"update",
+"use_device"
+]
+},
+{
+"id": "openacc:glossary#glossary-openacc-3-4",
+"doc": "glossary",
+"heading": "Glossary — OpenACC 3.4",
+"text": "Key terms from the spec's Glossary (Ch 6) plus directive/clause vocabulary. Format: **Term** — definition (Ch).",
+"symbols": []
+},
+{
+"id": "openacc:glossary#glossary-openacc-3-4-2",
+"doc": "glossary",
+"heading": "Glossary — OpenACC 3.4",
+"text": "**Accelerator** — a device attached to a CPU to which data/compute is offloaded (Ch1, 11).\n**Accelerator routine** — a procedure compiled for the device via the `routine` directive (Ch7).\n**Aggregate datatype** — any non-scalar type (array, struct, derived type); implicitly `copy` in a compute construct (Ch4, 11).\n**async-argument** — nonnegative scalar int selecting an activity queue, or a special `acc_async_*` value (Ch7).\n**Activity queue** — an in-order stream of device operations; same async-value → same queue (Ch7).\n**`atomic`** — construct ensuring race-free read/write/update/capture of one location (Ch6).\n**`attach`/`detach`** — translate a host pointer member to its device target address (Ch4).\n**Barrier** — synchronization point; not portable across gangs/workers/vector lanes (Ch1).\n**`cache`** — directive hinting array elements into fast memory for a loop (Ch5).\n**`collapse(n)`** — fuse n tightly-nested loops; `collapse(force:n)` allows non-tight nests (v3.4) (Ch5).\n**Combined construct** — `parallel loop`/`kernels loop`/`serial loop` shorthand (Ch5).\n**Compute construct** — `parallel`, `serial`, or `kernels` (Ch3, 11).\n**Compute intensity** — arithmetic ops ÷ data moved; the offload-worthwhileness metric (Ch1, 11).\n**Compute region** — the dynamic execution of a compute construct (incl. callees) (Ch11).\n**`copy`/`copyin`/`copyout`/`create`** — data clauses: in+out / in / out / scratch (Ch4).\n**`declare`** — associate a device copy with a variable's scope (module/global/program) (Ch6).\n**`default(none|present)`** — force explicit data clauses / assume present (Ch3, 4).\n**`device_resident`** — declare data living only on the device (Ch6).\n**`device_type` (`dtype`)** — per-architecture clause partitioning on a directive (Ch2).\n**Device thread** — one vector lane of one worker of one gang (Ch1, 11).\n**Discrete memory** — device memory not accessible from the local thread (needs copies) (Ch1, 11).\n**`enter data`/`exit data`** — unstructured (non-lexical) device data lifetimes (Ch4, 6).\n**`firstprivate`** — per-gang private initialized from the host value (Ch3).\n**Gang** — coarse-grain parallelism, organized in a 1–3D grid; no portable inter-gang sync (Ch1, 5).\n**GR / GP mode** — gang-redundant (all gangs run same code) / gang-partitioned (iterations split) (Ch1).\n**`host_data use_device`** — expose a present var's device address to host code (Ch5).\n**ICV** — internal control variable (device type/num, default async) (Ch2).\n**`if(cond)`** — run on device conditionally; on `data`, skip all alloc/transfer if false (Ch3, 4).\n**`independent`** — assert loop iterations are parallel-safe (default on `parallel`) (Ch5).\n**`kernels`** — compute construct where the compiler parallelizes each loop (Ch3).\n**Kernel** — a nested loop executed in parallel on the device (Ch11).\n**Local thread/device/memory** — the thread executing a directive (host or device) and its device/memory (Ch1, 11).\n**`loop`** — maps iterations to gang/worker/vector/seq parallelism (Ch5).\n**`no_create`** — use a device copy if present, else operate locally; never allocate (Ch4).\n**`nohost`** — `routine` clause: don't compile a host version (Ch7).\n**Orphaned loop** — a `loop` with no enclosing compute construct (Ch5, 11).\n**`parallel`** — compute construct; programmer asserts parallelism + controls geometry (Ch3).\n**Parent compute construct/scope/procedure** — nearest enclosing compute construct / either / procedure (Ch3, 11).\n**Present data** — structured + dynamic reference counters sum > 0 (resident on device) (Ch4, 11).\n**`present`** — data clause asserting data is already on device (error if not) (Ch4).\n**`private`** — per-iteration/per-gang private copy (Ch3, 5).\n**Reference counter** — structured + dynamic counts; data freed when both reach 0 (Ch4).\n**`reduction(op:vars)`** — combine partial results across gangs/workers/lanes (Ch3, 5).\n**Region** — all code executed during a construct instance, including called procedures (Ch11).\n**`routine [gang|worker|vector|seq]`** — make a procedure device-callable at a parallelism level (Ch7).\n**Scalar** — intrinsic non-aggregate type; implicitly `firstprivate` in a compute construct (Ch4, 11).\n**`self`** — compute: run on local thread; update: copy device→host (Ch3, 6).\n**`seq`** — execute a loop/routine sequentially (no parallelism) (Ch5).\n**`serial`** — compute construct: one gang, one worker, vector length 1 (Ch3).\n**Shared memory** — accessible from both local thread and current device; no copy needed (Ch1, 11).\n**Structured vs unstructured data** — lexically-scoped (`data`) vs `enter/exit data` lifetimes (Ch4).\n**`tile(sizes)`** — block a loop's iteration space for locality (Ch5).\n**`update self`/`device`** — refresh resident data host↔device without changing lifetime (Ch6).\n**Vector** — SIMD/vector-lane parallelism within a worker (Ch1, 5).\n**`wait[(q)] [async(q2)]`** — block host on queue(s), or make q2 depend on q (device-side) (Ch7).\n**Worker** — fine-grain parallelism (threads within a gang) (Ch1, 5).",
+"symbols": [
+"acc_async_",
+"async",
+"atomic",
+"attach",
+"cache",
+"collapse",
+"cond",
+"copy",
+"copyin",
+"copyout",
+"create",
+"data",
+"declare",
+"default",
+"detach",
+"device",
+"device_resident",
+"device_type",
+"dtype",
+"enter",
+"exit",
+"firstprivate",
+"force",
+"gang",
+"host_data",
+"independent",
+"kernels",
+"loop",
+"no_create",
+"nohost",
+"none",
+"parallel",
+"present",
+"private",
+"reduction",
+"routine",
+"self",
+"seq",
+"serial",
+"sizes",
+"tile",
+"update",
+"use_device",
+"vars",
+"vector",
+"wait",
+"worker"
+]
+},
+{
+"id": "openacc:patterns#patterns-openacc-gpu-offload-idioms",
+"doc": "patterns",
+"heading": "Patterns — OpenACC GPU offload idioms",
+"text": "Concrete techniques. Format: **When / How / Trade-offs.**",
+"symbols": []
+},
+{
+"id": "openacc:patterns#persistent-data-across-a-time-loop-the-1-optimization",
+"doc": "patterns",
+"heading": "Patterns — OpenACC GPU offload idioms > Persistent data across a time loop (the #1 optimization)",
+"text": "**When**: an iterative solver reuses the same arrays across many kernel launches.\n**How**: `enter data copyin(fields)` before the loop, `present(fields)` on every kernel inside, `exit data copyout(results)` after. (Ch4)\n**Trade-offs**: eliminates per-iteration H2D/D2H — usually the difference between offload winning and losing. Must track lifetimes manually.",
+"symbols": [
+"copyin",
+"copyout",
+"data",
+"enter",
+"exit",
+"fields",
+"present",
+"results"
+]
+},
+{
+"id": "openacc:patterns#combined-construct-as-the-default",
+"doc": "patterns",
+"heading": "Patterns — OpenACC GPU offload idioms > Combined construct as the default",
+"text": "**When**: a single loop nest you want offloaded.\n**How**: `#pragma acc parallel loop` / `!$acc parallel loop` (+ `collapse`, `reduction`, `present`). (Ch3, 5)\n**Trade-offs**: avoids the \"bare `parallel` runs redundantly per gang\" trap; clearest common form.",
+"symbols": [
+"!$acc parallel loop",
+"acc",
+"collapse",
+"loop",
+"parallel",
+"pragma",
+"present",
+"reduction"
+]
+},
+{
+"id": "openacc:patterns#kernels-for-compiler-driven-exploration",
+"doc": "patterns",
+"heading": "Patterns — OpenACC GPU offload idioms > kernels for compiler-driven exploration",
+"text": "**When**: you're unsure of the best mapping or whether loops are independent.\n**How**: wrap a block in `#pragma acc kernels`; let the compiler split/parallelize. (Ch3)\n**Trade-offs**: safer (compiler checks dependencies) but may under-parallelize; switch to `parallel loop` once you know the structure.",
+"symbols": [
+"acc",
+"kernels",
+"loop",
+"parallel",
+"pragma"
+]
+},
+{
+"id": "openacc:patterns#collapse-reduction-for-dense-nests",
+"doc": "patterns",
+"heading": "Patterns — OpenACC GPU offload idioms > collapse + reduction for dense nests",
+"text": "**When**: a tightly-nested rectangular loop nest with an accumulator.\n**How**: `parallel loop collapse(2) reduction(+:err)`; use `collapse(force:n)` (v3.4) for non-tight nests. (Ch5)\n**Trade-offs**: more exposed parallelism; requires rectangular bounds (unless `force`).",
+"symbols": [
+"collapse",
+"err",
+"force",
+"loop",
+"parallel",
+"reduction"
+]
+},
+{
+"id": "openacc:patterns#double-buffered-async-pipeline",
+"doc": "patterns",
+"heading": "Patterns — OpenACC GPU offload idioms > Double-buffered async pipeline",
+"text": "**When**: overlapping host↔device transfer with compute over blocks/tiles.\n**How**: alternate `async(q)` queues per block — same queue keeps H2D→compute→D2H ordered; different queues overlap; final `wait`. (Ch7)\n**Trade-offs**: hides transfer latency; needs careful queue bookkeeping and a join.",
+"symbols": [
+"async",
+"wait"
+]
+},
+{
+"id": "openacc:patterns#host-data-for-library-device-aware-mpi-interop",
+"doc": "patterns",
+"heading": "Patterns — OpenACC GPU offload idioms > host_data for library / device-aware MPI interop",
+"text": "**When**: passing device data to CUDA/cuBLAS/device-aware MPI.\n**How**: `#pragma acc host_data use_device(a)` around the call; `a` resolves to its device address. (Ch5)\n**Trade-offs**: the bridge to non-OpenACC device code; data must already be present.",
+"symbols": [
+"acc",
+"host_data",
+"pragma",
+"use_device"
+]
+},
+{
+"id": "openacc:patterns#routine-for-device-callable-functions",
+"doc": "patterns",
+"heading": "Patterns — OpenACC GPU offload idioms > routine for device-callable functions",
+"text": "**When**: a kernel calls a helper function.\n**How**: annotate the function `#pragma acc routine seq` (or gang/worker/vector to match its internal parallelism). (Ch7)\n**Trade-offs**: `seq` is callable anywhere; higher levels constrain call sites. Required — un-annotated device calls fail to compile.",
+"symbols": [
+"acc",
+"pragma",
+"routine",
+"seq"
+]
+},
+{
+"id": "openacc:patterns#atomic-for-irregular-scatter",
+"doc": "patterns",
+"heading": "Patterns — OpenACC GPU offload idioms > atomic for irregular scatter",
+"text": "**When**: histogram/counter/scatter where `reduction` doesn't fit.\n**How**: `#pragma acc atomic update` on the contended location; `atomic capture` for fetch-and-modify. (Ch6)\n**Trade-offs**: serializes contended addresses — prefer `reduction` for true reductions.",
+"symbols": [
+"acc",
+"atomic",
+"capture",
+"pragma",
+"reduction",
+"update"
+]
+},
+{
+"id": "openacc:patterns#partial-sync-for-halo-exchange",
+"doc": "patterns",
+"heading": "Patterns — OpenACC GPU offload idioms > Partial sync for halo exchange",
+"text": "**When**: MPI halo exchange between device kernels.\n**How**: `update self(halo)` (D2H) → MPI exchange → `update device(halo)` (H2D); or `host_data use_device` for device-aware MPI (no staging). (Ch6, 5)\n**Trade-offs**: `update` moves only the halo, not the whole field; device-aware MPI avoids the host bounce entirely.",
+"symbols": [
+"device",
+"halo",
+"host_data",
+"self",
+"update",
+"use_device"
+]
+},
+{
+"id": "openacc:patterns#declare-create-for-module-global-fields",
+"doc": "patterns",
+"heading": "Patterns — OpenACC GPU offload idioms > declare create for module/global fields",
+"text": "**When**: persistent device data tied to a module's lifetime (e.g. solver state).\n**How**: `!$acc declare create(field)` in the module declaration section. (Ch6)\n**Trade-offs**: device copy exists for the program's life; pairs with `update` to sync.",
+"symbols": [
+"!$acc declare create",
+"field",
+"update"
+]
+},
+{
+"id": "openacc:patterns#default-none-discipline",
+"doc": "patterns",
+"heading": "Patterns — OpenACC GPU offload idioms > default(none) discipline",
+"text": "**When**: any non-trivial compute construct.\n**How**: add `default(none)`; declare every variable's data attribute explicitly. (Ch3)\n**Trade-offs**: verbose, but surfaces accidental implicit copies — the OpenACC analog of `implicit none`.",
+"symbols": [
+"default",
+"implicit",
+"none"
+]
+},
+{
+"id": "openacc:ch01-introduction#core-idea",
+"doc": "ch01-introduction",
+"heading": "Chapter 1: Introduction — Execution & Memory Models > Core Idea",
+"text": "OpenACC is a **host-directed, incremental, directive-based** model for offloading compute regions to an accelerator (or multicore CPU as a device). The two foundations everything else builds on: the **gang/worker/vector** execution model and the **discrete device data environment** memory model.",
+"symbols": []
+},
+{
+"id": "openacc:ch01-introduction#frameworks-introduced",
+"doc": "ch01-introduction",
+"heading": "Chapter 1: Introduction — Execution & Memory Models > Frameworks Introduced",
+"text": "- **Execution model — three levels of parallelism** (mapped to hardware):\n  - **gang** = coarse-grain, fully parallel across execution units; organized in a 1–3D grid (gang dims; default uses dim 1 only). *No portable synchronization between gangs.*\n  - **worker** = fine-grain, multiple threads within a gang (latency hiding).\n  - **vector** = SIMD/vector lanes within a worker.\n  - Six ordered levels (high→low): gang-dim3, gang-dim2, gang-dim1, worker, vector, **seq** (no parallelism).\n- **Execution modes** (which lanes are active) — the key to reasoning about correctness:\n  - **GR (gang-redundant)**: one vector lane of one worker per gang runs the *same* code redundantly (per dim: GR1/GR2/GR3).\n  - **GP (gang-partitioned)**: loop iterations split across gangs (GP1/GP2/GP3); still 1 worker, 1 lane active.\n  - **WS/WP (worker-single/partitioned)**, **VS/VP (vector-single/partitioned)**: analogous at worker/vector level.\n- **Memory model — discrete device data environment**: device memory is (usually) **separate** from host memory. Data has an explicit lifetime (created→deleted). Movement is **implicit, compiler-managed via directives** (vs. explicit in CUDA/OpenCL). On shared-memory devices, no copy is made.\n- **local thread / local device**: the thread executing a directive (host or device) and its device — terminology for nested parallelism.",
+"symbols": []
+},
+{
+"id": "openacc:ch01-introduction#key-concepts",
+"doc": "ch01-introduction",
+"heading": "Chapter 1: Introduction — Execution & Memory Models > Key Concepts",
+"text": "- **device thread** = a single vector lane of a single worker of a single gang.\n- **weak memory model**: many accelerators give **no coherence** between threads without an explicit fence — racy code can produce inconsistent numerics that compilers may not catch.\n- **activity queues**: host enqueues ops (transfers, kernel launches) onto device queues; same-queue ops serialize, different-queue ops run concurrently in any order — the basis of `async`.\n- **incremental porting**: add directives to standard C/C++/Fortran; compilers ignore them if support is off.\n- **scope exclusions**: OpenACC does *not* do automatic parallelization, automatic offload, or splitting across multiple accelerators.",
+"symbols": [
+"async"
+]
+},
+{
+"id": "openacc:ch01-introduction#mental-models",
+"doc": "ch01-introduction",
+"heading": "Chapter 1: Introduction — Execution & Memory Models > Mental Models",
+"text": "- **Think \"host orchestrates, device executes\"**: the host thread allocates device memory, transfers data, queues kernels, waits, copies results back — much of this implicit.\n- **Gangs are islands**: never try to synchronize across gangs (or across workers/vector lanes) — the scheduler may run some to completion before others start; a cross-gang barrier or busy-wait lock can **deadlock**. Restructure instead.\n- **Discrete memory is the dominant cost**: compute intensity must justify the host↔device bandwidth; device memory is far smaller than host. A pointer valid on one side is meaningless on the other.",
+"symbols": []
+},
+{
+"id": "openacc:ch01-introduction#anti-patterns",
+"doc": "ch01-introduction",
+"heading": "Chapter 1: Introduction — Execution & Memory Models > Anti-patterns",
+"text": "- **Cross-gang / cross-worker synchronization** (barriers, locks, critical sections via atomics + busy-wait): non-portable, likely deadlock. The execution model permits sequential gang completion.\n- **Dereferencing a host pointer on the device** (or vice-versa): runtime error or silent garbage — transfer the *data*, not the pointer.\n- **Assuming memory coherence without a fence** on weak-memory devices: inconsistent results across runs.\n- **Offloading low-compute-intensity regions**: transfer cost dominates; measure bandwidth vs. flops first.",
+"symbols": []
+},
+{
+"id": "openacc:ch01-introduction#key-takeaways",
+"doc": "ch01-introduction",
+"heading": "Chapter 1: Introduction — Execution & Memory Models > Key Takeaways",
+"text": "1. Three parallelism levels: **gang** (coarse) → **worker** (fine) → **vector** (SIMD); plus `seq`.\n2. Execution modes GR→GP (gang), WS→WP (worker), VS→VP (vector) govern which lanes are active and thus correctness.\n3. **No portable synchronization across gangs/workers/vector lanes** — restructure, never barrier.\n4. Device memory is discrete; data movement is implicit/compiler-managed but the programmer must respect bandwidth, capacity, and pointer non-portability.\n5. Weak memory model → explicit synchronization required for shared data; races may silently corrupt numerics.",
+"symbols": [
+"seq"
+]
+},
+{
+"id": "openacc:ch01-introduction#connects-to",
+"doc": "ch01-introduction",
+"heading": "Chapter 1: Introduction — Execution & Memory Models > Connects To",
+"text": "- **Ch 3**: Compute constructs — `parallel`/`kernels`/`serial` launch the gang/worker/vector machinery.\n- **Ch 5**: loop construct — `gang`/`worker`/`vector`/`seq` clauses select the mode per loop.\n- **Ch 4**: data environment — the discrete-memory model is operationalized by data clauses.\n- **Ch 7**: async behavior — activity queues underlie `async`/`wait`.",
+"symbols": [
+"async",
+"gang",
+"kernels",
+"parallel",
+"seq",
+"serial",
+"vector",
+"wait",
+"worker"
+]
+},
+{
+"id": "openacc:ch02-directive-basics#core-idea",
+"doc": "ch02-directive-basics",
+"heading": "Chapter 2 (§2.1–2.4): Directive format, conditional compilation, ICVs, device-specific clauses > Core Idea",
+"text": "The mechanics shared by all OpenACC directives: how to spell them in C/C++ vs Fortran, the `_OPENACC` version macro, the internal control variables (ICVs), and the `device_type` mechanism for per-device tuning in one directive.",
+"symbols": [
+"_openacc",
+"device_type"
+]
+},
+{
+"id": "openacc:ch02-directive-basics#frameworks-introduced",
+"doc": "ch02-directive-basics",
+"heading": "Chapter 2 (§2.1–2.4): Directive format, conditional compilation, ICVs, device-specific clauses > Frameworks Introduced",
+"text": "- **Directive format** (§2.1):\n  - C/C++: `#pragma acc directive-name [clause-list]` (or `_Pragma(\"acc ...\")`). First token after `acc`; **case-sensitive**; subject to macro replacement.\n  - Fortran free-form: `!$acc directive-name [clause-list]`; sentinel `!$acc` is one word; continuation with trailing `&`, continued lines re-start with the sentinel. Fixed-form sentinels: `!$acc`/`c$acc`/`*$acc`.\n- **Conditional compilation** (§2.2): the `_OPENACC` macro = `yyyymm` of the supported version (this spec = **202506**). Defined only when OpenACC is enabled — guard host fallbacks with `#ifdef _OPENACC`.\n- **Internal Control Variables** (§2.3): implementation-maintained state, set by env vars / API / clauses, read by API:\n  - `acc-current-device-type-var` — which device *type*.\n  - `acc-current-device-num-var` — which device of that type.\n  - `acc-default-async-var` — the queue used when `async` has no argument.\n  - One ICV copy per (non-compute-generated) host thread; compute-generated threads inherit the local thread's values.\n- **Device-specific clauses** (§2.4): `device_type(list | *)` (abbrev **`dtype`**) partitions a directive's clauses. Clauses *before* any `device_type` are **defaults**; clauses *after* one apply only to those device types. The most *specific* matching architecture name wins; `*` is least specific. A directive with ≥1 device-specific clause is **device-dependent**.",
+"symbols": [
+"!$acc",
+"!$acc directive",
+"_openacc",
+"_pragma",
+"acc",
+"async",
+"clause",
+"current",
+"default",
+"device",
+"device_type",
+"directive",
+"dtype",
+"ifdef",
+"list",
+"name",
+"num",
+"pragma",
+"type",
+"var",
+"yyyymm"
+]
+},
+{
+"id": "openacc:ch02-directive-basics#icv-modify-retrieve-2-3-1",
+"doc": "ch02-directive-basics",
+"heading": "Chapter 2 (§2.1–2.4): Directive format, conditional compilation, ICVs, device-specific clauses > Reference Tables > ICV modify / retrieve (§2.3.1)",
+"text": "| ICV | Modify | Retrieve |\n|---|---|---|\n| `acc-current-device-type-var` | `acc_set_device_type`, `set device_type`, `init device_type`, `ACC_DEVICE_TYPE` | `acc_get_device_type` |\n| `acc-current-device-num-var` | `acc_set_device_num`, `set device_num`, `init device_num`, `ACC_DEVICE_NUM` | `acc_get_device_num` |\n| `acc-default-async-var` | `acc_set_default_async`, `set default_async` | `acc_get_default_async` |",
+"symbols": [
+"acc",
+"acc_device_num",
+"acc_device_type",
+"acc_get_default_async",
+"acc_get_device_num",
+"acc_get_device_type",
+"acc_set_default_async",
+"acc_set_device_num",
+"acc_set_device_type",
+"async",
+"current",
+"default",
+"default_async",
+"device",
+"device_num",
+"device_type",
+"init",
+"num",
+"set",
+"type",
+"var"
+]
+},
+{
+"id": "openacc:ch02-directive-basics#worked-example",
+"doc": "ch02-directive-basics",
+"heading": "Chapter 2 (§2.1–2.4): Directive format, conditional compilation, ICVs, device-specific clauses > Worked Example",
+"text": "Per-device tuning with `device_type` (from the spec):\n```c\n// worker is foo-specific; gang is a default applying to ALL device types\n#pragma acc loop gang device_type(foo) worker\n// tune launch geometry per architecture in one directive:\n#pragma acc parallel loop device_type(nvidia) num_gangs(1024) \\\n                          device_type(*) num_gangs(256)\n```\nHost-fallback guard:\n```c\n#ifdef _OPENACC\n  #pragma acc parallel loop\n#endif\n  for (int i = 0; i < n; ++i) a[i] = b[i] + c[i];\n```\n- **Demonstrates**: `device_type` partitioning (defaults before it, device-specific after), `dtype` semantics, and `_OPENACC` conditional compilation.",
+"symbols": [
+"_openacc",
+"device_type",
+"dtype"
+]
+},
+{
+"id": "openacc:ch02-directive-basics#anti-patterns",
+"doc": "ch02-directive-basics",
+"heading": "Chapter 2 (§2.1–2.4): Directive format, conditional compilation, ICVs, device-specific clauses > Anti-patterns",
+"text": "- **Mixing free/fixed Fortran sentinel rules**: continuation differs; follow the source form's rules.\n- **Assuming `_OPENACC` is always defined**: it's only defined when OpenACC is enabled — that's the point of the guard, but don't rely on it in non-OpenACC builds.\n- **Forgetting clause order in `device_type`**: clauses *before* the first `device_type` are global defaults; a clause placed after one silently becomes device-specific.\n- **Relying on ICV initial values**: they're implementation-defined until env vars are read.",
+"symbols": [
+"_openacc",
+"device_type"
+]
+},
+{
+"id": "openacc:ch02-directive-basics#key-takeaways",
+"doc": "ch02-directive-basics",
+"heading": "Chapter 2 (§2.1–2.4): Directive format, conditional compilation, ICVs, device-specific clauses > Key Takeaways",
+"text": "1. C/C++ `#pragma acc ...` (case-sensitive); Fortran `!$acc ...` (sentinel is one word, `&` continuation).\n2. `_OPENACC` = `202506` for v3.4; use `#ifdef _OPENACC` for host fallbacks.\n3. Three ICVs: current device type, device num, default async queue — set via env/API/clauses.\n4. `device_type(...)` (`dtype`) tunes one directive per architecture: defaults before it, device-specific after; most-specific name wins, `*` is the catch-all.",
+"symbols": [
+"!$acc",
+"_openacc",
+"acc",
+"device_type",
+"dtype",
+"ifdef",
+"pragma"
+]
+},
+{
+"id": "openacc:ch02-directive-basics#connects-to",
+"doc": "ch02-directive-basics",
+"heading": "Chapter 2 (§2.1–2.4): Directive format, conditional compilation, ICVs, device-specific clauses > Connects To",
+"text": "- **Ch 3–7**: every construct uses this directive syntax and may carry `device_type`.\n- **Ch 9**: environment variables (`ACC_DEVICE_TYPE`, `ACC_DEVICE_NUM`) set the ICVs.\n- **Ch 8**: runtime library — `acc_set_device_*`/`acc_get_device_*` manipulate ICVs.",
+"symbols": [
+"acc_device_num",
+"acc_device_type",
+"acc_get_device_",
+"acc_set_device_",
+"device_type"
+]
+},
+{
+"id": "openacc:ch03-compute-constructs#core-idea",
+"doc": "ch03-compute-constructs",
+"heading": "Chapter 3 (§2.5): Compute constructs — parallel, serial, kernels > Core Idea",
+"text": "The three constructs that launch device execution: **`parallel`** (programmer-controlled gangs), **`kernels`** (compiler decides parallelization), and **`serial`** (one gang/worker/lane). The choice determines who is responsible for correctness and parallelization.",
+"symbols": [
+"kernels",
+"parallel",
+"serial"
+]
+},
+{
+"id": "openacc:ch03-compute-constructs#frameworks-introduced",
+"doc": "ch03-compute-constructs",
+"heading": "Chapter 3 (§2.5): Compute constructs — parallel, serial, kernels > Frameworks Introduced",
+"text": "- **`parallel`** (§2.5.1): launches a fixed number of gangs/workers/vector-lanes; each gang starts in **gang-redundant (GR) mode** — code outside a gang-worksharing `loop` runs redundantly in every gang. Implicit barrier at the end unless `async`. The programmer asserts parallelism.\n- **`kernels`** (§2.5.3): the region becomes a *sequence of kernels*; the **compiler** analyzes dependencies and chooses gang/worker/vector mapping per loop. Safer for correctness, less control.\n- **`serial`** (§2.5.2): exactly **one gang, one worker, vector length 1** — sequential on the device. Use to run sequential code where data is already resident, avoiding a host round-trip.\n- **Parentage**: *parent procedure* (nearest enclosing proc whose expressions evaluate when called), *parent compute construct*, *parent compute scope* — used by data-attribute and `routine` rules.",
+"symbols": [
+"async",
+"kernels",
+"loop",
+"parallel",
+"routine",
+"serial"
+]
+},
+{
+"id": "openacc:ch03-compute-constructs#key-concepts",
+"doc": "ch03-compute-constructs",
+"heading": "Chapter 3 (§2.5): Compute constructs — parallel, serial, kernels > Key Concepts",
+"text": "- **`num_gangs` / `num_workers` / `vector_length`**: set launch geometry (parallel/kernels only; **not** serial).\n- **`reduction(op : vars)`**: combine per-gang/worker/lane partial results (`+ * max min & | ^ && ||`).\n- **`private` / `firstprivate`**: per-gang private copies (firstprivate initialized from host value).\n- **`default(none | present)`**: `none` forces explicit data clauses for every variable (discipline); `present` assumes data is already on device.\n- **`if(cond)` / `self[(cond)]`**: run on device conditionally / run on local thread (host) instead.\n- **`async` / `wait`**: queue the region instead of blocking (ch7).",
+"symbols": [
+"async",
+"cond",
+"default",
+"firstprivate",
+"max",
+"min",
+"none",
+"num_gangs",
+"num_workers",
+"present",
+"private",
+"reduction",
+"self",
+"vars",
+"vector_length",
+"wait"
+]
+},
+{
+"id": "openacc:ch03-compute-constructs#parallel-vs-kernels-the-central-decision",
+"doc": "ch03-compute-constructs",
+"heading": "Chapter 3 (§2.5): Compute constructs — parallel, serial, kernels > parallel vs kernels — the central decision",
+"text": "| | `parallel` | `kernels` |\n|---|---|---|\n| Parallelization | programmer asserts (you guarantee independence) | compiler analyzes & decides |\n| Granularity | one region = one launch geometry | region → multiple kernels, each tuned |\n| Control | full (`num_gangs` etc., `loop` clauses) | compiler-driven |\n| Risk | wrong assertion → races | conservative; may under-parallelize |\n| Use when | you know the loop nest is parallel | exploring, or trusting the compiler |",
+"symbols": [
+"kernels",
+"loop",
+"num_gangs",
+"parallel"
+]
+},
+{
+"id": "openacc:ch03-compute-constructs#code-examples",
+"doc": "ch03-compute-constructs",
+"heading": "Chapter 3 (§2.5): Compute constructs — parallel, serial, kernels > Code Examples",
+"text": "```c\n// parallel: you assert independence; control geometry\n#pragma acc parallel loop num_gangs(256) vector_length(128) \\\n            reduction(+:sum) present(a,b)\nfor (int i = 0; i < n; ++i) sum += a[i]*b[i];\n\n// kernels: compiler parallelizes each loop in the block as it sees fit\n#pragma acc kernels copyin(a[0:n],b[0:n]) copyout(c[0:n])\n{\n  for (int i = 0; i < n; ++i) c[i] = a[i] + b[i];\n  for (int i = 0; i < n; ++i) c[i] *= 2.0;\n}\n```\n```fortran\n!$acc serial present(state)      ! sequential on device, no host round-trip\n  state%step = state%step + 1\n!$acc end serial\n```\n- **Demonstrates**: `parallel loop` with explicit geometry + reduction; `kernels` letting the compiler split a multi-loop block; `serial` for device-resident sequential work.",
+"symbols": [
+"kernels",
+"loop",
+"parallel",
+"serial"
+]
+},
+{
+"id": "openacc:ch03-compute-constructs#worked-example-why-parallel-runs-redundantly-without-loop",
+"doc": "ch03-compute-constructs",
+"heading": "Chapter 3 (§2.5): Compute constructs — parallel, serial, kernels > Worked Example — why `parallel` runs redundantly without `loop`",
+"text": "```c\n#pragma acc parallel num_gangs(4)     // 4 gangs, all in GR mode\n{\n  x = 0;                              // executed by ALL 4 gangs redundantly!\n  #pragma acc loop                    // NOW partitioned across gangs\n  for (int i = 0; i < n; ++i) y[i] = i;\n}\n```\nCode in a `parallel` region but *outside* a gang-worksharing `loop` executes once **per gang** (GR mode). Forgetting the `loop` directive is the classic \"why did my serial statement run 4×\" bug. `parallel loop` (combined) is the safe common case.",
+"symbols": [
+"loop",
+"parallel"
+]
+},
+{
+"id": "openacc:ch03-compute-constructs#anti-patterns",
+"doc": "ch03-compute-constructs",
+"heading": "Chapter 3 (§2.5): Compute constructs — parallel, serial, kernels > Anti-patterns",
+"text": "- **`parallel` without an inner `loop`**: the body runs redundantly in every gang (GR mode) — almost never intended for the work itself.\n- **Asserting `parallel` on a loop with dependencies**: data races / wrong results — use `kernels` (compiler checks) or fix the dependency.\n- **`num_gangs`/`vector_length` on `serial`**: not permitted.\n- **Omitting `reduction`** on an accumulator across iterations: race; the partial-sum-per-lane must be reduced.\n- **Not using `default(none)`**: hides accidental implicit copies — adopt it like `implicit none`.",
+"symbols": [
+"default",
+"implicit",
+"kernels",
+"loop",
+"none",
+"num_gangs",
+"parallel",
+"reduction",
+"serial",
+"vector_length"
+]
+},
+{
+"id": "openacc:ch03-compute-constructs#key-takeaways",
+"doc": "ch03-compute-constructs",
+"heading": "Chapter 3 (§2.5): Compute constructs — parallel, serial, kernels > Key Takeaways",
+"text": "1. `parallel` = you assert parallelism + control geometry; `kernels` = compiler decides; `serial` = one gang/worker/lane.\n2. In a `parallel` region, code **outside** a gang-worksharing `loop` runs **redundantly per gang** (GR mode) — use `parallel loop`.\n3. `serial` avoids a host round-trip for sequential work on already-resident data.\n4. `reduction`, `private`/`firstprivate`, `default(none)` are the correctness-critical clauses.\n5. `num_gangs`/`num_workers`/`vector_length` apply to parallel/kernels, not serial.",
+"symbols": [
+"default",
+"firstprivate",
+"kernels",
+"loop",
+"none",
+"num_gangs",
+"num_workers",
+"parallel",
+"private",
+"reduction",
+"serial",
+"vector_length"
+]
+},
+{
+"id": "openacc:ch03-compute-constructs#connects-to",
+"doc": "ch03-compute-constructs",
+"heading": "Chapter 3 (§2.5): Compute constructs — parallel, serial, kernels > Connects To",
+"text": "- **Ch 1**: execution model — GR/GP modes, gang/worker/vector.\n- **Ch 5**: loop construct — `gang`/`worker`/`vector`/`seq` worksharing within these regions.\n- **Ch 4**: data clauses — `copy`/`copyin`/`copyout`/`present`/`create` shared across compute constructs.\n- **Ch 7**: async behavior — `async`/`wait` on compute constructs.",
+"symbols": [
+"async",
+"copy",
+"copyin",
+"copyout",
+"create",
+"gang",
+"present",
+"seq",
+"vector",
+"wait",
+"worker"
+]
+},
+{
+"id": "openacc:ch04-data-environment-clauses#core-idea",
+"doc": "ch04-data-environment-clauses",
+"heading": "Chapter 4 (§2.6–2.7): Data environment and data clauses > Core Idea",
+"text": "The most performance-critical part of OpenACC: managing the **device data environment** — when data is allocated/copied/freed, the **reference-counter** model that prevents premature deallocation, and the data clauses (`copy`/`copyin`/`copyout`/`create`/`present`/`no_create`/`deviceptr`/`attach`) that express it. Minimizing host↔device transfers is the central optimization.",
+"symbols": [
+"attach",
+"copy",
+"copyin",
+"copyout",
+"create",
+"deviceptr",
+"no_create",
+"present"
+]
+},
+{
+"id": "openacc:ch04-data-environment-clauses#frameworks-introduced",
+"doc": "ch04-data-environment-clauses",
+"heading": "Chapter 4 (§2.6–2.7): Data environment and data clauses > Frameworks Introduced",
+"text": "- **Data attribute determination** (§2.6.1–2.6.2):\n  - **predetermined**: loop control variables → private; etc. (cannot override).\n  - **implicitly determined**: a variable in a compute construct with no data clause is treated as `copy` (aggregate) or `firstprivate` (scalar), unless `default(none)` forces an explicit clause.\n- **Data lifetime models** (§2.6.3):\n  - **structured** — `data` construct / compute-construct region: created on entry, deleted on exit (lexically scoped).\n  - **unstructured** — `enter data` / `exit data` directives: lifetime spans arbitrary program points (e.g. across function boundaries), decoupled from lexical scope.\n- **Reference counters** (§2.6.7): each device variable has a **structured** and a **dynamic** reference counter. Data is allocated when a counter goes 0→1 and freed when both return to 0. This is why nested `data`/`enter data` regions don't double-allocate or prematurely free.\n- **Attachment counter** (§2.6.8) + **attach/detach** (§2.7): for pointer members of structs/derived types — translates host pointers to device addresses so device code can follow them.\n- **Data clause modifiers** (§2.7.4): e.g. `readonly`, `zero`, `always`, `capture`, `alloc`/`delete` — qualify when/how the copy happens.",
+"symbols": [
+"alloc",
+"always",
+"capture",
+"copy",
+"data",
+"default",
+"delete",
+"enter",
+"exit",
+"firstprivate",
+"none",
+"readonly",
+"zero"
+]
+},
+{
+"id": "openacc:ch04-data-environment-clauses#data-clauses-what-each-does",
+"doc": "ch04-data-environment-clauses",
+"heading": "Chapter 4 (§2.6–2.7): Data environment and data clauses > Data clauses — what each does",
+"text": "| Clause | On entry | On exit | Use when |\n|---|---|---|---|\n| `copy(v)` | alloc + copy H→D | copy D→H + free | in/out, lifetime = region |\n| `copyin(v)` | alloc + copy H→D | free | read-only input |\n| `copyout(v)` | alloc (no copy) | copy D→H + free | write-only output |\n| `create(v)` | alloc (no copy) | free | device-only scratch |\n| `no_create(v)` | use if present, else local | — | reuse existing device copy, no alloc |\n| `present(v)` | assert already on device (error if not) | — | data managed elsewhere |\n| `deviceptr(v)` | v is already a device pointer | — | interop with CUDA/explicit alloc |\n| `attach(v)` | attach pointer to device target | detach | pointer members |",
+"symbols": [
+"attach",
+"copy",
+"copyin",
+"copyout",
+"create",
+"deviceptr",
+"no_create",
+"present"
+]
+},
+{
+"id": "openacc:ch04-data-environment-clauses#key-concepts",
+"doc": "ch04-data-environment-clauses",
+"heading": "Chapter 4 (§2.6–2.7): Data environment and data clauses > Key Concepts",
+"text": "- **`enter data`/`exit data`** (§2.6.6): unstructured lifetime; `enter data copyin/create`, `exit data copyout/delete`. The idiom for data that lives across many kernels/functions (e.g. allocate fields once at solver init, free at finalize).\n- **`if(cond)` on `data`**: false → *no* allocation/movement at all.\n- **`async` on `data`** affects only the *transfers*, **not** the structured block's execution (stays synchronous) — and is **not inherited** by nested constructs. Mixing async data with sync compute is a race source.\n- **array shape syntax**: `a[start:length]` (C) / `a(lb:ub)` (Fortran) — you must specify the slice for non-scalar pointers.",
+"symbols": [
+"async",
+"cond",
+"copyin",
+"copyout",
+"create",
+"data",
+"delete",
+"enter",
+"exit",
+"length",
+"start"
+]
+},
+{
+"id": "openacc:ch04-data-environment-clauses#worked-example",
+"doc": "ch04-data-environment-clauses",
+"heading": "Chapter 4 (§2.6–2.7): Data environment and data clauses > Worked Example",
+"text": "The persistent-data idiom (the single biggest OpenACC optimization):\n```c\n// BAD: copies every iteration of the outer loop\nfor (int t = 0; t < nsteps; ++t) {\n  #pragma acc parallel loop copy(u[0:n])   // alloc+H2D+D2H+free EACH step!\n  for (int i = 1; i < n-1; ++i) u[i] = 0.5*(u[i-1]+u[i+1]);\n}\n\n// GOOD: data resident for the whole time loop, compute uses present\n#pragma acc enter data copyin(u[0:n])\nfor (int t = 0; t < nsteps; ++t) {\n  #pragma acc parallel loop present(u[0:n])  // no transfer\n  for (int i = 1; i < n-1; ++i) u[i] = 0.5*(u[i-1]+u[i+1]);\n}\n#pragma acc exit data copyout(u[0:n])\n```\nFortran derived-type with pointer (attach):\n```fortran\n!$acc enter data copyin(grid)            ! copies the descriptor\n!$acc enter data copyin(grid%x(1:n))     ! copies the array\n!$acc enter data attach(grid%x)          ! fix grid%x to point at the device array\n```\n- **Demonstrates**: hoisting transfers out of the time loop with `enter data` + `present` (eliminates per-step H2D/D2H), and the attach step for pointer members.",
+"symbols": [
+"data",
+"enter",
+"present"
+]
+},
+{
+"id": "openacc:ch04-data-environment-clauses#anti-patterns",
+"doc": "ch04-data-environment-clauses",
+"heading": "Chapter 4 (§2.6–2.7): Data environment and data clauses > Anti-patterns",
+"text": "- **`copy` inside a hot loop**: re-allocates and transfers every iteration — hoist to `enter data`/`data` + `present`.\n- **Forgetting `present`** on data you already staged: triggers an implicit `copy`, silently re-transferring.\n- **`async` on `data` expecting the block to overlap**: only transfers are async; the block runs synchronously and nested constructs don't inherit `async` → data races.\n- **Copying a pointer value instead of `attach`**: device follows a host address → crash/garbage; attach the pointer to its device target.\n- **Omitting array bounds** for a pointer (`copyin(a)` with no `[0:n]`): undefined extent.\n- **Relying on implicit `copy`**: use `default(none)` and explicit clauses to make every transfer visible.",
+"symbols": [
+"async",
+"attach",
+"copy",
+"copyin",
+"data",
+"default",
+"enter",
+"none",
+"present"
+]
+},
+{
+"id": "openacc:ch04-data-environment-clauses#key-takeaways",
+"doc": "ch04-data-environment-clauses",
+"heading": "Chapter 4 (§2.6–2.7): Data environment and data clauses > Key Takeaways",
+"text": "1. **Hoist data out of loops**: `enter data copyin` once + `present` in kernels + `exit data copyout` — the dominant optimization (eliminates per-iteration transfers).\n2. Clause cheat: `copyin`=input, `copyout`=output, `copy`=both, `create`=scratch, `present`=already there.\n3. Reference counters (structured + dynamic) make nested/repeated data regions safe — alloc at 0→1, free at →0.\n4. `attach`/`detach` is mandatory for pointer members of structs/derived types.\n5. `async` on `data` overlaps only transfers and is not inherited — a classic race source; synchronize deliberately.",
+"symbols": [
+"async",
+"attach",
+"copy",
+"copyin",
+"copyout",
+"create",
+"data",
+"detach",
+"enter",
+"exit",
+"present"
+]
+},
+{
+"id": "openacc:ch04-data-environment-clauses#connects-to",
+"doc": "ch04-data-environment-clauses",
+"heading": "Chapter 4 (§2.6–2.7): Data environment and data clauses > Connects To",
+"text": "- **Ch 3**: compute constructs carry the same data clauses; implicit attributes from §2.6.2.\n- **Ch 7**: async behavior — `async`/`wait` on data movement.\n- **Ch 8**: runtime library — `acc_copyin`/`acc_copyout`/`acc_create`/`acc_attach` API equivalents.\n- **Ch 6**: declare directive — static device data for module/global variables.",
+"symbols": [
+"acc_attach",
+"acc_copyin",
+"acc_copyout",
+"acc_create",
+"async",
+"wait"
+]
+},
+{
+"id": "openacc:ch05-loop-host-cache-combined#core-idea",
+"doc": "ch05-loop-host-cache-combined",
+"heading": "Chapter 5 (§2.8–2.11): loop, host_data, cache, combined constructs > Core Idea",
+"text": "The **`loop`** construct — how iterations map to gang/worker/vector parallelism — plus three helpers: `host_data` (expose device addresses to host code), `cache` (hint data into fast memory), and combined constructs (`parallel loop` etc.).",
+"symbols": [
+"cache",
+"host_data",
+"loop",
+"parallel"
+]
+},
+{
+"id": "openacc:ch05-loop-host-cache-combined#frameworks-introduced",
+"doc": "ch05-loop-host-cache-combined",
+"heading": "Chapter 5 (§2.8–2.11): loop, host_data, cache, combined constructs > Frameworks Introduced",
+"text": "- **`loop`** (§2.9): applies to the immediately-following loop; declares the parallelism type and private/reduction data. Clauses:\n  - **`gang` / `worker` / `vector` / `seq`**: which level worksharing uses (or none).\n  - **`independent`**: assert iterations are independent (the programmer's parallel-safety guarantee; implied on `parallel`).\n  - **`auto`**: let the compiler decide independence/mapping.\n  - **`collapse([force:]n)`**: fuse `n` tightly-nested loops into one iteration space (more parallelism).\n  - **`tile(sizes)`**: block the iteration space for locality.\n  - **`private` / `reduction(op:vars)`**: per-iteration privates / cross-iteration reduction.\n- **Worksharing nesting rule** (critical): a `gang`/`worker`/`vector` loop must **not** lexically enclose another loop of *equal or higher* level (within the same compute scope). Order must be gang ⊃ worker ⊃ vector, outer→inner. At most one `gang` clause per loop.\n- **`host_data`** (§2.8): makes the **device address** of present data available to the host code in the region (via `use_device`) — for passing device pointers to CUDA kernels / device-aware MPI / cuBLAS.\n- **`cache`** (§2.10): hints that the listed array elements should be kept in the highest level of cache for the loop body.\n- **Combined constructs** (§2.11): `parallel loop`, `kernels loop`, `serial loop` — shorthand fusing a compute construct with an immediately-following loop; the common, recommended form.",
+"symbols": [
+"auto",
+"cache",
+"collapse",
+"force",
+"gang",
+"host_data",
+"independent",
+"kernels",
+"loop",
+"parallel",
+"private",
+"reduction",
+"seq",
+"serial",
+"sizes",
+"tile",
+"use_device",
+"vars",
+"vector",
+"worker"
+]
+},
+{
+"id": "openacc:ch05-loop-host-cache-combined#key-concepts",
+"doc": "ch05-loop-host-cache-combined",
+"heading": "Chapter 5 (§2.8–2.11): loop, host_data, cache, combined constructs > Key Concepts",
+"text": "- **orphaned loop**: a `loop` with no lexically-enclosing compute construct (e.g. inside a `routine`); mapping resolved at the call site.\n- **`independent` vs `auto` vs `seq`**: assert-parallel / let-compiler-decide / force-sequential. On a `parallel` construct, loops are `independent` by default; on `kernels`, the compiler analyzes.\n- **DO CONCURRENT interaction**: a `loop` on a Fortran `do concurrent` applies per concurrent-header index — bridges native-parallel Fortran (F2023, see fortran-2023-standard ch11) with OpenACC mapping.\n- **`gang(dim:d)`**: target a specific gang grid dimension (1–3).",
+"symbols": [
+"auto",
+"concurrent",
+"dim",
+"gang",
+"independent",
+"kernels",
+"loop",
+"parallel",
+"routine",
+"seq"
+]
+},
+{
+"id": "openacc:ch05-loop-host-cache-combined#code-examples",
+"doc": "ch05-loop-host-cache-combined",
+"heading": "Chapter 5 (§2.8–2.11): loop, host_data, cache, combined constructs > Code Examples",
+"text": "```c\n// collapse a 2D nest, map to gang+vector, reduce\n#pragma acc parallel loop collapse(2) gang vector reduction(+:err) present(u,unew)\nfor (int j = 1; j < ny-1; ++j)\n  for (int i = 1; i < nx-1; ++i) {\n    unew[j][i] = 0.25*(u[j][i-1]+u[j][i+1]+u[j-1][i]+u[j+1][i]);\n    err += fabs(unew[j][i]-u[j][i]);\n  }\n\n// explicit three-level mapping\n#pragma acc parallel loop gang\nfor (k...)             // gangs\n  #pragma acc loop worker\n  for (j...)           // workers\n    #pragma acc loop vector\n    for (i...) ...     // vector lanes\n```\n```c\n// host_data: hand a device pointer to a CUDA/MPI call\n#pragma acc host_data use_device(a)\n  cudaMemcpy(dst, a, n*sizeof(double), cudaMemcpyDeviceToDevice);\n```\n- **Demonstrates**: `collapse` + multi-level mapping + reduction in one combined construct; explicit gang⊃worker⊃vector nesting; `host_data use_device` for interop.",
+"symbols": [
+"collapse",
+"host_data",
+"use_device"
+]
+},
+{
+"id": "openacc:ch05-loop-host-cache-combined#worked-example-the-nesting-rule-that-bites",
+"doc": "ch05-loop-host-cache-combined",
+"heading": "Chapter 5 (§2.8–2.11): loop, host_data, cache, combined constructs > Worked Example — the nesting rule that bites",
+"text": "```c\n#pragma acc parallel loop gang        // OK: gang outer\nfor (int i = 0; i < n; ++i)\n  #pragma acc loop vector             // OK: vector inner (lower level)\n  for (int j = 0; j < m; ++j) ...\n// ILLEGAL: vector loop enclosing a worker loop (worker is higher than vector)\n// ILLEGAL: two gang loops nested in the same compute scope\n```\nThe hardware hierarchy is gang → worker → vector, outermost to innermost. Inverting the order (or repeating a level) within one compute scope is nonconforming — the compiler will reject or misbehave.",
+"symbols": []
+},
+{
+"id": "openacc:ch05-loop-host-cache-combined#anti-patterns",
+"doc": "ch05-loop-host-cache-combined",
+"heading": "Chapter 5 (§2.8–2.11): loop, host_data, cache, combined constructs > Anti-patterns",
+"text": "- **Inverting gang/worker/vector nesting**: must be outer→inner gang⊃worker⊃vector; equal/higher level nested inside is illegal.\n- **`independent` on a loop with real dependencies**: races. Use `auto`/`seq` or fix the dependency.\n- **Over-collapsing**: `collapse(n)` requires *tightly* nested, rectangular loops with no intervening code — otherwise illegal/wrong.\n- **Passing a host pointer to a device library**: wrap in `host_data use_device(...)` to get the device address.\n- **Relying on `cache` for correctness**: it's a hint; never a synchronization or coherence guarantee.",
+"symbols": [
+"auto",
+"cache",
+"collapse",
+"host_data",
+"independent",
+"seq",
+"use_device"
+]
+},
+{
+"id": "openacc:ch05-loop-host-cache-combined#key-takeaways",
+"doc": "ch05-loop-host-cache-combined",
+"heading": "Chapter 5 (§2.8–2.11): loop, host_data, cache, combined constructs > Key Takeaways",
+"text": "1. `loop` maps iterations to `gang`/`worker`/`vector` (or `seq`); nesting must follow gang⊃worker⊃vector outer→inner.\n2. `independent` asserts parallel-safety (default on `parallel`); `auto` defers to the compiler; `seq` forces sequential.\n3. `collapse(n)` fuses tight nests for more parallelism; `tile` blocks for locality.\n4. `host_data use_device(v)` exposes the device address — the bridge to CUDA/cuBLAS/device-aware MPI.\n5. Prefer combined `parallel loop`/`kernels loop` for the common case.",
+"symbols": [
+"auto",
+"collapse",
+"gang",
+"host_data",
+"independent",
+"kernels",
+"loop",
+"parallel",
+"seq",
+"tile",
+"use_device",
+"vector",
+"worker"
+]
+},
+{
+"id": "openacc:ch05-loop-host-cache-combined#connects-to",
+"doc": "ch05-loop-host-cache-combined",
+"heading": "Chapter 5 (§2.8–2.11): loop, host_data, cache, combined constructs > Connects To",
+"text": "- **Ch 1**: execution model — gang/worker/vector levels and modes.\n- **Ch 3**: compute constructs — `loop` worksharing happens inside parallel/kernels/serial.\n- **Ch 4**: data clauses — `present`/`copyin` feed the loop's data; `host_data` exposes device addrs.\n- **fortran-2023-standard ch11**: DO CONCURRENT, which a `loop` can annotate.",
+"symbols": [
+"copyin",
+"host_data",
+"loop",
+"present"
+]
+},
+{
+"id": "openacc:ch06-atomic-declare-executable#core-idea",
+"doc": "ch06-atomic-declare-executable",
+"heading": "Chapter 6 (§2.12–2.14): atomic, declare, executable directives > Core Idea",
+"text": "Three groups: **`atomic`** (race-free single-location updates inside parallel regions), **`declare`** (associate a device copy with a variable's scope), and the **executable directives** (`update`, `wait`, `init`, `shutdown`, `set`, `enter/exit data`) that run as statements rather than wrapping a region.",
+"symbols": [
+"atomic",
+"data",
+"declare",
+"enter",
+"exit",
+"init",
+"set",
+"shutdown",
+"update",
+"wait"
+]
+},
+{
+"id": "openacc:ch06-atomic-declare-executable#frameworks-introduced",
+"doc": "ch06-atomic-declare-executable",
+"heading": "Chapter 6 (§2.12–2.14): atomic, declare, executable directives > Frameworks Introduced",
+"text": "- **`atomic`** (§2.12): ensures one storage location is read/written atomically across gangs/workers/vector threads. Clauses:\n  - `read` (`v = x;`), `write` (`x = expr;`), `update` (default: `x++`, `x binop= expr`, `x = x binop expr`), `capture` (atomically update *and* return old/new value via a structured block).\n  - Optional `if(condition)`.\n- **`declare`** (§2.13): in a Fortran module/subprogram declaration section or after a C/C++ declaration; gives a var a **visible device copy** for the implicit data region of the enclosing scope (or program lifetime). Clauses: `copy`/`copyin`/`copyout`/`create`/`present`/`deviceptr`/`device_resident`/`link`. The idiom for module/global data that should live on the device.\n- **`update`** (§2.14.4): synchronize already-resident data **without** changing its lifetime:\n  - `self`/`host(vars)` — copy device→host; `device(vars)` — copy host→device.\n  - `if_present` — skip silently if the var isn't on the device (no error).\n  - `async`/`wait`/`if`/`device_type`.\n- **Other executable directives** (§2.14): `init`/`shutdown` (device setup/teardown), `set` (set ICVs: device_type/num/default_async), `wait` (queue synchronization, ch7), `enter data`/`exit data` (unstructured lifetimes, ch4).",
+"symbols": [
+"async",
+"atomic",
+"binop",
+"capture",
+"condition",
+"copy",
+"copyin",
+"copyout",
+"create",
+"data",
+"declare",
+"device",
+"device_resident",
+"device_type",
+"deviceptr",
+"enter",
+"exit",
+"expr",
+"host",
+"if_present",
+"init",
+"link",
+"present",
+"read",
+"self",
+"set",
+"shutdown",
+"update",
+"vars",
+"wait",
+"write"
+]
+},
+{
+"id": "openacc:ch06-atomic-declare-executable#key-concepts",
+"doc": "ch06-atomic-declare-executable",
+"heading": "Chapter 6 (§2.12–2.14): atomic, declare, executable directives > Key Concepts",
+"text": "- **`atomic capture`** is the building block for parallel histograms, counters, and lock-free reductions where `reduction` doesn't fit.\n- **`update` ≠ data lifetime**: it refreshes values both ways but neither allocates nor frees — pair with `enter data`/`declare`.\n- **`device_resident`** (declare): the var lives *only* on the device (no host copy maintained); **`link`** defers allocation for large global data.\n- **`if_present`** makes `update` safe when you're unsure data was staged.",
+"symbols": [
+"atomic",
+"capture",
+"data",
+"declare",
+"device_resident",
+"enter",
+"if_present",
+"link",
+"reduction",
+"update"
+]
+},
+{
+"id": "openacc:ch06-atomic-declare-executable#code-examples",
+"doc": "ch06-atomic-declare-executable",
+"heading": "Chapter 6 (§2.12–2.14): atomic, declare, executable directives > Code Examples",
+"text": "```c\n// atomic update / capture\n#pragma acc parallel loop\nfor (int i = 0; i < n; ++i) {\n  #pragma acc atomic update\n  hist[bin[i]] += 1;                 // race-free histogram\n}\nint old;\n#pragma acc atomic capture\n{ old = counter; counter += 1; }     // atomic fetch-add\n```\n```c\n// update: refresh halo on host between async kernels\n#pragma acc update self(u[0:nhalo])      // D2H\nmpi_exchange(u);\n#pragma acc update device(u[0:nhalo])    // H2D\n```\n```fortran\nmodule fields\n  real, allocatable :: u(:,:)\n  !$acc declare create(u)        ! device copy tied to module/program lifetime\nend module\n```\n- **Demonstrates**: `atomic update`/`capture` for race-free accumulation, `update self`/`device` for partial host↔device sync (halo exchange), and `declare create` for module-scope device data.",
+"symbols": [
+"atomic",
+"capture",
+"create",
+"declare",
+"device",
+"self",
+"update"
+]
+},
+{
+"id": "openacc:ch06-atomic-declare-executable#anti-patterns",
+"doc": "ch06-atomic-declare-executable",
+"heading": "Chapter 6 (§2.12–2.14): atomic, declare, executable directives > Anti-patterns",
+"text": "- **Plain `+=` across iterations instead of `atomic update` or `reduction`**: data race.\n- **`atomic` as a general lock**: it protects one location, not a critical section — don't build cross-thread locks (ch1: likely deadlock).\n- **`update` to \"load\" data that was never allocated**: it doesn't allocate — use `enter data`/`copyin` first, or `if_present` to no-op safely.\n- **Forgetting to `update` after host-side modification**: device keeps stale values; refresh with `update device`.\n- **Overusing `atomic`**: serializes contended locations — prefer `reduction` when the pattern is a reduction.",
+"symbols": [
+"atomic",
+"copyin",
+"data",
+"device",
+"enter",
+"if_present",
+"reduction",
+"update"
+]
+},
+{
+"id": "openacc:ch06-atomic-declare-executable#key-takeaways",
+"doc": "ch06-atomic-declare-executable",
+"heading": "Chapter 6 (§2.12–2.14): atomic, declare, executable directives > Key Takeaways",
+"text": "1. `atomic` (read/write/update/capture) makes single-location updates race-free; `capture` = atomic fetch-and-modify.\n2. `declare create`/`device_resident` ties a device copy to a variable's scope — ideal for module/global fields.\n3. `update self`/`device` synchronizes resident data both ways without changing its lifetime; `if_present` makes it safe when unsure.\n4. Executable directives (`init`/`shutdown`/`set`/`update`/`wait`/`enter data`/`exit data`) run as statements.\n5. For accumulation: prefer `reduction`; use `atomic` only for irregular scatter (histograms, counters).",
+"symbols": [
+"atomic",
+"capture",
+"create",
+"data",
+"declare",
+"device",
+"device_resident",
+"enter",
+"exit",
+"if_present",
+"init",
+"reduction",
+"self",
+"set",
+"shutdown",
+"update",
+"wait"
+]
+},
+{
+"id": "openacc:ch06-atomic-declare-executable#connects-to",
+"doc": "ch06-atomic-declare-executable",
+"heading": "Chapter 6 (§2.12–2.14): atomic, declare, executable directives > Connects To",
+"text": "- **Ch 3**: reduction clause — the structured alternative to atomic accumulation.\n- **Ch 4**: data environment — `enter/exit data`, and `declare` for scoped device data.\n- **Ch 7**: async behavior — `wait`, and `update async`.\n- **Ch 8**: runtime library — `acc_init`/`acc_shutdown`/`acc_update_*` API equivalents.",
+"symbols": [
+"acc_init",
+"acc_shutdown",
+"acc_update_",
+"async",
+"data",
+"declare",
+"enter",
+"exit",
+"update",
+"wait"
+]
+},
+{
+"id": "openacc:ch07-procedures-async-fortran#core-idea",
+"doc": "ch07-procedures-async-fortran",
+"heading": "Chapter 7 (§2.15–2.17): routine directive, asynchronous behavior, Fortran-specific > Core Idea",
+"text": "Calling procedures from device code (**`routine`**), overlapping device work with the host and itself via **`async`/`wait`** activity queues, and Fortran-specific binding rules. The async model is the key to hiding transfer/compute latency.",
+"symbols": [
+"async",
+"routine",
+"wait"
+]
+},
+{
+"id": "openacc:ch07-procedures-async-fortran#frameworks-introduced",
+"doc": "ch07-procedures-async-fortran",
+"heading": "Chapter 7 (§2.15–2.17): routine directive, asynchronous behavior, Fortran-specific > Frameworks Introduced",
+"text": "- **`routine`** (§2.15.1): compile a procedure for the device so it can be **called from a compute region**. Must declare its maximum parallelism level so the compiler maps callers correctly:\n  - `gang` / `worker` / `vector` / `seq` — the level of parallelism the routine contains (a `seq` routine is callable from any level; a `gang` routine only at gang level).\n  - `bind(name)` — call a differently-named device implementation; `nohost` — don't compile a host version; `device_type`.\n  - Named (`routine(foo)`) or unnamed (immediately before the definition).\n- **Asynchronous model** (§2.16): `async[(async-argument)]` enqueues operations on an **activity queue** instead of blocking.\n  - **Same async-value → same queue → executed in encounter order.**\n  - **Different async-values → may be different queues → may overlap / reorder.**\n  - Special values: `acc_async_sync` (synchronous — local thread waits), `acc_async_noval`/`acc_async_default` (use `acc-default-async-var`).\n  - **`wait[(args)] [async(q)]`** — wait for queue(s), or enqueue a dependency from one queue onto another (no host block).\n- **Fortran-specific** (§2.17): assumed-shape/pointer/allocatable array handling, common-block names in data clauses (`/blockname/`), `declare` in modules, descriptor handling for derived types.",
+"symbols": [
+"acc",
+"acc_async_default",
+"acc_async_noval",
+"acc_async_sync",
+"args",
+"argument",
+"async",
+"bind",
+"blockname",
+"declare",
+"default",
+"device_type",
+"foo",
+"gang",
+"name",
+"nohost",
+"routine",
+"seq",
+"var",
+"vector",
+"wait",
+"worker"
+]
+},
+{
+"id": "openacc:ch07-procedures-async-fortran#key-concepts",
+"doc": "ch07-procedures-async-fortran",
+"heading": "Chapter 7 (§2.15–2.17): routine directive, asynchronous behavior, Fortran-specific > Key Concepts",
+"text": "- **Activity queue = ordering domain**: think of each async-value as an independent in-order stream; concurrency comes from using *different* values.\n- **`wait` without `async`** blocks the host; **`wait(q1) async(q2)`** makes queue q2 wait for q1 *on the device* (host continues) — the primitive for building dependency graphs.\n- **routine parallelism level** must match or exceed how it's called; mismatches are nonconforming.\n- **async data ≠ async compute inheritance**: `async` on a `data` construct overlaps only its transfers and is not inherited (ch4).\n- Per-device: number of real queues and the async-value→queue mapping is implementation-defined.",
+"symbols": [
+"async",
+"data",
+"wait"
+]
+},
+{
+"id": "openacc:ch07-procedures-async-fortran#code-examples",
+"doc": "ch07-procedures-async-fortran",
+"heading": "Chapter 7 (§2.15–2.17): routine directive, asynchronous behavior, Fortran-specific > Code Examples",
+"text": "```c\n// device-callable routine declaring its parallelism level\n#pragma acc routine seq\ndouble square(double x) { return x*x; }     // callable from any loop level\n\n#pragma acc parallel loop\nfor (int i = 0; i < n; ++i) y[i] = square(x[i]);\n```\n```c\n// overlap: independent queues run concurrently; wait builds the join\n#pragma acc parallel loop async(1) present(a)\nfor (...) a[i] = f(a[i]);\n#pragma acc parallel loop async(2) present(b)   // may run concurrently with queue 1\nfor (...) b[i] = g(b[i]);\n#pragma acc wait(1,2)                            // host joins both\n```\n```fortran\n!$acc routine(mykernel) seq\n!$acc update device(/commonblock/)    ! Fortran common block in a data clause\n```\n- **Demonstrates**: `routine seq` for device-callable functions, two independent async queues overlapping then joined by `wait`, and Fortran common-block data clause syntax.",
+"symbols": [
+"routine",
+"seq",
+"wait"
+]
+},
+{
+"id": "openacc:ch07-procedures-async-fortran#worked-example-pipelining-transfer-and-compute",
+"doc": "ch07-procedures-async-fortran",
+"heading": "Chapter 7 (§2.15–2.17): routine directive, asynchronous behavior, Fortran-specific > Worked Example — pipelining transfer and compute",
+"text": "```c\nfor (int b = 0; b < nblocks; ++b) {\n  int q = (b % 2) + 1;                          // alternate queues 1,2\n  #pragma acc update device(chunk[b][0:sz]) async(q)   // H2D on queue q\n  #pragma acc parallel loop present(chunk[b]) async(q) // compute waits for its own H2D\n  for (int i = 0; i < sz; ++i) chunk[b][i] = work(chunk[b][i]);\n  #pragma acc update self(chunk[b][0:sz]) async(q)     // D2H on queue q\n}\n#pragma acc wait\n```\nSame-queue ops (H2D → compute → D2H for block b) execute in order; alternating queues lets block b+1's transfer overlap block b's compute — classic double-buffering. The final `wait` joins everything.",
+"symbols": [
+"wait"
+]
+},
+{
+"id": "openacc:ch07-procedures-async-fortran#anti-patterns",
+"doc": "ch07-procedures-async-fortran",
+"heading": "Chapter 7 (§2.15–2.17): routine directive, asynchronous behavior, Fortran-specific > Anti-patterns",
+"text": "- **Calling a non-`routine` function from device code**: link/compile error — every device-called procedure needs `routine` with the right level.\n- **Wrong routine level**: a `gang` routine called from a vector loop is nonconforming.\n- **Assuming `async` ops are done without `wait`**: results unready; reading them races. Always `wait` (or chain via `wait async`) before host use.\n- **Using one async-value everywhere then expecting overlap**: same value = same queue = serialized. Use distinct values to overlap.\n- **GPU benchmark timing without a `wait`**: async kernels return immediately — `>100×` \"speedups\" are usually a missing `wait`/`!$acc wait` before the clock (verify with `system_clock`, not `cpu_time`).",
+"symbols": [
+"!$acc wait",
+"async",
+"cpu_time",
+"gang",
+"routine",
+"system_clock",
+"wait"
+]
+},
+{
+"id": "openacc:ch07-procedures-async-fortran#key-takeaways",
+"doc": "ch07-procedures-async-fortran",
+"heading": "Chapter 7 (§2.15–2.17): routine directive, asynchronous behavior, Fortran-specific > Key Takeaways",
+"text": "1. `routine [gang|worker|vector|seq]` makes a procedure device-callable; the level must match the call site (`seq` is universal).\n2. Async queues: **same value = ordered in one queue; different values = may overlap** — concurrency is opt-in via distinct values.\n3. `wait` blocks the host; `wait(q1) async(q2)` builds a device-side dependency without blocking — use for double-buffering pipelines.\n4. Always synchronize (`wait`) before reading async results — and **before timing** (a missing wait fakes huge speedups).\n5. Fortran: common blocks (`/name/`), assumed-shape/allocatable arrays, and module `declare` have specific rules in §2.17.",
+"symbols": [
+"async",
+"declare",
+"gang",
+"name",
+"routine",
+"seq",
+"vector",
+"wait",
+"worker"
+]
+},
+{
+"id": "openacc:ch07-procedures-async-fortran#connects-to",
+"doc": "ch07-procedures-async-fortran",
+"heading": "Chapter 7 (§2.15–2.17): routine directive, asynchronous behavior, Fortran-specific > Connects To",
+"text": "- **Ch 1**: execution model — activity queues, host-directed enqueue.\n- **Ch 3/4**: `async`/`wait` clauses on compute and data constructs.\n- **Ch 8**: runtime library — `acc_async_test`, `acc_wait`, `acc_wait_async`.\n- **hpc-practice pack (gpu-practice)**: the missing-`wait` timing trap.",
+"symbols": [
+"acc_async_test",
+"acc_wait",
+"acc_wait_async",
+"async",
+"wait"
+]
+},
+{
+"id": "openacc:ch08-runtime-library#core-idea",
+"doc": "ch08-runtime-library",
+"heading": "Chapter 8 (Ch 3): Runtime Library > Core Idea",
+"text": "The runtime API — `acc_*` routines (C header `openacc.h`, Fortran module `openacc`) for device control, data management, async query, and memory ops. The imperative counterpart to the declarative directives, for cases where directives don't fit (libraries, dynamic logic, interop).",
+"symbols": [
+"acc_",
+"openacc"
+]
+},
+{
+"id": "openacc:ch08-runtime-library#frameworks-introduced",
+"doc": "ch08-runtime-library",
+"heading": "Chapter 8 (Ch 3): Runtime Library > Frameworks Introduced",
+"text": "- **Device control**: `acc_get_num_devices(type)`, `acc_set_device_type`/`acc_get_device_type`, `acc_set_device_num`/`acc_get_device_num`, `acc_init`/`acc_init_device`/`acc_shutdown`, `acc_get_property`/`acc_get_property_string` (memory size, name, driver).\n- **Data management** (directive equivalents): `acc_copyin`/`acc_copyout`/`acc_create`/`acc_delete` (+ `_async`, `_finalize` variants), `acc_attach`/`acc_detach`, `acc_update_device`/`acc_update_self`, `acc_is_present`, `acc_deviceptr`/`acc_hostptr`, `acc_map_data`/`acc_unmap_data`.\n- **Raw memory**: `acc_malloc`/`acc_free`, `acc_memcpy_to_device`/`acc_memcpy_from_device`/`acc_memcpy_device` (+ `_async`).\n- **Async query/sync**: `acc_async_test`/`acc_async_test_all` (nonblocking poll), `acc_wait`/`acc_wait_all`/`acc_wait_async` (the API form of the `wait` directive), special handles `acc_async_sync`/`acc_async_noval`/`acc_async_default`.\n- **Introspection**: `acc_on_device(devicetype)` — at compile/runtime, test whether code is executing on a given device type (for host/device code paths).",
+"symbols": [
+"_async",
+"_finalize",
+"acc_async_default",
+"acc_async_noval",
+"acc_async_sync",
+"acc_async_test",
+"acc_async_test_all",
+"acc_attach",
+"acc_copyin",
+"acc_copyout",
+"acc_create",
+"acc_delete",
+"acc_detach",
+"acc_deviceptr",
+"acc_free",
+"acc_get_device_num",
+"acc_get_device_type",
+"acc_get_num_devices",
+"acc_get_property",
+"acc_get_property_string",
+"acc_hostptr",
+"acc_init",
+"acc_init_device",
+"acc_is_present",
+"acc_malloc",
+"acc_map_data",
+"acc_memcpy_device",
+"acc_memcpy_from_device",
+"acc_memcpy_to_device",
+"acc_on_device",
+"acc_set_device_num",
+"acc_set_device_type",
+"acc_shutdown",
+"acc_unmap_data",
+"acc_update_device",
+"acc_update_self",
+"acc_wait",
+"acc_wait_all",
+"acc_wait_async",
+"devicetype",
+"type",
+"wait"
+]
+},
+{
+"id": "openacc:ch08-runtime-library#key-concepts",
+"doc": "ch08-runtime-library",
+"heading": "Chapter 8 (Ch 3): Runtime Library > Key Concepts",
+"text": "- **`acc_on_device(acc_device_not_host)`**: the canonical way to branch host-vs-device inside a `routine`.\n- **`_finalize` variants** (`acc_copyout_finalize`, `acc_delete_finalize`): force the reference counter to zero (immediate free) regardless of nesting — the API analog of `exit data ... finalize`.\n- **`acc_present_or_*`** (`acc_pcopyin`, `acc_pcreate`): copy/create only if not already present (idempotent staging).\n- **device kinds**: `acc_device_none/host/not_host/default/current` plus vendor-specific values select targets.\n- **error codes** (`acc_error_*`): `not_present`, `out_of_memory`, `present`, `invalid_async`, `device_unavailable`, etc. — surfaced via the error callback (ch10).",
+"symbols": [
+"_finalize",
+"acc_copyout_finalize",
+"acc_delete_finalize",
+"acc_device_none",
+"acc_device_not_host",
+"acc_error_",
+"acc_on_device",
+"acc_pcopyin",
+"acc_pcreate",
+"acc_present_or_",
+"current",
+"data",
+"default",
+"device_unavailable",
+"exit",
+"finalize",
+"host",
+"invalid_async",
+"not_host",
+"not_present",
+"out_of_memory",
+"present",
+"routine"
+]
+},
+{
+"id": "openacc:ch08-runtime-library#directive-api-correspondence",
+"doc": "ch08-runtime-library",
+"heading": "Chapter 8 (Ch 3): Runtime Library > Reference Tables > Directive ↔ API correspondence",
+"text": "| Directive | API routine |\n|---|---|\n| `enter data copyin` | `acc_copyin` |\n| `exit data copyout` | `acc_copyout` (`_finalize`) |\n| `enter data create` | `acc_create` |\n| `exit data delete` | `acc_delete` (`_finalize`) |\n| `update device` | `acc_update_device` |\n| `update self` | `acc_update_self` |\n| `present(v)` test | `acc_is_present` |\n| `attach`/`detach` | `acc_attach`/`acc_detach` |\n| `wait` | `acc_wait`/`acc_wait_all` |\n| `host_data use_device` | `acc_deviceptr` |",
+"symbols": [
+"_finalize",
+"acc_attach",
+"acc_copyin",
+"acc_copyout",
+"acc_create",
+"acc_delete",
+"acc_detach",
+"acc_deviceptr",
+"acc_is_present",
+"acc_update_device",
+"acc_update_self",
+"acc_wait",
+"acc_wait_all",
+"attach",
+"copyin",
+"copyout",
+"create",
+"data",
+"delete",
+"detach",
+"device",
+"enter",
+"exit",
+"host_data",
+"present",
+"self",
+"update",
+"use_device",
+"wait"
+]
+},
+{
+"id": "openacc:ch08-runtime-library#worked-example",
+"doc": "ch08-runtime-library",
+"heading": "Chapter 8 (Ch 3): Runtime Library > Worked Example",
+"text": "```c\n#include <openacc.h>\n// pick device explicitly, query memory, stage data imperatively (e.g. in a library)\nacc_set_device_num(0, acc_device_nvidia);\nsize_t freemem = acc_get_property(0, acc_device_nvidia, acc_property_free_memory);\n\ndouble *a = malloc(n*sizeof(double));\nacc_copyin(a, n*sizeof(double));            // == enter data copyin(a[0:n])\n#pragma acc parallel loop present(a[0:n])\nfor (int i = 0; i < n; ++i) a[i] *= 2.0;\nacc_copyout(a, n*sizeof(double));           // == exit data copyout(a[0:n])\n\n// host/device branch inside a routine\n#pragma acc routine seq\ndouble f(double x) { return acc_on_device(acc_device_not_host) ? fast(x) : ref(x); }\n```\n- **Demonstrates**: explicit device selection + memory query, imperative `acc_copyin`/`acc_copyout` matching the data directives, and `acc_on_device` for dual code paths.",
+"symbols": [
+"acc_copyin",
+"acc_copyout",
+"acc_on_device"
+]
+},
+{
+"id": "openacc:ch08-runtime-library#anti-patterns",
+"doc": "ch08-runtime-library",
+"heading": "Chapter 8 (Ch 3): Runtime Library > Anti-patterns",
+"text": "- **Mixing API data management and directive data clauses on the same var carelessly**: both touch the same reference counters — coherent, but reason about counts or you'll free too early/late.\n- **`acc_malloc`/`acc_memcpy_*` when directives suffice**: raw memory bypasses the present table — only for interop or custom allocators.\n- **Hardcoding device numbers in portable code**: query `acc_get_num_devices` first.\n- **Ignoring `acc_async_test` return**: a nonblocking poll that you must loop on, not assume complete.",
+"symbols": [
+"acc_async_test",
+"acc_get_num_devices",
+"acc_malloc",
+"acc_memcpy_"
+]
+},
+{
+"id": "openacc:ch08-runtime-library#key-takeaways",
+"doc": "ch08-runtime-library",
+"heading": "Chapter 8 (Ch 3): Runtime Library > Key Takeaways",
+"text": "1. Every data directive has an `acc_*` API twin (`acc_copyin` ↔ `enter data copyin`, etc.) — they share the same reference-counter model.\n2. `acc_on_device(acc_device_not_host)` is the host/device branch primitive inside routines.\n3. `_finalize` variants force immediate free; `acc_present_or_*` make staging idempotent.\n4. Use the API for libraries / dynamic logic / interop; prefer directives for static, lexically-scoped cases.\n5. `acc_get_property` exposes device memory/name/driver for capacity-aware code.",
+"symbols": [
+"_finalize",
+"acc_",
+"acc_copyin",
+"acc_device_not_host",
+"acc_get_property",
+"acc_on_device",
+"acc_present_or_",
+"copyin",
+"data",
+"enter"
+]
+},
+{
+"id": "openacc:ch08-runtime-library#connects-to",
+"doc": "ch08-runtime-library",
+"heading": "Chapter 8 (Ch 3): Runtime Library > Connects To",
+"text": "- **Ch 2**: ICVs — `acc_set/get_device_*`, `acc_set/get_default_async`.\n- **Ch 4**: data clauses — the directive forms of `acc_copyin`/`acc_create`/etc.\n- **Ch 7**: async — `acc_wait`/`acc_async_test` mirror `wait`.\n- **Ch 10**: profiling/errors — `acc_error_*` codes flow to the callback.",
+"symbols": [
+"acc_async_test",
+"acc_copyin",
+"acc_create",
+"acc_error_",
+"acc_set",
+"acc_wait",
+"get_default_async",
+"get_device_",
+"wait"
+]
+},
+{
+"id": "openacc:ch09-environment-variables#core-idea",
+"doc": "ch09-environment-variables",
+"heading": "Chapter 9 (Ch 4): Environment Variables > Core Idea",
+"text": "The three standard environment variables that set initial ICV values at program startup — device selection and profiling-library injection. Read after initial ICV assignment but before any OpenACC construct/API call. (A short, reference chapter.)",
+"symbols": []
+},
+{
+"id": "openacc:ch09-environment-variables#reference-tables",
+"doc": "ch09-environment-variables",
+"heading": "Chapter 9 (Ch 4): Environment Variables > Reference Tables",
+"text": "| Variable | Controls | ICV | Example |\n|---|---|---|---|\n| `ACC_DEVICE_TYPE` | default device type | `acc-current-device-type-var` | `export ACC_DEVICE_TYPE=NVIDIA` |\n| `ACC_DEVICE_NUM` | default device number (of that type) | `acc-current-device-num-var` | `export ACC_DEVICE_NUM=1` |\n| `ACC_PROFLIB` | profiling/tools library to load | — | `export ACC_PROFLIB=/path/libaccprof.so` |",
+"symbols": [
+"acc",
+"acc_device_num",
+"acc_device_type",
+"acc_proflib",
+"current",
+"device",
+"export",
+"libaccprof",
+"num",
+"nvidia",
+"path",
+"type",
+"var"
+]
+},
+{
+"id": "openacc:ch09-environment-variables#key-concepts",
+"doc": "ch09-environment-variables",
+"heading": "Chapter 9 (Ch 4): Environment Variables > Key Concepts",
+"text": "- **Precedence**: env var sets the *initial* ICV value; a later API call (`acc_set_device_type`) or `set` directive overrides it for the calling thread. So env = default, API/directive = override.\n- **`ACC_DEVICE_TYPE`** values are implementation-defined names (e.g. `NVIDIA`, `HOST`, `MULTICORE`, `RADEON`) — see the implementer recommendations (Appendix A).\n- **`ACC_PROFLIB`** loads a tools-interface library implementing the profiling/error-callback hooks (ch10) — the injection point for profilers and custom error handlers.\n- **`ACC_DEVICE_NUM`** selects which device of the chosen type (0-based or 1-based per implementation; verify).",
+"symbols": [
+"acc_device_num",
+"acc_device_type",
+"acc_proflib",
+"acc_set_device_type",
+"host",
+"multicore",
+"nvidia",
+"radeon",
+"set"
+]
+},
+{
+"id": "openacc:ch09-environment-variables#worked-example",
+"doc": "ch09-environment-variables",
+"heading": "Chapter 9 (Ch 4): Environment Variables > Worked Example",
+"text": "```bash\n# Run on the second NVIDIA GPU, with a custom profiling library attached\nexport ACC_DEVICE_TYPE=NVIDIA\nexport ACC_DEVICE_NUM=1\nexport ACC_PROFLIB=/opt/tools/libaccprof.so\n./my_openacc_app\n```\nEquivalent runtime override (takes precedence over the env vars above):\n```c\nacc_set_device_type(acc_device_nvidia);\nacc_set_device_num(1, acc_device_nvidia);\n```\n- **Demonstrates**: env-var configuration for device selection + profiler injection, and the API override that supersedes it.",
+"symbols": []
+},
+{
+"id": "openacc:ch09-environment-variables#anti-patterns",
+"doc": "ch09-environment-variables",
+"heading": "Chapter 9 (Ch 4): Environment Variables > Anti-patterns",
+"text": "- **Hardcoding device selection in source for a multi-GPU/cluster run**: prefer `ACC_DEVICE_NUM` (often set per-rank from the MPI local rank) so one binary maps cleanly onto GPUs.\n- **Assuming `ACC_DEVICE_TYPE` names are portable**: they're implementation-defined — don't hardcode a vendor name in portable launch scripts without a fallback.\n- **Forgetting `ACC_PROFLIB`** when a profiler \"sees nothing\": the tools library must be on this path to hook in.",
+"symbols": [
+"acc_device_num",
+"acc_device_type",
+"acc_proflib"
+]
+},
+{
+"id": "openacc:ch09-environment-variables#key-takeaways",
+"doc": "ch09-environment-variables",
+"heading": "Chapter 9 (Ch 4): Environment Variables > Key Takeaways",
+"text": "1. `ACC_DEVICE_TYPE` + `ACC_DEVICE_NUM` set the default device; `ACC_PROFLIB` injects the profiling/error-callback library.\n2. Env vars set *initial* ICVs; API calls and `set` directives override per thread.\n3. In MPI+OpenACC, map ranks to GPUs via `ACC_DEVICE_NUM` (commonly from the node-local rank).",
+"symbols": [
+"acc_device_num",
+"acc_device_type",
+"acc_proflib",
+"set"
+]
+},
+{
+"id": "openacc:ch09-environment-variables#connects-to",
+"doc": "ch09-environment-variables",
+"heading": "Chapter 9 (Ch 4): Environment Variables > Connects To",
+"text": "- **Ch 2**: ICVs these variables initialize.\n- **Ch 8**: `acc_set_device_*` API overrides.\n- **Ch 10**: `ACC_PROFLIB` loads the profiling/error-callback implementation.",
+"symbols": [
+"acc_proflib",
+"acc_set_device_"
+]
+},
+{
+"id": "openacc:ch10-profiling-interface#core-idea",
+"doc": "ch10-profiling-interface",
+"heading": "Chapter 10 (Ch 5): Profiling and Error Callback Interface > Core Idea",
+"text": "A tools interface: the OpenACC runtime fires **callbacks** at well-defined **events** (device init, data alloc, kernel launch, wait, …) and on **runtime errors**. Tools (profilers) and applications register callbacks to observe execution or to handle errors gracefully (release resources, clean shutdown).",
+"symbols": []
+},
+{
+"id": "openacc:ch10-profiling-interface#frameworks-introduced",
+"doc": "ch10-profiling-interface",
+"heading": "Chapter 10 (Ch 5): Profiling and Error Callback Interface > Frameworks Introduced",
+"text": "- **Events** (§5.1): named points the runtime calls back at — categorized:\n  - Runtime/device init & shutdown (`acc_ev_runtime_shutdown`, device init/shutdown).\n  - Data: enter/exit data, data alloc/free, data construct, update directive.\n  - Compute: compute-construct enter/exit, **enqueue kernel launch**, enqueue data transfers.\n  - Wait/sync events.\n- **Callback signature** (§5.2): each callback receives three structs — a **profiling info** record (event-specific), an **event info** union, and an **API info** record (device/thread context). Plus the **error callback** path with `acc_error_*` codes.\n- **Loading the library** (§5.3): the runtime loads the tools library named by `ACC_PROFLIB`; the library exports an initialization routine the runtime calls, which then registers callbacks.\n- **Registering callbacks** (§5.4): `acc_prof_register(event, callback, info)` / `acc_prof_unregister`; multiple callbacks per event allowed.\n- **Error callbacks**: register a routine called on runtime errors (see `acc_error_*` codes in ch8) — lets a large parallel app release resources / shut down cleanly instead of the default print-and-halt.",
+"symbols": [
+"acc_error_",
+"acc_ev_runtime_shutdown",
+"acc_prof_register",
+"acc_prof_unregister",
+"acc_proflib",
+"callback",
+"event",
+"info"
+]
+},
+{
+"id": "openacc:ch10-profiling-interface#key-concepts",
+"doc": "ch10-profiling-interface",
+"heading": "Chapter 10 (Ch 5): Profiling and Error Callback Interface > Key Concepts",
+"text": "- **Asynchronous errors**: because device ops run async, an error callback may fire *later* than the originating call, when the error is detected. `acc_error_system` may fire anytime the device becomes unavailable.\n- **Default error behavior**: print a message and halt. Registering a custom callback overrides this for cleanup/shutdown.\n- **Event ordering**: enter/exit pairs bracket regions; enqueue events mark when work hits the device queue (vs. when it completes — relevant to async, ch7).\n- This interface is how **NVIDIA Nsight / nvprof-style tools** and vendor profilers hook OpenACC programs.",
+"symbols": [
+"acc_error_system"
+]
+},
+{
+"id": "openacc:ch10-profiling-interface#worked-example",
+"doc": "ch10-profiling-interface",
+"heading": "Chapter 10 (Ch 5): Profiling and Error Callback Interface > Worked Example",
+"text": "Registering an error callback for graceful shutdown (conceptual):\n```c\n#include <acc_prof.h>\nstatic void on_error(acc_prof_info *pi, acc_event_info *ei, acc_api_info *ai) {\n  // log, release MPI resources, flush files, then exit cleanly\n  fprintf(stderr, \"OpenACC error on device %d\\n\", ai->device_number);\n  mpi_graceful_abort();\n}\n// the runtime calls this after loading ACC_PROFLIB\nvoid acc_register_library(acc_prof_reg reg, acc_prof_reg unreg, acc_prof_lookup l) {\n  reg(acc_ev_runtime_shutdown, (acc_prof_callback)on_error, 0);\n  // ... register data/compute events for profiling\n}\n```\n- **Demonstrates**: the library-init entry point the runtime calls, and registering a callback to replace default print-and-halt with cleanup.",
+"symbols": []
+},
+{
+"id": "openacc:ch10-profiling-interface#anti-patterns",
+"doc": "ch10-profiling-interface",
+"heading": "Chapter 10 (Ch 5): Profiling and Error Callback Interface > Anti-patterns",
+"text": "- **Doing heavy work in a callback**: callbacks run in the runtime's context, possibly on the critical path — keep them light; defer analysis.\n- **Assuming synchronous error delivery**: errors from async ops arrive later — don't assume the failing call site is current.\n- **Relying on default halt-on-error in production HPC**: register a callback to release MPI/coarray/file resources so one failed image doesn't leak a cluster's worth of state.\n- **Forgetting `ACC_PROFLIB`**: without it the runtime loads no tools library and your callbacks never register.",
+"symbols": [
+"acc_proflib"
+]
+},
+{
+"id": "openacc:ch10-profiling-interface#key-takeaways",
+"doc": "ch10-profiling-interface",
+"heading": "Chapter 10 (Ch 5): Profiling and Error Callback Interface > Key Takeaways",
+"text": "1. The runtime fires **event callbacks** (init/data/compute/launch/wait) and **error callbacks** at defined points; tools and apps register handlers.\n2. Set `ACC_PROFLIB` to inject the tools library; it registers via `acc_prof_register` from its init routine.\n3. Errors may arrive **asynchronously**; the callback may fire after the originating call — design handlers accordingly.\n4. Register an error callback to replace default print-and-halt with resource release / clean shutdown in large parallel runs.\n5. Keep callbacks lightweight — they may sit on the runtime's critical path.",
+"symbols": [
+"acc_prof_register",
+"acc_proflib"
+]
+},
+{
+"id": "openacc:ch10-profiling-interface#connects-to",
+"doc": "ch10-profiling-interface",
+"heading": "Chapter 10 (Ch 5): Profiling and Error Callback Interface > Connects To",
+"text": "- **Ch 8**: runtime library — `acc_error_*` codes delivered here.\n- **Ch 9**: `ACC_PROFLIB` loads this library.\n- **Ch 1**: runtime errors overview and async error semantics.",
+"symbols": [
+"acc_error_",
+"acc_proflib"
+]
+},
+{
+"id": "openacc:ch11-glossary#core-idea",
+"doc": "ch11-glossary",
+"heading": "Chapter 11 (Ch 6): Glossary > Core Idea",
+"text": "The spec's normative terminology — the words that mean something *specific* in OpenACC, especially where they conflict with base-language usage. This chapter reproduces the key definitions; the alphabetical quick-reference is also in `glossary.md`.",
+"symbols": [
+"glossary"
+]
+},
+{
+"id": "openacc:ch11-glossary#key-concepts-the-load-bearing-definitions",
+"doc": "ch11-glossary",
+"heading": "Chapter 11 (Ch 6): Glossary > Key Concepts (the load-bearing definitions)",
+"text": "- **Accelerator** – a device attached to a CPU that the CPU offloads data/compute to.\n- **Device** – general reference to an accelerator *or* a multicore CPU acting as one.\n- **Compute construct** – a `parallel`, `serial`, or `kernels` construct. **Compute region** – the dynamic execution of one.\n- **Construct** – a directive + its associated statement/loop/structured block. **Region** – *all* code encountered during an instance of a construct's execution (includes called procedures — dynamic, not lexical).\n- **Levels of parallelism** (high→low): gang, worker, vector, seq.\n- **Gang / Worker / Vector** – coarse / fine / SIMD parallelism (see ch1).\n- **Device thread / Accelerator thread** – a single vector lane of a single worker of a single gang.\n- **Local thread / Local device / Local memory** – the thread executing a directive (host or device), its device, its memory.\n- **Discrete memory** – memory of the local thread not accessible from the current device (and vice versa) → requires copies.\n- **Shared memory** – accessible from both local thread and current device → no copy needed.\n- **Present data** – data whose structured + dynamic reference counters sum > 0 (it's in device memory).\n- **Partly present data** – a section only partially resident.\n- **Data lifetime / Data region / Implicit data region** – when device data exists; structured (lexical) vs implicit (subprogram).\n- **Compute intensity** – ratio of arithmetic operations to data movement for a loop/region — the metric that decides if offload pays off.\n- **Orphaned loop construct** – a `loop` with no lexically-enclosing compute construct (e.g. in a `routine`).\n- **Parent procedure / parent compute construct / parent compute scope** – nearest lexically enclosing procedure / compute construct / either — used by data-attribute and routine rules.\n- **Async-argument** – a nonnegative scalar integer selecting an activity queue (or a special `acc_async_*` value).\n- **Aggregate vs scalar datatype** – non-scalar (array/struct/derived) vs intrinsic scalar; governs implicit `copy` vs `firstprivate`.\n- **Captured / Private / Exposed variable** – discrete copy in device memory / per-iteration private / accessed data-or-address in a compute construct.",
+"symbols": [
+"acc_async_",
+"copy",
+"firstprivate",
+"kernels",
+"loop",
+"parallel",
+"routine",
+"serial"
+]
+},
+{
+"id": "openacc:ch11-glossary#mental-models",
+"doc": "ch11-glossary",
+"heading": "Chapter 11 (Ch 6): Glossary > Mental Models",
+"text": "- **\"Region\" is dynamic, \"construct\" is static**: a construct is the syntax; a region is everything that *runs* because of it — including called procedures. Reason about data presence and side effects over the *region*, not just the lexical block.\n- **Compute intensity is the offload decision metric**: high arithmetic-to-transfer ratio → offload wins; low → host wins (ties back to ch1's discrete-memory bandwidth argument).\n- **\"Present\" is a reference-count fact**, not a yes/no flag — it's why nested data regions compose correctly (ch4).",
+"symbols": []
+},
+{
+"id": "openacc:ch11-glossary#anti-patterns",
+"doc": "ch11-glossary",
+"heading": "Chapter 11 (Ch 6): Glossary > Anti-patterns",
+"text": "- **Conflating OpenACC terms with base-language terms**: e.g. \"scalar,\" \"block construct,\" \"procedure\" have OpenACC-specific scoping meanings here — when a rule cites a glossary term, use *this* definition.\n- **Treating \"construct\" and \"region\" as synonyms**: a region spans called procedures; a construct is just the directive + block.",
+"symbols": []
+},
+{
+"id": "openacc:ch11-glossary#key-takeaways",
+"doc": "ch11-glossary",
+"heading": "Chapter 11 (Ch 6): Glossary > Key Takeaways",
+"text": "1. \"Region\" = dynamic execution (incl. callees); \"construct\" = static directive+block.\n2. \"Present\" = reference counters sum > 0; the basis of composable data regions.\n3. \"Compute intensity\" (flops/byte-moved) is the metric for whether offload is worthwhile.\n4. device/accelerator/local-thread/discrete-vs-shared-memory terms underpin the whole memory model.\n5. Where OpenACC terms conflict with base-language usage, the glossary definition governs.",
+"symbols": []
+},
+{
+"id": "openacc:ch11-glossary#connects-to",
+"doc": "ch11-glossary",
+"heading": "Chapter 11 (Ch 6): Glossary > Connects To",
+"text": "- **Ch 1**: execution & memory models — most terms originate there.\n- **Ch 4**: present data, reference counters, data lifetimes.\n- **glossary.md**: full alphabetical list.",
+"symbols": []
+}
+]
+}

@@ -1,0 +1,2419 @@
+{
+"version": 1,
+"chunks": [
+{
+"id": "mpi:overview#mpi-a-message-passing-interface-standard-version-5-0",
+"doc": "overview",
+"heading": "MPI: A Message-Passing Interface Standard — Version 5.0",
+"text": "**Source**: MPI Forum, MPI 5.0 | **Pages**: ~1189 | **Chapters**: 18 (grouped from 20 spec chapters + Annex A) | **Generated**: 2026-06-09",
+"symbols": []
+},
+{
+"id": "mpi:overview#what-mpi-is-ch-1",
+"doc": "overview",
+"heading": "MPI: A Message-Passing Interface Standard — Version 5.0 > Core Frameworks & Mental Models > What MPI is (Ch 1)",
+"text": "- A **specification** (not an implementation) for **cooperative message passing** in distributed memory: data moves between process address spaces via matched operations. Beyond send/recv: **collectives**, **one-sided RMA**, **parallel I/O**, **dynamic processes**. The unit is an **MPI process** with a **rank** in a **communicator**; SPMD is the norm.",
+"symbols": []
+},
+{
+"id": "mpi:overview#operation-taxonomy-ch-2-classify-every-call",
+"doc": "overview",
+"heading": "MPI: A Message-Passing Interface Standard — Version 5.0 > Core Frameworks & Mental Models > Operation taxonomy (Ch 2) — classify every call",
+"text": "- **timing**: blocking / nonblocking (returns a **request**, complete with `MPI_Wait`/`MPI_Test`) / persistent (init once, start many).\n- **participation**: collective (all processes in the group call it — mismatch deadlocks) / noncollective.\n- **locality**: local (no peer needed) / nonlocal (may need a matching call).\n- **Completion = buffer reusable (send) / data arrived (recv)** — *not* that the peer finished (except `MPI_Ssend`).",
+"symbols": [
+"mpi_ssend",
+"mpi_test",
+"mpi_wait"
+]
+},
+{
+"id": "mpi:overview#point-to-point-ch-3-and-deadlock",
+"doc": "overview",
+"heading": "MPI: A Message-Passing Interface Standard — Version 5.0 > Core Frameworks & Mental Models > Point-to-point (Ch 3) — and deadlock",
+"text": "- Match on **(communicator, source, tag)**; data is `(buf, count, datatype)`, count in *elements*.\n- Send modes: **standard `MPI_Send`** (impl-chosen buffering — **don't rely on it**), buffered, **synchronous `MPI_Ssend`** (rendezvous), ready.\n- **Mutual send-before-recv in standard mode can deadlock** → use **`MPI_Sendrecv`** or **nonblocking + `MPI_Waitall`** (which also overlaps comm/compute). Never touch an `MPI_Isend` buffer before completion.",
+"symbols": [
+"buf",
+"count",
+"datatype",
+"mpi_isend",
+"mpi_send",
+"mpi_sendrecv",
+"mpi_ssend",
+"mpi_waitall"
+]
+},
+{
+"id": "mpi:overview#collectives-ch-6",
+"doc": "overview",
+"heading": "MPI: A Message-Passing Interface Standard — Version 5.0 > Core Frameworks & Mental Models > Collectives (Ch 6)",
+"text": "- Same call by **all** group members. `MPI_Bcast`/`Gather`/`Scatter`/`Alltoall`/`Reduce`/**`Allreduce`** (the global-reduction workhorse — norms/convergence, but a sync point). Nonblocking (`MPI_Iallreduce`) for overlap; **neighborhood** collectives (+ topology) for scalable halo exchange. `MPI_IN_PLACE` drops a buffer. FP reductions are not bit-reproducible across layouts.",
+"symbols": [
+"allreduce",
+"alltoall",
+"gather",
+"mpi_bcast",
+"mpi_iallreduce",
+"mpi_in_place",
+"reduce",
+"scatter"
+]
+},
+{
+"id": "mpi:overview#datatypes-ch-5",
+"doc": "overview",
+"heading": "MPI: A Message-Passing Interface Standard — Version 5.0 > Core Frameworks & Mental Models > Datatypes (Ch 5)",
+"text": "- **Derived types** (`MPI_Type_vector`/`create_subarray`/`create_struct`) send non-contiguous memory in one call — no manual packing. `subarray` is the halo/distributed-array descriptor. `commit` before, `free` after; mind **extent vs size** (`MPI_Type_create_resized`).",
+"symbols": [
+"commit",
+"create_struct",
+"create_subarray",
+"free",
+"mpi_type_create_resized",
+"mpi_type_vector",
+"subarray"
+]
+},
+{
+"id": "mpi:overview#communicators-topologies-ch-7-8",
+"doc": "overview",
+"heading": "MPI: A Message-Passing Interface Standard — Version 5.0 > Core Frameworks & Mental Models > Communicators & topologies (Ch 7, 8)",
+"text": "- Communicator = group (ranks) + context (message isolation). **Libraries must `MPI_Comm_dup`**. `MPI_Comm_split` partitions; `MPI_Comm_split_type(MPI_COMM_TYPE_SHARED)` → node-local. `MPI_Cart_create`+`MPI_Cart_shift`+`MPI_Sendrecv` = canonical halo exchange.",
+"symbols": [
+"mpi_cart_create",
+"mpi_cart_shift",
+"mpi_comm_dup",
+"mpi_comm_split",
+"mpi_comm_split_type",
+"mpi_comm_type_shared",
+"mpi_sendrecv"
+]
+},
+{
+"id": "mpi:overview#one-sided-rma-ch-12",
+"doc": "overview",
+"heading": "MPI: A Message-Passing Interface Standard — Version 5.0 > Core Frameworks & Mental Models > One-sided RMA (Ch 12)",
+"text": "- `Put`/`Get`/`Accumulate` on **windows**, target doesn't participate (maps to RDMA). Completion at **epoch end** (`fence`/`unlock`/`flush`), never early. `MPI_Accumulate` (atomic) for concurrent updates. `MPI_Win_allocate_shared` = portable node-local shared memory.",
+"symbols": [
+"accumulate",
+"fence",
+"flush",
+"get",
+"mpi_accumulate",
+"mpi_win_allocate_shared",
+"put",
+"unlock"
+]
+},
+{
+"id": "mpi:overview#parallel-i-o-ch-14",
+"doc": "overview",
+"heading": "MPI: A Message-Passing Interface Standard — Version 5.0 > Core Frameworks & Mental Models > Parallel I/O (Ch 14)",
+"text": "- One shared file + **file view** (`subarray` filetype per rank) + **collective `_all`** ops → the implementation aggregates for throughput. Never one-file-per-rank at scale. `MPI_Info` hints (collective buffering, striping) dominate performance.",
+"symbols": [
+"_all",
+"mpi_info",
+"subarray"
+]
+},
+{
+"id": "mpi:overview#init-threads-ch-11-2",
+"doc": "overview",
+"heading": "MPI: A Message-Passing Interface Standard — Version 5.0 > Core Frameworks & Mental Models > Init & threads (Ch 11, 2)",
+"text": "- **World Model** (`MPI_Init`→`MPI_COMM_WORLD`) vs **Sessions Model** (5.0 — independent init, no global world; library-friendly). `MPI_Init_thread` with the minimum level (`FUNNELED` typical hybrid; `MULTIPLE` only for concurrent MPI from threads) — **check `provided`**.",
+"symbols": [
+"funneled",
+"mpi_comm_world",
+"mpi_init",
+"mpi_init_thread",
+"multiple",
+"provided"
+]
+},
+{
+"id": "mpi:overview#mpi-5-0-highlights",
+"doc": "overview",
+"heading": "MPI: A Message-Passing Interface Standard — Version 5.0 > Core Frameworks & Mental Models > MPI 5.0 highlights",
+"text": "**Standard ABI** (one binary runs against any conforming MPI — `MPI_Abi_get_version`) · Sessions refinements · **partitioned** point-to-point (multithreaded/GPU senders) · large-count `_c` routines · `use mpi_f08` standard Fortran binding · C++ bindings removed.",
+"symbols": [
+"mpi_abi_get_version",
+"mpi_f08",
+"use"
+]
+},
+{
+"id": "mpi:overview#hybrid-cross-referenced",
+"doc": "overview",
+"heading": "MPI: A Message-Passing Interface Standard — Version 5.0 > Core Frameworks & Mental Models > Hybrid (cross-referenced)",
+"text": "One rank per NUMA domain; threads/GPU within (`MPI_THREAD_FUNNELED`/`MULTIPLE`); device-aware MPI passes device pointers; pin ranks+threads. Timing: **`MPI_Wtime`** (wall-clock), not `cpu_time`; reduce local intervals (clocks not cross-rank synced).\n\n---",
+"symbols": [
+"cpu_time",
+"mpi_thread_funneled",
+"mpi_wtime",
+"multiple"
+]
+},
+{
+"id": "mpi:overview#chapter-index",
+"doc": "overview",
+"heading": "MPI: A Message-Passing Interface Standard — Version 5.0 > Chapter Index",
+"text": "| # | Covers | Key topics |\n|---|--------|------------|\n| [ch01](chapters/ch01-introduction.md) | Ch 1 | message-passing model, spec vs impl, rank/communicator |\n| [ch02](chapters/ch02-terms-conventions.md) | Ch 2 | operation taxonomy, opaque handles, errors, thread levels |\n| [ch03](chapters/ch03-point-to-point.md) | Ch 3 | send modes, nonblocking, Sendrecv, deadlock |\n| [ch04](chapters/ch04-partitioned.md) | Ch 4 | partitioned point-to-point (multithreaded senders) |\n| [ch05](chapters/ch05-datatypes.md) | Ch 5 | derived datatypes, subarray, pack/unpack |\n| [ch06](chapters/ch06-collective.md) | Ch 6 | bcast/reduce/allreduce/alltoall/scan, nonblocking, neighborhood |\n| [ch07](chapters/ch07-communicators.md) | Ch 7 | groups, contexts, comm split, caching, Sessions intro |\n| [ch08](chapters/ch08-topologies.md) | Ch 8 | Cartesian/graph topologies, Cart_shift, neighborhood |\n| [ch09](chapters/ch09-environment.md) | Ch 9 | error handlers, MPI_Wtime, MPI_Alloc_mem |\n| [ch10](chapters/ch10-info-object.md) | Ch 10 | MPI_Info hints/assertions |\n| [ch11](chapters/ch11-process-management.md) | Ch 11 | World vs Sessions model, Init_thread, spawn |\n| [ch12](chapters/ch12-one-sided.md) | Ch 12 | RMA windows, put/get/accumulate, fence/lock, shared mem |\n| [ch13](chapters/ch13-external-interfaces.md) | Ch 13 | generalized requests, datatype decoding, progress |\n| [ch14](chapters/ch14-io.md) | Ch 14 | MPI-IO file views, collective I/O, datarep |\n| [ch15](chapters/ch15-tool-support.md) | Ch 15 | PMPI profiling, MPI_T cvars/pvars |\n| [ch16](chapters/ch16-deprecated-removed.md) | Ch 16-18 | deprecated/removed, mpi_f08, semantic changes |\n| [ch17](chapters/ch17-language-bindings.md) | Ch 19-20 | C/Fortran bindings, large-count `_c`, standard ABI |\n| [ch18](chapters/ch18-bindings-summary.md) | Annex A | signature + constant reference |",
+"symbols": []
+},
+{
+"id": "mpi:overview#topic-index",
+"doc": "overview",
+"heading": "MPI: A Message-Passing Interface Standard — Version 5.0 > Topic Index",
+"text": "- **ABI / binary portability** → ch17\n- **allreduce / reduction** → ch06\n- **alltoall / transpose** → ch06\n- **collectives** → ch06\n- **communicators / groups / split** → ch07\n- **datatypes (derived/subarray/struct)** → ch05\n- **deadlock avoidance** → ch03, ch06, cheatsheet\n- **deprecated / removed / mpi_f08** → ch16, ch17\n- **dynamic processes / spawn** → ch11\n- **error handling** → ch09, ch02\n- **halo / ghost-cell exchange** → ch03, ch05, ch08, patterns\n- **hybrid MPI + OpenMP/GPU** → ch02, ch11, cheatsheet\n- **info hints** → ch10, ch14\n- **MPI-IO / parallel I/O / file views** → ch14\n- **nonblocking / Isend / Waitall** → ch03, ch06\n- **one-sided / RMA / windows** → ch12\n- **partitioned communication** → ch04\n- **persistent communication** → ch02, patterns\n- **point-to-point / send modes** → ch03\n- **process init (World/Sessions)** → ch11\n- **profiling (PMPI/MPI_T)** → ch15\n- **send modes (standard/sync/buffered/ready)** → ch03\n- **Sendrecv** → ch03\n- **Sessions model** → ch11, ch07\n- **shared memory (node-local)** → ch12, ch07\n- **signatures / constants reference** → ch18\n- **thread levels** → ch02, ch11\n- **timing (MPI_Wtime)** → ch09\n- **topologies (Cartesian/graph)** → ch08\n- **windows / Win_fence / lock** → ch12",
+"symbols": []
+},
+{
+"id": "mpi:overview#supporting-files",
+"doc": "overview",
+"heading": "MPI: A Message-Passing Interface Standard — Version 5.0 > Supporting Files",
+"text": "- [glossary.md](glossary.md) — terms + API vocabulary\n- [patterns.md](patterns.md) — MPI idioms (halo exchange, overlap, RMA, hybrid, I/O)\n- [cheatsheet.md](cheatsheet.md) — send/collective/RMA decision rules + deadlock tells & smells\n\n---",
+"symbols": []
+},
+{
+"id": "mpi:overview#scope-limits",
+"doc": "overview",
+"heading": "MPI: A Message-Passing Interface Standard — Version 5.0 > Scope & Limits",
+"text": "Covers MPI Standard v5.0. Extracted with pdftotext (docling garbles this spec class — see the fortran-2023-standard note). This is the *standard* — implementation behavior (transport, progress engine, default eager limits, launch via `mpirun`/`srun`) belongs to Open MPI / MPICH / Cray MPICH / Intel MPI docs. Exact routine signatures live in ch18 (Annex A); consult it rather than recalling argument order. For shared-memory threading use `openmp-6.0`; for GPU offload `openacc-3.4`; for the Fortran `mpi_f08` base language `fortran-2023-standard`; for HPC practice hpc-practice pack (gpu-practice).",
+"symbols": [
+"fortran",
+"mpi_f08",
+"mpirun",
+"openacc",
+"openmp",
+"srun",
+"standard"
+]
+},
+{
+"id": "mpi:cheatsheet#new-notable-in-mpi-5-0-vs-4-x-3-x",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — MPI 5.0 > New / notable in MPI 5.0 (vs 4.x/3.x)",
+"text": "Standard **ABI** (`MPI_Abi_get_version`/`_get_info` — one binary, any conforming impl) · **Sessions Model** refinements (init without `MPI_COMM_WORLD`) · **Partitioned** point-to-point (`MPI_Psend_init`/`Pready`) · large-count **`_c`** routines (`MPI_Count`) · `use mpi_f08` the standard Fortran binding · C++ bindings removed.",
+"symbols": [
+"_get_info",
+"mpi_abi_get_version",
+"mpi_comm_world",
+"mpi_count",
+"mpi_f08",
+"mpi_psend_init",
+"pready",
+"use"
+]
+},
+{
+"id": "mpi:cheatsheet#which-send",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — MPI 5.0 > Decision rules > Which send?",
+"text": "| Situation | Send |\n|---|---|\n| default, portable | `MPI_Send` (standard) |\n| must return immediately, you own buffer | `MPI_Bsend` (buffered) |\n| deterministic / debugging deadlock | `MPI_Ssend` (synchronous) |\n| receive guaranteed pre-posted (micro-opt) | `MPI_Rsend` (ready) |\n| mutual exchange | **`MPI_Sendrecv`** (deadlock-free) |\n| overlap comm/compute | `MPI_Isend`/`MPI_Irecv` + `MPI_Waitall` |",
+"symbols": [
+"mpi_bsend",
+"mpi_irecv",
+"mpi_isend",
+"mpi_rsend",
+"mpi_send",
+"mpi_sendrecv",
+"mpi_ssend",
+"mpi_waitall"
+]
+},
+{
+"id": "mpi:cheatsheet#avoid-deadlock",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — MPI 5.0 > Decision rules > Avoid deadlock",
+"text": "- Mutual send-before-recv in standard mode **can deadlock** (buffering not guaranteed) → `MPI_Sendrecv` or nonblocking.\n- Never reuse an `MPI_Isend` buffer before `MPI_Wait`.\n- All ranks must call every collective (no rank-conditional skips).",
+"symbols": [
+"mpi_isend",
+"mpi_sendrecv",
+"mpi_wait"
+]
+},
+{
+"id": "mpi:cheatsheet#which-collective",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — MPI 5.0 > Decision rules > Which collective?",
+"text": "one→all `Bcast` · gather→root `Gather(v)` · gather→all `Allgather` · scatter `Scatter(v)` · transpose `Alltoall(v/w)` · reduce→root `Reduce` · reduce→all **`Allreduce`** · prefix `Scan`/`Exscan` · neighbors `Neighbor_*`. Use `MPI_IN_PLACE` to drop a buffer.",
+"symbols": [
+"allgather",
+"allreduce",
+"alltoall",
+"bcast",
+"exscan",
+"gather",
+"mpi_in_place",
+"neighbor_",
+"reduce",
+"scan",
+"scatter"
+]
+},
+{
+"id": "mpi:cheatsheet#communicator-scope",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — MPI 5.0 > Decision rules > Communicator scope",
+"text": "- Library? `MPI_Comm_dup` (isolate messages) — never use `MPI_COMM_WORLD` directly.\n- Partition? `MPI_Comm_split(color,key)` (row/col grids).\n- Node-local shared mem? `MPI_Comm_split_type(MPI_COMM_TYPE_SHARED)`.\n- Pass communicators as params; don't hardcode the world.",
+"symbols": [
+"color",
+"key",
+"mpi_comm_dup",
+"mpi_comm_split",
+"mpi_comm_split_type",
+"mpi_comm_type_shared",
+"mpi_comm_world"
+]
+},
+{
+"id": "mpi:cheatsheet#thread-level-mpi-openmp-gpu",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — MPI 5.0 > Decision rules > Thread level (MPI+OpenMP/GPU)",
+"text": "| Threads call MPI | Level |\n|---|---|\n| never (one thread) | `MPI_THREAD_SINGLE` |\n| only master thread | `MPI_THREAD_FUNNELED` (common hybrid default) |\n| one at a time | `MPI_THREAD_SERIALIZED` |\n| concurrently | `MPI_THREAD_MULTIPLE` (partitioned comm; has cost) |\nAlways check `provided ≥ required`.",
+"symbols": [
+"mpi_thread_funneled",
+"mpi_thread_multiple",
+"mpi_thread_serialized",
+"mpi_thread_single",
+"provided",
+"required"
+]
+},
+{
+"id": "mpi:cheatsheet#rma-synchronization",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — MPI 5.0 > Decision rules > RMA synchronization",
+"text": "- Bulk/simple → `MPI_Win_fence … Put/Get/Accumulate … fence`.\n- Scalable active → PSCW (`post/start/complete/wait`).\n- Passive → `MPI_Win_lock`/`unlock` (+ `MPI_Win_flush` to complete mid-epoch).\n- Concurrent remote update → `MPI_Accumulate` (atomic), never bare `Put`.\n- Data complete only at **epoch end** — never read early.",
+"symbols": [
+"accumulate",
+"complete",
+"fence",
+"get",
+"mpi_accumulate",
+"mpi_win_fence",
+"mpi_win_flush",
+"mpi_win_lock",
+"post",
+"put",
+"start",
+"unlock",
+"wait"
+]
+},
+{
+"id": "mpi:cheatsheet#datatype",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — MPI 5.0 > Decision rules > Datatype",
+"text": "- Strided/structured → `MPI_Type_vector`/`create_subarray`/`create_struct`; `commit` before, `free` after.\n- Halo face → `MPI_Type_create_subarray`.\n- Array of a derived type packs wrong → `MPI_Type_create_resized` (fix extent).\n- Displacements → `MPI_Get_address`, never hand-computed.",
+"symbols": [
+"commit",
+"create_struct",
+"create_subarray",
+"free",
+"mpi_get_address",
+"mpi_type_create_resized",
+"mpi_type_create_subarray",
+"mpi_type_vector"
+]
+},
+{
+"id": "mpi:cheatsheet#parallel-i-o",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — MPI 5.0 > Decision rules > Parallel I/O",
+"text": "- One shared file + `subarray` filetype + `MPI_File_set_view` + collective `_all` ops — never one-file-per-rank at scale.\n- Tune via `MPI_Info`: `collective_buffering`, `cb_nodes`, `striping_factor`/`unit`.\n- `datarep`: `native` (fast) vs `external32` (portable archives).",
+"symbols": [
+"_all",
+"cb_nodes",
+"collective_buffering",
+"datarep",
+"external32",
+"mpi_file_set_view",
+"mpi_info",
+"native",
+"striping_factor",
+"subarray",
+"unit"
+]
+},
+{
+"id": "mpi:cheatsheet#tells-smells",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — MPI 5.0 > Tells & smells",
+"text": "- **Code \"works\" small, hangs at scale** → relied on standard-mode buffering; use `Sendrecv`/nonblocking.\n- **Data corruption after `Isend`** → buffer reused before `MPI_Wait` (Fortran: missing `ASYNCHRONOUS`).\n- **Deadlock on a collective** → a rank skipped it (conditional branch) or mismatched order.\n- **`MPI_Barrier` sprinkled \"for safety\"** → almost always removable overhead.\n- **Allreduce in a tight loop** → global sync each iteration; batch or `Iallreduce`-overlap.\n- **One file per rank** → metadata-server meltdown; restart breaks on different P. Use shared file + views.\n- **`cpu_time` for timing** → use `MPI_Wtime`; clocks aren't cross-rank synced (reduce local intervals).\n- **Binary won't run against another MPI** → pre-ABI behavior; check `MPI_Abi_get_version` (5.0 ABI fixes this).\n- **`mpif.h` argument bug at runtime** → use `use mpi_f08` (typed handles catch it at compile time).\n- **FP reduction not reproducible** → reassociation varies with rank count/order; expected.",
+"symbols": [
+"asynchronous",
+"cpu_time",
+"iallreduce",
+"isend",
+"mpi_abi_get_version",
+"mpi_barrier",
+"mpi_f08",
+"mpi_wait",
+"mpi_wtime",
+"mpif",
+"sendrecv",
+"use"
+]
+},
+{
+"id": "mpi:cheatsheet#hybrid-placement-mpi-openmp-gpu",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — MPI 5.0 > Hybrid placement (MPI + OpenMP/GPU)",
+"text": "- One rank per NUMA domain/socket; `OMP_NUM_THREADS` = cores/rank; bind (`OMP_PROC_BIND=close`, `OMP_PLACES=cores`).\n- GPU per rank via local rank: `MPI_Comm_split_type(MPI_COMM_TYPE_SHARED)` → node-local rank → `acc_set_device_num`/`omp` device.\n- Device-aware MPI: pass device pointers directly (CUDA-aware) — `MPI_Send(device_ptr,...)`; check implementation support.",
+"symbols": [
+"acc_set_device_num",
+"close",
+"cores",
+"device_ptr",
+"mpi_comm_split_type",
+"mpi_comm_type_shared",
+"mpi_send",
+"omp",
+"omp_num_threads",
+"omp_places",
+"omp_proc_bind"
+]
+},
+{
+"id": "mpi:glossary#glossary-mpi-5-0",
+"doc": "glossary",
+"heading": "Glossary — MPI 5.0",
+"text": "Key terms + API vocabulary. Format: **Term** — definition (Ch).",
+"symbols": []
+},
+{
+"id": "mpi:glossary#glossary-mpi-5-0-2",
+"doc": "glossary",
+"heading": "Glossary — MPI 5.0",
+"text": "**ABI (standard)** — MPI 5.0 binary interface so one executable runs against any conforming impl (Ch17).\n**Accumulate** — atomic remote combine (`MPI_Accumulate`) in RMA (Ch12).\n**active target** — RMA sync where the target participates (`MPI_Win_fence`, PSCW) (Ch12).\n**blocking** — operation whose single call combines all four stages; completes before return (Ch2).\n**collective** — operation all processes in a group call; mismatch deadlocks (Ch2, 6).\n**communicator** — group + context; the scope of communication (`MPI_Comm`) (Ch7).\n**context** — message-isolation tag distinguishing communicators (Ch7).\n**datarep** — file data representation: native / internal / external32 (Ch14).\n**deprecated** — legal but discouraged; the removal queue (Ch16).\n**derived datatype** — describes non-contiguous memory (vector/indexed/struct/subarray) (Ch5).\n**epoch** — RMA synchronization interval; transfers complete at epoch end (Ch12).\n**etype / filetype** — elementary type / file-view layout type in MPI-IO (Ch14).\n**extent vs size** — span (incl. gaps) vs actual data bytes of a datatype (Ch5).\n**file view** — (disp, etype, filetype, datarep) giving a process its slice of a file (Ch14).\n**generalized request** — MPI request backed by user-defined async work (Ch13).\n**group** — ordered set of processes → ranks (`MPI_Group`); local ops (Ch7).\n**handle** — reference to an opaque MPI object (Ch2).\n**info object** — (key,value) string hints/assertions (`MPI_Info`) (Ch10).\n**intercommunicator** — communicator spanning two groups (Ch7).\n**local / nonlocal** — completes without / may require another process (Ch2).\n**MPI process** — execution unit with private address space (Ch1).\n**MPI_IN_PLACE** — avoid a separate send buffer in collectives (Ch6).\n**MPI_PROC_NULL** — null peer; send/recv is a completing no-op (Ch3).\n**MPI_T** — tool information interface: cvars/pvars/events (Ch15).\n**MPI_Wtime** — portable wall-clock timer (Ch9).\n**neighborhood collective** — communicate with topology neighbors only (Ch6, 8).\n**nonblocking** — init+start now (returns request), complete later via Wait/Test (Ch2, 3).\n**one-sided / RMA** — remote memory access without target participation (Ch12).\n**partition** — independently-readied piece of a partitioned message (Ch4).\n**passive target** — RMA sync where target is uninvolved (`MPI_Win_lock`/`flush`) (Ch12).\n**persistent** — init separated from repeated start (amortize setup) (Ch2).\n**PMPI** — profiling interface; `PMPI_X` twin of each `MPI_X` (Ch15).\n**process set** — named set of processes in the Sessions model (Ch11).\n**rank** — process ID within a communicator's group (0-based) (Ch1).\n**ready send** — `MPI_Rsend`; only valid if receive already posted (Ch3).\n**reduction op** — `MPI_SUM`/`MAX`/`MINLOC`/… or user `MPI_Op_create` (Ch6).\n**request** — handle for a pending nonblocking/persistent operation (Ch2, 3).\n**Sessions Model** — MPI 5.0 init via independent sessions/process sets, no global world (Ch11).\n**SPMD** — single program, many processes branching on rank (Ch1).\n**standard send** — `MPI_Send`; impl chooses buffering (Ch3).\n**status** — receive result: source, tag, error, count (`MPI_Status`) (Ch3).\n**subarray type** — `MPI_Type_create_subarray`; halo/distributed-array descriptor (Ch5, 14).\n**synchronous send** — `MPI_Ssend`; completes when receiver starts (rendezvous) (Ch3).\n**thread level** — SINGLE/FUNNELED/SERIALIZED/MULTIPLE (`MPI_Init_thread`) (Ch2, 11).\n**topology (virtual)** — Cartesian/graph communication structure on a communicator (Ch8).\n**window** — memory region exposed for RMA (`MPI_Win`) (Ch12).\n**World Model** — classic `MPI_Init` → `MPI_COMM_WORLD` init (Ch11).\n**`use mpi_f08`** — modern type-safe Fortran binding (typed handles, INTENT) (Ch16, 17).",
+"symbols": [
+"flush",
+"max",
+"minloc",
+"mpi_accumulate",
+"mpi_comm",
+"mpi_comm_world",
+"mpi_f08",
+"mpi_group",
+"mpi_info",
+"mpi_init",
+"mpi_init_thread",
+"mpi_op_create",
+"mpi_rsend",
+"mpi_send",
+"mpi_ssend",
+"mpi_status",
+"mpi_sum",
+"mpi_type_create_subarray",
+"mpi_win",
+"mpi_win_fence",
+"mpi_win_lock",
+"mpi_x",
+"pmpi_x",
+"use"
+]
+},
+{
+"id": "mpi:patterns#patterns-mpi-5-0-idioms",
+"doc": "patterns",
+"heading": "Patterns — MPI 5.0 idioms",
+"text": "Concrete techniques. Format: **When / How / Trade-offs.**",
+"symbols": []
+},
+{
+"id": "mpi:patterns#halo-ghost-cell-exchange-the-stencil-workhorse",
+"doc": "patterns",
+"heading": "Patterns — MPI 5.0 idioms > Halo / ghost-cell exchange (the stencil workhorse)",
+"text": "**When**: structured-grid solver exchanging boundary layers with neighbors.\n**How**: `MPI_Cart_create(reorder=true)` → `MPI_Cart_shift` for neighbor ranks → `MPI_Sendrecv` (or nonblocking) per direction; `MPI_Type_create_subarray` for non-contiguous faces; `MPI_PROC_NULL` auto-handles boundaries. (Ch3, 5, 8)\n**Trade-offs**: `Sendrecv` is deadlock-free and simple; nonblocking allows compute/comm overlap.",
+"symbols": [
+"mpi_cart_create",
+"mpi_cart_shift",
+"mpi_proc_null",
+"mpi_sendrecv",
+"mpi_type_create_subarray",
+"reorder",
+"sendrecv",
+"true"
+]
+},
+{
+"id": "mpi:patterns#nonblocking-overlap-of-communication-and-computation",
+"doc": "patterns",
+"heading": "Patterns — MPI 5.0 idioms > Nonblocking overlap of communication and computation",
+"text": "**When**: latency hiding in iterative solvers.\n**How**: `MPI_Irecv`+`MPI_Isend` (or `MPI_Iallreduce`) → compute interior → `MPI_Waitall` → compute boundary. (Ch3, 6)\n**Trade-offs**: hides latency if interior work ≥ comm time; needs care not to touch buffers before Wait.",
+"symbols": [
+"mpi_iallreduce",
+"mpi_irecv",
+"mpi_isend",
+"mpi_waitall"
+]
+},
+{
+"id": "mpi:patterns#global-reduction-for-convergence-norms",
+"doc": "patterns",
+"heading": "Patterns — MPI 5.0 idioms > Global reduction for convergence/norms",
+"text": "**When**: residual/dot-product/convergence check across all ranks.\n**How**: `MPI_Allreduce(MPI_IN_PLACE, &val, 1, MPI_DOUBLE, MPI_SUM, comm)`. (Ch6)\n**Trade-offs**: global sync point — minimize frequency; overlap with `MPI_Iallreduce`; FP not bit-reproducible across layouts.",
+"symbols": [
+"comm",
+"mpi_allreduce",
+"mpi_double",
+"mpi_iallreduce",
+"mpi_in_place",
+"mpi_sum",
+"val"
+]
+},
+{
+"id": "mpi:patterns#domain-decomposition-via-cartesian-topology",
+"doc": "patterns",
+"heading": "Patterns — MPI 5.0 idioms > Domain decomposition via Cartesian topology",
+"text": "**When**: mapping a grid onto ranks.\n**How**: `MPI_Dims_create` for balanced factorization → `MPI_Cart_create` → `MPI_Cart_coords` for local origin. (Ch8)\n**Trade-offs**: `reorder=true` improves locality; re-query rank after.",
+"symbols": [
+"mpi_cart_coords",
+"mpi_cart_create",
+"mpi_dims_create",
+"reorder",
+"true"
+]
+},
+{
+"id": "mpi:patterns#derived-datatype-instead-of-manual-packing",
+"doc": "patterns",
+"heading": "Patterns — MPI 5.0 idioms > Derived datatype instead of manual packing",
+"text": "**When**: sending strided/structured data (matrix column, struct array, array slice).\n**How**: `MPI_Type_vector`/`create_subarray`/`create_struct` → `MPI_Type_commit` → send count=1 of the type → `MPI_Type_free`. (Ch5)\n**Trade-offs**: lets MPI/hardware do strided access; mind extent (`MPI_Type_create_resized`) for arrays of the type.",
+"symbols": [
+"create_struct",
+"create_subarray",
+"mpi_type_commit",
+"mpi_type_create_resized",
+"mpi_type_free",
+"mpi_type_vector"
+]
+},
+{
+"id": "mpi:patterns#collective-distributed-array-i-o-one-shared-file",
+"doc": "patterns",
+"heading": "Patterns — MPI 5.0 idioms > Collective distributed-array I/O (one shared file)",
+"text": "**When**: checkpoint/restart or field output of a decomposed array.\n**How**: `subarray` filetype → `MPI_File_set_view` → `MPI_File_write_all` (collective); tune with `MPI_Info` (collective_buffering, striping). (Ch10, 14)\n**Trade-offs**: scales far better than one-file-per-rank; hints dominate throughput; restart is decomposition-independent.",
+"symbols": [
+"mpi_file_set_view",
+"mpi_file_write_all",
+"mpi_info",
+"subarray"
+]
+},
+{
+"id": "mpi:patterns#one-sided-accumulate-for-irregular-updates",
+"doc": "patterns",
+"heading": "Patterns — MPI 5.0 idioms > One-sided accumulate for irregular updates",
+"text": "**When**: scatter/accumulate into remote memory without the target polling.\n**How**: `MPI_Win_allocate` → `MPI_Win_fence` → `MPI_Accumulate(..., MPI_SUM, win)` → `MPI_Win_fence`. (Ch12)\n**Trade-offs**: `Accumulate` is atomic (safe concurrent updates); completion only at epoch end.",
+"symbols": [
+"accumulate",
+"mpi_accumulate",
+"mpi_sum",
+"mpi_win_allocate",
+"mpi_win_fence",
+"win"
+]
+},
+{
+"id": "mpi:patterns#node-local-shared-memory-mpi-mpi-hybrid",
+"doc": "patterns",
+"heading": "Patterns — MPI 5.0 idioms > Node-local shared memory (MPI+MPI hybrid)",
+"text": "**When**: ranks on the same node should share memory directly (avoid intra-node copies).\n**How**: `MPI_Comm_split_type(MPI_COMM_TYPE_SHARED)` → `MPI_Win_allocate_shared` → `MPI_Win_shared_query` for load/store pointers. (Ch7, 12)\n**Trade-offs**: portable alternative to OpenMP for intra-node sharing; still needs synchronization.",
+"symbols": [
+"mpi_comm_split_type",
+"mpi_comm_type_shared",
+"mpi_win_allocate_shared",
+"mpi_win_shared_query"
+]
+},
+{
+"id": "mpi:patterns#hybrid-mpi-openmp-gpu",
+"doc": "patterns",
+"heading": "Patterns — MPI 5.0 idioms > Hybrid MPI + OpenMP/GPU",
+"text": "**When**: one rank per socket/NUMA, threads/GPU within.\n**How**: `MPI_Init_thread(MPI_THREAD_FUNNELED|MULTIPLE)` (check `provided`); MPI on master thread (FUNNELED) or any thread (MULTIPLE); pin ranks to NUMA, threads to cores. (Ch2, 11)\n**Trade-offs**: FUNNELED is cheaper/safer; MULTIPLE only if threads call MPI concurrently (e.g. partitioned comm).",
+"symbols": [
+"mpi_init_thread",
+"mpi_thread_funneled",
+"multiple",
+"provided"
+]
+},
+{
+"id": "mpi:patterns#partitioned-send-from-multiple-producers",
+"doc": "patterns",
+"heading": "Patterns — MPI 5.0 idioms > Partitioned send from multiple producers",
+"text": "**When**: threads/GPU streams each produce part of one message.\n**How**: `MPI_Psend_init` once → per iter `MPI_Start` → each producer `MPI_Pready(p)` → `MPI_Wait`. (Ch4)\n**Trade-offs**: overlaps per-partition production with transfer; needs `MPI_THREAD_MULTIPLE`.",
+"symbols": [
+"mpi_pready",
+"mpi_psend_init",
+"mpi_start",
+"mpi_thread_multiple",
+"mpi_wait"
+]
+},
+{
+"id": "mpi:patterns#persistent-communication-for-repeated-patterns",
+"doc": "patterns",
+"heading": "Patterns — MPI 5.0 idioms > Persistent communication for repeated patterns",
+"text": "**When**: same send/recv every iteration of a time loop.\n**How**: `MPI_Send_init`/`MPI_Recv_init` once → `MPI_Startall` + `MPI_Waitall` per iteration → `MPI_Request_free`. (Ch2)\n**Trade-offs**: amortizes setup; fixed buffers/peers.",
+"symbols": [
+"mpi_recv_init",
+"mpi_request_free",
+"mpi_send_init",
+"mpi_startall",
+"mpi_waitall"
+]
+},
+{
+"id": "mpi:patterns#library-communicator-isolation",
+"doc": "patterns",
+"heading": "Patterns — MPI 5.0 idioms > Library communicator isolation",
+"text": "**When**: writing an MPI library callable from MPI apps.\n**How**: `MPI_Comm_dup` (or Sessions `MPI_Comm_create_from_group`) at init; never communicate on `MPI_COMM_WORLD`. (Ch7, 11)\n**Trade-offs**: prevents message collisions; Sessions avoids the `MPI_Init`-ownership problem.",
+"symbols": [
+"mpi_comm_create_from_group",
+"mpi_comm_dup",
+"mpi_comm_world",
+"mpi_init"
+]
+},
+{
+"id": "mpi:ch01-introduction#core-idea",
+"doc": "ch01-introduction",
+"heading": "Chapter 1: Introduction to MPI > Core Idea",
+"text": "MPI is a **message-passing library interface specification** (not a language, not an implementation) for the distributed-memory parallel model: data moves between process address spaces via **cooperative** operations. Its reason to exist is **portability + performance** across vendors.",
+"symbols": []
+},
+{
+"id": "mpi:ch01-introduction#frameworks-introduced",
+"doc": "ch01-introduction",
+"heading": "Chapter 1: Introduction to MPI > Frameworks Introduced",
+"text": "- **The message-passing model**: each process has a private address space; communication is explicit, cooperative (a send pairs with a receive). Extensions beyond classical message-passing: **collectives**, **remote-memory access (RMA / one-sided)**, **dynamic process creation**, **parallel I/O**.\n- **Specification vs implementation**: MPI is a *standard*; Open MPI, MPICH, MVAPICH, Intel MPI, Cray MPICH are implementations. Code to the standard, tune per implementation.\n- **Design goals**: portable, efficient (avoid memory copies, allow compute/communication overlap, offload to hardware), flexible; a thread-safe, language-bound (C + Fortran) library API.",
+"symbols": []
+},
+{
+"id": "mpi:ch01-introduction#key-concepts",
+"doc": "ch01-introduction",
+"heading": "Chapter 1: Introduction to MPI > Key Concepts",
+"text": "- **MPI process**: the unit of execution with its own address space (historically \"rank in MPI_COMM_WORLD\"; MPI 5.0 generalizes via **Sessions**, ch11).\n- **rank**: an integer ID of a process within a communicator's group (0-based).\n- **communicator**: the scope (group + context) within which communication happens (ch7).\n- **SPMD**: the dominant usage — one program, many processes, branching on `rank`.\n- **scalability**: the design favors operations vendors can hardware-accelerate (RDMA, collective offload).",
+"symbols": [
+"rank"
+]
+},
+{
+"id": "mpi:ch01-introduction#mental-models",
+"doc": "ch01-introduction",
+"heading": "Chapter 1: Introduction to MPI > Mental Models",
+"text": "- **\"Cooperative\" is the defining property**: unlike shared memory, classical MPI communication requires *both* sides to act (send ↔ recv). The exceptions — RMA (ch12) and I/O (ch14) — are exactly the \"one-sided\" extensions.\n- **Portability is the contract; performance is the implementation's job**: write standard MPI, then tune the implementation's runtime/transport (UCX, libfabric, etc.) — don't hardcode implementation behavior.",
+"symbols": []
+},
+{
+"id": "mpi:ch01-introduction#key-takeaways",
+"doc": "ch01-introduction",
+"heading": "Chapter 1: Introduction to MPI > Key Takeaways",
+"text": "1. MPI = a *specification* for cooperative message passing in distributed memory; many implementations exist.\n2. Beyond send/recv: collectives, one-sided RMA, dynamic processes, parallel I/O.\n3. The unit is the **MPI process** (with `rank` within a **communicator**); SPMD is the norm.\n4. Design priorities: portability, overlap of communication and computation, hardware offload.\n5. Code to the standard; tune per implementation — never rely on implementation-specific behavior for correctness.",
+"symbols": [
+"rank"
+]
+},
+{
+"id": "mpi:ch01-introduction#connects-to",
+"doc": "ch01-introduction",
+"heading": "Chapter 1: Introduction to MPI > Connects To",
+"text": "- **Ch 2**: the precise semantic terms (blocking/nonblocking, local/nonlocal, collective).\n- **Ch 3**: point-to-point send/recv — the core cooperative primitive.\n- **Ch 7**: communicators — the scope of communication.\n- **Ch 11**: Sessions — MPI 5.0's generalized initialization beyond MPI_COMM_WORLD.\n- **hpc-practice pack (gpu-practice)**: MPI is the inter-node layer of the HPC stack (MPI + OpenMP/OpenACC + GPU).",
+"symbols": []
+},
+{
+"id": "mpi:ch02-terms-conventions#core-idea",
+"doc": "ch02-terms-conventions",
+"heading": "Chapter 2: MPI Terms and Conventions > Core Idea",
+"text": "The precise vocabulary that every later chapter relies on: the **operation taxonomy** (blocking/nonblocking/persistent × collective/noncollective × local/nonlocal), opaque objects and handles, argument conventions (IN/OUT/INOUT), error handling, and the threading model. Master this before reading any API chapter.",
+"symbols": []
+},
+{
+"id": "mpi:ch02-terms-conventions#frameworks-introduced",
+"doc": "ch02-terms-conventions",
+"heading": "Chapter 2: MPI Terms and Conventions > Frameworks Introduced",
+"text": "- **Operation stages**: an MPI operation has up to four stages — **initialization**, **starting**, **completion**, **freeing**.\n  - **Blocking**: all four combined in one call (e.g. `MPI_Send`, `MPI_Recv`).\n  - **Nonblocking**: init+start in one call (returns a **request**), completion+freeing in a separate call (`MPI_Wait`/`MPI_Test`) — e.g. `MPI_Isend`/`MPI_Irecv`.\n  - **Persistent**: init separated from repeated start (`MPI_Send_init` → `MPI_Start` … `MPI_Request_free`) — amortize setup for a repeated pattern.\n- **local vs nonlocal**: a **local** procedure completes without communication with another process; a **nonlocal** one may require another process to make a matching call to complete (e.g. `MPI_Send` is nonlocal — it may wait for a receiver; `MPI_Isend` initiation is local).\n- **collective vs noncollective**: a **collective** operation is one call per process across a group/groups, all of which must participate (e.g. `MPI_Bcast`). Available as blocking/nonblocking/persistent. **Noncollective** = everything else.\n- **Opaque objects + handles**: MPI objects (communicators, datatypes, requests, groups, windows, files, info) are *opaque*; you hold a **handle** (`MPI_Comm`, `MPI_Datatype`, …). A handle argument is INOUT/OUT when the *referenced object* changes, even though the handle value may not.",
+"symbols": [
+"mpi_bcast",
+"mpi_comm",
+"mpi_datatype",
+"mpi_irecv",
+"mpi_isend",
+"mpi_recv",
+"mpi_request_free",
+"mpi_send",
+"mpi_send_init",
+"mpi_start",
+"mpi_test",
+"mpi_wait"
+]
+},
+{
+"id": "mpi:ch02-terms-conventions#key-concepts",
+"doc": "ch02-terms-conventions",
+"heading": "Chapter 2: MPI Terms and Conventions > Key Concepts",
+"text": "- **Completion semantics**: completing a send means the *send buffer is reusable*; completing a receive means the *data has arrived*. It does **not** imply the matching operation has completed (unless synchronous mode).\n- **Error handling**: by default `MPI_ERRORS_ARE_FATAL` (abort on error); attach `MPI_ERRORS_RETURN` or `MPI_ERRORS_ABORT` to a communicator/window/file to get return codes. Procedures return `MPI_SUCCESS` or an error class.\n- **Thread levels** (`MPI_Init_thread`): `MPI_THREAD_SINGLE`, `_FUNNELED` (only the main thread calls MPI), `_SERIALIZED` (one thread at a time), `_MULTIPLE` (any thread, concurrently). Request the minimum you need.\n- **Predefined handles/constants**: `MPI_COMM_WORLD`, `MPI_COMM_SELF`, `MPI_COMM_NULL`, `MPI_DATATYPE_NULL`, `MPI_PROC_NULL`, `MPI_ANY_SOURCE`, `MPI_ANY_TAG`, `MPI_STATUS_IGNORE`.\n- **Opaque object lifetime**: you must free what you create (`MPI_Comm_free`, `MPI_Type_free`, `MPI_Request_free`) — leaks are real.",
+"symbols": [
+"_funneled",
+"_multiple",
+"_serialized",
+"mpi_any_source",
+"mpi_any_tag",
+"mpi_comm_free",
+"mpi_comm_null",
+"mpi_comm_self",
+"mpi_comm_world",
+"mpi_datatype_null",
+"mpi_errors_abort",
+"mpi_errors_are_fatal",
+"mpi_errors_return",
+"mpi_init_thread",
+"mpi_proc_null",
+"mpi_request_free",
+"mpi_status_ignore",
+"mpi_success",
+"mpi_thread_single",
+"mpi_type_free"
+]
+},
+{
+"id": "mpi:ch02-terms-conventions#operation-taxonomy",
+"doc": "ch02-terms-conventions",
+"heading": "Chapter 2: MPI Terms and Conventions > Reference Tables > Operation taxonomy",
+"text": "| Axis | Values |\n|---|---|\n| timing | blocking / nonblocking / persistent |\n| participation | collective / noncollective |\n| locality | local / nonlocal |",
+"symbols": []
+},
+{
+"id": "mpi:ch02-terms-conventions#thread-support-levels",
+"doc": "ch02-terms-conventions",
+"heading": "Chapter 2: MPI Terms and Conventions > Reference Tables > Thread support levels",
+"text": "| Level | Rule |\n|---|---|\n| `MPI_THREAD_SINGLE` | one thread total |\n| `MPI_THREAD_FUNNELED` | only the thread that called Init_thread does MPI |\n| `MPI_THREAD_SERIALIZED` | multiple threads, but not concurrently in MPI |\n| `MPI_THREAD_MULTIPLE` | any thread, concurrent MPI calls |",
+"symbols": [
+"mpi_thread_funneled",
+"mpi_thread_multiple",
+"mpi_thread_serialized",
+"mpi_thread_single"
+]
+},
+{
+"id": "mpi:ch02-terms-conventions#anti-patterns",
+"doc": "ch02-terms-conventions",
+"heading": "Chapter 2: MPI Terms and Conventions > Anti-patterns",
+"text": "- **Reusing a send buffer before completion**: a nonblocking `MPI_Isend` buffer must not be touched until `MPI_Wait`/`MPI_Test` reports completion — classic data-corruption bug.\n- **Assuming send completion = receive completion**: only synchronous (`MPI_Ssend`) guarantees the receiver started; standard mode does not.\n- **Requesting `MPI_THREAD_MULTIPLE` by default**: it has overhead and not all implementations support it well — request the minimum (often `FUNNELED` for MPI+OpenMP with MPI only on the master thread).\n- **Ignoring the default fatal error handler**: set `MPI_ERRORS_RETURN` if you want to handle errors rather than abort.\n- **Leaking opaque objects**: free communicators/datatypes/requests you create.",
+"symbols": [
+"funneled",
+"mpi_errors_return",
+"mpi_isend",
+"mpi_ssend",
+"mpi_test",
+"mpi_thread_multiple",
+"mpi_wait"
+]
+},
+{
+"id": "mpi:ch02-terms-conventions#key-takeaways",
+"doc": "ch02-terms-conventions",
+"heading": "Chapter 2: MPI Terms and Conventions > Key Takeaways",
+"text": "1. Operation taxonomy: blocking/nonblocking/persistent × collective/noncollective × local/nonlocal — every API is classified by these.\n2. Completion = *buffer reusable* (send) / *data arrived* (recv), **not** that the peer's matching op finished.\n3. Thread levels: request the minimum (`FUNNELED` is the common MPI+OpenMP choice; `MULTIPLE` only if threads call MPI concurrently).\n4. Default error handler is fatal-abort; set `MPI_ERRORS_RETURN` to handle codes.\n5. MPI objects are opaque handles you must explicitly free.",
+"symbols": [
+"funneled",
+"mpi_errors_return",
+"multiple"
+]
+},
+{
+"id": "mpi:ch02-terms-conventions#connects-to",
+"doc": "ch02-terms-conventions",
+"heading": "Chapter 2: MPI Terms and Conventions > Connects To",
+"text": "- **Ch 3**: send/recv modes operationalize blocking/nonblocking/local/nonlocal.\n- **Ch 6**: collective operations.\n- **Ch 9**: environmental management — error handlers, MPI_Wtime.\n- **Ch 13**: external interfaces — generalized requests, thread support detail.",
+"symbols": []
+},
+{
+"id": "mpi:ch03-point-to-point#core-idea",
+"doc": "ch03-point-to-point",
+"heading": "Chapter 3: Point-to-Point Communication > Core Idea",
+"text": "The core cooperative primitive: one process sends a typed message, another receives it, matched by **(communicator, source/dest rank, tag)**. The chapter that governs `MPI_Send`/`MPI_Recv` and their nonblocking and moded variants — and where deadlock lives.",
+"symbols": [
+"mpi_recv",
+"mpi_send"
+]
+},
+{
+"id": "mpi:ch03-point-to-point#frameworks-introduced",
+"doc": "ch03-point-to-point",
+"heading": "Chapter 3: Point-to-Point Communication > Frameworks Introduced",
+"text": "- **Message envelope**: a message is matched by **communicator + source + tag** (receiver may use `MPI_ANY_SOURCE`/`MPI_ANY_TAG`). The data is `(buf, count, datatype)`.\n- **Four send modes** (the sender's buffering/synchronization contract):\n  - **Standard `MPI_Send`**: implementation chooses whether to buffer; completes when the buffer is reusable (may or may not wait for the receiver). The default.\n  - **Buffered `MPI_Bsend`**: completes immediately by copying into a user-attached buffer (`MPI_Buffer_attach`); decouples sender from receiver but you manage buffer space.\n  - **Synchronous `MPI_Ssend`**: completes only after the matching receive has *started* — a rendezvous; deterministic, no hidden buffering.\n  - **Ready `MPI_Rsend`**: may only be posted when the receive is *already* posted (else erroneous); enables the fastest protocol but is fragile.\n- **Nonblocking** (`MPI_Isend`/`MPI_Irecv` → `MPI_Wait`/`MPI_Test`/`MPI_Waitall`/`MPI_Testany`): initiate now, complete later — the mechanism for **overlapping communication with computation** and avoiding deadlock.\n- **`MPI_Sendrecv`**: combined send+receive in one call — the deadlock-free way to do paired exchange (e.g. halo swap).\n- **Probe** (`MPI_Probe`/`MPI_Iprobe`, `MPI_Mprobe`/`MPI_Mrecv`): inspect an incoming message (size/source/tag) before receiving; matched probe avoids races in multithreaded receives.",
+"symbols": [
+"buf",
+"count",
+"datatype",
+"mpi_any_source",
+"mpi_any_tag",
+"mpi_bsend",
+"mpi_buffer_attach",
+"mpi_iprobe",
+"mpi_irecv",
+"mpi_isend",
+"mpi_mprobe",
+"mpi_mrecv",
+"mpi_probe",
+"mpi_rsend",
+"mpi_send",
+"mpi_sendrecv",
+"mpi_ssend",
+"mpi_test",
+"mpi_testany",
+"mpi_wait",
+"mpi_waitall"
+]
+},
+{
+"id": "mpi:ch03-point-to-point#key-concepts",
+"doc": "ch03-point-to-point",
+"heading": "Chapter 3: Point-to-Point Communication > Key Concepts",
+"text": "- **`MPI_Status`**: filled on receive — `MPI_SOURCE`, `MPI_TAG`, `MPI_ERROR`, and `MPI_Get_count` for the actual element count. Use `MPI_STATUS_IGNORE` when not needed.\n- **`MPI_PROC_NULL`**: a \"null\" peer — send/recv to it is a no-op that completes immediately (simplifies boundary code in stencils).\n- **deadlock**: two processes each `MPI_Send` to the other before receiving can deadlock if neither buffers — standard mode's buffering is **not guaranteed**. Safe patterns: `MPI_Sendrecv`, nonblocking, or ordered send/recv.\n- **datatype matching**: sender and receiver type signatures must match (ch5); count is in *elements*, not bytes.",
+"symbols": [
+"mpi_error",
+"mpi_get_count",
+"mpi_proc_null",
+"mpi_send",
+"mpi_sendrecv",
+"mpi_source",
+"mpi_status",
+"mpi_status_ignore",
+"mpi_tag"
+]
+},
+{
+"id": "mpi:ch03-point-to-point#send-mode-selection",
+"doc": "ch03-point-to-point",
+"heading": "Chapter 3: Point-to-Point Communication > Reference Tables > Send mode selection",
+"text": "| Mode | Completes when | Use when |\n|---|---|---|\n| `MPI_Send` (standard) | buffer reusable (impl-defined buffering) | default; portable |\n| `MPI_Bsend` (buffered) | copied to user buffer | must return immediately; you own buffer mgmt |\n| `MPI_Ssend` (synchronous) | receiver has started | debugging deadlock; deterministic; no buffering |\n| `MPI_Rsend` (ready) | receiver already posted | micro-opt with guaranteed pre-posted recv (fragile) |",
+"symbols": [
+"mpi_bsend",
+"mpi_rsend",
+"mpi_send",
+"mpi_ssend"
+]
+},
+{
+"id": "mpi:ch03-point-to-point#code-examples",
+"doc": "ch03-point-to-point",
+"heading": "Chapter 3: Point-to-Point Communication > Code Examples",
+"text": "```c\n// deadlock-prone (standard mode, both send first):\nMPI_Send(sbuf, n, MPI_DOUBLE, peer, 0, comm);   // may block if no buffering\nMPI_Recv(rbuf, n, MPI_DOUBLE, peer, 0, comm, MPI_STATUS_IGNORE);\n\n// safe paired exchange:\nMPI_Sendrecv(sbuf, n, MPI_DOUBLE, peer, 0,\n             rbuf, n, MPI_DOUBLE, peer, 0, comm, MPI_STATUS_IGNORE);\n\n// overlap comm + compute:\nMPI_Request reqs[2];\nMPI_Irecv(rbuf, n, MPI_DOUBLE, peer, 0, comm, &reqs[0]);\nMPI_Isend(sbuf, n, MPI_DOUBLE, peer, 0, comm, &reqs[1]);\ncompute_interior();                              // work while messages fly\nMPI_Waitall(2, reqs, MPI_STATUSES_IGNORE);\n```\n- **Demonstrates**: the standard-mode deadlock trap, the `MPI_Sendrecv` fix, and nonblocking overlap of communication with interior computation (the halo-exchange idiom).",
+"symbols": [
+"mpi_sendrecv"
+]
+},
+{
+"id": "mpi:ch03-point-to-point#anti-patterns",
+"doc": "ch03-point-to-point",
+"heading": "Chapter 3: Point-to-Point Communication > Anti-patterns",
+"text": "- **Send-then-recv in standard mode for a mutual exchange**: deadlocks when the implementation doesn't buffer — use `MPI_Sendrecv` or nonblocking.\n- **Reusing an `MPI_Isend` buffer before `MPI_Wait`**: data race/corruption.\n- **`MPI_Rsend` without a guaranteed pre-posted receive**: erroneous.\n- **Relying on standard-mode buffering for correctness**: it's not guaranteed; a program that \"works\" may deadlock at larger message sizes.\n- **`MPI_Recv` with a too-small buffer**: truncation error — size for the max, or `MPI_Probe` first.",
+"symbols": [
+"mpi_isend",
+"mpi_probe",
+"mpi_recv",
+"mpi_rsend",
+"mpi_sendrecv",
+"mpi_wait"
+]
+},
+{
+"id": "mpi:ch03-point-to-point#key-takeaways",
+"doc": "ch03-point-to-point",
+"heading": "Chapter 3: Point-to-Point Communication > Key Takeaways",
+"text": "1. Messages match on **(comm, source, tag)**; data is `(buf, count, datatype)` with count in *elements*.\n2. Four send modes: standard (default), buffered (you manage space), synchronous (rendezvous, deadlock-debugging), ready (fragile micro-opt).\n3. **`MPI_Sendrecv`** or **nonblocking + `MPI_Waitall`** are the deadlock-free exchange patterns; nonblocking also overlaps comm/compute.\n4. Don't touch an `MPI_Isend` buffer until completion; don't assume standard-mode buffering.\n5. `MPI_PROC_NULL` no-ops boundary communication; `MPI_Status` carries source/tag/count.",
+"symbols": [
+"buf",
+"count",
+"datatype",
+"mpi_isend",
+"mpi_proc_null",
+"mpi_sendrecv",
+"mpi_status",
+"mpi_waitall"
+]
+},
+{
+"id": "mpi:ch03-point-to-point#connects-to",
+"doc": "ch03-point-to-point",
+"heading": "Chapter 3: Point-to-Point Communication > Connects To",
+"text": "- **Ch 4**: partitioned point-to-point (MPI 4.0+, finer-grained sends).\n- **Ch 5**: datatypes — type matching and derived types for the message data.\n- **Ch 6**: collectives — structured group communication built atop these semantics.\n- **Ch 13**: nonblocking completion and generalized requests.",
+"symbols": []
+},
+{
+"id": "mpi:ch04-partitioned#core-idea",
+"doc": "ch04-partitioned",
+"heading": "Chapter 4: Partitioned Point-to-Point Communication > Core Idea",
+"text": "A single message split into **partitions** that the sender fills and marks ready **independently** — designed for multithreaded/GPU senders where different threads produce different parts of one buffer, and for finer-grained communication/computation overlap. Introduced in MPI 4.0, refined in 5.0.",
+"symbols": []
+},
+{
+"id": "mpi:ch04-partitioned#frameworks-introduced",
+"doc": "ch04-partitioned",
+"heading": "Chapter 4: Partitioned Point-to-Point Communication > Frameworks Introduced",
+"text": "- **Persistent partitioned init** (local): `MPI_Psend_init(buf, partitions, count, datatype, dest, tag, comm, info, &request)` and `MPI_Precv_init(...)`. Send-side and receive-side partition counts **may differ**. Setup happens once, before transfers.\n- **`MPI_Pready(partition, request)`**: notify MPI that a specific send partition's data is ready — the transfer of that partition may begin. `MPI_Pready_range`/`MPI_Pready_list` for batches.\n- **`MPI_Parrived(request, partition, &flag)`**: test whether a specific receive partition has arrived — consume partitions as they land.\n- **Start/complete**: `MPI_Start`/`MPI_Startall` to activate the persistent request each iteration; `MPI_Wait`/`MPI_Test` to complete.",
+"symbols": [
+"buf",
+"comm",
+"count",
+"datatype",
+"dest",
+"flag",
+"info",
+"mpi_parrived",
+"mpi_pready",
+"mpi_pready_list",
+"mpi_pready_range",
+"mpi_precv_init",
+"mpi_psend_init",
+"mpi_start",
+"mpi_startall",
+"mpi_test",
+"mpi_wait",
+"partition",
+"partitions",
+"request",
+"tag"
+]
+},
+{
+"id": "mpi:ch04-partitioned#key-concepts",
+"doc": "ch04-partitioned",
+"heading": "Chapter 4: Partitioned Point-to-Point Communication > Key Concepts",
+"text": "- **Thread/partition mapping**: each thread (or GPU stream) produces one or more partitions and calls `MPI_Pready` when done — no need to synchronize all producers before any data moves.\n- **Persistent by design**: the init cost is paid once; the buffer/partition layout is reused across many `MPI_Start` cycles (ideal for iterative solvers' halo exchange).\n- **Decoupled granularity**: send-side and receive-side partition counts differ, so the producer's natural decomposition (e.g. per-thread) need not match the consumer's.\n- **Early data movement**: an implementation may start moving partition *k* as soon as `MPI_Pready(k)` is called, overlapping with the production of partition *k+1*.",
+"symbols": [
+"mpi_pready",
+"mpi_start"
+]
+},
+{
+"id": "mpi:ch04-partitioned#code-examples",
+"doc": "ch04-partitioned",
+"heading": "Chapter 4: Partitioned Point-to-Point Communication > Code Examples",
+"text": "```c\nMPI_Request req;\nMPI_Psend_init(buf, nparts, count_per_part, MPI_DOUBLE, dest, tag,\n               comm, MPI_INFO_NULL, &req);\nfor (int iter = 0; iter < nsteps; ++iter) {\n  MPI_Start(&req);\n  #pragma omp parallel for                 // each thread fills + marks its partition\n  for (int p = 0; p < nparts; ++p) {\n    fill_partition(buf, p);\n    MPI_Pready(p, req);                     // partition p can start moving now\n  }\n  MPI_Wait(&req, MPI_STATUS_IGNORE);\n}\nMPI_Request_free(&req);\n```\n- **Demonstrates**: persistent partitioned send where OpenMP threads independently produce and `MPI_Pready` their partitions — overlapping production with transfer (the MPI+OpenMP hybrid sweet spot).",
+"symbols": [
+"mpi_pready"
+]
+},
+{
+"id": "mpi:ch04-partitioned#anti-patterns",
+"doc": "ch04-partitioned",
+"heading": "Chapter 4: Partitioned Point-to-Point Communication > Anti-patterns",
+"text": "- **Calling `MPI_Pready` before the partition data is actually written**: the implementation may transfer stale data.\n- **Re-init each iteration**: defeats the persistent design — init once, `MPI_Start` per iteration.\n- **Assuming send/recv partition counts must match**: they need not — that's the point.\n- **Using partitioned comm where plain nonblocking suffices**: added complexity only pays off with multiple independent producers (threads/streams).",
+"symbols": [
+"mpi_pready",
+"mpi_start"
+]
+},
+{
+"id": "mpi:ch04-partitioned#key-takeaways",
+"doc": "ch04-partitioned",
+"heading": "Chapter 4: Partitioned Point-to-Point Communication > Key Takeaways",
+"text": "1. Partitioned comm splits one persistent message into independently-readied **partitions** — for multithreaded/GPU senders.\n2. `MPI_Psend_init`/`MPI_Precv_init` (once) → `MPI_Start` (per iteration) → `MPI_Pready(p)` per partition → `MPI_Wait`.\n3. Send- and receive-side partition counts may differ; `MPI_Parrived` lets the receiver consume partitions as they land.\n4. The win is overlapping per-thread data production with transfer — pairs with `MPI_THREAD_MULTIPLE` / OpenMP.\n5. Persistent by design: amortize setup across many iterations (iterative solvers).",
+"symbols": [
+"mpi_parrived",
+"mpi_pready",
+"mpi_precv_init",
+"mpi_psend_init",
+"mpi_start",
+"mpi_thread_multiple",
+"mpi_wait"
+]
+},
+{
+"id": "mpi:ch04-partitioned#connects-to",
+"doc": "ch04-partitioned",
+"heading": "Chapter 4: Partitioned Point-to-Point Communication > Connects To",
+"text": "- **Ch 3**: the point-to-point semantics it refines.\n- **Ch 2**: persistent operations and thread levels (`MPI_THREAD_MULTIPLE`).\n- **openmp-6.0 / openacc-3.4**: per-thread/per-stream production feeding partitions (hybrid MPI+X).",
+"symbols": [
+"mpi_thread_multiple"
+]
+},
+{
+"id": "mpi:ch05-datatypes#core-idea",
+"doc": "ch05-datatypes",
+"heading": "Chapter 5: Datatypes > Core Idea",
+"text": "**Derived datatypes** describe non-contiguous, structured memory layouts so MPI can send/receive them in one call without manual packing — the key to communicating array sections, struct arrays, and halo regions efficiently.",
+"symbols": []
+},
+{
+"id": "mpi:ch05-datatypes#frameworks-introduced",
+"doc": "ch05-datatypes",
+"heading": "Chapter 5: Datatypes > Frameworks Introduced",
+"text": "- **Derived datatype constructors**:\n  - **`MPI_Type_contiguous(count, old)`**: count copies, contiguous.\n  - **`MPI_Type_vector(count, blocklen, stride, old)`**: equally-spaced blocks (e.g. a column of a row-major matrix, a strided halo face). `MPI_Type_create_hvector` for byte strides.\n  - **`MPI_Type_indexed(count, blocklens[], displs[], old)`**: irregular blocks/displacements; `MPI_Type_create_hindexed` (bytes), `MPI_Type_create_indexed_block` (uniform block size).\n  - **`MPI_Type_create_struct(count, blocklens[], displs[], types[])`**: heterogeneous — different types per block (a C struct / Fortran derived type).\n  - **`MPI_Type_create_subarray(ndims, sizes[], subsizes[], starts[], order, old)`**: an n-D subarray of a larger array (the natural halo/tile descriptor).\n  - **`MPI_Type_create_resized(old, lb, extent)`**: adjust lower bound/extent (for correct strided packing of struct arrays).\n- **`MPI_Type_commit(&type)`** before use; **`MPI_Type_free(&type)`** after. Constructed types must be committed.\n- **Type signature & matching**: the *sequence of basic types* on send must match the receive (the map/displacements need not).\n- **Pack/Unpack** (`MPI_Pack`/`MPI_Unpack` with `MPI_PACKED`): manual serialization into a contiguous buffer — fallback when a derived type is awkward, or for incremental message assembly.",
+"symbols": [
+"blocklen",
+"blocklens",
+"count",
+"displs",
+"extent",
+"mpi_pack",
+"mpi_packed",
+"mpi_type_commit",
+"mpi_type_contiguous",
+"mpi_type_create_hindexed",
+"mpi_type_create_hvector",
+"mpi_type_create_indexed_block",
+"mpi_type_create_resized",
+"mpi_type_create_struct",
+"mpi_type_create_subarray",
+"mpi_type_free",
+"mpi_type_indexed",
+"mpi_type_vector",
+"mpi_unpack",
+"ndims",
+"old",
+"order",
+"sizes",
+"starts",
+"stride",
+"subsizes",
+"type",
+"types"
+]
+},
+{
+"id": "mpi:ch05-datatypes#key-concepts",
+"doc": "ch05-datatypes",
+"heading": "Chapter 5: Datatypes > Key Concepts",
+"text": "- **extent vs size**: *size* = bytes of actual data; *extent* = span from lower to upper bound (includes gaps). Strided/struct types often need `MPI_Type_create_resized` so an array of them packs correctly.\n- **count is in elements** of the datatype, not bytes.\n- **`MPI_Get_address`** for portable displacement computation in struct types (don't hand-compute offsets).\n- **`MPI_BOTTOM`** + absolute addresses: send scattered data referenced by absolute address (with `MPI_Get_address` displacements).\n- **Predefined types**: `MPI_INT`, `MPI_DOUBLE`, `MPI_CHAR`, `MPI_BYTE` (untyped), `MPI_DOUBLE_PRECISION`/`MPI_INTEGER` (Fortran), `MPI_AINT`/`MPI_COUNT`/`MPI_OFFSET`.",
+"symbols": [
+"mpi_aint",
+"mpi_bottom",
+"mpi_byte",
+"mpi_char",
+"mpi_count",
+"mpi_double",
+"mpi_double_precision",
+"mpi_get_address",
+"mpi_int",
+"mpi_integer",
+"mpi_offset",
+"mpi_type_create_resized"
+]
+},
+{
+"id": "mpi:ch05-datatypes#code-examples",
+"doc": "ch05-datatypes",
+"heading": "Chapter 5: Datatypes > Code Examples",
+"text": "```c\n// Halo face of a 3D array: a 2D subarray descriptor\nint sizes[3]    = {NX, NY, NZ};\nint subsizes[3] = {1, NY, NZ};          // a YZ face (one X-slice)\nint starts[3]   = {1, 0, 0};            // first interior slice\nMPI_Datatype face;\nMPI_Type_create_subarray(3, sizes, subsizes, starts, MPI_ORDER_C, MPI_DOUBLE, &face);\nMPI_Type_commit(&face);\nMPI_Sendrecv(grid, 1, face, left,  0,\n             grid, 1, face, right, 0, comm, MPI_STATUS_IGNORE);\nMPI_Type_free(&face);\n```\n- **Demonstrates**: a `subarray` type describing a halo face, sent in one `MPI_Sendrecv` with no manual packing — the canonical stencil-halo idiom.",
+"symbols": [
+"mpi_sendrecv",
+"subarray"
+]
+},
+{
+"id": "mpi:ch05-datatypes#anti-patterns",
+"doc": "ch05-datatypes",
+"heading": "Chapter 5: Datatypes > Anti-patterns",
+"text": "- **Manual pack loops where a derived type fits**: a `vector`/`subarray` type lets MPI (and the hardware) handle strided access — faster and clearer than a hand copy.\n- **Forgetting `MPI_Type_commit`**: using an uncommitted derived type is erroneous.\n- **Hand-computing struct displacements**: use `MPI_Get_address`; padding/alignment differ across compilers.\n- **Wrong extent on struct/strided arrays**: an array of a derived type packs wrong without `MPI_Type_create_resized` — off-by-stride corruption.\n- **`MPI_BYTE` for typed data across heterogeneous systems**: skips type conversion — only for raw bytes.\n- **Leaking derived types**: `MPI_Type_free` what you commit.",
+"symbols": [
+"mpi_byte",
+"mpi_get_address",
+"mpi_type_commit",
+"mpi_type_create_resized",
+"mpi_type_free",
+"subarray",
+"vector"
+]
+},
+{
+"id": "mpi:ch05-datatypes#key-takeaways",
+"doc": "ch05-datatypes",
+"heading": "Chapter 5: Datatypes > Key Takeaways",
+"text": "1. Derived types (`vector`/`indexed`/`struct`/`subarray`) send structured/non-contiguous memory in one call — no manual packing.\n2. `MPI_Type_create_subarray` is the natural halo/tile descriptor for stencil codes.\n3. Always `MPI_Type_commit` before use, `MPI_Type_free` after; count is in elements.\n4. Mind **extent vs size**: resize struct/strided types (`MPI_Type_create_resized`) for correct array packing; use `MPI_Get_address` for displacements.\n5. Type *signatures* must match on send/recv; `MPI_Pack`/`MPI_Unpack` is the manual fallback.",
+"symbols": [
+"indexed",
+"mpi_get_address",
+"mpi_pack",
+"mpi_type_commit",
+"mpi_type_create_resized",
+"mpi_type_create_subarray",
+"mpi_type_free",
+"mpi_unpack",
+"struct",
+"subarray",
+"vector"
+]
+},
+{
+"id": "mpi:ch05-datatypes#connects-to",
+"doc": "ch05-datatypes",
+"heading": "Chapter 5: Datatypes > Connects To",
+"text": "- **Ch 3**: derived types are the `datatype` argument to send/recv.\n- **Ch 6**: collectives over derived types.\n- **Ch 14**: file views in MPI-IO are built from derived types (subarray for distributed arrays).\n- **Ch 12**: RMA transfers typed via datatypes.",
+"symbols": [
+"datatype"
+]
+},
+{
+"id": "mpi:ch06-collective#core-idea",
+"doc": "ch06-collective",
+"heading": "Chapter 6: Collective Communication > Core Idea",
+"text": "Structured group communication: **all processes in a communicator** call the same operation, which moves/combines data across the group (broadcast, gather/scatter, all-to-all, reductions, barrier). Available in **blocking, nonblocking, persistent**, and **neighborhood** forms.",
+"symbols": []
+},
+{
+"id": "mpi:ch06-collective#frameworks-introduced",
+"doc": "ch06-collective",
+"heading": "Chapter 6: Collective Communication > Frameworks Introduced",
+"text": "- **Synchronization**: `MPI_Barrier` — all processes rendezvous (rarely needed for correctness; usually a smell).\n- **Data movement**:\n  - **`MPI_Bcast`**: root sends one buffer to all.\n  - **`MPI_Gather`/`MPI_Gatherv`**: all send to root (v = variable counts/displacements). **`MPI_Allgather`**: result to everyone.\n  - **`MPI_Scatter`/`MPI_Scatterv`**: root distributes chunks to all.\n  - **`MPI_Alltoall`/`MPI_Alltoallv`/`MPI_Alltoallw`**: every process sends distinct data to every other (transpose; the most bandwidth-intensive).\n- **Reductions**:\n  - **`MPI_Reduce`** (result to root) / **`MPI_Allreduce`** (result to all) with an op.\n  - **`MPI_Reduce_scatter`**, **`MPI_Scan`** (inclusive prefix), **`MPI_Exscan`** (exclusive prefix).\n  - Predefined ops: `MPI_SUM`, `MPI_PROD`, `MPI_MAX`, `MPI_MIN`, `MPI_LAND/LOR/LXOR`, `MPI_BAND/BOR/BXOR`, `MPI_MAXLOC`/`MPI_MINLOC` (value+location). User ops via **`MPI_Op_create`**.\n- **Nonblocking collectives** (`MPI_Ibcast`, `MPI_Iallreduce`, `MPI_Ialltoall`, …): initiate, overlap with computation, complete with `MPI_Wait`. Persistent forms (`MPI_Bcast_init`, …) amortize setup.\n- **Neighborhood collectives** (`MPI_Neighbor_allgather`, `MPI_Neighbor_alltoall`): communicate only with topology neighbors (ch8) — the scalable halo-exchange primitive.",
+"symbols": [
+"bor",
+"bxor",
+"lor",
+"lxor",
+"mpi_allgather",
+"mpi_allreduce",
+"mpi_alltoall",
+"mpi_alltoallv",
+"mpi_alltoallw",
+"mpi_band",
+"mpi_barrier",
+"mpi_bcast",
+"mpi_bcast_init",
+"mpi_exscan",
+"mpi_gather",
+"mpi_gatherv",
+"mpi_iallreduce",
+"mpi_ialltoall",
+"mpi_ibcast",
+"mpi_land",
+"mpi_max",
+"mpi_maxloc",
+"mpi_min",
+"mpi_minloc",
+"mpi_neighbor_allgather",
+"mpi_neighbor_alltoall",
+"mpi_op_create",
+"mpi_prod",
+"mpi_reduce",
+"mpi_reduce_scatter",
+"mpi_scan",
+"mpi_scatter",
+"mpi_scatterv",
+"mpi_sum",
+"mpi_wait"
+]
+},
+{
+"id": "mpi:ch06-collective#key-concepts",
+"doc": "ch06-collective",
+"heading": "Chapter 6: Collective Communication > Key Concepts",
+"text": "- **All processes must call** the collective (in the same order across the group) — a missing or mismatched call deadlocks.\n- **`MPI_IN_PLACE`**: avoid a separate send buffer (e.g. `MPI_Allreduce(MPI_IN_PLACE, buf, ...)` reduces in the receive buffer).\n- **`MPI_Allreduce` is the global-reduction workhorse** (norms, dot products, convergence checks) — but it's a synchronization point; minimize its frequency.\n- **reduction determinism**: floating-point reductions may reassociate → results vary with process count/order. For bit-reproducibility you need a deterministic implementation or manual ordering (cf. precision-floor concerns).\n- **`v`/`w` variants** handle uneven data distributions (counts/displacements/types per process).",
+"symbols": [
+"buf",
+"mpi_allreduce",
+"mpi_in_place"
+]
+},
+{
+"id": "mpi:ch06-collective#collective-selection",
+"doc": "ch06-collective",
+"heading": "Chapter 6: Collective Communication > Reference Tables > Collective selection",
+"text": "| Need | Operation |\n|---|---|\n| one→all same data | `MPI_Bcast` |\n| all→one collect | `MPI_Gather(v)` |\n| all→all collect | `MPI_Allgather(v)` |\n| one→all distribute | `MPI_Scatter(v)` |\n| all→all distinct (transpose) | `MPI_Alltoall(v/w)` |\n| global reduction → root | `MPI_Reduce` |\n| global reduction → all | `MPI_Allreduce` |\n| prefix sum | `MPI_Scan` / `MPI_Exscan` |\n| neighbors only | `MPI_Neighbor_*` |",
+"symbols": [
+"mpi_allgather",
+"mpi_allreduce",
+"mpi_alltoall",
+"mpi_bcast",
+"mpi_exscan",
+"mpi_gather",
+"mpi_neighbor_",
+"mpi_reduce",
+"mpi_scan",
+"mpi_scatter"
+]
+},
+{
+"id": "mpi:ch06-collective#code-examples",
+"doc": "ch06-collective",
+"heading": "Chapter 6: Collective Communication > Code Examples",
+"text": "```c\n// global convergence check (the Allreduce workhorse)\ndouble local_resid = compute_residual();\ndouble global_resid;\nMPI_Allreduce(&local_resid, &global_resid, 1, MPI_DOUBLE, MPI_SUM, comm);\n\n// overlap a global reduction with interior compute\nMPI_Request req;\nMPI_Iallreduce(&local, &global, 1, MPI_DOUBLE, MPI_SUM, comm, &req);\ncompute_interior();                       // useful work while the reduction runs\nMPI_Wait(&req, MPI_STATUS_IGNORE);\n```\n- **Demonstrates**: `MPI_Allreduce` for a global residual, and `MPI_Iallreduce` overlapping the (latency-bound) reduction with interior computation.",
+"symbols": [
+"mpi_allreduce",
+"mpi_iallreduce"
+]
+},
+{
+"id": "mpi:ch06-collective#anti-patterns",
+"doc": "ch06-collective",
+"heading": "Chapter 6: Collective Communication > Anti-patterns",
+"text": "- **A process skipping a collective** (e.g. inside a rank-conditional branch): deadlocks the group — collectives are unconditional for all members.\n- **`MPI_Barrier` for \"safety\"**: almost never needed for correctness; it's pure synchronization overhead — remove unless a tool/timing reason demands it.\n- **Frequent `MPI_Allreduce` in a hot loop**: each is a global sync; batch reductions or overlap with `MPI_Iallreduce`.\n- **Assuming reproducible FP reductions**: associativity varies with layout — don't depend on bit-identical sums across run configurations.\n- **`MPI_Alltoall` at scale without thought**: O(P²) messages; the most expensive pattern — restructure if possible.",
+"symbols": [
+"mpi_allreduce",
+"mpi_alltoall",
+"mpi_barrier",
+"mpi_iallreduce"
+]
+},
+{
+"id": "mpi:ch06-collective#key-takeaways",
+"doc": "ch06-collective",
+"heading": "Chapter 6: Collective Communication > Key Takeaways",
+"text": "1. Collectives = same call by **all** processes in the communicator; mismatch deadlocks.\n2. `MPI_Allreduce` is the global-reduction workhorse (norms/convergence) — but a sync point; minimize and consider `MPI_Iallreduce` overlap.\n3. `MPI_IN_PLACE` avoids redundant buffers; `v`/`w` variants handle uneven distributions.\n4. **Neighborhood collectives** (with a topology, ch8) are the scalable halo-exchange primitive.\n5. FP reductions are not bit-reproducible across layouts; `MPI_MAXLOC`/`MINLOC` carry value+rank.",
+"symbols": [
+"minloc",
+"mpi_allreduce",
+"mpi_iallreduce",
+"mpi_in_place",
+"mpi_maxloc"
+]
+},
+{
+"id": "mpi:ch06-collective#connects-to",
+"doc": "ch06-collective",
+"heading": "Chapter 6: Collective Communication > Connects To",
+"text": "- **Ch 7**: communicators define the collective's group.\n- **Ch 8**: virtual topologies enable neighborhood collectives.\n- **Ch 3**: collectives are layered on point-to-point semantics.\n- **Ch 5**: derived types as collective send/recv types.\n- the hpc-practice pack / precision-floor**: global-sum accuracy across ranks.",
+"symbols": []
+},
+{
+"id": "mpi:ch07-communicators#core-idea",
+"doc": "ch07-communicators",
+"heading": "Chapter 7: Groups, Contexts, Communicators, and Caching > Core Idea",
+"text": "**Communicators** define the safe scope of communication: a **group** (ordered set of processes → ranks) + a **context** (an isolation tag so messages from different libraries/phases can't collide). The machinery for partitioning processes, building libraries, and (MPI 5.0) the **Sessions** model.",
+"symbols": []
+},
+{
+"id": "mpi:ch07-communicators#frameworks-introduced",
+"doc": "ch07-communicators",
+"heading": "Chapter 7: Groups, Contexts, Communicators, and Caching > Frameworks Introduced",
+"text": "- **Group**: an ordered set of processes (`MPI_Group`). Operations: `MPI_Group_incl`/`MPI_Group_excl`, `MPI_Group_union`/`_intersection`/`_difference`, `MPI_Group_translate_ranks`, `MPI_Group_size`/`_rank`. Groups are *local* (no communication to manipulate).\n- **Communicator** (`MPI_Comm`) = group + context. **Intra**communicator (one group; the usual case) vs **inter**communicator (two groups, for client/server or coupled-code communication).\n- **Communicator creation**:\n  - **`MPI_Comm_dup`**: copy (new context) — the *first thing a library should do* to isolate its messages.\n  - **`MPI_Comm_split(comm, color, key, &new)`**: partition into sub-communicators by `color` (group) and `key` (rank order) — e.g. split a 2D grid into row/column communicators.\n  - **`MPI_Comm_create`/`MPI_Comm_create_group`**: build from an explicit group.\n- **Caching**: attach user attributes (and the topology) to a communicator via `MPI_Comm_create_keyval`/`MPI_Comm_set_attr` — library state that travels with the communicator.\n- **Two initialization models** (ch11): the **World Model** (`MPI_Init` → `MPI_COMM_WORLD`) and the **Sessions Model** (MPI 4.0+, refined 5.0) — multiple independent `MPI_Session`s, each yielding communicators without a global `MPI_COMM_WORLD`.",
+"symbols": [
+"_difference",
+"_intersection",
+"_rank",
+"color",
+"comm",
+"key",
+"mpi_comm",
+"mpi_comm_create",
+"mpi_comm_create_group",
+"mpi_comm_create_keyval",
+"mpi_comm_dup",
+"mpi_comm_set_attr",
+"mpi_comm_split",
+"mpi_comm_world",
+"mpi_group",
+"mpi_group_excl",
+"mpi_group_incl",
+"mpi_group_size",
+"mpi_group_translate_ranks",
+"mpi_group_union",
+"mpi_init",
+"mpi_session",
+"new"
+]
+},
+{
+"id": "mpi:ch07-communicators#key-concepts",
+"doc": "ch07-communicators",
+"heading": "Chapter 7: Groups, Contexts, Communicators, and Caching > Key Concepts",
+"text": "- **Context = message isolation**: two communicators over the same processes don't cross-deliver messages — this is why libraries `MPI_Comm_dup` (so a library `MPI_Send` can't be received by user code).\n- **`MPI_Comm_split` is the partitioning workhorse**: row/column decomposition, splitting by node (`MPI_COMM_TYPE_SHARED` via `MPI_Comm_split_type`) for hybrid MPI+OpenMP (one communicator per node).\n- **`MPI_Comm_split_type(comm, MPI_COMM_TYPE_SHARED, ...)`**: get a communicator of processes sharing memory — the basis for shared-memory windows (ch12) and hybrid placement.\n- **Sessions** decouple init from a single world: a library can initialize MPI independently of `main`, avoiding the \"who calls MPI_Init\" coupling.\n- Free communicators/groups you create (`MPI_Comm_free`, `MPI_Group_free`).",
+"symbols": [
+"comm",
+"main",
+"mpi_comm_dup",
+"mpi_comm_free",
+"mpi_comm_split",
+"mpi_comm_split_type",
+"mpi_comm_type_shared",
+"mpi_group_free",
+"mpi_send"
+]
+},
+{
+"id": "mpi:ch07-communicators#code-examples",
+"doc": "ch07-communicators",
+"heading": "Chapter 7: Groups, Contexts, Communicators, and Caching > Code Examples",
+"text": "```c\n// split MPI_COMM_WORLD into per-node communicators (hybrid MPI+OpenMP placement)\nMPI_Comm node_comm;\nMPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0,\n                    MPI_INFO_NULL, &node_comm);\nint node_rank; MPI_Comm_rank(node_comm, &node_rank);   // 0 = node leader\n\n// 2D grid: row and column sub-communicators\nint row = world_rank / ncols, col = world_rank % ncols;\nMPI_Comm row_comm, col_comm;\nMPI_Comm_split(MPI_COMM_WORLD, row, col, &row_comm);   // group by row\nMPI_Comm_split(MPI_COMM_WORLD, col, row, &col_comm);   // group by col\n```\n- **Demonstrates**: `MPI_Comm_split_type` for node-local communicators (hybrid placement) and `MPI_Comm_split` for row/column decomposition.",
+"symbols": [
+"mpi_comm_split",
+"mpi_comm_split_type"
+]
+},
+{
+"id": "mpi:ch07-communicators#anti-patterns",
+"doc": "ch07-communicators",
+"heading": "Chapter 7: Groups, Contexts, Communicators, and Caching > Anti-patterns",
+"text": "- **A library communicating on `MPI_COMM_WORLD`**: user messages can collide with library messages — always `MPI_Comm_dup` a private communicator.\n- **Hardcoding `MPI_COMM_WORLD` everywhere**: pass communicators as parameters; it makes code composable and Sessions-compatible.\n- **Manipulating groups expecting communication**: group ops are local; only communicator *creation* is collective.\n- **Leaking communicators in a loop**: `MPI_Comm_dup`/`split` in a hot loop without `MPI_Comm_free` exhausts contexts.",
+"symbols": [
+"mpi_comm_dup",
+"mpi_comm_free",
+"mpi_comm_world",
+"split"
+]
+},
+{
+"id": "mpi:ch07-communicators#key-takeaways",
+"doc": "ch07-communicators",
+"heading": "Chapter 7: Groups, Contexts, Communicators, and Caching > Key Takeaways",
+"text": "1. Communicator = group (ranks) + context (message isolation); pass communicators, don't hardcode `MPI_COMM_WORLD`.\n2. Libraries **must `MPI_Comm_dup`** to isolate their messages from user code.\n3. `MPI_Comm_split` partitions (row/col grids); `MPI_Comm_split_type(MPI_COMM_TYPE_SHARED)` gives node-local communicators for hybrid placement.\n4. Group operations are local; communicator creation is collective.\n5. **Sessions** (ch11) free MPI from a single `MPI_COMM_WORLD` — better for libraries and composition.",
+"symbols": [
+"mpi_comm_dup",
+"mpi_comm_split",
+"mpi_comm_split_type",
+"mpi_comm_type_shared",
+"mpi_comm_world"
+]
+},
+{
+"id": "mpi:ch07-communicators#connects-to",
+"doc": "ch07-communicators",
+"heading": "Chapter 7: Groups, Contexts, Communicators, and Caching > Connects To",
+"text": "- **Ch 6**: collectives operate over a communicator's group.\n- **Ch 8**: a topology is cached on a communicator (`MPI_Cart_create` returns a new comm).\n- **Ch 11**: World vs Sessions initialization models.\n- **Ch 12**: shared-memory windows use node-local communicators.",
+"symbols": [
+"mpi_cart_create"
+]
+},
+{
+"id": "mpi:ch08-topologies#core-idea",
+"doc": "ch08-topologies",
+"heading": "Chapter 8: Virtual Topologies for MPI Processes > Core Idea",
+"text": "Attach a **communication structure** (Cartesian grid or arbitrary graph) to a communicator so MPI can (a) provide convenient neighbor queries and (b) **remap ranks to physical topology** for locality. The natural fit for stencil/grid codes and the enabler of neighborhood collectives.",
+"symbols": []
+},
+{
+"id": "mpi:ch08-topologies#frameworks-introduced",
+"doc": "ch08-topologies",
+"heading": "Chapter 8: Virtual Topologies for MPI Processes > Frameworks Introduced",
+"text": "- **Cartesian topology** (`MPI_Cart_create(comm, ndims, dims[], periods[], reorder, &cart)`): an n-D grid with optional periodic (wrap-around) dimensions. `reorder=true` lets MPI renumber ranks for physical locality.\n  - **`MPI_Cart_shift(cart, dim, disp, &src, &dest)`**: get the neighbor ranks along a dimension (returns `MPI_PROC_NULL` at non-periodic boundaries) — feeds `MPI_Sendrecv` for halo exchange.\n  - **`MPI_Cart_coords`/`MPI_Cart_rank`**: convert between rank and grid coordinates. **`MPI_Dims_create`**: suggest a balanced `dims[]` factorization.\n- **Graph topology**: `MPI_Graph_create` (legacy,全-replicated) and **`MPI_Dist_graph_create`/`MPI_Dist_graph_create_adjacent`** (scalable, distributed adjacency) for irregular communication patterns.\n- **Neighborhood collectives** (ch6): `MPI_Neighbor_allgather`, `MPI_Neighbor_alltoall(v/w)` (+ `I`/persistent) communicate exactly with the topology neighbors — one call replaces a hand-coded loop of sends/recvs.",
+"symbols": [
+"cart",
+"comm",
+"dest",
+"dim",
+"dims",
+"disp",
+"mpi_cart_coords",
+"mpi_cart_create",
+"mpi_cart_rank",
+"mpi_cart_shift",
+"mpi_dims_create",
+"mpi_dist_graph_create",
+"mpi_dist_graph_create_adjacent",
+"mpi_graph_create",
+"mpi_neighbor_allgather",
+"mpi_neighbor_alltoall",
+"mpi_proc_null",
+"mpi_sendrecv",
+"ndims",
+"periods",
+"reorder",
+"src",
+"true"
+]
+},
+{
+"id": "mpi:ch08-topologies#key-concepts",
+"doc": "ch08-topologies",
+"heading": "Chapter 8: Virtual Topologies for MPI Processes > Key Concepts",
+"text": "- **`reorder=true` for locality**: tells MPI it may renumber ranks so grid-neighbors are physically close (same node/switch) — can materially improve halo-exchange bandwidth. Re-query your rank after creation.\n- **`MPI_Cart_shift` + `MPI_Sendrecv`** is the textbook deadlock-free halo exchange; `MPI_PROC_NULL` boundaries make edge handling branch-free.\n- **Neighborhood collectives scale better** than explicit per-neighbor send/recv loops and let the implementation optimize the whole exchange.\n- The topology is **cached on the communicator** — it's communicator metadata, queryable later.",
+"symbols": [
+"mpi_cart_shift",
+"mpi_proc_null",
+"mpi_sendrecv",
+"reorder",
+"true"
+]
+},
+{
+"id": "mpi:ch08-topologies#code-examples",
+"doc": "ch08-topologies",
+"heading": "Chapter 8: Virtual Topologies for MPI Processes > Code Examples",
+"text": "```c\n// 2D periodic Cartesian grid + halo exchange via Cart_shift\nint dims[2] = {0,0}, periods[2] = {1,1};\nMPI_Dims_create(nprocs, 2, dims);            // balanced factorization\nMPI_Comm cart;\nMPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, /*reorder=*/1, &cart);\n\nint up, down, left, right;\nMPI_Cart_shift(cart, 0, 1, &up, &down);      // neighbors along dim 0\nMPI_Cart_shift(cart, 1, 1, &left, &right);   // neighbors along dim 1\n\nMPI_Sendrecv(top_row,    n, MPI_DOUBLE, up,   0,\n             bot_halo,   n, MPI_DOUBLE, down, 0, cart, MPI_STATUS_IGNORE);\n```\n- **Demonstrates**: `MPI_Dims_create` + `MPI_Cart_create(reorder)` for a locality-aware grid, then `MPI_Cart_shift` feeding `MPI_Sendrecv` halo exchange (boundaries auto-handled via `MPI_PROC_NULL`).",
+"symbols": [
+"mpi_cart_create",
+"mpi_cart_shift",
+"mpi_dims_create",
+"mpi_proc_null",
+"mpi_sendrecv",
+"reorder"
+]
+},
+{
+"id": "mpi:ch08-topologies#anti-patterns",
+"doc": "ch08-topologies",
+"heading": "Chapter 8: Virtual Topologies for MPI Processes > Anti-patterns",
+"text": "- **Computing neighbor ranks by hand** (`rank±1`, `rank±ncols`): error-prone at boundaries; use `MPI_Cart_shift` (gives `MPI_PROC_NULL` automatically).\n- **`reorder=false` then complaining about poor locality**: allow reordering so MPI can map grid-neighbors physically close.\n- **Forgetting ranks may change after `reorder=true`**: re-query `MPI_Comm_rank` on the new communicator.\n- **`MPI_Graph_create` (non-distributed) at scale**: it replicates the full graph on every process — use `MPI_Dist_graph_create_adjacent`.\n- **Hand-rolled neighbor send/recv loops**: prefer neighborhood collectives for scalability.",
+"symbols": [
+"false",
+"mpi_cart_shift",
+"mpi_comm_rank",
+"mpi_dist_graph_create_adjacent",
+"mpi_graph_create",
+"mpi_proc_null",
+"ncols",
+"rank",
+"reorder",
+"true"
+]
+},
+{
+"id": "mpi:ch08-topologies#key-takeaways",
+"doc": "ch08-topologies",
+"heading": "Chapter 8: Virtual Topologies for MPI Processes > Key Takeaways",
+"text": "1. `MPI_Cart_create` (+ `MPI_Dims_create`) builds an n-D grid; `reorder=true` enables locality-aware rank remapping.\n2. **`MPI_Cart_shift` + `MPI_Sendrecv`** is the canonical deadlock-free, boundary-safe halo exchange.\n3. Use **distributed graph** (`MPI_Dist_graph_create_adjacent`) for irregular patterns, not the legacy replicated `MPI_Graph_create`.\n4. **Neighborhood collectives** turn the whole halo exchange into one optimizable call.\n5. The topology is cached on the communicator; ranks may change with `reorder` — re-query.",
+"symbols": [
+"mpi_cart_create",
+"mpi_cart_shift",
+"mpi_dims_create",
+"mpi_dist_graph_create_adjacent",
+"mpi_graph_create",
+"mpi_sendrecv",
+"reorder",
+"true"
+]
+},
+{
+"id": "mpi:ch08-topologies#connects-to",
+"doc": "ch08-topologies",
+"heading": "Chapter 8: Virtual Topologies for MPI Processes > Connects To",
+"text": "- **Ch 6**: neighborhood collectives use the topology.\n- **Ch 7**: a topology produces a new communicator with cached structure.\n- **Ch 3**: `MPI_Sendrecv` + `MPI_PROC_NULL` for the actual halo transfer.\n- **shore / Xall**: Cartesian/block decomposition maps onto Chimera/structured-grid domain partitioning.",
+"symbols": [
+"mpi_proc_null",
+"mpi_sendrecv"
+]
+},
+{
+"id": "mpi:ch09-environment#core-idea",
+"doc": "ch09-environment",
+"heading": "Chapter 9: MPI Environmental Management > Core Idea",
+"text": "The runtime-environment services: **error handling** (handlers, classes, strings), **timers** (`MPI_Wtime`), process/version inquiry, and MPI-managed memory allocation. The \"everything around the communication\" chapter.",
+"symbols": [
+"mpi_wtime"
+]
+},
+{
+"id": "mpi:ch09-environment#frameworks-introduced",
+"doc": "ch09-environment",
+"heading": "Chapter 9: MPI Environmental Management > Frameworks Introduced",
+"text": "- **Error handling**: an **error handler** is attached to a communicator/window/file. Predefined: `MPI_ERRORS_ARE_FATAL` (default — abort), `MPI_ERRORS_RETURN` (return a code), `MPI_ERRORS_ABORT` (abort the associated group). Set with `MPI_Comm_set_errhandler`; create custom with `MPI_Comm_create_errhandler`.\n  - **Error classes** (`MPI_ERR_*`: `MPI_ERR_BUFFER`, `MPI_ERR_COUNT`, `MPI_ERR_RANK`, `MPI_ERR_TRUNCATE`, `MPI_ERR_INTERN`, …) vs implementation-specific **error codes**; `MPI_Error_class` maps code→class, `MPI_Error_string` gives text.\n- **Timers**: **`MPI_Wtime()`** returns wall-clock seconds (double); `MPI_Wtick()` the resolution. Per-process, not synchronized across ranks unless `MPI_WTIME_IS_GLOBAL`.\n- **Inquiry**: `MPI_Get_processor_name`, `MPI_Get_version`/`MPI_Get_library_version`, `MPI_Get_count` (received elements).\n- **MPI memory**: `MPI_Alloc_mem`/`MPI_Free_mem` — allocate memory MPI can use efficiently (RDMA-registered, required for some RMA windows).\n- **`MPI_Abort(comm, errorcode)`**: forcibly terminate.",
+"symbols": [
+"comm",
+"errorcode",
+"mpi_abort",
+"mpi_alloc_mem",
+"mpi_comm_create_errhandler",
+"mpi_comm_set_errhandler",
+"mpi_err_",
+"mpi_err_buffer",
+"mpi_err_count",
+"mpi_err_intern",
+"mpi_err_rank",
+"mpi_err_truncate",
+"mpi_error_class",
+"mpi_error_string",
+"mpi_errors_abort",
+"mpi_errors_are_fatal",
+"mpi_errors_return",
+"mpi_free_mem",
+"mpi_get_count",
+"mpi_get_library_version",
+"mpi_get_processor_name",
+"mpi_get_version",
+"mpi_wtick",
+"mpi_wtime",
+"mpi_wtime_is_global"
+]
+},
+{
+"id": "mpi:ch09-environment#key-concepts",
+"doc": "ch09-environment",
+"heading": "Chapter 9: MPI Environmental Management > Key Concepts",
+"text": "- **`MPI_Wtime` is the portable MPI timer** — wall-clock, like `omp_get_wtime`. Bracket a region; for collective timing, `MPI_Barrier` before the start `MPI_Wtime` to align ranks (one of the few legit barrier uses).\n- **Default fatal handler**: set `MPI_ERRORS_RETURN` early if you want to inspect/recover from errors rather than abort. Fault-tolerant codes need this.\n- **Timing across ranks**: `MPI_Wtime` clocks are not guaranteed synchronized — measure local intervals and reduce (e.g. `MPI_Reduce` the max).\n- **`MPI_Alloc_mem`** for RMA/RDMA: some networks require registered memory; allocate windows' memory this way.",
+"symbols": [
+"mpi_alloc_mem",
+"mpi_barrier",
+"mpi_errors_return",
+"mpi_reduce",
+"mpi_wtime",
+"omp_get_wtime"
+]
+},
+{
+"id": "mpi:ch09-environment#code-examples",
+"doc": "ch09-environment",
+"heading": "Chapter 9: MPI Environmental Management > Code Examples",
+"text": "```c\n// switch off fatal aborts so we can handle errors\nMPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);\nint err = MPI_Send(buf, n, MPI_DOUBLE, dest, tag, comm);\nif (err != MPI_SUCCESS) {\n  char msg[MPI_MAX_ERROR_STRING]; int len;\n  MPI_Error_string(err, msg, &len);\n  fprintf(stderr, \"MPI error: %s\\n\", msg);\n}\n\n// aligned cross-rank timing\nMPI_Barrier(comm);                 // align ranks before timing a collective phase\ndouble t0 = MPI_Wtime();\nphase();\ndouble dt = MPI_Wtime() - t0, dt_max;\nMPI_Reduce(&dt, &dt_max, 1, MPI_DOUBLE, MPI_MAX, 0, comm);   // slowest rank\n```\n- **Demonstrates**: `MPI_ERRORS_RETURN` + `MPI_Error_string` for recoverable error handling, and barrier-aligned `MPI_Wtime` + max-reduce for honest cross-rank timing.",
+"symbols": [
+"mpi_error_string",
+"mpi_errors_return",
+"mpi_wtime"
+]
+},
+{
+"id": "mpi:ch09-environment#anti-patterns",
+"doc": "ch09-environment",
+"heading": "Chapter 9: MPI Environmental Management > Anti-patterns",
+"text": "- **`cpu_time`/`clock()` for MPI timing**: use `MPI_Wtime` (wall-clock); `clock()` measures CPU, misleading under communication waits.\n- **Assuming `MPI_Wtime` is synchronized across ranks**: it usually isn't — time local intervals and reduce.\n- **Leaving the default fatal handler in a fault-tolerant or long-running code**: set `MPI_ERRORS_RETURN` and check codes.\n- **Comparing error codes to literals**: map to classes via `MPI_Error_class`; codes are implementation-specific.\n- **Plain `malloc` for RMA window memory on RDMA networks**: use `MPI_Alloc_mem`.",
+"symbols": [
+"clock",
+"cpu_time",
+"malloc",
+"mpi_alloc_mem",
+"mpi_error_class",
+"mpi_errors_return",
+"mpi_wtime"
+]
+},
+{
+"id": "mpi:ch09-environment#key-takeaways",
+"doc": "ch09-environment",
+"heading": "Chapter 9: MPI Environmental Management > Key Takeaways",
+"text": "1. `MPI_Wtime` is the portable wall-clock timer; clocks aren't cross-rank synchronized — reduce local intervals.\n2. Default error handler aborts; set `MPI_ERRORS_RETURN` to handle codes, map via `MPI_Error_class`/`MPI_Error_string`.\n3. `MPI_Alloc_mem`/`MPI_Free_mem` for efficient/registered memory (RMA/RDMA).\n4. Barrier-before-`MPI_Wtime` is a legitimate use for aligning collective-phase timing.\n5. `MPI_Get_library_version`/`MPI_Get_version` to branch on implementation/standard level.",
+"symbols": [
+"mpi_alloc_mem",
+"mpi_error_class",
+"mpi_error_string",
+"mpi_errors_return",
+"mpi_free_mem",
+"mpi_get_library_version",
+"mpi_get_version",
+"mpi_wtime"
+]
+},
+{
+"id": "mpi:ch09-environment#connects-to",
+"doc": "ch09-environment",
+"heading": "Chapter 9: MPI Environmental Management > Connects To",
+"text": "- **Ch 2**: error-handling model and completion semantics.\n- **Ch 12**: `MPI_Alloc_mem` for RMA windows.\n- **Ch 6**: reduce local timings for honest cross-rank measurement.\n- the hpc-practice pack: wall-clock timing discipline (MPI analog of `omp_get_wtime`).",
+"symbols": [
+"mpi_alloc_mem",
+"omp_get_wtime"
+]
+},
+{
+"id": "mpi:ch10-info-object#core-idea",
+"doc": "ch10-info-object",
+"heading": "Chapter 10: The Info Object > Core Idea",
+"text": "`MPI_Info` is an opaque **(key, value) string dictionary** for passing implementation-specific hints and assertions to MPI routines — file access patterns, RMA optimizations, communicator placement, spawn arguments. The portable channel for non-portable tuning.",
+"symbols": [
+"mpi_info"
+]
+},
+{
+"id": "mpi:ch10-info-object#frameworks-introduced",
+"doc": "ch10-info-object",
+"heading": "Chapter 10: The Info Object > Frameworks Introduced",
+"text": "- **Info API**: `MPI_Info_create(&info)`, `MPI_Info_set(info, key, value)`, `MPI_Info_get_string`/`MPI_Info_get` (retrieve), `MPI_Info_delete`, `MPI_Info_dup`, `MPI_Info_free`. Keys and values are strings (max lengths `MPI_MAX_INFO_KEY`/`MPI_MAX_INFO_VAL`).\n- **Where info is consumed**: `MPI_File_open` (I/O hints), `MPI_Win_allocate`/`MPI_Win_create` (RMA hints), `MPI_Comm_dup_with_info`/`MPI_Comm_split_type` (communicator hints), `MPI_Comm_spawn` (launch args), Sessions init.\n- **Standard-reserved keys** (advisory; implementation honors what it can): I/O — `access_style`, `collective_buffering`, `cb_nodes`, `striping_factor`, `striping_unit`, `romio_*`; RMA — `no_locks`, `accumulate_ordering`, `same_size`, `same_disp_unit`; communicator — `mpi_assert_no_any_tag`, `mpi_assert_exact_length`, etc.\n- **Info-as-assertion**: some keys are *assertions* (you promise a property, MPI optimizes assuming it) vs *hints* (advisory). Violating an assertion is erroneous.",
+"symbols": [
+"access_style",
+"accumulate_ordering",
+"cb_nodes",
+"collective_buffering",
+"info",
+"key",
+"mpi_assert_exact_length",
+"mpi_assert_no_any_tag",
+"mpi_comm_dup_with_info",
+"mpi_comm_spawn",
+"mpi_comm_split_type",
+"mpi_file_open",
+"mpi_info_create",
+"mpi_info_delete",
+"mpi_info_dup",
+"mpi_info_free",
+"mpi_info_get",
+"mpi_info_get_string",
+"mpi_info_set",
+"mpi_max_info_key",
+"mpi_max_info_val",
+"mpi_win_allocate",
+"mpi_win_create",
+"no_locks",
+"romio_",
+"same_disp_unit",
+"same_size",
+"striping_factor",
+"striping_unit",
+"value"
+]
+},
+{
+"id": "mpi:ch10-info-object#key-concepts",
+"doc": "ch10-info-object",
+"heading": "Chapter 10: The Info Object > Key Concepts",
+"text": "- **Hints are advisory, assertions are contracts**: a hint MPI may ignore; an assertion (e.g. `no_locks=true` on a window) MPI may exploit and you must honor.\n- **The portable escape hatch for tuning**: rather than implementation-specific APIs, you pass `MPI_Info` and the implementation extracts what it understands — code stays portable, tuning is per-deployment.\n- **I/O hints are the biggest practical lever** (ch14): collective buffering and striping hints can change MPI-IO throughput by large factors on parallel file systems (Lustre/GPFS).\n- `MPI_INFO_NULL` when you have no hints.",
+"symbols": [
+"mpi_info",
+"mpi_info_null",
+"no_locks",
+"true"
+]
+},
+{
+"id": "mpi:ch10-info-object#code-examples",
+"doc": "ch10-info-object",
+"heading": "Chapter 10: The Info Object > Code Examples",
+"text": "```c\n// tune MPI-IO for a large collective write on Lustre\nMPI_Info info;\nMPI_Info_create(&info);\nMPI_Info_set(info, \"collective_buffering\", \"true\");\nMPI_Info_set(info, \"cb_nodes\", \"16\");\nMPI_Info_set(info, \"striping_factor\", \"16\");\nMPI_File fh;\nMPI_File_open(comm, \"out.dat\", MPI_MODE_CREATE|MPI_MODE_WRONLY, info, &fh);\nMPI_Info_free(&info);\n\n// assert a window has no passive-target locks -> implementation may optimize\nMPI_Info wininfo; MPI_Info_create(&wininfo);\nMPI_Info_set(wininfo, \"no_locks\", \"true\");\nMPI_Win_allocate(bytes, disp, wininfo, comm, &base, &win);\n```\n- **Demonstrates**: I/O hints steering collective buffering/striping, and an RMA `no_locks` assertion enabling window optimization.",
+"symbols": [
+"no_locks"
+]
+},
+{
+"id": "mpi:ch10-info-object#anti-patterns",
+"doc": "ch10-info-object",
+"heading": "Chapter 10: The Info Object > Anti-patterns",
+"text": "- **Treating assertions as hints**: asserting `no_locks=true` then using locks is erroneous — honor what you assert.\n- **Hardcoding implementation-specific tuning in API calls**: route it through `MPI_Info` so the code stays portable.\n- **Ignoring I/O hints on parallel file systems**: default striping/buffering is often far from optimal for large collective I/O.\n- **Leaking info objects**: `MPI_Info_free` what you create.",
+"symbols": [
+"mpi_info",
+"mpi_info_free",
+"no_locks",
+"true"
+]
+},
+{
+"id": "mpi:ch10-info-object#key-takeaways",
+"doc": "ch10-info-object",
+"heading": "Chapter 10: The Info Object > Key Takeaways",
+"text": "1. `MPI_Info` = portable (key,value) string hints/assertions consumed by file/window/comm/spawn routines.\n2. Hints are advisory; **assertions are contracts** you must honor (e.g. `no_locks`).\n3. The portable way to pass non-portable tuning — biggest practical impact on MPI-IO (collective buffering, striping).\n4. `MPI_INFO_NULL` for none; free what you create.",
+"symbols": [
+"mpi_info",
+"mpi_info_null",
+"no_locks"
+]
+},
+{
+"id": "mpi:ch10-info-object#connects-to",
+"doc": "ch10-info-object",
+"heading": "Chapter 10: The Info Object > Connects To",
+"text": "- **Ch 14**: MPI-IO hints (the highest-impact use).\n- **Ch 12**: RMA window hints/assertions.\n- **Ch 7/11**: communicator and Sessions info.",
+"symbols": []
+},
+{
+"id": "mpi:ch11-process-management#core-idea",
+"doc": "ch11-process-management",
+"heading": "Chapter 11: Process Initialization, Creation, and Management > Core Idea",
+"text": "How MPI starts up and how processes come into existence: the classic **World Model** (`MPI_Init` → `MPI_COMM_WORLD`), the modern **Sessions Model** (MPI 4.0+, refined 5.0 — decoupled, library-friendly init), and **dynamic process management** (`MPI_Comm_spawn`).",
+"symbols": [
+"mpi_comm_spawn",
+"mpi_comm_world",
+"mpi_init"
+]
+},
+{
+"id": "mpi:ch11-process-management#frameworks-introduced",
+"doc": "ch11-process-management",
+"heading": "Chapter 11: Process Initialization, Creation, and Management > Frameworks Introduced",
+"text": "- **World Model** (§11.2): `MPI_Init`/`MPI_Init_thread` (exactly once) → `MPI_COMM_WORLD`, `MPI_COMM_SELF` → `MPI_Finalize`. `MPI_Initialized`/`MPI_Finalized` to query state. The traditional single-world startup.\n- **Sessions Model** (§11.3): `MPI_Session_init(info, errhandler, &session)` → query a **process set** by name (`MPI_Session_get_pset_info`, `mpi://WORLD`, `mpi://SELF`) → `MPI_Group_from_session_pset` → `MPI_Comm_create_from_group` → communicator. Multiple independent sessions; **no global `MPI_COMM_WORLD` required**. `MPI_Session_finalize`.\n- **Thread support at init**: `MPI_Init_thread(&argc, &argv, required, &provided)` — request a thread level (ch2), check `provided ≥ required`. Sessions request thread support via info.\n- **Dynamic processes** (§11.x): `MPI_Comm_spawn`/`MPI_Comm_spawn_multiple` launch new processes, connected via an **intercommunicator**. `MPI_Comm_connect`/`MPI_Comm_accept` + `MPI_Open_port` for client/server; `MPI_Comm_join` from a socket.",
+"symbols": [
+"argc",
+"argv",
+"errhandler",
+"info",
+"mpi",
+"mpi_comm_accept",
+"mpi_comm_connect",
+"mpi_comm_create_from_group",
+"mpi_comm_join",
+"mpi_comm_self",
+"mpi_comm_spawn",
+"mpi_comm_spawn_multiple",
+"mpi_comm_world",
+"mpi_finalize",
+"mpi_finalized",
+"mpi_group_from_session_pset",
+"mpi_init",
+"mpi_init_thread",
+"mpi_initialized",
+"mpi_open_port",
+"mpi_session_finalize",
+"mpi_session_get_pset_info",
+"mpi_session_init",
+"provided",
+"required",
+"self",
+"session",
+"world"
+]
+},
+{
+"id": "mpi:ch11-process-management#key-concepts",
+"doc": "ch11-process-management",
+"heading": "Chapter 11: Process Initialization, Creation, and Management > Key Concepts",
+"text": "- **World vs Sessions — why Sessions exist**: the World Model couples all of MPI to one `MPI_Init` in `main`, and one global communicator. Sessions let **independent components/libraries** each initialize MPI, request their own thread level and resources, and derive communicators from named **process sets** — without fighting over who calls `MPI_Init`. Both models can coexist in one program.\n- **process set**: a named set of processes (e.g. `mpi://WORLD`) the runtime exposes; the Sessions entry point to building groups/communicators.\n- **`MPI_Finalize` is collective** over connected processes; all MPI calls must complete first.\n- **Dynamic spawn is niche in HPC**: most jobs are fixed-size SPMD; spawn matters for master/worker, coupled multi-physics, or malleable jobs.",
+"symbols": [
+"main",
+"mpi",
+"mpi_finalize",
+"mpi_init",
+"world"
+]
+},
+{
+"id": "mpi:ch11-process-management#code-examples",
+"doc": "ch11-process-management",
+"heading": "Chapter 11: Process Initialization, Creation, and Management > Code Examples",
+"text": "```c\n// World Model with thread support (typical MPI+OpenMP)\nint provided;\nMPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);\nif (provided < MPI_THREAD_FUNNELED) { /* abort: insufficient threading */ }\nint rank, size;\nMPI_Comm_rank(MPI_COMM_WORLD, &rank);\nMPI_Comm_size(MPI_COMM_WORLD, &size);\n/* ... */\nMPI_Finalize();\n```\n```c\n// Sessions Model: a library initializes MPI independently of main()\nMPI_Session sh;\nMPI_Session_init(MPI_INFO_NULL, MPI_ERRORS_RETURN, &sh);\nMPI_Group wgroup;\nMPI_Group_from_session_pset(sh, \"mpi://WORLD\", &wgroup);\nMPI_Comm comm;\nMPI_Comm_create_from_group(wgroup, \"lib.tag\", MPI_INFO_NULL,\n                           MPI_ERRORS_RETURN, &comm);\n/* ... library uses comm ... */\nMPI_Comm_free(&comm); MPI_Group_free(&wgroup); MPI_Session_finalize(&sh);\n```\n- **Demonstrates**: World-Model `MPI_Init_thread` for hybrid MPI+OpenMP, and the Sessions-Model chain (`Session_init` → process set → group → communicator) for library-friendly init.",
+"symbols": [
+"mpi_init_thread",
+"session_init"
+]
+},
+{
+"id": "mpi:ch11-process-management#anti-patterns",
+"doc": "ch11-process-management",
+"heading": "Chapter 11: Process Initialization, Creation, and Management > Anti-patterns",
+"text": "- **Multiple `MPI_Init` calls / using MPI before init or after finalize**: erroneous; exactly one init in the World Model.\n- **Requesting `MPI_THREAD_MULTIPLE` then not checking `provided`**: the implementation may give less — always verify.\n- **A library forcing `MPI_Init` in user code**: use Sessions so the library initializes independently.\n- **Assuming `MPI_COMM_WORLD` exists under Sessions-only init**: it may not — derive communicators from process sets.\n- **Designing around dynamic spawn for a fixed-size job**: unnecessary complexity; use static SPMD.",
+"symbols": [
+"mpi_comm_world",
+"mpi_init",
+"mpi_thread_multiple",
+"provided"
+]
+},
+{
+"id": "mpi:ch11-process-management#key-takeaways",
+"doc": "ch11-process-management",
+"heading": "Chapter 11: Process Initialization, Creation, and Management > Key Takeaways",
+"text": "1. **World Model**: one `MPI_Init`/`MPI_Init_thread` → `MPI_COMM_WORLD` → `MPI_Finalize` (the classic path).\n2. **Sessions Model** (MPI 5.0): independent `MPI_Session`s derive communicators from named **process sets** — no global world; ideal for libraries/composition.\n3. Always `MPI_Init_thread` with the minimum required level and **check `provided`**.\n4. Dynamic process management (`MPI_Comm_spawn`, connect/accept) exists but is niche for fixed-size HPC SPMD.\n5. Both models can coexist; pass communicators rather than assuming `MPI_COMM_WORLD`.",
+"symbols": [
+"mpi_comm_spawn",
+"mpi_comm_world",
+"mpi_finalize",
+"mpi_init",
+"mpi_init_thread",
+"mpi_session",
+"provided"
+]
+},
+{
+"id": "mpi:ch11-process-management#connects-to",
+"doc": "ch11-process-management",
+"heading": "Chapter 11: Process Initialization, Creation, and Management > Connects To",
+"text": "- **Ch 2**: thread levels requested at init.\n- **Ch 7**: communicators/groups derived from sessions/process sets.\n- **Ch 9**: error handlers attached at session/world init.\n- **openmp-6.0**: hybrid MPI+OpenMP needs the right thread level (`FUNNELED`/`MULTIPLE`).",
+"symbols": [
+"funneled",
+"multiple"
+]
+},
+{
+"id": "mpi:ch12-one-sided#core-idea",
+"doc": "ch12-one-sided",
+"heading": "Chapter 12: One-Sided Communications (RMA) > Core Idea",
+"text": "**Remote Memory Access** — one process reads/writes another's memory **without the target actively participating** in each transfer. Decouples data movement from synchronization; maps to RDMA hardware. Built on **windows** (exposed memory) + explicit **synchronization epochs**.",
+"symbols": []
+},
+{
+"id": "mpi:ch12-one-sided#frameworks-introduced",
+"doc": "ch12-one-sided",
+"heading": "Chapter 12: One-Sided Communications (RMA) > Frameworks Introduced",
+"text": "- **Window creation** (expose memory for RMA):\n  - **`MPI_Win_create(base, size, disp_unit, info, comm, &win)`**: expose existing memory.\n  - **`MPI_Win_allocate(...)`**: allocate + expose (often RDMA-registered — preferred).\n  - **`MPI_Win_allocate_shared(...)`**: allocate a window in **shared memory** (within a node-local communicator from `MPI_Comm_split_type(MPI_COMM_TYPE_SHARED)`) — direct load/store access via `MPI_Win_shared_query`. The MPI route to intra-node shared memory.\n  - **`MPI_Win_create_dynamic`** + `MPI_Win_attach`: attach memory regions dynamically.\n- **Communication calls** (within an epoch): **`MPI_Put`** (write remote), **`MPI_Get`** (read remote), **`MPI_Accumulate`** (atomic-combine remote with an op), **`MPI_Get_accumulate`**, **`MPI_Fetch_and_op`**, **`MPI_Compare_and_swap`** (atomics).\n- **Synchronization — two paradigms**:\n  - **Active target** (target participates in sync): **`MPI_Win_fence`** (collective, BSP-style — simplest) or **PSCW** (`MPI_Win_post`/`_start`/`_complete`/`_wait` — scalable, exposure/access groups).\n  - **Passive target** (target uninvolved): **`MPI_Win_lock`/`_unlock`** (or `_lock_all`/`_unlock_all`) bracketing accesses; **`MPI_Win_flush`**/`_flush_all`/`_flush_local` to force completion without ending the epoch.",
+"symbols": [
+"_complete",
+"_flush_all",
+"_flush_local",
+"_lock_all",
+"_start",
+"_unlock",
+"_unlock_all",
+"_wait",
+"base",
+"comm",
+"disp_unit",
+"info",
+"mpi_accumulate",
+"mpi_comm_split_type",
+"mpi_comm_type_shared",
+"mpi_compare_and_swap",
+"mpi_fetch_and_op",
+"mpi_get",
+"mpi_get_accumulate",
+"mpi_put",
+"mpi_win_allocate",
+"mpi_win_allocate_shared",
+"mpi_win_attach",
+"mpi_win_create",
+"mpi_win_create_dynamic",
+"mpi_win_fence",
+"mpi_win_flush",
+"mpi_win_lock",
+"mpi_win_post",
+"mpi_win_shared_query",
+"size",
+"win"
+]
+},
+{
+"id": "mpi:ch12-one-sided#key-concepts",
+"doc": "ch12-one-sided",
+"heading": "Chapter 12: One-Sided Communications (RMA) > Key Concepts",
+"text": "- **RMA != immediate**: `MPI_Put`/`MPI_Get` only guaranteed complete at the **end of the epoch** (`fence`/`unlock`/`flush`) — not when the call returns. Reading the buffer early sees stale/partial data.\n- **fence is the easy mode** (collective, bulk-synchronous): `fence … puts/gets … fence`. PSCW and passive-target lock are for finer-grained/scalable patterns.\n- **Shared-memory windows** (`MPI_Win_allocate_shared`) give true load/store access among node-local ranks — the standard, portable alternative to raw shared memory for MPI+MPI hybrid (MPI everywhere, shared memory within a node).\n- **Accumulate is atomic** for predefined ops — the safe way to do concurrent remote updates (vs racy Put).\n- **memory models**: RMA has a *unified* (cache-coherent) vs *separate* memory model; `MPI_Win_get_attr(MPI_WIN_MODEL)` tells which — affects whether local load/store and RMA see each other without sync.",
+"symbols": [
+"fence",
+"flush",
+"gets",
+"mpi_get",
+"mpi_put",
+"mpi_win_allocate_shared",
+"mpi_win_get_attr",
+"mpi_win_model",
+"puts",
+"unlock"
+]
+},
+{
+"id": "mpi:ch12-one-sided#code-examples",
+"doc": "ch12-one-sided",
+"heading": "Chapter 12: One-Sided Communications (RMA) > Code Examples",
+"text": "```c\n// active-target (fence) one-sided accumulate\nMPI_Win win;\nMPI_Win_allocate(n*sizeof(double), sizeof(double), MPI_INFO_NULL,\n                 comm, &base, &win);\nMPI_Win_fence(0, win);                      // open epoch\nMPI_Accumulate(local, n, MPI_DOUBLE, target_rank, 0, n, MPI_DOUBLE,\n               MPI_SUM, win);               // atomic remote += local\nMPI_Win_fence(0, win);                      // close epoch -> now complete\nMPI_Win_free(&win);\n\n// node-local shared memory window\nMPI_Comm node; MPI_Comm_split_type(comm, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &node);\nMPI_Win shwin; double *shptr;\nMPI_Win_allocate_shared(bytes, sizeof(double), MPI_INFO_NULL, node, &shptr, &shwin);\n// shptr is directly load/store-accessible across the node's ranks (with sync)\n```\n- **Demonstrates**: fence-synchronized atomic `MPI_Accumulate`, and a shared-memory window for direct intra-node access.",
+"symbols": [
+"mpi_accumulate"
+]
+},
+{
+"id": "mpi:ch12-one-sided#anti-patterns",
+"doc": "ch12-one-sided",
+"heading": "Chapter 12: One-Sided Communications (RMA) > Anti-patterns",
+"text": "- **Reading an RMA buffer before the epoch closes**: `Put`/`Get` aren't done until `fence`/`unlock`/`flush` — stale/partial data.\n- **Concurrent `MPI_Put` to the same location**: racy — use `MPI_Accumulate` (atomic) for concurrent updates.\n- **Forgetting the closing `fence`/`unlock`**: the transfer may never complete.\n- **Passive-target without `MPI_Win_flush` before using results**: completion isn't guaranteed mid-epoch.\n- **Assuming local stores are visible to RMA without sync in the separate memory model**: check `MPI_WIN_MODEL`.\n- **`MPI_Win_create` over `malloc` memory on RDMA nets**: prefer `MPI_Win_allocate` (registered).",
+"symbols": [
+"fence",
+"flush",
+"get",
+"malloc",
+"mpi_accumulate",
+"mpi_put",
+"mpi_win_allocate",
+"mpi_win_create",
+"mpi_win_flush",
+"mpi_win_model",
+"put",
+"unlock"
+]
+},
+{
+"id": "mpi:ch12-one-sided#key-takeaways",
+"doc": "ch12-one-sided",
+"heading": "Chapter 12: One-Sided Communications (RMA) > Key Takeaways",
+"text": "1. RMA = one-sided `Put`/`Get`/`Accumulate` on **windows**; the target doesn't participate per transfer (maps to RDMA).\n2. Completion is at **epoch end** (`fence`/`unlock`/`flush`), not call return — never read early.\n3. **`MPI_Win_fence`** is the simple bulk-synchronous mode; PSCW and passive-target lock/flush are the scalable/fine-grained modes.\n4. `MPI_Accumulate`/atomics for concurrent remote updates (Put is racy).\n5. **`MPI_Win_allocate_shared`** + node-local communicator = portable intra-node shared memory (MPI+MPI hybrid).",
+"symbols": [
+"accumulate",
+"fence",
+"flush",
+"get",
+"mpi_accumulate",
+"mpi_win_allocate_shared",
+"mpi_win_fence",
+"put",
+"unlock"
+]
+},
+{
+"id": "mpi:ch12-one-sided#connects-to",
+"doc": "ch12-one-sided",
+"heading": "Chapter 12: One-Sided Communications (RMA) > Connects To",
+"text": "- **Ch 7**: `MPI_Comm_split_type(MPI_COMM_TYPE_SHARED)` for shared-memory windows.\n- **Ch 9**: `MPI_Alloc_mem` and window memory.\n- **Ch 10**: window info hints/assertions (`no_locks`, `accumulate_ordering`).\n- **Ch 6**: RMA vs collective trade-offs for reductions/exchanges.",
+"symbols": [
+"accumulate_ordering",
+"mpi_alloc_mem",
+"mpi_comm_split_type",
+"mpi_comm_type_shared",
+"no_locks"
+]
+},
+{
+"id": "mpi:ch13-external-interfaces#core-idea",
+"doc": "ch13-external-interfaces",
+"heading": "Chapter 13: External Interfaces > Core Idea",
+"text": "Hooks for **extending MPI and integrating it with other software**: generalized (user-defined nonblocking) requests, decoding derived datatypes, the detailed threads/progress contract, and associating MPI with external state. The chapter library and tool authors rely on.",
+"symbols": []
+},
+{
+"id": "mpi:ch13-external-interfaces#frameworks-introduced",
+"doc": "ch13-external-interfaces",
+"heading": "Chapter 13: External Interfaces > Frameworks Introduced",
+"text": "- **Generalized requests**: `MPI_Grequest_start`/`MPI_Grequest_complete` — create an MPI **request** backed by a *user-defined* nonblocking operation (with query/free/cancel callbacks), so non-MPI async work (e.g. a custom I/O or accelerator transfer) can be waited on with `MPI_Wait`/`MPI_Test` alongside MPI requests.\n- **Datatype decoding**: `MPI_Type_get_envelope` + `MPI_Type_get_contents` — reflectively inspect how a derived datatype was constructed (for tools, libraries, serialization layers).\n- **Threads + MPI contract** (detail beyond ch2): the progress rule (MPI must make progress on outstanding operations), matching/ordering guarantees under `MPI_THREAD_MULTIPLE`, and which calls are thread-safe.\n- **Associating state**: attaching/retrieving information for interoperability with external runtimes.",
+"symbols": [
+"mpi_grequest_complete",
+"mpi_grequest_start",
+"mpi_test",
+"mpi_thread_multiple",
+"mpi_type_get_contents",
+"mpi_type_get_envelope",
+"mpi_wait"
+]
+},
+{
+"id": "mpi:ch13-external-interfaces#key-concepts",
+"doc": "ch13-external-interfaces",
+"heading": "Chapter 13: External Interfaces > Key Concepts",
+"text": "- **Generalized requests unify async waiting**: if your code mixes MPI nonblocking ops with other async work, wrap the latter as a generalized request so a single `MPI_Waitall` covers both — cleaner than polling two systems.\n- **`MPI_THREAD_MULTIPLE` semantics**: concurrent MPI calls from multiple threads are allowed but you still must not have two threads complete the *same* request, and collective ordering is per-communicator — the implementation serializes internally, which has a cost.\n- **Datatype reflection** is mostly for tooling/libraries (e.g. a checkpoint library that must understand user types) — rarely needed in application code.\n- **Progress**: an implementation must eventually complete posted operations even without explicit MPI calls, but in practice progress often happens *inside* MPI calls — long compute gaps can stall communication on some implementations (a reason to call `MPI_Test` periodically).",
+"symbols": [
+"mpi_test",
+"mpi_thread_multiple",
+"mpi_waitall"
+]
+},
+{
+"id": "mpi:ch13-external-interfaces#anti-patterns",
+"doc": "ch13-external-interfaces",
+"heading": "Chapter 13: External Interfaces > Anti-patterns",
+"text": "- **Polling external async state separately from MPI**: wrap it as a generalized request and `MPI_Wait` uniformly.\n- **Two threads completing the same request under `MPI_THREAD_MULTIPLE`**: erroneous — partition requests across threads.\n- **Assuming background progress on every implementation**: some make progress only inside MPI calls; sprinkle `MPI_Test` during long compute if communication seems stalled.\n- **Hand-parsing derived types**: use `MPI_Type_get_envelope`/`_contents` reflection.",
+"symbols": [
+"_contents",
+"mpi_test",
+"mpi_thread_multiple",
+"mpi_type_get_envelope",
+"mpi_wait"
+]
+},
+{
+"id": "mpi:ch13-external-interfaces#key-takeaways",
+"doc": "ch13-external-interfaces",
+"heading": "Chapter 13: External Interfaces > Key Takeaways",
+"text": "1. **Generalized requests** let user-defined async ops be completed via `MPI_Wait`/`MPI_Test` — unify MPI + non-MPI async.\n2. `MPI_Type_get_envelope`/`_contents` reflectively decode derived datatypes (tooling/serialization).\n3. Under `MPI_THREAD_MULTIPLE`, concurrent calls are allowed but not on the same request; internal serialization costs.\n4. Progress is guaranteed eventually but often happens inside MPI calls — `MPI_Test` during long compute gaps if needed.\n5. This chapter is mostly for library/tool authors, not everyday application code.",
+"symbols": [
+"_contents",
+"mpi_test",
+"mpi_thread_multiple",
+"mpi_type_get_envelope",
+"mpi_wait"
+]
+},
+{
+"id": "mpi:ch13-external-interfaces#connects-to",
+"doc": "ch13-external-interfaces",
+"heading": "Chapter 13: External Interfaces > Connects To",
+"text": "- **Ch 2**: the threads model and request semantics this elaborates.\n- **Ch 3/6**: nonblocking requests that generalized requests join.\n- **Ch 5**: derived-datatype construction that decoding reverses.\n- **Ch 15**: tool support builds on these external-interface hooks.",
+"symbols": []
+},
+{
+"id": "mpi:ch14-io#core-idea",
+"doc": "ch14-io",
+"heading": "Chapter 14: I/O (MPI-IO) > Core Idea",
+"text": "Parallel I/O: many processes read/write **one shared file** efficiently via **file views** (each process sees only its portion) and **collective operations** (the implementation aggregates/optimizes accesses). The standard way to do scalable checkpoint/restart and distributed-array I/O.",
+"symbols": []
+},
+{
+"id": "mpi:ch14-io#frameworks-introduced",
+"doc": "ch14-io",
+"heading": "Chapter 14: I/O (MPI-IO) > Frameworks Introduced",
+"text": "- **File view** = `(displacement, etype, filetype, datarep)` set by **`MPI_File_set_view`**:\n  - **etype**: the elementary datatype (unit of access/offset).\n  - **filetype**: a derived datatype (often `MPI_Type_create_subarray`) defining *which* parts of the file this process sees — non-overlapping views tile the file across processes.\n  - **datarep**: `\"native\"` (raw, fast, non-portable), `\"internal\"` (impl-portable), `\"external32\"` (fully portable across platforms).\n- **Access dimensions** (combine freely):\n  - **positioning**: explicit offset (`MPI_File_read_at`), individual file pointer (`MPI_File_read`), shared file pointer (`MPI_File_read_shared`).\n  - **coordination**: **independent** (per-process) vs **collective** (`_all` suffix — all processes in the file's group participate; enables collective buffering).\n  - **synchronism**: blocking, nonblocking (`MPI_File_iread`), or **split-collective** (`_begin`/`_end`).\n- **`MPI_File_open(comm, name, amode, info, &fh)`**: collective; `amode` = `MPI_MODE_RDONLY|WRONLY|RDWR|CREATE|...`. `MPI_File_set_size`/`MPI_File_preallocate`/`MPI_File_close` (collective).",
+"symbols": [
+"_all",
+"_begin",
+"_end",
+"amode",
+"comm",
+"create",
+"datarep",
+"displacement",
+"etype",
+"external32",
+"filetype",
+"info",
+"internal",
+"mpi_file_close",
+"mpi_file_iread",
+"mpi_file_open",
+"mpi_file_preallocate",
+"mpi_file_read",
+"mpi_file_read_at",
+"mpi_file_read_shared",
+"mpi_file_set_size",
+"mpi_file_set_view",
+"mpi_mode_rdonly",
+"mpi_type_create_subarray",
+"name",
+"native",
+"rdwr",
+"wronly"
+]
+},
+{
+"id": "mpi:ch14-io#key-concepts",
+"doc": "ch14-io",
+"heading": "Chapter 14: I/O (MPI-IO) > Key Concepts",
+"text": "- **Collective + view = scalability**: `MPI_File_set_view` (each rank's subarray) + `MPI_File_write_all` (collective) lets the implementation aggregate small scattered writes into large contiguous file-system I/O (collective buffering, two-phase I/O). This is *the* reason to use MPI-IO over per-rank POSIX files.\n- **Info hints dominate performance** (ch10): `collective_buffering`, `cb_nodes`, `striping_factor`/`striping_unit` (Lustre) — defaults are often far from optimal.\n- **etype/filetype mirror derived datatypes** (ch5): a 3D distributed array uses `MPI_Type_create_subarray` as the filetype so each rank writes its block to the right file region.\n- **`external32`** for cross-platform-portable files; **`native`** for speed within one platform.\n- Avoid the \"one file per rank\" anti-pattern at scale — it overwhelms the metadata server and complicates restart.",
+"symbols": [
+"cb_nodes",
+"collective_buffering",
+"external32",
+"mpi_file_set_view",
+"mpi_file_write_all",
+"mpi_type_create_subarray",
+"native",
+"striping_factor",
+"striping_unit"
+]
+},
+{
+"id": "mpi:ch14-io#code-examples",
+"doc": "ch14-io",
+"heading": "Chapter 14: I/O (MPI-IO) > Code Examples",
+"text": "```c\n// each rank writes its block of a distributed 2D array into one shared file\nint gsizes[2]={NX,NY}, lsizes[2]={nx,ny}, starts[2]={x0,y0};\nMPI_Datatype filetype;\nMPI_Type_create_subarray(2, gsizes, lsizes, starts, MPI_ORDER_C, MPI_DOUBLE, &filetype);\nMPI_Type_commit(&filetype);\n\nMPI_File fh;\nMPI_File_open(comm, \"field.dat\", MPI_MODE_CREATE|MPI_MODE_WRONLY, info, &fh);\nMPI_File_set_view(fh, 0, MPI_DOUBLE, filetype, \"native\", info);\nMPI_File_write_all(fh, local, nx*ny, MPI_DOUBLE, MPI_STATUS_IGNORE);  // collective\nMPI_File_close(&fh);\nMPI_Type_free(&filetype);\n```\n- **Demonstrates**: the canonical distributed-array write — a `subarray` filetype gives each rank its file region, and **`MPI_File_write_all`** (collective) lets the implementation aggregate for throughput.",
+"symbols": [
+"mpi_file_write_all",
+"subarray"
+]
+},
+{
+"id": "mpi:ch14-io#anti-patterns",
+"doc": "ch14-io",
+"heading": "Chapter 14: I/O (MPI-IO) > Anti-patterns",
+"text": "- **One file per rank at scale**: metadata-server meltdown + painful restart with different process counts — use one shared file + views.\n- **Independent (non-`_all`) writes for a structured collective pattern**: forgoes collective buffering — use the `_all` variants.\n- **Ignoring I/O hints**: default striping/buffering on Lustre/GPFS often cripples bandwidth — set them via `MPI_Info` (ch10).\n- **`native` datarep for portable archives**: not portable across endian/size — use `external32` if the file must move between platforms.\n- **Forgetting MPI-IO calls are collective** (`open`/`set_view`/`set_size`/`_all`): all ranks in the group must call.",
+"symbols": [
+"_all",
+"external32",
+"mpi_info",
+"native",
+"open",
+"set_size",
+"set_view"
+]
+},
+{
+"id": "mpi:ch14-io#key-takeaways",
+"doc": "ch14-io",
+"heading": "Chapter 14: I/O (MPI-IO) > Key Takeaways",
+"text": "1. **File view** (`MPI_File_set_view` with a `subarray` filetype) gives each rank its slice of one shared file.\n2. **Collective** (`_all`) operations enable aggregation/collective-buffering — the scalability win over per-rank POSIX files.\n3. I/O **info hints** (collective buffering, striping) are the dominant performance lever on parallel file systems.\n4. `datarep`: `native` (fast/non-portable) vs `external32` (portable archives).\n5. Positioning (explicit-offset / individual / shared pointer) × coordination (independent / collective) × sync (blocking / nonblocking / split-collective) compose freely.",
+"symbols": [
+"_all",
+"datarep",
+"external32",
+"mpi_file_set_view",
+"native",
+"subarray"
+]
+},
+{
+"id": "mpi:ch14-io#connects-to",
+"doc": "ch14-io",
+"heading": "Chapter 14: I/O (MPI-IO) > Connects To",
+"text": "- **Ch 5**: derived types (`subarray`) as etype/filetype.\n- **Ch 10**: `MPI_Info` I/O hints — the performance lever.\n- **Ch 7**: the communicator defining the file's process group.\n- **Ch 2**: collective semantics — all ranks must call the collective I/O ops.",
+"symbols": [
+"mpi_info",
+"subarray"
+]
+},
+{
+"id": "mpi:ch15-tool-support#core-idea",
+"doc": "ch15-tool-support",
+"heading": "Chapter 15: Tool Support > Core Idea",
+"text": "Two interfaces for tools: the **PMPI profiling interface** (every `MPI_X` has a `PMPI_X` twin a tool can intercept via weak symbols) and the **MPI_T tool information interface** (introspect/set control variables, read performance variables, trace events). The basis for profilers (Score-P, TAU, mpiP, Vampir) and tuning.",
+"symbols": [
+"mpi_x",
+"pmpi_x"
+]
+},
+{
+"id": "mpi:ch15-tool-support#frameworks-introduced",
+"doc": "ch15-tool-support",
+"heading": "Chapter 15: Tool Support > Frameworks Introduced",
+"text": "- **PMPI profiling interface**: the standard guarantees each MPI routine is also callable as `PMPI_` (e.g. `PMPI_Send`). A profiling library defines `MPI_Send` (intercept → record → call `PMPI_Send`), linked via weak symbols (`#pragma weak MPI_Send = PMPI_Send`). Lets tools wrap MPI **without** the MPI source or recompiling the app.\n- **MPI_T — control variables (cvar)**: `MPI_T_cvar_get_info`/`_handle_alloc`/`_read`/`_write` — read/tune implementation knobs (eager-limit, buffer sizes, protocol thresholds) at runtime.\n- **MPI_T — performance variables (pvar)**: `MPI_T_pvar_*` — read counters/timers the implementation exposes (bytes sent, queue depths, unexpected-message counts) for performance analysis.\n- **MPI_T — events** (MPI 4.0+): callback-based event tracing (`MPI_T_event_*`) for fine-grained tool instrumentation.\n- **MPI_T session/category model**: variables are organized into categories; `MPI_T_init_thread` is independent of `MPI_Init` (tools can introspect before/without full MPI init).",
+"symbols": [
+"_handle_alloc",
+"_read",
+"_write",
+"mpi_init",
+"mpi_send",
+"mpi_t_cvar_get_info",
+"mpi_t_event_",
+"mpi_t_init_thread",
+"mpi_t_pvar_",
+"pmpi_",
+"pmpi_send",
+"pragma",
+"weak"
+]
+},
+{
+"id": "mpi:ch15-tool-support#key-concepts",
+"doc": "ch15-tool-support",
+"heading": "Chapter 15: Tool Support > Key Concepts",
+"text": "- **PMPI is link-time, zero-source interception**: the reason every MPI profiler works portably — wrap, measure, delegate to `PMPI_`.\n- **MPI_T cvars expose the tuning knobs** a vendor would otherwise hide — e.g. raise the eager/rendezvous threshold for a message-size sweet spot, all at runtime.\n- **pvars are the introspection counterpart**: diagnose unexpected-message queue growth (a sign of receiver-too-slow / mismatched posting) or measure actual bytes moved.\n- These are for **tool authors and performance engineers**; applications usually consume them through a profiler rather than calling MPI_T directly.",
+"symbols": [
+"pmpi_"
+]
+},
+{
+"id": "mpi:ch15-tool-support#code-examples",
+"doc": "ch15-tool-support",
+"heading": "Chapter 15: Tool Support > Code Examples",
+"text": "```c\n// PMPI wrapper: count and time every MPI_Send (a tool/profiling library)\nstatic double send_time = 0; static long send_count = 0;\nint MPI_Send(const void *buf, int n, MPI_Datatype t, int dest, int tag, MPI_Comm c) {\n  double t0 = PMPI_Wtime();\n  int rc = PMPI_Send(buf, n, t, dest, tag, c);   // delegate to the real impl\n  send_time += PMPI_Wtime() - t0; send_count++;\n  return rc;\n}\n```\n- **Demonstrates**: the PMPI interception pattern — redefine `MPI_Send`, measure, then call `PMPI_Send`; linked transparently via weak symbols, no app recompile.",
+"symbols": [
+"mpi_send",
+"pmpi_send"
+]
+},
+{
+"id": "mpi:ch15-tool-support#anti-patterns",
+"doc": "ch15-tool-support",
+"heading": "Chapter 15: Tool Support > Anti-patterns",
+"text": "- **Patching MPI source to add instrumentation**: unnecessary — use PMPI interception.\n- **Hardcoding implementation tuning in source**: read/set it via MPI_T cvars at runtime instead.\n- **Ignoring pvars when diagnosing scaling problems**: unexpected-message-queue and eager-buffer counters often reveal the real bottleneck.\n- **Calling MPI_T from application logic for control flow**: it's a tools interface; keep it in tooling, not app correctness paths.",
+"symbols": []
+},
+{
+"id": "mpi:ch15-tool-support#key-takeaways",
+"doc": "ch15-tool-support",
+"heading": "Chapter 15: Tool Support > Key Takeaways",
+"text": "1. **PMPI** gives every `MPI_X` a `PMPI_X` twin — the portable, zero-source, weak-symbol interception that all MPI profilers use.\n2. **MPI_T cvars** expose runtime-tunable implementation knobs; **pvars** expose performance counters/timers; **events** give trace callbacks.\n3. MPI_T is independent of `MPI_Init` (introspect early).\n4. Use pvars (unexpected-queue depth, bytes moved) to diagnose scaling/communication bottlenecks.\n5. These are tool-author/perf-engineer interfaces — most users meet them through Score-P/TAU/mpiP/Vampir.",
+"symbols": [
+"mpi_init",
+"mpi_x",
+"pmpi_x"
+]
+},
+{
+"id": "mpi:ch15-tool-support#connects-to",
+"doc": "ch15-tool-support",
+"heading": "Chapter 15: Tool Support > Connects To",
+"text": "- **Ch 13**: external interfaces — tool hooks foundation.\n- **Ch 9**: `MPI_Wtime`/`PMPI_Wtime` for timing in wrappers.\n- **openmp-6.0 ch18 / openacc-3.4 ch10**: the analogous OMPT/OpenACC tool interfaces (whole-stack profiling).",
+"symbols": [
+"mpi_wtime",
+"pmpi_wtime"
+]
+},
+{
+"id": "mpi:ch16-deprecated-removed#core-idea",
+"doc": "ch16-deprecated-removed",
+"heading": "Chapter 16 (§16–18): Deprecated, Removed, Semantic Changes > Core Idea",
+"text": "The \"what not to use / what changed\" reference: features still legal but discouraged (**deprecated**), features gone entirely (**removed**), and behavioral changes between versions (**semantic changes & warnings**). The migration map for older MPI code.",
+"symbols": []
+},
+{
+"id": "mpi:ch16-deprecated-removed#frameworks-introduced",
+"doc": "ch16-deprecated-removed",
+"heading": "Chapter 16 (§16–18): Deprecated, Removed, Semantic Changes > Frameworks Introduced",
+"text": "- **Deprecated** (still work, may be removed later) — notable items:\n  - Attribute caching old API: `MPI_Attr_get`/`_put`/`_delete`, `MPI_Keyval_create`/`_free`, `MPI_NULL_COPY_FN`/`MPI_DUP_FN`/`MPI_NULL_DELETE_FN` → superseded by `MPI_Comm_get_attr`/`_set_attr` + `MPI_Comm_create_keyval` (MPI-2.0).\n  - `MPI_Type_extent`/`MPI_Type_lb`/`MPI_Type_ub` → `MPI_Type_get_extent`/`MPI_Type_get_true_extent`.\n  - `MPI_Address` → `MPI_Get_address`; `MPI_Type_hvector`/`hindexed`/`struct` → `MPI_Type_create_*`.\n  - `MPI_Errhandler_create`/`_set`/`_get` → `MPI_Comm_create_errhandler`/`_set_errhandler`/`_get_errhandler`.\n  - `MPI_HOST`, the `mpif.h` Fortran include, and the `mpi` Fortran module's non-`_f08` interfaces are deprecated in favor of `use mpi_f08`.\n  - Cancelling a **send** via `MPI_Cancel` is deprecated.\n- **Removed** (no longer in the standard): the entire **C++ bindings** (deprecated MPI-2.2, removed MPI-3.0); various MPI-1 relics. A conforming MPI 5.0 implementation need not provide them.\n- **Semantic changes & warnings**: documented behavioral differences between versions — places where the *same code* may behave differently under MPI 5.0 vs earlier.",
+"symbols": [
+"_delete",
+"_f08",
+"_free",
+"_get",
+"_get_errhandler",
+"_put",
+"_set",
+"_set_attr",
+"_set_errhandler",
+"hindexed",
+"mpi",
+"mpi_address",
+"mpi_attr_get",
+"mpi_cancel",
+"mpi_comm_create_errhandler",
+"mpi_comm_create_keyval",
+"mpi_comm_get_attr",
+"mpi_dup_fn",
+"mpi_errhandler_create",
+"mpi_f08",
+"mpi_get_address",
+"mpi_host",
+"mpi_keyval_create",
+"mpi_null_copy_fn",
+"mpi_null_delete_fn",
+"mpi_type_create_",
+"mpi_type_extent",
+"mpi_type_get_extent",
+"mpi_type_get_true_extent",
+"mpi_type_hvector",
+"mpi_type_lb",
+"mpi_type_ub",
+"mpif",
+"struct",
+"use"
+]
+},
+{
+"id": "mpi:ch16-deprecated-removed#key-concepts",
+"doc": "ch16-deprecated-removed",
+"heading": "Chapter 16 (§16–18): Deprecated, Removed, Semantic Changes > Key Concepts",
+"text": "- **Deprecated ≠ removed**: deprecated still compiles/runs (with possible warnings); removed is gone. Migrate deprecated proactively — it's the removal queue.\n- **Use `use mpi_f08`** in Fortran: the modern, type-safe binding (typed handles `TYPE(MPI_Comm)` etc., proper `INTENT`); `mpif.h` and the old `mpi` module are legacy.\n- **`MPI_Type_create_*`** is the modern derived-type API; the un-prefixed `MPI_Type_hvector`/etc. are deprecated.\n- **No C++ bindings**: use the C API from C++ (every MPI implementation provides it).\n- Cancelling sends is fragile and deprecated — design protocols that don't require it.",
+"symbols": [
+"intent",
+"mpi",
+"mpi_comm",
+"mpi_f08",
+"mpi_type_create_",
+"mpi_type_hvector",
+"mpif",
+"type",
+"use"
+]
+},
+{
+"id": "mpi:ch16-deprecated-removed#common-deprecated-modern-replacements",
+"doc": "ch16-deprecated-removed",
+"heading": "Chapter 16 (§16–18): Deprecated, Removed, Semantic Changes > Reference Tables > Common deprecated → modern replacements",
+"text": "| Deprecated | Use instead |\n|---|---|\n| `MPI_Type_extent` | `MPI_Type_get_extent` |\n| `MPI_Address` | `MPI_Get_address` |\n| `MPI_Type_struct` | `MPI_Type_create_struct` |\n| `MPI_Attr_get`/`_put` | `MPI_Comm_get_attr`/`_set_attr` |\n| `MPI_Errhandler_set` | `MPI_Comm_set_errhandler` |\n| `mpif.h` / `mpi` module | `use mpi_f08` |\n| C++ bindings | C API (removed) |",
+"symbols": [
+"_put",
+"_set_attr",
+"mpi",
+"mpi_address",
+"mpi_attr_get",
+"mpi_comm_get_attr",
+"mpi_comm_set_errhandler",
+"mpi_errhandler_set",
+"mpi_f08",
+"mpi_get_address",
+"mpi_type_create_struct",
+"mpi_type_extent",
+"mpi_type_get_extent",
+"mpi_type_struct",
+"mpif",
+"use"
+]
+},
+{
+"id": "mpi:ch16-deprecated-removed#anti-patterns",
+"doc": "ch16-deprecated-removed",
+"heading": "Chapter 16 (§16–18): Deprecated, Removed, Semantic Changes > Anti-patterns",
+"text": "- **New code using `mpif.h` or the old `mpi` module**: use `use mpi_f08` for type safety and `INTENT` checking.\n- **Using `MPI_Type_extent`/`MPI_Address`/`MPI_Type_struct`**: deprecated — use the `_get_extent`/`_create_*`/`Get_address` forms.\n- **Seeking MPI C++ bindings**: removed; call the C API from C++.\n- **Relying on `MPI_Cancel` for sends**: deprecated/fragile — restructure the protocol.\n- **Assuming pre-5.0 behavior persists**: check the Semantic Changes list for behavioral deltas.",
+"symbols": [
+"_create_",
+"_get_extent",
+"get_address",
+"intent",
+"mpi",
+"mpi_address",
+"mpi_cancel",
+"mpi_f08",
+"mpi_type_extent",
+"mpi_type_struct",
+"mpif",
+"use"
+]
+},
+{
+"id": "mpi:ch16-deprecated-removed#key-takeaways",
+"doc": "ch16-deprecated-removed",
+"heading": "Chapter 16 (§16–18): Deprecated, Removed, Semantic Changes > Key Takeaways",
+"text": "1. Deprecated features still work but are the removal queue — migrate (caching API, `MPI_Type_extent`, `MPI_Address`, old errhandler API).\n2. Fortran: use **`use mpi_f08`** (typed handles, `INTENT`); `mpif.h`/old `mpi` module are legacy.\n3. **C++ bindings are removed** — use the C API from C++.\n4. Cancelling sends is deprecated; design protocols that avoid it.\n5. Consult the Semantic Changes list when porting code across MPI versions.",
+"symbols": [
+"intent",
+"mpi",
+"mpi_address",
+"mpi_f08",
+"mpi_type_extent",
+"mpif",
+"use"
+]
+},
+{
+"id": "mpi:ch16-deprecated-removed#connects-to",
+"doc": "ch16-deprecated-removed",
+"heading": "Chapter 16 (§16–18): Deprecated, Removed, Semantic Changes > Connects To",
+"text": "- **Ch 5**: modern `MPI_Type_create_*` vs deprecated constructors.\n- **Ch 9**: modern error-handler API.\n- **Ch 17**: language bindings — `mpi_f08` is the modern Fortran binding.\n- **fortran-2023-standard**: `use mpi_f08` interoperates with modern Fortran (assumed-shape, `INTENT`).",
+"symbols": [
+"intent",
+"mpi_f08",
+"mpi_type_create_",
+"use"
+]
+},
+{
+"id": "mpi:ch17-language-bindings#core-idea",
+"doc": "ch17-language-bindings",
+"heading": "Chapter 17 (§19–20): Language Bindings and the Standard ABI > Core Idea",
+"text": "How MPI maps to C and Fortran (handle types, argument conventions, the `mpi_f08` module), the large-count (`_c`) routines, and — the **MPI 5.0 headline feature** — a **standard Application Binary Interface** so one compiled binary can run against *any* conforming MPI implementation.",
+"symbols": [
+"mpi_f08"
+]
+},
+{
+"id": "mpi:ch17-language-bindings#frameworks-introduced",
+"doc": "ch17-language-bindings",
+"heading": "Chapter 17 (§19–20): Language Bindings and the Standard ABI > Frameworks Introduced",
+"text": "- **C bindings**: opaque handle types (`MPI_Comm`, `MPI_Datatype`, `MPI_Request`, `MPI_Win`, `MPI_File`, …); functions return `int` error codes; `MPI_Count`/`MPI_Aint`/`MPI_Offset` for large/address-sized values.\n- **Fortran bindings** — three, in increasing modernity:\n  - `mpif.h` (legacy include, deprecated),\n  - the `mpi` module (legacy),\n  - **`use mpi_f08`** (modern): **derived-type handles** (`TYPE(MPI_Comm)` etc.), proper `INTENT`, `ASYNCHRONOUS` buffer attributes, optional `ierror` — type-safe and the recommended choice.\n- **Large-count routines** (`_c` suffix, e.g. `MPI_Send_c`, `MPI_Type_contiguous_c`): take `MPI_Count` instead of `int` for counts — needed when message element counts exceed `INT_MAX` (large buffers). The base names take `int`.\n- **Standard ABI** (§20, **MPI 5.0**): a defined binary interface — handle representations, constant values, struct layouts — so an executable/library compiled against the ABI links and runs against **any** ABI-conforming MPI without recompilation.\n  - **`MPI_Abi_get_version(&major, &minor)`** and **`MPI_Abi_get_info(...)`** query ABI support/version at runtime; callable any time.",
+"symbols": [
+"asynchronous",
+"ierror",
+"int",
+"int_max",
+"intent",
+"major",
+"minor",
+"mpi",
+"mpi_abi_get_info",
+"mpi_abi_get_version",
+"mpi_aint",
+"mpi_comm",
+"mpi_count",
+"mpi_datatype",
+"mpi_f08",
+"mpi_file",
+"mpi_offset",
+"mpi_request",
+"mpi_send_c",
+"mpi_type_contiguous_c",
+"mpi_win",
+"mpif",
+"type",
+"use"
+]
+},
+{
+"id": "mpi:ch17-language-bindings#key-concepts",
+"doc": "ch17-language-bindings",
+"heading": "Chapter 17 (§19–20): Language Bindings and the Standard ABI > Key Concepts",
+"text": "- **The ABI ends the \"recompile per MPI implementation\" tax**: historically a binary built against MPICH wouldn't run against Open MPI (different handle sizes/constants). The MPI 5.0 standard ABI lets one binary be portable across conforming implementations — huge for distributing MPI software and containers.\n- **`use mpi_f08` is the correct Fortran binding for new code** — it catches argument-type errors at compile time (handles are distinct types, not bare `INTEGER`), and `ASYNCHRONOUS` protects nonblocking buffers from compiler reordering (a real correctness issue with `mpif.h`).\n- **`_c` large-count routines** matter once buffers exceed ~2 GiB-elements; use them in big-data MPI rather than risking `int` overflow in `count`.\n- **`ASYNCHRONOUS` attribute** on nonblocking buffers in `mpi_f08` is essential — the compiler must not move accesses across the `MPI_Wait` (the Fortran analog of \"don't touch the `Isend` buffer early\").",
+"symbols": [
+"asynchronous",
+"count",
+"int",
+"integer",
+"isend",
+"mpi_f08",
+"mpi_wait",
+"mpif",
+"use"
+]
+},
+{
+"id": "mpi:ch17-language-bindings#anti-patterns",
+"doc": "ch17-language-bindings",
+"heading": "Chapter 17 (§19–20): Language Bindings and the Standard ABI > Anti-patterns",
+"text": "- **`mpif.h` for new Fortran code**: no type checking, no `ASYNCHRONOUS` protection — use `use mpi_f08`.\n- **Passing the wrong handle type with the old `mpi` module/`mpif.h`**: silently compiles (all `INTEGER`) and fails at runtime; `mpi_f08`'s typed handles catch it.\n- **`int`-count routines for >2 GiB-element messages**: overflow — use the `_c` variants.\n- **Assuming binary portability pre-5.0 / without checking the ABI**: query `MPI_Abi_get_version`; only ABI-conforming implementations guarantee it.\n- **Omitting `ASYNCHRONOUS` on nonblocking buffers in Fortran**: the compiler may reorder/optimize across `MPI_Wait`, corrupting data.",
+"symbols": [
+"asynchronous",
+"int",
+"integer",
+"mpi",
+"mpi_abi_get_version",
+"mpi_f08",
+"mpi_wait",
+"mpif",
+"use"
+]
+},
+{
+"id": "mpi:ch17-language-bindings#key-takeaways",
+"doc": "ch17-language-bindings",
+"heading": "Chapter 17 (§19–20): Language Bindings and the Standard ABI > Key Takeaways",
+"text": "1. **MPI 5.0 standard ABI**: one binary runs against any ABI-conforming implementation — query with `MPI_Abi_get_version`/`MPI_Abi_get_info`.\n2. Fortran: **`use mpi_f08`** (typed handles, `INTENT`, `ASYNCHRONOUS`) for new code; `mpif.h`/`mpi` module are legacy.\n3. `_c`-suffixed routines take `MPI_Count` for large (>`INT_MAX`) element counts.\n4. C handles are opaque types; functions return `int` error codes.\n5. Mark nonblocking Fortran buffers `ASYNCHRONOUS` to block unsafe compiler reordering.",
+"symbols": [
+"asynchronous",
+"int",
+"int_max",
+"intent",
+"mpi",
+"mpi_abi_get_info",
+"mpi_abi_get_version",
+"mpi_count",
+"mpi_f08",
+"mpif",
+"use"
+]
+},
+{
+"id": "mpi:ch17-language-bindings#connects-to",
+"doc": "ch17-language-bindings",
+"heading": "Chapter 17 (§19–20): Language Bindings and the Standard ABI > Connects To",
+"text": "- **Ch 2**: handle/argument conventions and completion semantics.\n- **Ch 16**: deprecated bindings (`mpif.h`, C++) vs modern `mpi_f08`.\n- **Ch 18**: the full binding-signature reference (Annex A).\n- **fortran-2023-standard**: `mpi_f08` uses modern Fortran features (assumed-shape, `INTENT`, `ASYNCHRONOUS`).",
+"symbols": [
+"asynchronous",
+"intent",
+"mpi_f08",
+"mpif"
+]
+},
+{
+"id": "mpi:ch18-bindings-summary#core-idea",
+"doc": "ch18-bindings-summary",
+"heading": "Chapter 18 (Annex A): Language Bindings Summary > Core Idea",
+"text": "The consolidated **signature reference** — every MPI routine's C prototype and Fortran (`mpi_f08`, `mpi`, `mpif.h`) interface, plus all predefined constants, datatypes, and info keys, in one place. A lookup annex, not a concept chapter.",
+"symbols": [
+"mpi",
+"mpi_f08",
+"mpif"
+]
+},
+{
+"id": "mpi:ch18-bindings-summary#key-concepts-how-to-use-it",
+"doc": "ch18-bindings-summary",
+"heading": "Chapter 18 (Annex A): Language Bindings Summary > Key Concepts (how to use it)",
+"text": "- **Find a signature fast**: Annex A lists C bindings (`A.3`), Fortran 2008 `mpi_f08` bindings (`A.4`), and legacy `mpi` bindings (`A.5`), grouped by chapter topic — go to the matching subsection (e.g. \"Point-to-Point Communication C Bindings\").\n- **Predefined constants** (the values you pass): communicators (`MPI_COMM_WORLD`, `MPI_COMM_SELF`, `MPI_COMM_NULL`), wildcards (`MPI_ANY_SOURCE`, `MPI_ANY_TAG`, `MPI_PROC_NULL`), status (`MPI_STATUS_IGNORE`, `MPI_STATUSES_IGNORE`), null handles (`MPI_DATATYPE_NULL`, `MPI_REQUEST_NULL`, `MPI_OP_NULL`), error handlers (`MPI_ERRORS_ARE_FATAL`/`_RETURN`/`_ABORT`), `MPI_IN_PLACE`, `MPI_BOTTOM`, `MPI_INFO_NULL`.\n- **Predefined datatypes**: C (`MPI_INT`, `MPI_DOUBLE`, `MPI_CHAR`, `MPI_BYTE`, `MPI_C_BOOL`, `MPI_AINT`, `MPI_COUNT`, `MPI_OFFSET`, complex types) and Fortran (`MPI_INTEGER`, `MPI_DOUBLE_PRECISION`, `MPI_REAL`, `MPI_LOGICAL`, `MPI_COMPLEX`, …); reduction ops (`MPI_SUM`/`MAX`/`MINLOC`/…).\n- **Each routine appears in base and `_c` (large-count) form** — the annex shows both signatures.\n- **Sizes/limits constants**: `MPI_MAX_PROCESSOR_NAME`, `MPI_MAX_ERROR_STRING`, `MPI_MAX_INFO_KEY`/`_VAL`, `MPI_MAX_OBJECT_NAME`, `MPI_MAX_PORT_NAME`.",
+"symbols": [
+"_abort",
+"_return",
+"_val",
+"max",
+"minloc",
+"mpi",
+"mpi_aint",
+"mpi_any_source",
+"mpi_any_tag",
+"mpi_bottom",
+"mpi_byte",
+"mpi_c_bool",
+"mpi_char",
+"mpi_comm_null",
+"mpi_comm_self",
+"mpi_comm_world",
+"mpi_complex",
+"mpi_count",
+"mpi_datatype_null",
+"mpi_double",
+"mpi_double_precision",
+"mpi_errors_are_fatal",
+"mpi_f08",
+"mpi_in_place",
+"mpi_info_null",
+"mpi_int",
+"mpi_integer",
+"mpi_logical",
+"mpi_max_error_string",
+"mpi_max_info_key",
+"mpi_max_object_name",
+"mpi_max_port_name",
+"mpi_max_processor_name",
+"mpi_offset",
+"mpi_op_null",
+"mpi_proc_null",
+"mpi_real",
+"mpi_request_null",
+"mpi_status_ignore",
+"mpi_statuses_ignore",
+"mpi_sum"
+]
+},
+{
+"id": "mpi:ch18-bindings-summary#mental-models",
+"doc": "ch18-bindings-summary",
+"heading": "Chapter 18 (Annex A): Language Bindings Summary > Mental Models",
+"text": "- **Annex A answers \"what's the exact signature / argument order / constant name\"** — pair it with the conceptual chapter (ch3–17) that explains *when/why*. The chapter gives semantics; the annex gives the prototype.\n- **Pick the binding column for your language**: C, `mpi_f08` (preferred Fortran), or legacy — read the row in the right subsection.",
+"symbols": [
+"mpi_f08"
+]
+},
+{
+"id": "mpi:ch18-bindings-summary#anti-patterns",
+"doc": "ch18-bindings-summary",
+"heading": "Chapter 18 (Annex A): Language Bindings Summary > Anti-patterns",
+"text": "- **Guessing argument order/constant names from memory**: MPI has hundreds of routines with similar signatures (e.g. `MPI_Gather` vs `MPI_Gatherv` argument lists differ) — look up the exact prototype here.\n- **Using a C constant name in Fortran or vice versa**: the annex shows the per-language spelling.\n- **Mixing base and `_c` signatures**: match the count-argument type (`int` vs `MPI_Count`).",
+"symbols": [
+"int",
+"mpi_count",
+"mpi_gather",
+"mpi_gatherv"
+]
+},
+{
+"id": "mpi:ch18-bindings-summary#key-takeaways",
+"doc": "ch18-bindings-summary",
+"heading": "Chapter 18 (Annex A): Language Bindings Summary > Key Takeaways",
+"text": "1. Annex A is the **signature + constant reference**; use it alongside the conceptual chapter for semantics.\n2. C, `mpi_f08`, and legacy Fortran bindings are listed per topic; pick your language's column.\n3. The high-frequency constants (`MPI_COMM_WORLD`, `MPI_ANY_SOURCE`, `MPI_STATUS_IGNORE`, `MPI_IN_PLACE`, `MPI_INFO_NULL`, error handlers) and predefined datatypes/ops live here.\n4. Every routine has base + `_c` (large-count) signatures.\n5. Don't recall signatures from memory — verify argument order/constant spelling against the annex.",
+"symbols": [
+"mpi_any_source",
+"mpi_comm_world",
+"mpi_f08",
+"mpi_in_place",
+"mpi_info_null",
+"mpi_status_ignore"
+]
+},
+{
+"id": "mpi:ch18-bindings-summary#connects-to",
+"doc": "ch18-bindings-summary",
+"heading": "Chapter 18 (Annex A): Language Bindings Summary > Connects To",
+"text": "- **All chapters**: this is the signature index for every routine they describe.\n- **Ch 17**: the binding conventions these signatures follow.\n- **Ch 2**: the predefined constants/handles cataloged here.",
+"symbols": []
+}
+]
+}

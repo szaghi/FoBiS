@@ -1,0 +1,3058 @@
+{
+"version": 1,
+"chunks": [
+{
+"id": "openmp:overview#openmp-application-programming-interface-version-6-0",
+"doc": "overview",
+"heading": "OpenMP Application Programming Interface — Version 6.0",
+"text": "**Source**: OpenMP API v6.0 (Nov 2024) + **Errata Nov 2025** (11 corrections applied inline) | **Pages**: ~964 | **Chapters**: 19 (grouped from 37 spec chapters + appendices) | **`_OPENMP`**: 202411 | **Generated**: 2026-06-09",
+"symbols": [
+"_openmp"
+]
+},
+{
+"id": "openmp:overview#execution-model-ch-1-three-parallelism-axes",
+"doc": "overview",
+"heading": "OpenMP Application Programming Interface — Version 6.0 > Core Frameworks & Mental Models > Execution model (Ch 1) — three parallelism axes",
+"text": "- **threads** (`parallel` → team, fork-join, end barrier), **tasks** (`task` → deferrable work units with `depend` DAG), **devices** (`target` → offload), plus **SIMD** (`simd`). Modern code composes all four.\n- Entity hierarchy: device ⊃ **contention group** (thread pool) ⊃ **team**; `teams` makes a **league**. No portable synchronization across teams/contention groups (deadlock risk).\n- **User-directed**: the implementation checks nothing — *you* own race/deadlock/dependence correctness.",
+"symbols": [
+"depend",
+"parallel",
+"simd",
+"target",
+"task",
+"teams"
+]
+},
+{
+"id": "openmp:overview#two-attribute-systems-ch-7-never-conflate",
+"doc": "overview",
+"heading": "OpenMP Application Programming Interface — Version 6.0 > Core Frameworks & Mental Models > Two attribute systems (Ch 7) — never conflate",
+"text": "- **data-sharing** (thread level): `shared` / `private` / `firstprivate` / `lastprivate` / `reduction` / `linear`. Use **`default(none)`** to force explicit classification (like `implicit none`).\n- **data-mapping** (device level): `map(to/from/tofrom/alloc)` moves data to/from a device data environment. A variable can be both privatized *and* mapped.",
+"symbols": [
+"alloc",
+"default",
+"firstprivate",
+"from",
+"implicit",
+"lastprivate",
+"linear",
+"map",
+"none",
+"private",
+"reduction",
+"shared",
+"tofrom"
+]
+},
+{
+"id": "openmp:overview#memory-model-ch-16-visibility-is-not-automatic",
+"doc": "overview",
+"heading": "OpenMP Application Programming Interface — Version 6.0 > Core Frameworks & Mental Models > Memory model (Ch 16) — visibility is not automatic",
+"text": "- Cross-thread visibility needs **synchronizing flushes**: a **release flush** before an **acquire flush** of the same data establishes **happens-before**. `barrier`, `critical`, `atomic` (with order), and task scheduling imply flushes. Without them, threads see stale values.",
+"symbols": [
+"atomic",
+"barrier",
+"critical"
+]
+},
+{
+"id": "openmp:overview#worksharing-scheduling-ch-13",
+"doc": "overview",
+"heading": "OpenMP Application Programming Interface — Version 6.0 > Core Frameworks & Mental Models > Worksharing & scheduling (Ch 13)",
+"text": "- `for`/`do` (thread worksharing), `sections`, `single`, `distribute` (across teams), `loop` (descriptive/portable). **`schedule`**: `static` (uniform, cache-friendly), `dynamic`/`guided` (irregular), `runtime` (`OMP_SCHEDULE`). `nowait` drops the end barrier (only when independent).",
+"symbols": [
+"distribute",
+"dynamic",
+"for",
+"guided",
+"loop",
+"nowait",
+"omp_schedule",
+"runtime",
+"schedule",
+"sections",
+"single",
+"static"
+]
+},
+{
+"id": "openmp:overview#device-offload-ch-15-the-gpu-model",
+"doc": "overview",
+"heading": "OpenMP Application Programming Interface — Version 6.0 > Core Frameworks & Mental Models > Device offload (Ch 15) — the GPU model",
+"text": "- **`target teams distribute parallel for`** is the canonical offload idiom. **Hoist data**: `target enter data map(to:)` once + resident kernels + `target exit data map(from:)` — avoid per-kernel transfers (the dominant perf lever). `map(to/from)` not blanket `tofrom`. `OMP_TARGET_OFFLOAD=MANDATORY` to catch silent host fallback.",
+"symbols": [
+"data",
+"distribute",
+"enter",
+"exit",
+"for",
+"from",
+"mandatory",
+"map",
+"omp_target_offload",
+"parallel",
+"target",
+"teams",
+"tofrom"
+]
+},
+{
+"id": "openmp:overview#tasking-ch-14",
+"doc": "overview",
+"heading": "OpenMP Application Programming Interface — Version 6.0 > Core Frameworks & Mental Models > Tasking (Ch 14)",
+"text": "- `task depend(in/out/inout: ...)` builds a data-flow DAG the runtime schedules — replace manual barriers. **`taskgraph`** (6.0) records/replays a stable task graph. Generate tasks from one thread (`single`/`masked`); cut recursion with `final`.",
+"symbols": [
+"depend",
+"final",
+"inout",
+"masked",
+"out",
+"single",
+"task",
+"taskgraph"
+]
+},
+{
+"id": "openmp:overview#correctness-traps-cross-referenced-to-the-hpc-practice-pack",
+"doc": "overview",
+"heading": "OpenMP Application Programming Interface — Version 6.0 > Core Frameworks & Mental Models > Correctness traps (cross-referenced to the hpc-practice pack)",
+"text": "- **`cpu_time`/`clock()` for parallel timing is wrong** — use `omp_get_wtime` + synchronization (a missing join/barrier fakes huge speedups; cf. the hpc-practice pack).\n- **Consumer NVIDIA GPUs**: 1:64 FP64:FP32 → FP32-store/FP64-compute is *slower* than full FP64 (`reference_consumer_gpu_fp64_trap`).\n- **Manual accumulation into a `shared` var** is a race — use `reduction`. **`atomic`** only for irregular scatter.",
+"symbols": [
+"atomic",
+"clock",
+"cpu_time",
+"omp_get_wtime",
+"reduction",
+"reference_consumer_gpu_fp64_trap",
+"shared"
+]
+},
+{
+"id": "openmp:overview#v6-0-highlights",
+"doc": "overview",
+"heading": "OpenMP Application Programming Interface — Version 6.0 > Core Frameworks & Mental Models > v6.0 highlights",
+"text": "Loop-transform constructs + `apply` (ch11) · `taskgraph`/`replayable` (ch14) · free-agent threads · `safesync` · `masked` replaces `master` · expanded allocators/memspaces (ch8) · richer `metadirective`/`declare variant` (ch9) · `atomic compare` CAS (ch16).\n\n---",
+"symbols": [
+"apply",
+"atomic",
+"compare",
+"declare",
+"masked",
+"master",
+"metadirective",
+"replayable",
+"safesync",
+"taskgraph",
+"variant"
+]
+},
+{
+"id": "openmp:overview#chapter-index",
+"doc": "overview",
+"heading": "OpenMP Application Programming Interface — Version 6.0 > Chapter Index",
+"text": "| # | Covers | Key topics |\n|---|--------|------------|\n| [ch01](chapters/ch01-overview.md) | Ch 1 | execution model, contention groups, OMPT/OMPD, compliance |\n| [ch02](chapters/ch02-glossary.md) | Ch 2 | normative terms; data-sharing vs mapping; memory model terms |\n| [ch03](chapters/ch03-icvs.md) | Ch 3 | ICVs, scopes, precedence |\n| [ch04](chapters/ch04-environment-variables.md) | Ch 4 | `OMP_*` env vars, affinity, offload policy |\n| [ch05](chapters/ch05-directive-clause-syntax.md) | Ch 5 | directive/clause syntax, array sections, iterators, `_OPENMP` |\n| [ch06](chapters/ch06-base-language.md) | Ch 6 | structured block, canonical loop nest, C/C++/Fortran binding |\n| [ch07](chapters/ch07-data-environment.md) ⚠ | Ch 7 | data-sharing + data-mapping clauses, reductions, defaultmap |\n| [ch08](chapters/ch08-memory-management.md) ⚠ | Ch 8 | memory spaces, allocators, traits (HBM/NUMA) |\n| [ch09](chapters/ch09-variant-directives.md) | Ch 9 | metadirective, declare variant, dispatch, contexts |\n| [ch10](chapters/ch10-informational-utility.md) ⚠ | Ch 10 | assume, error, requires (USM) |\n| [ch11](chapters/ch11-loop-transforming.md) | Ch 11 | tile/unroll/interchange/fuse + `apply` |\n| [ch12](chapters/ch12-parallelism-control.md) | Ch 12 | parallel, teams, simd, masked, num_threads, proc_bind |\n| [ch13](chapters/ch13-work-distribution.md) | Ch 13 | for/sections/single/distribute/scan, schedule, loop |\n| [ch14](chapters/ch14-tasking.md) ⚠ | Ch 14 | task, taskloop, taskgraph, depend |\n| [ch15](chapters/ch15-device-interop.md) | Ch 15-16 | target, map, declare target, interop |\n| [ch16](chapters/ch16-synchronization.md) | Ch 17-19 | barrier/critical/atomic/ordered/flush, cancel, composition |\n| [ch17](chapters/ch17-runtime-library.md) ⚠ | Ch 20-30 | `omp_*` runtime API, device memory, locks, timing |\n| [ch18](chapters/ch18-tool-interfaces.md) | Ch 31-37 | OMPT (profiling), OMPD (debugging) |\n| [ch19](chapters/ch19-appendices.md) | App A-D | impl-defined, history, nesting, compound directives |",
+"symbols": [
+"_openmp",
+"apply",
+"omp_"
+]
+},
+{
+"id": "openmp:overview#chapter-index-2",
+"doc": "overview",
+"heading": "OpenMP Application Programming Interface — Version 6.0 > Chapter Index",
+"text": "(⚠ = contains Nov-2025 errata corrections.)",
+"symbols": []
+},
+{
+"id": "openmp:overview#topic-index",
+"doc": "overview",
+"heading": "OpenMP Application Programming Interface — Version 6.0 > Topic Index",
+"text": "- **affinity / proc_bind / places** → ch04, ch12\n- **allocators / memory spaces (HBM/NUMA)** → ch08, ch17\n- **assume / requires / unified_shared_memory** → ch10\n- **atomic / critical / flush / memory model** → ch16, ch02\n- **barrier / nowait** → ch13, ch16\n- **canonical loop / structured block** → ch06\n- **cancellation** → ch16, ch01\n- **data-mapping / map / target data** → ch07, ch15\n- **data-sharing (shared/private/firstprivate/reduction)** → ch07\n- **declare target / declare variant** → ch15, ch09\n- **depend / task DAG** → ch14, ch16\n- **device offload / target / teams** → ch15, ch12\n- **environment variables (OMP_*)** → ch04\n- **errata (Nov 2025)** → cheatsheet, ch07/08/10/14/17\n- **ICVs** → ch03\n- **interop (CUDA stream)** → ch15, ch17\n- **loop construct / loop transforms (tile/unroll)** → ch13, ch11\n- **metadirective / context** → ch09\n- **OMPT / OMPD / tools** → ch18\n- **parallel / teams / masked / simd** → ch12\n- **reduction (incl. scan, task)** → ch07, ch13, ch14\n- **runtime API (omp_*)** → ch17\n- **schedule (static/dynamic/guided)** → ch13\n- **synchronization** → ch16\n- **target offload pattern** → ch15\n- **taskgraph / replayable (6.0)** → ch14\n- **tasking (task/taskloop)** → ch14\n- **timing (omp_get_wtime)** → ch17\n- **worksharing (for/sections/single/distribute)** → ch13",
+"symbols": []
+},
+{
+"id": "openmp:overview#supporting-files",
+"doc": "overview",
+"heading": "OpenMP Application Programming Interface — Version 6.0 > Supporting Files",
+"text": "- [glossary.md](glossary.md) — normative terms + directive/clause vocabulary\n- [patterns.md](patterns.md) — OpenMP idioms (offload, tasking DAG, NUMA, timing)\n- [cheatsheet.md](cheatsheet.md) — errata table + clause decision rules + tells & smells\n\n---",
+"symbols": []
+},
+{
+"id": "openmp:overview#scope-limits",
+"doc": "overview",
+"heading": "OpenMP Application Programming Interface — Version 6.0 > Scope & Limits",
+"text": "Covers OpenMP API v6.0 (Nov 2024) with the Nov-2025 errata folded in (the 11 corrections are marked ⚠ in their chapters and tabulated in `cheatsheet.md`). Extracted with pdftotext (docling garbles this spec class — see the fortran-2023-standard note). This is the *standard* — implementation-defined behavior (default schedule/thread count, device mapping, lock fairness) lives in ch19/Appendix A and your compiler's docs (GCC libgomp, LLVM, NVHPC). Stubs, interface declarations, examples, and grammar are *separate* OpenMP documents, not in this spec. For OpenACC use `openacc-3.4`; for Fortran base-language rules `fortran-2023-standard`; for GPU/HPC practice hpc-practice pack (gpu-practice).",
+"symbols": [
+"cheatsheet",
+"fortran",
+"openacc",
+"standard"
+]
+},
+{
+"id": "openmp:cheatsheet#errata-nov-2025-applied-corrections",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — OpenMP 6.0 > Errata (Nov 2025) — applied corrections",
+"text": "| Section | Correction |\n|---|---|\n| §7.5.9 `has_device_addr` | array section/element base must be a base-language identifier |\n| §7.5.10 `is_device_ptr` | \"array section **or an array element**\" |\n| §7.9.9 `defaultmap` | `implicit-behavior=private` → data-sharing attribute `private` |\n| §8.4 `allocator` clause | allocator at directive must match allocator at variable declaration |\n| §10.5 `requires` | \"must appear lexically\" → \"must **NOT** appear lexically\" (sign fix) |\n| §14.3 `taskgraph` | antecedent tasks across constructs: both replayable or both not |\n| §14.3.2 `graph_reset` | default property → **optional** |\n| §14.6 `replayable` | default property → **unique** |\n| §20.12.1 control-tool enum | add `omp_control_tool_max = INT32_MAX` |\n| §25.2.2 `omp_target_is_accessible` | returns 0 if ptr NULL **or** accessibility not guaranteed |\n| §27.11 | word \"constant\" removed from a restriction |",
+"symbols": [
+"allocator",
+"behavior",
+"defaultmap",
+"graph_reset",
+"has_device_addr",
+"implicit",
+"int32_max",
+"is_device_ptr",
+"omp_control_tool_max",
+"omp_target_is_accessible",
+"private",
+"replayable",
+"requires",
+"taskgraph"
+]
+},
+{
+"id": "openmp:cheatsheet#new-in-6-0-vs-5-2",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — OpenMP 6.0 > New in 6.0 (vs 5.2)",
+"text": "Loop-transform constructs (`tile`/`unroll`/`reverse`/`interchange`/`fuse`/`split`/`stripe`) + `apply` clause · `taskgraph` record/replay (`replayable`/`graph_reset`) · free-agent threads · `safesync` · `masked` (replaces `master`) · expanded memory allocators/spaces + device allocator routines · `groupprivate` · richer `metadirective`/`declare variant` · device-UID routines · `atomic compare` (CAS) · `_OPENMP=202411`.",
+"symbols": [
+"_openmp",
+"apply",
+"atomic",
+"compare",
+"declare",
+"fuse",
+"graph_reset",
+"groupprivate",
+"interchange",
+"masked",
+"master",
+"metadirective",
+"replayable",
+"reverse",
+"safesync",
+"split",
+"stripe",
+"taskgraph",
+"tile",
+"unroll",
+"variant"
+]
+},
+{
+"id": "openmp:cheatsheet#data-sharing-classify-every-variable-use-default-none",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — OpenMP 6.0 > Decision rules > Data-sharing — classify every variable (use `default(none)`)",
+"text": "| Need | Clause |\n|---|---|\n| one shared instance | `shared` |\n| per-thread, uninitialized | `private` |\n| per-thread, init from original | `firstprivate` |\n| private + export last value | `lastprivate` |\n| accumulate across iterations | `reduction(op:var)` |",
+"symbols": [
+"firstprivate",
+"lastprivate",
+"private",
+"reduction",
+"shared",
+"var"
+]
+},
+{
+"id": "openmp:cheatsheet#data-mapping-device-never-blanket-tofrom",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — OpenMP 6.0 > Decision rules > Data-mapping (device) — never blanket `tofrom`",
+"text": "`to`=input · `from`=output · `tofrom`=both · `alloc`=scratch · `release`/`delete`=exit. Hoist with `target enter/exit data`; refresh with `target update`.",
+"symbols": [
+"alloc",
+"data",
+"delete",
+"enter",
+"exit",
+"from",
+"release",
+"target",
+"tofrom",
+"update"
+]
+},
+{
+"id": "openmp:cheatsheet#schedule-kind",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — OpenMP 6.0 > Decision rules > schedule kind",
+"text": "- uniform iterations → `static` (cache-friendly, no overhead)\n- irregular/imbalanced → `dynamic`/`guided`\n- tune without recompile → `runtime` (`OMP_SCHEDULE`)\n- chunk too small (`dynamic,1`) → overhead; too big → imbalance.",
+"symbols": [
+"dynamic",
+"guided",
+"omp_schedule",
+"runtime",
+"static"
+]
+},
+{
+"id": "openmp:cheatsheet#which-parallelism-construct",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — OpenMP 6.0 > Decision rules > Which parallelism construct?",
+"text": "- CPU thread team → `parallel` (+ worksharing `for`/`sections`/`single`)\n- GPU offload → `target teams distribute parallel for`\n- vectorize → `simd`\n- one/few threads → `masked filter(...)` (not `master`)\n- irregular/recursive/data-flow → `task` + `depend`",
+"symbols": [
+"depend",
+"distribute",
+"filter",
+"for",
+"masked",
+"master",
+"parallel",
+"sections",
+"simd",
+"single",
+"target",
+"task",
+"teams"
+]
+},
+{
+"id": "openmp:cheatsheet#synchronization",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — OpenMP 6.0 > Decision rules > Synchronization",
+"text": "- one-location update → `atomic` (not `critical`, not manual)\n- accumulation → `reduction`\n- region mutex → `critical(name)`\n- team rendezvous → `barrier`\n- task wait → `taskwait`/`taskgroup`\n- visibility → relies on flushes (release→acquire); most sync constructs imply them.",
+"symbols": [
+"atomic",
+"barrier",
+"critical",
+"name",
+"reduction",
+"taskgroup",
+"taskwait"
+]
+},
+{
+"id": "openmp:cheatsheet#defaults-knobs",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — OpenMP 6.0 > Defaults & knobs",
+"text": "- `OMP_NUM_THREADS` + `OMP_PROC_BIND=spread|close` + `OMP_PLACES=cores` — core HPC trio.\n- `OMP_DYNAMIC=false` for an exact thread count.\n- `OMP_TARGET_OFFLOAD=MANDATORY` — fail instead of silent host fallback.\n- `OMP_DISPLAY_ENV=VERBOSE` — dump effective ICVs at startup.\n- `OMP_SCHEDULE` feeds `schedule(runtime)`; `OMP_ALLOCATOR` sets default allocator.",
+"symbols": [
+"close",
+"cores",
+"false",
+"mandatory",
+"omp_allocator",
+"omp_display_env",
+"omp_dynamic",
+"omp_num_threads",
+"omp_places",
+"omp_proc_bind",
+"omp_schedule",
+"omp_target_offload",
+"runtime",
+"schedule",
+"spread",
+"verbose"
+]
+},
+{
+"id": "openmp:cheatsheet#tells-smells",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — OpenMP 6.0 > Tells & smells",
+"text": "- **`cpu_time`/`clock()` for parallel timing** → wrong; sums CPU across threads. Use `omp_get_wtime` + sync. (the hpc-practice pack)\n- **`map(tofrom:)` per `target`** → re-transfers each launch; hoist with `target enter/exit data`.\n- **`map(a)` no bounds** → ambiguous; `map(tofrom: a[0:n])`.\n- **Manual `+=` into shared var** → race; use `reduction`.\n- **Tasks generated outside `single`/`masked`** → duplicated by every thread.\n- **`omp_set_num_threads` not taking effect \"now\"** → it sets future regions, not the running one.\n- **Silent slowdown after \"offload\"** → host fallback (device absent); set `OMP_TARGET_OFFLOAD=MANDATORY`.\n- **Cross-team / busy-wait sync** → deadlock; sync only within a team.\n- **Stale shared reads** → missing flush/sync; weak memory model needs release→acquire.\n- **Consumer NVIDIA GPU, FP64 slow** → 1:64 FP64:FP32; FP32-store/FP64-compute is a trap. (reference_consumer_gpu_fp64_trap)",
+"symbols": [
+"clock",
+"cpu_time",
+"data",
+"enter",
+"exit",
+"mandatory",
+"map",
+"masked",
+"omp_get_wtime",
+"omp_set_num_threads",
+"omp_target_offload",
+"reduction",
+"single",
+"target",
+"tofrom"
+]
+},
+{
+"id": "openmp:cheatsheet#mpi-openmp-hybrid",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — OpenMP 6.0 > MPI + OpenMP (hybrid)",
+"text": "- Pin: one rank per socket/NUMA, `OMP_NUM_THREADS` = cores/rank, `OMP_PROC_BIND=close`, `OMP_PLACES=cores`.\n- `MPI_THREAD_FUNNELED`/`_MULTIPLE` per how threads call MPI; isolate MPI to `single`/`masked` unless `_MULTIPLE`.\n- `target` + device-aware MPI: get the device pointer via `is_device_ptr`/`omp_get_mapped_ptr`.",
+"symbols": [
+"_multiple",
+"close",
+"cores",
+"is_device_ptr",
+"masked",
+"mpi_thread_funneled",
+"omp_get_mapped_ptr",
+"omp_num_threads",
+"omp_places",
+"omp_proc_bind",
+"single",
+"target"
+]
+},
+{
+"id": "openmp:glossary#glossary-openmp-6-0",
+"doc": "glossary",
+"heading": "Glossary — OpenMP 6.0",
+"text": "Key terms from the spec Glossary (Ch2) + directive/clause vocabulary. Format: **Term** — definition (Ch).",
+"symbols": []
+},
+{
+"id": "openmp:glossary#glossary-openmp-6-0-2",
+"doc": "glossary",
+"heading": "Glossary — OpenMP 6.0",
+"text": "**allocator** — object that allocates from a memory space with tunable traits (Ch8).\n**atomic** — construct giving lock-free read/write/update/capture/compare of one location (Ch16).\n**barrier** — point where all team threads rendezvous; implies a flush (Ch16).\n**binding region / binding thread set** — the region/threads a construct's effect is scoped to (Ch2).\n**canonical loop nest** — the loop form (integer/iterator counter, invariant bounds, computable trip count) required for parallelization (Ch6).\n**construct** — an executable directive + its associated code (Ch2).\n**contention group** — tasks run by one thread pool; threads don't migrate between groups (Ch1).\n**critical** — region mutual-exclusion construct, optionally named (Ch16).\n**data environment** — the variables and their attributes available to a region/task (Ch7).\n**data-mapping attribute** — `to`/`from`/`tofrom`/`alloc`: host↔device movement via `map` (Ch7).\n**data-sharing attribute** — `shared`/`private`/`firstprivate`/`lastprivate`/`reduction`/`linear` (Ch7).\n**declare target** — mark a function/variable for device residence/compilation (Ch15).\n**declare variant** — register a context-selected alternate function implementation (Ch9).\n**defaultmap** — implicit map behavior on `target`; `private` behavior = data-sharing private (errata) (Ch7).\n**depend** — clause building task data-flow dependences (in/out/inout/mutexinoutset) (Ch14, 16).\n**device data environment** — storage a device sees, populated by `map`/`target data` (Ch15).\n**dispatch** — construct controlling variant substitution at a call site (Ch9).\n**distribute** — worksharing across the teams of a league (Ch13).\n**explicit task** — task generated by `task`/`taskloop` (deferrable, may be stolen) (Ch14).\n**flush** — memory operation establishing a consistent view; acquire/release build happens-before (Ch16).\n**free-agent thread** — 6.0 thread not bound to a team, available to execute tasks (Ch3).\n**gang/worker/vector** — (OpenACC term) — OpenMP analog: teams/threads/SIMD lanes (Ch1, 12).\n**happens-before** — ordering established by a release flush before an acquire flush of the same data (Ch16).\n**ICV** — internal control variable; scopes global/device/implicit-task/data-environment (Ch3).\n**implicit task** — one per team thread, tied (only its thread runs it) (Ch1, 2).\n**interop** — construct retrieving foreign-runtime handles (e.g. CUDA stream) (Ch15).\n**league** — the set of teams created by `teams` (Ch1, 12).\n**lastprivate** — private, with the last-iteration/section value copied out (Ch7).\n**loop construct** — descriptive concurrent worksharing; implementation chooses mapping (Ch13).\n**map** — clause moving list items into/out of a device data environment (Ch7, 15).\n**masked** — construct restricting execution to filtered thread(s); replaces `master` (Ch12).\n**memory space** — storage resource (default/large/const/high-bw/low-lat) (Ch8).\n**metadirective** — choose among candidate directives by OpenMP context (Ch9).\n**nowait** — drop the implicit end barrier of a worksharing/target region (Ch13).\n**OMPD** — third-party, out-of-process tool (debugger) interface (Ch18).\n**OMPT** — first-party, in-process tool (profiler) interface (Ch18).\n**ordered** — enforce source order / loop-carried (doacross) dependences in a loop (Ch16).\n**parallel** — construct forming a team of threads with an end barrier (Ch12).\n**primary thread** — the thread that encountered `parallel`; thread 0 of the team (Ch1, 12).\n**private / firstprivate / shared** — per-thread uninit / per-thread init-from-original / one shared instance (Ch7).\n**proc_bind** — thread→place affinity policy (primary/close/spread) (Ch4, 12).\n**reduction** — combine per-thread/team partials by an operator (Ch7).\n**region** — all code executed during a construct instance, incl. callees (dynamic) (Ch1, 2).\n**replayable** — task/taskloop clause for taskgraph record/replay; default property = unique (errata) (Ch14).\n**requires** — directive mandating implementation features (USM, reverse_offload, …) (Ch10).\n**safesync** — 6.0 `parallel` clause asserting device sync safety (Ch12).\n**schedule** — worksharing-loop iteration distribution (static/dynamic/guided/auto/runtime) (Ch13).\n**sections / single** — independent blocks one-thread-each / one-thread-only-then-barrier (Ch13).\n**simd** — execute loop iterations across SIMD lanes (Ch12).\n**target** — construct offloading a region to a device (Ch15).\n**taskgraph** — 6.0 construct recording/replaying a task graph (Ch14).\n**taskgroup / taskwait** — wait for descendant / child tasks (Ch14, 16).\n**team** — the threads executing a `parallel` region (Ch1, 12).\n**teams** — construct creating a league of teams (device offload) (Ch12, 15).\n**threadprivate** — per-thread persistent copy of a global/static variable (Ch7).\n**unified_shared_memory** — `requires` feature collapsing host/device address space (Ch10).",
+"symbols": [
+"alloc",
+"data",
+"firstprivate",
+"from",
+"lastprivate",
+"linear",
+"map",
+"master",
+"parallel",
+"private",
+"reduction",
+"requires",
+"shared",
+"target",
+"task",
+"taskloop",
+"teams",
+"tofrom"
+]
+},
+{
+"id": "openmp:patterns#patterns-openmp-6-0-idioms",
+"doc": "patterns",
+"heading": "Patterns — OpenMP 6.0 idioms",
+"text": "Concrete techniques. Format: **When / How / Trade-offs.**",
+"symbols": []
+},
+{
+"id": "openmp:patterns#parallel-loop-with-explicit-data-scoping",
+"doc": "patterns",
+"heading": "Patterns — OpenMP 6.0 idioms > Parallel loop with explicit data scoping",
+"text": "**When**: a data-parallel loop on CPU threads.\n**How**: `#pragma omp parallel for default(none) shared(...) private(...) reduction(op:acc) schedule(...)`. (Ch7, 12, 13)\n**Trade-offs**: `default(none)` forces correctness review; `schedule` tunes balance.",
+"symbols": [
+"acc",
+"default",
+"for",
+"none",
+"omp",
+"parallel",
+"pragma",
+"private",
+"reduction",
+"schedule",
+"shared"
+]
+},
+{
+"id": "openmp:patterns#reduction-over-manual-accumulation",
+"doc": "patterns",
+"heading": "Patterns — OpenMP 6.0 idioms > Reduction over manual accumulation",
+"text": "**When**: accumulating into a shared scalar/array across iterations.\n**How**: `reduction(+:sum)` (or user-defined via `declare reduction`); never `+=` into a shared var. (Ch7)\n**Trade-offs**: correct and fast; `atomic` only for irregular scatter.",
+"symbols": [
+"atomic",
+"declare",
+"reduction",
+"sum"
+]
+},
+{
+"id": "openmp:patterns#gpu-offload-canonical-pattern",
+"doc": "patterns",
+"heading": "Patterns — OpenMP 6.0 idioms > GPU offload — canonical pattern",
+"text": "**When**: offloading a loop nest to an accelerator.\n**How**: `#pragma omp target teams distribute parallel for map(...)`. (Ch12, 15)\n**Trade-offs**: league of teams → distribute across teams → parallel-for within; the standard GPU idiom.",
+"symbols": [
+"distribute",
+"for",
+"map",
+"omp",
+"parallel",
+"pragma",
+"target",
+"teams"
+]
+},
+{
+"id": "openmp:patterns#persistent-device-data-the-1-offload-optimization",
+"doc": "patterns",
+"heading": "Patterns — OpenMP 6.0 idioms > Persistent device data (the #1 offload optimization)",
+"text": "**When**: iterative solver reusing arrays across many `target` kernels.\n**How**: `target enter data map(to:...)` once, `present`/resident data in kernels, `target exit data map(from:...)` at end; `target update` for partial sync. (Ch15)\n**Trade-offs**: eliminates per-kernel transfers — usually decides whether offload wins.",
+"symbols": [
+"data",
+"enter",
+"exit",
+"from",
+"map",
+"present",
+"target",
+"update"
+]
+},
+{
+"id": "openmp:patterns#separate-input-output-mapping",
+"doc": "patterns",
+"heading": "Patterns — OpenMP 6.0 idioms > Separate input/output mapping",
+"text": "**When**: any `target` region.\n**How**: `map(to: inputs) map(from: outputs) map(alloc: scratch)` — never blanket `tofrom`. (Ch7, 15)\n**Trade-offs**: halves transfer volume vs `tofrom` everywhere.",
+"symbols": [
+"alloc",
+"from",
+"inputs",
+"map",
+"outputs",
+"scratch",
+"target",
+"tofrom"
+]
+},
+{
+"id": "openmp:patterns#dependence-driven-task-dag",
+"doc": "patterns",
+"heading": "Patterns — OpenMP 6.0 idioms > Dependence-driven task DAG",
+"text": "**When**: irregular/pipelined parallelism with data flow.\n**How**: generate tasks from `single`/`masked`; `task depend(out:x)` producer, `depend(in:x)` consumer — the runtime schedules the DAG. (Ch14)\n**Trade-offs**: replaces fragile manual barriers; one generating thread.",
+"symbols": [
+"depend",
+"masked",
+"out",
+"single",
+"task"
+]
+},
+{
+"id": "openmp:patterns#taskgraph-record-replay-6-0",
+"doc": "patterns",
+"heading": "Patterns — OpenMP 6.0 idioms > taskgraph record/replay (6.0)",
+"text": "**When**: the same task graph is regenerated every iteration (stable pattern).\n**How**: wrap in `taskgraph`; record once, replay cheaply; `graph_reset` to re-record. (Ch14)\n**Trade-offs**: amortizes task-creation overhead; antecedent tasks must agree on replayability (errata).",
+"symbols": [
+"graph_reset",
+"taskgraph"
+]
+},
+{
+"id": "openmp:patterns#recursive-tasking-with-cutoff",
+"doc": "patterns",
+"heading": "Patterns — OpenMP 6.0 idioms > Recursive tasking with cutoff",
+"text": "**When**: divide-and-conquer (sort, tree).\n**How**: `task final(small) mergeable` at leaves + `taskwait`. (Ch14)\n**Trade-offs**: `final` stops unbounded fine-grained task creation.",
+"symbols": [
+"final",
+"mergeable",
+"small",
+"task",
+"taskwait"
+]
+},
+{
+"id": "openmp:patterns#numa-aware-threading",
+"doc": "patterns",
+"heading": "Patterns — OpenMP 6.0 idioms > NUMA-aware threading",
+"text": "**When**: bandwidth/latency-sensitive CPU code on multi-socket.\n**How**: `OMP_PROC_BIND=spread|close` + `OMP_PLACES=cores`; `proc_bind` clause per region; allocator `partition(nearest|interleaved)`. (Ch4, 8, 12)\n**Trade-offs**: `spread` for bandwidth, `close` for cache sharing; pins threads, prevents migration.",
+"symbols": [
+"close",
+"cores",
+"interleaved",
+"nearest",
+"omp_places",
+"omp_proc_bind",
+"partition",
+"proc_bind",
+"spread"
+]
+},
+{
+"id": "openmp:patterns#high-bandwidth-memory-placement",
+"doc": "patterns",
+"heading": "Patterns — OpenMP 6.0 idioms > High-bandwidth memory placement",
+"text": "**When**: bandwidth-bound data on HBM-equipped nodes.\n**How**: build an `omp_high_bw_mem_alloc`-based allocator (or `OMP_ALLOCATOR`), `omp_alloc` hot arrays there. (Ch8)\n**Trade-offs**: HBM is small; place only the hottest data.",
+"symbols": [
+"omp_alloc",
+"omp_allocator",
+"omp_high_bw_mem_alloc"
+]
+},
+{
+"id": "openmp:patterns#host-device-specialization-without-ifdef",
+"doc": "patterns",
+"heading": "Patterns — OpenMP 6.0 idioms > Host/device specialization without #ifdef",
+"text": "**When**: one source, different impls per target/ISA.\n**How**: `metadirective when(target_device={kind(nohost)}: ...)` / `declare variant match(device={isa(...)})`. (Ch9)\n**Trade-offs**: compiler resolves against real context; cleaner than preprocessor branching.",
+"symbols": [
+"declare",
+"device",
+"isa",
+"kind",
+"match",
+"metadirective",
+"nohost",
+"target_device",
+"variant",
+"when"
+]
+},
+{
+"id": "openmp:patterns#portable-timing",
+"doc": "patterns",
+"heading": "Patterns — OpenMP 6.0 idioms > Portable timing",
+"text": "**When**: benchmarking a parallel region.\n**How**: `omp_get_wtime()` before/after, with synchronization (region barrier / `taskwait` / target `nowait` join) so async work completes first. (Ch17)\n**Trade-offs**: never `cpu_time`/`clock()` (sums CPU across threads); a missing join fakes huge speedups.",
+"symbols": [
+"clock",
+"cpu_time",
+"nowait",
+"omp_get_wtime",
+"taskwait"
+]
+},
+{
+"id": "openmp:patterns#atomic-for-irregular-scatter",
+"doc": "patterns",
+"heading": "Patterns — OpenMP 6.0 idioms > Atomic for irregular scatter",
+"text": "**When**: histogram/counter where `reduction` doesn't fit.\n**How**: `#pragma omp atomic update` (or `atomic capture` for fetch-and-modify; 6.0 `atomic compare` for CAS). (Ch16)\n**Trade-offs**: serializes contended locations; prefer `reduction` for true reductions.",
+"symbols": [
+"atomic",
+"capture",
+"compare",
+"omp",
+"pragma",
+"reduction",
+"update"
+]
+},
+{
+"id": "openmp:ch01-overview#core-idea",
+"doc": "ch01-overview",
+"heading": "Chapter 1: Overview of the OpenMP API > Core Idea",
+"text": "OpenMP is a **user-directed**, portable parallel-programming model extending C/C++/Fortran with directives, runtime routines, environment variables, and tool interfaces (OMPT/OMPD). The programmer is responsible for correctness — the implementation does **not** check for data races, dependences, or deadlocks.",
+"symbols": []
+},
+{
+"id": "openmp:ch01-overview#frameworks-introduced",
+"doc": "ch01-overview",
+"heading": "Chapter 1: Overview of the OpenMP API > Frameworks Introduced",
+"text": "- **Execution model — the entity hierarchy**:\n  - **device** → executes one or more **contention groups**.\n  - **contention group** = a set of tasks run by an **OpenMP thread pool** (a fixed set of threads; threads cannot migrate between contention groups).\n  - **team** = the threads executing a `parallel` region (primary thread + team-worker threads).\n  - **league** = the set of teams created by a `teams` construct (each team has its own contention group).\n  - **thread** (logical) → mapped to a native thread (mapping may change across subtasks).\n- **Construct / region / task model**:\n  - **construct** = an executable directive + its associated base-language code.\n  - **region** = all code encountered during execution of a construct/routine (dynamic, includes callees — implicit or explicit, and nestable).\n  - **implicit task** (one per thread in a team, **tied** — only its thread executes it) vs **explicit task** (generated by `task`/`taskloop`, may be deferred/stolen).\n  - **task scheduling point**: where a thread may suspend the current task to run another; subtasks span consecutive scheduling points.\n- **Four construct families** the directives add: SPMD/parallelism (`parallel`, `teams`), **work-distribution** (worksharing-loop, `sections`, `single`, `distribute`), **tasking** (`task`, `taskloop`), **device** (`target`), plus **synchronization** and SIMD (`simd`).",
+"symbols": [
+"distribute",
+"parallel",
+"sections",
+"simd",
+"single",
+"target",
+"task",
+"taskloop",
+"teams"
+]
+},
+{
+"id": "openmp:ch01-overview#key-concepts",
+"doc": "ch01-overview",
+"heading": "Chapter 1: Overview of the OpenMP API > Key Concepts",
+"text": "- **fork–join + barriers**: `parallel` forks a team, implicit barrier at the end; worksharing regions also barrier unless `nowait`. Team-executed regions are encountered in the same order by all team threads.\n- **target offload**: a task hitting `target` generates a **target task**; an initial thread runs the `target` region on the device (or host if device unavailable / `if(false)`).\n- **teams concurrency is unspecified** — relying on concurrent execution of teams for synchronization may **deadlock**.\n- **cancellation** (`cancel`): alters control flow; tasks check at cancellation points and jump to region end.\n- **Tool interfaces**: **OMPT** (first-party, in-process profiling) and **OMPD** (third-party, out-of-process debugging) — ch18.\n- **Compliance**: the implementation need not detect non-conforming programs; conformance is the programmer's burden.",
+"symbols": [
+"cancel",
+"false",
+"nowait",
+"parallel",
+"target"
+]
+},
+{
+"id": "openmp:ch01-overview#mental-models",
+"doc": "ch01-overview",
+"heading": "Chapter 1: Overview of the OpenMP API > Mental Models",
+"text": "- **Three orthogonal parallelism axes**: threads (fork–join `parallel`), tasks (deferred work units), and devices (`target` offload) — plus SIMD within a thread. Modern OpenMP code composes all of them.\n- **\"Region\" is dynamic, \"construct\" is static** (same as OpenACC): reason about data and synchronization over the region, including called procedures.\n- **The implementation trusts you**: no race/deadlock checking. Correctness = your explicit data-sharing, synchronization, and dependence specification.",
+"symbols": [
+"parallel",
+"target"
+]
+},
+{
+"id": "openmp:ch01-overview#anti-patterns",
+"doc": "ch01-overview",
+"heading": "Chapter 1: Overview of the OpenMP API > Anti-patterns",
+"text": "- **Assuming the compiler catches races/deadlocks**: it does not — you must specify `shared`/`private`/`reduction` and synchronization correctly.\n- **Relying on teams executing concurrently**: unspecified; cross-team synchronization can deadlock (use it only within a team).\n- **Expecting bit-reproducible numerics under threading**: concurrent reassociation of operations changes results.\n- **Confusing implicit vs explicit tasks**: implicit tasks are tied to their team thread; explicit tasks may be deferred or stolen (untied).",
+"symbols": [
+"private",
+"reduction",
+"shared"
+]
+},
+{
+"id": "openmp:ch01-overview#key-takeaways",
+"doc": "ch01-overview",
+"heading": "Chapter 1: Overview of the OpenMP API > Key Takeaways",
+"text": "1. OpenMP is user-directed: you own correctness; the implementation checks nothing.\n2. Entity hierarchy: device ⊃ contention group (thread pool) ⊃ team; `teams` makes a league of teams.\n3. Three parallelism axes — threads (`parallel`), tasks (`task`), devices (`target`) — plus SIMD; modern code composes them.\n4. `parallel` = fork-join with an end barrier; worksharing regions barrier unless `nowait`.\n5. OMPT (profiling) + OMPD (debugging) are the standardized tool interfaces (ch18).",
+"symbols": [
+"nowait",
+"parallel",
+"target",
+"task",
+"teams"
+]
+},
+{
+"id": "openmp:ch01-overview#connects-to",
+"doc": "ch01-overview",
+"heading": "Chapter 1: Overview of the OpenMP API > Connects To",
+"text": "- **Ch 7**: data environment — sharing/mapping/privatizing across these regions.\n- **Ch 12–14**: parallelism, work-distribution, tasking constructs.\n- **Ch 15**: device constructs (`target`) — the offload model.\n- **Ch 18**: OMPT/OMPD tool interfaces.\n- **openacc-3.4**: the sibling directive model; OpenMP `target` ≈ OpenACC compute+data constructs.",
+"symbols": [
+"target"
+]
+},
+{
+"id": "openmp:ch02-glossary#core-idea",
+"doc": "ch02-glossary",
+"heading": "Chapter 2: Glossary > Core Idea",
+"text": "The normative vocabulary — **~968 defined terms** that fix the precise meaning of every word the rest of the spec relies on. When two readings conflict, the glossary decides. This chapter maps the load-bearing terms; the alphabetical quick-reference is in `glossary.md`.",
+"symbols": [
+"glossary"
+]
+},
+{
+"id": "openmp:ch02-glossary#key-concepts-the-definitions-everything-hinges-on",
+"doc": "ch02-glossary",
+"heading": "Chapter 2: Glossary > Key Concepts (the definitions everything hinges on)",
+"text": "- **construct** — an executable directive + the associated base-language code. **region** — all code encountered during an instance of a construct/routine (dynamic, includes callees).\n- **task** — a specific instance of executable code + its data environment. **implicit task** (one per team thread, tied) vs **explicit task** (`task`/`taskloop`-generated, deferrable). **task scheduling point** — where a thread may switch tasks.\n- **team** — the threads executing a `parallel` region. **league** — the teams from a `teams` construct. **contention group** — tasks run by one thread pool; threads don't migrate across groups.\n- **data-sharing attribute** — `shared`/`private`/`firstprivate`/`lastprivate`/`reduction`/`linear` — how a variable behaves in a region.\n- **data-mapping attribute** — `to`/`from`/`tofrom`/`alloc` — how a variable is moved to/from a device data environment (`map` clause).\n- **device data environment** — the storage a device sees; populated by `map`/`target data`/`target enter/exit data`.\n- **flush** — the memory operation enforcing a consistent view; **acquire flush** / **release flush** establish **happens-before** order (the OpenMP memory model).\n- **binding region / binding thread set** — which region/threads a construct's effect is scoped to (governs `loop`, `barrier`, etc.).\n- **worksharing construct** — divides work across a team (worksharing-loop, `sections`, `single`, `workshare`); **partitioned** = each thread does a partition.\n- **base language identifier / array base / array section** — terms the errata sharpens (see ch07).",
+"symbols": [
+"alloc",
+"barrier",
+"data",
+"enter",
+"exit",
+"firstprivate",
+"from",
+"lastprivate",
+"linear",
+"loop",
+"map",
+"parallel",
+"private",
+"reduction",
+"sections",
+"shared",
+"single",
+"target",
+"task",
+"taskloop",
+"teams",
+"tofrom",
+"workshare"
+]
+},
+{
+"id": "openmp:ch02-glossary#mental-models",
+"doc": "ch02-glossary",
+"heading": "Chapter 2: Glossary > Mental Models",
+"text": "- **Two attribute systems, never conflate them**: *data-sharing* (thread-level: shared vs private) and *data-mapping* (device-level: host↔device movement). A variable can have both. (ch07)\n- **\"happens-before\" is built from flushes**: OpenMP's memory model is release/acquire — a release flush before an acquire flush on the same data establishes ordering. Without matching flushes, threads may see stale values.\n- **Resolve disputes by the glossary**: an OpenMP term (e.g. \"task,\" \"region,\" \"thread,\" \"device\") has a *specific* meaning here that may differ from base-language or colloquial usage.",
+"symbols": []
+},
+{
+"id": "openmp:ch02-glossary#anti-patterns",
+"doc": "ch02-glossary",
+"heading": "Chapter 2: Glossary > Anti-patterns",
+"text": "- **Reading \"private\"/\"shared\" as the only attribute axis**: device `map` is a separate concern — a variable can be `firstprivate` *and* mapped.\n- **Assuming shared-memory visibility without a flush**: the weak memory model requires explicit (or construct-implied) flushes for cross-thread visibility.\n- **Treating \"task\" loosely**: implicit vs explicit, tied vs untied — the scheduling rules differ sharply.",
+"symbols": [
+"firstprivate",
+"map"
+]
+},
+{
+"id": "openmp:ch02-glossary#key-takeaways",
+"doc": "ch02-glossary",
+"heading": "Chapter 2: Glossary > Key Takeaways",
+"text": "1. ~968 normative terms; alphabetical subset in `glossary.md`.\n2. Data-sharing (thread) and data-mapping (device) are two distinct, composable attribute systems.\n3. The memory model is release/acquire flushes building happens-before — visibility is not automatic.\n4. construct (static) vs region (dynamic, includes callees) — reason over the region.\n5. Where an OpenMP term conflicts with base-language usage, the glossary definition governs.",
+"symbols": [
+"glossary"
+]
+},
+{
+"id": "openmp:ch02-glossary#connects-to",
+"doc": "ch02-glossary",
+"heading": "Chapter 2: Glossary > Connects To",
+"text": "- **Ch 7**: data environment — data-sharing and data-mapping attributes applied.\n- **Ch 16**: synchronization — flush, happens-before, the memory model in operation.\n- **Ch 1**: execution model — team/league/contention-group/task definitions originate here.\n- **glossary.md**: alphabetical reference.",
+"symbols": []
+},
+{
+"id": "openmp:ch03-icvs#core-idea",
+"doc": "ch03-icvs",
+"heading": "Chapter 3: Internal Control Variables (ICVs) > Core Idea",
+"text": "ICVs are the implementation-maintained state that controls OpenMP behavior (thread count, schedule, binding, device, allocator…). They have **scopes**, an **initialization order** (env var → API → clause), and **override relationships** that decide which setting wins.",
+"symbols": []
+},
+{
+"id": "openmp:ch03-icvs#frameworks-introduced",
+"doc": "ch03-icvs",
+"heading": "Chapter 3: Internal Control Variables (ICVs) > Frameworks Introduced",
+"text": "- **ICV scopes** (one copy per scope instance):\n  - **global** — one per program (e.g. `cancel-var`, `max-task-priority-var`, `num-devices-var`).\n  - **device** — one per device (e.g. `nteams-var`, `num-procs-var`, `affinity-format-var`).\n  - **implicit task** — one per implicit task (e.g. `place-assignment-var`, `def-allocator-var`).\n  - **data environment** — one per task data environment (e.g. `nthreads-var`, `bind-var`, `run-sched-var`, `max-active-levels-var`).\n- **Setting precedence** (§3.2–3.5): initial value → environment variable → API routine (`omp_set_*`) → clause on a construct (`num_threads`, `schedule`, `proc_bind`). Inner scopes override outer; a clause overrides the ICV for that region.\n- **Per-data-environment ICVs** (§3.4): inherited by child tasks/regions; modifying in a region affects nested regions per the override rules.",
+"symbols": [
+"active",
+"affinity",
+"allocator",
+"assignment",
+"bind",
+"cancel",
+"def",
+"devices",
+"format",
+"levels",
+"max",
+"nteams",
+"nthreads",
+"num",
+"num_threads",
+"omp_set_",
+"place",
+"priority",
+"proc_bind",
+"procs",
+"run",
+"sched",
+"schedule",
+"task",
+"var"
+]
+},
+{
+"id": "openmp:ch03-icvs#key-concepts",
+"doc": "ch03-icvs",
+"heading": "Chapter 3: Internal Control Variables (ICVs) > Key Concepts",
+"text": "- **`nthreads-var`** — thread count for the next `parallel` (set by `OMP_NUM_THREADS` / `omp_set_num_threads` / `num_threads` clause). May be a *list* for nested levels.\n- **`run-sched-var`** — schedule for `schedule(runtime)` loops (`OMP_SCHEDULE`).\n- **`bind-var` / `place-partition-var`** — thread→place affinity (`OMP_PROC_BIND` / `OMP_PLACES`).\n- **`max-active-levels-var`** — nested-parallelism depth (`OMP_MAX_ACTIVE_LEVELS`).\n- **`def-allocator-var`** — default memory allocator (`OMP_ALLOCATOR`).\n- **`default-device-var`** / **`nteams-var`** / **`teams-thread-limit-var`** — device & teams defaults.\n- New in 6.0: **`available-devices-var`**, **`free-agent-var` / `free-agent-thread-limit-var`** (free-agent threads), **`league-size-var`**.",
+"symbols": [
+"active",
+"agent",
+"allocator",
+"available",
+"bind",
+"def",
+"default",
+"device",
+"devices",
+"free",
+"league",
+"levels",
+"limit",
+"max",
+"nteams",
+"nthreads",
+"num_threads",
+"omp_allocator",
+"omp_max_active_levels",
+"omp_num_threads",
+"omp_places",
+"omp_proc_bind",
+"omp_schedule",
+"omp_set_num_threads",
+"parallel",
+"partition",
+"place",
+"run",
+"runtime",
+"sched",
+"schedule",
+"size",
+"teams",
+"thread",
+"var"
+]
+},
+{
+"id": "openmp:ch03-icvs#mental-models",
+"doc": "ch03-icvs",
+"heading": "Chapter 3: Internal Control Variables (ICVs) > Mental Models",
+"text": "- **Env var = process default; API = thread-level override; clause = region-level override.** When a thread count \"isn't what you set,\" walk this chain: `num_threads` clause > `omp_set_num_threads` > `OMP_NUM_THREADS` > implementation default.\n- **Scope determines inheritance**: a data-environment ICV is per-task and inherited by children; a global ICV is one knob for the whole program.",
+"symbols": [
+"num_threads",
+"omp_num_threads",
+"omp_set_num_threads"
+]
+},
+{
+"id": "openmp:ch03-icvs#anti-patterns",
+"doc": "ch03-icvs",
+"heading": "Chapter 3: Internal Control Variables (ICVs) > Anti-patterns",
+"text": "- **Setting `OMP_NUM_THREADS` and expecting it to override a `num_threads` clause**: the clause wins (inner overrides outer).\n- **Assuming `omp_set_num_threads` affects the current team**: it sets `nthreads-var` for *future* `parallel` regions, not the running one.\n- **Ignoring `OMP_MAX_ACTIVE_LEVELS` for nested parallelism**: nested teams collapse to one thread if the level cap (or dynamic adjustment) forbids more.",
+"symbols": [
+"nthreads",
+"num_threads",
+"omp_max_active_levels",
+"omp_num_threads",
+"omp_set_num_threads",
+"parallel",
+"var"
+]
+},
+{
+"id": "openmp:ch03-icvs#key-takeaways",
+"doc": "ch03-icvs",
+"heading": "Chapter 3: Internal Control Variables (ICVs) > Key Takeaways",
+"text": "1. ICV scopes: global / device / implicit-task / data-environment — scope sets inheritance.\n2. Precedence: initial → env var → API routine → construct clause (inner/clause wins).\n3. `nthreads-var`, `run-sched-var`, `bind-var`, `max-active-levels-var`, `def-allocator-var` are the everyday knobs.\n4. `omp_set_*` affects *future* regions, not the running one.\n5. OpenMP 6.0 adds free-agent-thread and device-availability ICVs.",
+"symbols": [
+"active",
+"allocator",
+"bind",
+"def",
+"levels",
+"max",
+"nthreads",
+"omp_set_",
+"run",
+"sched",
+"var"
+]
+},
+{
+"id": "openmp:ch03-icvs#connects-to",
+"doc": "ch03-icvs",
+"heading": "Chapter 3: Internal Control Variables (ICVs) > Connects To",
+"text": "- **Ch 4**: environment variables that initialize ICVs.\n- **Ch 12**: `parallel`/`teams` clauses (`num_threads`, `proc_bind`) that override ICVs.\n- **Ch 13**: `schedule(runtime)` reads `run-sched-var`.\n- **Ch 17 (runtime library)**: `omp_set_*`/`omp_get_*` query/modify ICVs.",
+"symbols": [
+"num_threads",
+"omp_get_",
+"omp_set_",
+"parallel",
+"proc_bind",
+"run",
+"runtime",
+"sched",
+"schedule",
+"teams",
+"var"
+]
+},
+{
+"id": "openmp:ch04-environment-variables#core-idea",
+"doc": "ch04-environment-variables",
+"heading": "Chapter 4: Environment Variables > Core Idea",
+"text": "The `OMP_*` (and `OMP_TOOL*`/`OMP_DEBUG`) environment variables set the *initial* values of ICVs at program start. Reference chapter — grouped by function.",
+"symbols": [
+"omp_",
+"omp_debug",
+"omp_tool"
+]
+},
+{
+"id": "openmp:ch04-environment-variables#parallel-region-threading",
+"doc": "ch04-environment-variables",
+"heading": "Chapter 4: Environment Variables > Reference Tables > Parallel-region / threading",
+"text": "| Variable | Controls (ICV) |\n|---|---|\n| `OMP_NUM_THREADS` | thread count(s) for `parallel` (`nthreads-var`; list for nesting) |\n| `OMP_DYNAMIC` | dynamic thread adjustment (`dyn-var`) |\n| `OMP_MAX_ACTIVE_LEVELS` | nested-parallelism depth |\n| `OMP_THREAD_LIMIT` | max threads in a contention group |\n| `OMP_PLACES` | place list (cores/sockets/threads) for affinity |\n| `OMP_PROC_BIND` | binding policy: `true`/`false`/`primary`/`close`/`spread` |",
+"symbols": [
+"close",
+"dyn",
+"false",
+"nthreads",
+"omp_dynamic",
+"omp_max_active_levels",
+"omp_num_threads",
+"omp_places",
+"omp_proc_bind",
+"omp_thread_limit",
+"parallel",
+"primary",
+"spread",
+"true",
+"var"
+]
+},
+{
+"id": "openmp:ch04-environment-variables#teams-execution",
+"doc": "ch04-environment-variables",
+"heading": "Chapter 4: Environment Variables > Reference Tables > Teams / execution",
+"text": "| Variable | Controls |\n|---|---|\n| `OMP_NUM_TEAMS` | teams in a league (`nteams-var`) |\n| `OMP_TEAMS_THREAD_LIMIT` | threads per team |\n| `OMP_SCHEDULE` | `schedule(runtime)` kind+chunk (`run-sched-var`) |\n| `OMP_STACKSIZE` | worker thread stack size |\n| `OMP_WAIT_POLICY` | `ACTIVE`/`PASSIVE` spin-wait behavior |\n| `OMP_CANCELLATION` | enable `cancel` |\n| `OMP_MAX_TASK_PRIORITY` | priority ceiling for `task priority` |",
+"symbols": [
+"active",
+"cancel",
+"nteams",
+"omp_cancellation",
+"omp_max_task_priority",
+"omp_num_teams",
+"omp_schedule",
+"omp_stacksize",
+"omp_teams_thread_limit",
+"omp_wait_policy",
+"passive",
+"priority",
+"run",
+"runtime",
+"sched",
+"schedule",
+"task",
+"var"
+]
+},
+{
+"id": "openmp:ch04-environment-variables#device-offload",
+"doc": "ch04-environment-variables",
+"heading": "Chapter 4: Environment Variables > Reference Tables > Device / offload",
+"text": "| Variable | Controls |\n|---|---|\n| `OMP_DEFAULT_DEVICE` | default `target` device |\n| `OMP_TARGET_OFFLOAD` | `MANDATORY`/`DISABLED`/`DEFAULT` offload policy |\n| `OMP_AVAILABLE_DEVICES` | which devices are visible (6.0) |\n| `OMP_THREADS_RESERVE` | reserve threads (6.0) |",
+"symbols": [
+"default",
+"disabled",
+"mandatory",
+"omp_available_devices",
+"omp_default_device",
+"omp_target_offload",
+"omp_threads_reserve",
+"target"
+]
+},
+{
+"id": "openmp:ch04-environment-variables#memory-affinity-display-tools",
+"doc": "ch04-environment-variables",
+"heading": "Chapter 4: Environment Variables > Reference Tables > Memory / affinity display / tools",
+"text": "| Variable | Controls |\n|---|---|\n| `OMP_ALLOCATOR` | default memory allocator (`def-allocator-var`) |\n| `OMP_DISPLAY_AFFINITY` / `OMP_AFFINITY_FORMAT` | thread-affinity reporting |\n| `OMP_DISPLAY_ENV` | dump ICVs at startup (`TRUE`/`VERBOSE`) |\n| `OMP_TOOL` / `OMP_TOOL_LIBRARIES` / `OMP_TOOL_VERBOSE_INIT` | OMPT tool loading |\n| `OMP_DEBUG` | enable OMPD (`debug-var`) |",
+"symbols": [
+"allocator",
+"debug",
+"def",
+"omp_affinity_format",
+"omp_allocator",
+"omp_debug",
+"omp_display_affinity",
+"omp_display_env",
+"omp_tool",
+"omp_tool_libraries",
+"omp_tool_verbose_init",
+"true",
+"var",
+"verbose"
+]
+},
+{
+"id": "openmp:ch04-environment-variables#key-concepts",
+"doc": "ch04-environment-variables",
+"heading": "Chapter 4: Environment Variables > Key Concepts",
+"text": "- **`OMP_PROC_BIND` + `OMP_PLACES`** together pin threads to hardware — critical for NUMA/cache locality in HPC. `spread` for bandwidth, `close` for cache sharing.\n- **`OMP_TARGET_OFFLOAD=MANDATORY`** makes missing-device a fatal error instead of silently falling back to host — use it to catch offload misconfiguration.\n- **`OMP_DISPLAY_ENV=VERBOSE`** at startup is the fastest way to see the actual ICV state a run will use.\n- Env var sets *initial* ICV; API/clause override later (ch3).",
+"symbols": [
+"close",
+"mandatory",
+"omp_display_env",
+"omp_places",
+"omp_proc_bind",
+"omp_target_offload",
+"spread",
+"verbose"
+]
+},
+{
+"id": "openmp:ch04-environment-variables#anti-patterns",
+"doc": "ch04-environment-variables",
+"heading": "Chapter 4: Environment Variables > Anti-patterns",
+"text": "- **Tuning thread count in source only**: `OMP_NUM_THREADS` lets one binary scale per node/run; pair with `OMP_PROC_BIND`/`OMP_PLACES` for affinity.\n- **Silent host fallback for offload**: without `OMP_TARGET_OFFLOAD=MANDATORY`, a `target` region quietly runs on host when the device is absent — a perf cliff that looks like correctness.\n- **Ignoring affinity on NUMA**: unbound threads migrate; set `OMP_PROC_BIND=close|spread` + `OMP_PLACES=cores`.",
+"symbols": [
+"close",
+"cores",
+"mandatory",
+"omp_num_threads",
+"omp_places",
+"omp_proc_bind",
+"omp_target_offload",
+"spread",
+"target"
+]
+},
+{
+"id": "openmp:ch04-environment-variables#key-takeaways",
+"doc": "ch04-environment-variables",
+"heading": "Chapter 4: Environment Variables > Key Takeaways",
+"text": "1. `OMP_NUM_THREADS` + `OMP_PROC_BIND` + `OMP_PLACES` are the core HPC tuning trio.\n2. `OMP_TARGET_OFFLOAD=MANDATORY` turns silent host-fallback into a hard error.\n3. `OMP_DISPLAY_ENV=VERBOSE` dumps the effective ICV state at startup.\n4. `OMP_SCHEDULE` feeds `schedule(runtime)`; `OMP_ALLOCATOR` sets the default allocator.\n5. Env vars are *initial* ICV values; API routines and construct clauses override them.",
+"symbols": [
+"mandatory",
+"omp_allocator",
+"omp_display_env",
+"omp_num_threads",
+"omp_places",
+"omp_proc_bind",
+"omp_schedule",
+"omp_target_offload",
+"runtime",
+"schedule",
+"verbose"
+]
+},
+{
+"id": "openmp:ch04-environment-variables#connects-to",
+"doc": "ch04-environment-variables",
+"heading": "Chapter 4: Environment Variables > Connects To",
+"text": "- **Ch 3**: ICVs these variables initialize.\n- **Ch 12**: `parallel`/`teams` clauses overriding these.\n- **Ch 18**: `OMP_TOOL*`/`OMP_DEBUG` for OMPT/OMPD.\n- **hpc-practice pack (gpu-practice)**: NUMA/affinity tuning for HPC runs.",
+"symbols": [
+"omp_debug",
+"omp_tool",
+"parallel",
+"teams"
+]
+},
+{
+"id": "openmp:ch05-directive-clause-syntax#core-idea",
+"doc": "ch05-directive-clause-syntax",
+"heading": "Chapter 5: Directive and Construct Syntax > Core Idea",
+"text": "The syntactic machinery common to all OpenMP directives: how to spell them (C/C++ `#pragma omp` vs Fortran `!$omp`), the clause-format grammar (modifiers, argument lists, array sections/shaping, iterators), conditional compilation, and the shared `if`/`init`/`destroy` clauses.",
+"symbols": [
+"!$omp",
+"destroy",
+"init",
+"omp",
+"pragma"
+]
+},
+{
+"id": "openmp:ch05-directive-clause-syntax#frameworks-introduced",
+"doc": "ch05-directive-clause-syntax",
+"heading": "Chapter 5: Directive and Construct Syntax > Frameworks Introduced",
+"text": "- **Directive format** (§5.1):\n  - C/C++: `#pragma omp directive-specification new-line` (or `_Pragma(\"omp ...\")`). Whitespace allowed around `#`; tokens subject to macro replacement.\n  - Fortran free-form: `!$omp directive-specification`; fixed-form sentinels `!$omp`/`c$omp`/`*$omp` in column 1. Continuation per source form.\n  - **Paired begin/end**: directives whose name starts with `begin` (e.g. `begin declare target` … `end declare target`) bracket a region; an `end` directive may carry `end-clause`s.\n- **Clause format** (§5.2):\n  - **OpenMP argument lists**, **reserved locators** (`omp_all_memory`), **OpenMP operations**, **array shaping** `([n1][n2]...) ptr`, **array sections** `a[lower : length : stride]`, and the **`iterator` modifier** `iterator(i=0:n)` for clauses that iterate (e.g. `depend`, `map`).\n  - Clause **modifiers**: many clauses take modifiers, e.g. `map(to: x)`, `reduction(task, +: s)`, `schedule(monotonic: static)`.\n- **Conditional compilation** (§5.3): the `_OPENMP` macro (`yyyymm`, = `202411` for 6.0) and the `!$` free-form / `c$`/`*$` fixed-form Fortran sentinels for conditionally-compiled lines.\n- **Shared clauses**: `if([directive-name-modifier:] cond)` (§5.5), `init`/`destroy` (§5.6–5.7, for `interop`/`depobj` objects), `directive-name-modifier` (§5.4, disambiguates `if`/`nowait` on combined constructs).",
+"symbols": [
+"!$omp",
+"!$omp directive",
+"_openmp",
+"_pragma",
+"begin",
+"clause",
+"cond",
+"declare",
+"depend",
+"depobj",
+"destroy",
+"directive",
+"end",
+"init",
+"interop",
+"iterator",
+"length",
+"line",
+"lower",
+"map",
+"modifier",
+"monotonic",
+"name",
+"new",
+"nowait",
+"omp",
+"omp_all_memory",
+"pragma",
+"ptr",
+"reduction",
+"schedule",
+"specification",
+"static",
+"stride",
+"target",
+"task",
+"yyyymm"
+]
+},
+{
+"id": "openmp:ch05-directive-clause-syntax#key-concepts",
+"doc": "ch05-directive-clause-syntax",
+"heading": "Chapter 5: Directive and Construct Syntax > Key Concepts",
+"text": "- **`if(directive-name: cond)`**: on a combined construct (e.g. `target teams distribute parallel for`), the modifier says *which* leaf the `if` applies to.\n- **array section** `a[start:length:stride]` (C) / `a(lb:ub)` (Fortran) — required to specify what a `map`/`depend`/`reduction` clause covers for arrays/pointers.\n- **`iterator(i=0:n: ...)`** — generates a set of list items for `depend`/`map` (e.g. a dependence per neighbor).\n- **metadirective family** lives in ch9 (variant directives) — `5.x` is the base syntax it builds on.",
+"symbols": [
+"cond",
+"depend",
+"directive",
+"distribute",
+"for",
+"iterator",
+"length",
+"map",
+"name",
+"parallel",
+"reduction",
+"start",
+"stride",
+"target",
+"teams"
+]
+},
+{
+"id": "openmp:ch05-directive-clause-syntax#code-examples",
+"doc": "ch05-directive-clause-syntax",
+"heading": "Chapter 5: Directive and Construct Syntax > Code Examples",
+"text": "```c\n#pragma omp parallel for if(parallel: n > 1000) schedule(static)\nfor (int i = 0; i < n; ++i) a[i] = b[i] + c[i];\n\n// array section in a map clause; iterator in a depend clause\n#pragma omp target map(tofrom: a[0:n])\n#pragma omp task depend(iterator(j=0:nneigh), in: halo[j][0:sz])\n```\n```fortran\n!$omp parallel do default(none) shared(a,b) private(i)\ndo i = 1, n\n  a(i) = b(i)*2\nend do\n!$omp end parallel do\n```\n- **Demonstrates**: `#pragma omp` / `!$omp` forms, `if` with a directive-name modifier, array sections in `map`, the `iterator` modifier, and a Fortran paired begin/end.",
+"symbols": [
+"!$omp",
+"iterator",
+"map",
+"omp",
+"pragma"
+]
+},
+{
+"id": "openmp:ch05-directive-clause-syntax#anti-patterns",
+"doc": "ch05-directive-clause-syntax",
+"heading": "Chapter 5: Directive and Construct Syntax > Anti-patterns",
+"text": "- **Omitting array bounds in `map`/`depend`**: `map(a)` on a pointer is ambiguous — write `map(tofrom: a[0:n])`.\n- **Ambiguous `if` on a combined construct**: without `if(target: ...)` the modifier-less `if` may not apply where you intend.\n- **Mixing free/fixed Fortran sentinels**: follow the source form; `!$omp` (free) vs column-1 `c$omp` (fixed).\n- **Forgetting `_OPENMP` guards** for code that must also compile without OpenMP.",
+"symbols": [
+"!$omp",
+"_openmp",
+"depend",
+"map",
+"omp",
+"target",
+"tofrom"
+]
+},
+{
+"id": "openmp:ch05-directive-clause-syntax#key-takeaways",
+"doc": "ch05-directive-clause-syntax",
+"heading": "Chapter 5: Directive and Construct Syntax > Key Takeaways",
+"text": "1. C/C++ `#pragma omp ...`; Fortran `!$omp ...` (+ paired `begin`/`end` for some directives).\n2. `_OPENMP` = `202411` (v6.0); guard host-only builds with `#ifdef _OPENMP` / `!$`.\n3. Array sections `a[start:len:stride]` and the `iterator` modifier specify *what* `map`/`depend`/`reduction` cover.\n4. On combined constructs, `if(directive-name: cond)` targets a specific leaf.\n5. `init`/`destroy` clauses manage `interop`/`depobj` objects.",
+"symbols": [
+"!$omp",
+"_openmp",
+"begin",
+"cond",
+"depend",
+"depobj",
+"destroy",
+"directive",
+"end",
+"ifdef",
+"init",
+"interop",
+"iterator",
+"len",
+"map",
+"name",
+"omp",
+"pragma",
+"reduction",
+"start",
+"stride"
+]
+},
+{
+"id": "openmp:ch05-directive-clause-syntax#connects-to",
+"doc": "ch05-directive-clause-syntax",
+"heading": "Chapter 5: Directive and Construct Syntax > Connects To",
+"text": "- **Ch 7**: data clauses use array sections and modifiers defined here.\n- **Ch 9**: variant directives (`metadirective`, `declare variant`) build on this syntax.\n- **Ch 14**: `depend(iterator(...), ...)` for task dependences.\n- **Ch 6**: base-language binding of the directive syntax.",
+"symbols": [
+"declare",
+"depend",
+"iterator",
+"metadirective",
+"variant"
+]
+},
+{
+"id": "openmp:ch06-base-language#core-idea",
+"doc": "ch06-base-language",
+"heading": "Chapter 6: Base Language Formats and Restrictions > Core Idea",
+"text": "How OpenMP binds to each base language (C, C++, Fortran) — the structured-block rules, the canonical loop-nest form that worksharing/SIMD/loop constructs require, and the language-specific restrictions. The contract for *what code a directive may legally be attached to*.",
+"symbols": []
+},
+{
+"id": "openmp:ch06-base-language#frameworks-introduced",
+"doc": "ch06-base-language",
+"heading": "Chapter 6: Base Language Formats and Restrictions > Frameworks Introduced",
+"text": "- **structured block**: a single statement or block with one entry at the top and one exit at the bottom (no branching in/out except via OpenMP cancellation/`exit`-equivalent). Most constructs apply to a structured block.\n- **canonical loop nest** (the form `for`/`do` loops must take to be parallelized):\n  - loop variable of integer (or C++ random-access iterator / pointer) type,\n  - bounds and stride **loop-invariant** within the construct,\n  - test is a relational operator, increment is `++`/`+=`/etc. — so the **iteration count is computable on entry**.\n  - `collapse(n)` requires the outer `n` loops to be **perfectly** (rectangular or, in 6.0, certain non-rectangular) nested.\n- **loop-iteration vs logical-iteration space**: constructs operate on *logical* iterations (the computed sequence), decoupled from the source loop form.\n- **Base-language data environment rules**: how C/C++/Fortran scoping interacts with `shared`/`private` (e.g. Fortran `COMMON`, C `static`, C++ references and lambdas).",
+"symbols": [
+"collapse",
+"common",
+"exit",
+"for",
+"private",
+"shared",
+"static"
+]
+},
+{
+"id": "openmp:ch06-base-language#key-concepts",
+"doc": "ch06-base-language",
+"heading": "Chapter 6: Base Language Formats and Restrictions > Key Concepts",
+"text": "- **C/C++ vs Fortran binding**: directives are pragmas (C/C++) or comment sentinels (Fortran); the *associated* code must meet the structured-block / canonical-loop rules either way.\n- **Fortran specifics**: `!$omp` on `DO`/`DO CONCURRENT`; `workshare` for array-syntax; module/COMMON variable sharing; assumed-shape array handling under `map`.\n- **C++ specifics**: random-access iterators in canonical loops, lambda captures interacting with data-sharing, exceptions across regions (restricted), reference members.\n- **threadprivate** and storage duration: how static/global storage maps to per-thread copies.",
+"symbols": [
+"!$omp",
+"concurrent",
+"map",
+"workshare"
+]
+},
+{
+"id": "openmp:ch06-base-language#anti-patterns",
+"doc": "ch06-base-language",
+"heading": "Chapter 6: Base Language Formats and Restrictions > Anti-patterns",
+"text": "- **Putting a `break`/`goto`/`return` out of a structured block**: illegal — a worksharing/parallel structured block has one entry, one exit (cancellation aside).\n- **Non-canonical loops under worksharing/`simd`**: variable bounds inside the loop, non-integer/non-iterator counters, or a `while` loop can't be a parallelized loop nest — restructure to canonical form.\n- **`collapse(n)` over non-perfectly-nested loops**: code between the loops (outside the innermost body) breaks collapse (with limited 6.0 non-rectangular allowances).\n- **Relying on C++ exception propagation out of a parallel region**: heavily restricted; don't throw across the region boundary.",
+"symbols": [
+"break",
+"collapse",
+"goto",
+"return",
+"simd",
+"while"
+]
+},
+{
+"id": "openmp:ch06-base-language#key-takeaways",
+"doc": "ch06-base-language",
+"heading": "Chapter 6: Base Language Formats and Restrictions > Key Takeaways",
+"text": "1. Most constructs attach to a **structured block** (one entry, one exit) — no branching out.\n2. Worksharing/`simd`/`loop` need a **canonical loop nest**: integer/iterator counter, loop-invariant bounds/stride, computable trip count.\n3. `collapse(n)` requires (near-)perfect nesting of the outer n loops.\n4. Base-language scoping (Fortran COMMON/module, C static, C++ references/lambdas) interacts with data-sharing attributes — know the per-language rules.\n5. The directive operates on the *logical* iteration space, not the source loop form.",
+"symbols": [
+"collapse",
+"loop",
+"simd"
+]
+},
+{
+"id": "openmp:ch06-base-language#connects-to",
+"doc": "ch06-base-language",
+"heading": "Chapter 6: Base Language Formats and Restrictions > Connects To",
+"text": "- **Ch 13**: worksharing-loop and `distribute` rely on the canonical loop nest.\n- **Ch 11**: loop-transforming constructs reshape the canonical nest.\n- **Ch 7**: data-sharing interacts with base-language storage/scoping.\n- **fortran-2023-standard**: the Fortran base-language rules OpenMP binds to (DO CONCURRENT, modules, COMMON).",
+"symbols": [
+"distribute"
+]
+},
+{
+"id": "openmp:ch07-data-environment#core-idea",
+"doc": "ch07-data-environment",
+"heading": "Chapter 7: Data Environment > Core Idea",
+"text": "The two attribute systems that decide *what each variable means in a region*: **data-sharing** (thread-level: shared vs private) and **data-mapping** (device-level: host↔device movement). Plus reductions, induction, and data-copying. The single most correctness-critical chapter.\n\n> ⚠ **Errata (Nov 2025)** applied below at §7.5.9, §7.5.10, §7.9.9.",
+"symbols": []
+},
+{
+"id": "openmp:ch07-data-environment#frameworks-introduced",
+"doc": "ch07-data-environment",
+"heading": "Chapter 7: Data Environment > Frameworks Introduced",
+"text": "- **Data-sharing attribute clauses** (§7.5):\n  - **`shared(list)`** — one instance, all threads access it (synchronize yourself).\n  - **`private(list)`** — per-thread uninitialized copy.\n  - **`firstprivate(list)`** — per-thread copy initialized from the original.\n  - **`lastprivate([modifier:] list)`** — private, and the value from the *sequentially last* iteration/section is copied out.\n  - **`default(shared | firstprivate | private | none)`** — implicit attribute for unlisted variables; **`none` forces explicit listing** (adopt it).\n  - **`linear(list [: step])`** — private with a linear induction relationship to the iteration.\n- **Reduction & induction** (§7.6): **`reduction([modifier,] op : list)`** — per-thread partials combined by `op` (`+ * - & | ^ && || max min` + user-defined via `declare reduction`). Modifiers: `inscan` (with `scan` directive), `task`, `default`. **`induction`** generalizes linear progressions.\n- **Data-mapping control** (§7.9):\n  - **`map([map-type-modifier,] map-type : list)`** — move list items into/out of the device data environment. **map-types**: `to` (H→D on entry), `from` (D→H on exit), `tofrom` (both), `alloc`/`storage` (allocate, no copy), `release`/`delete` (exit).\n  - **map-type defaults**: `tofrom` normally; `storage` for assumed-size/assumed-type or with `delete`.\n  - **`defaultmap(implicit-behavior [: variable-category])`** — implicit map behavior; on `target`, `defaultmap` takes precedence over `default` for intersecting categories.\n- **Data-copying** (§7.8): **`copyin`** (broadcast a threadprivate from primary), **`copyprivate`** (broadcast from one thread on `single`).",
+"symbols": [
+"alloc",
+"behavior",
+"category",
+"copyin",
+"copyprivate",
+"declare",
+"default",
+"defaultmap",
+"delete",
+"firstprivate",
+"from",
+"implicit",
+"induction",
+"inscan",
+"lastprivate",
+"linear",
+"list",
+"map",
+"max",
+"min",
+"modifier",
+"none",
+"private",
+"reduction",
+"release",
+"scan",
+"shared",
+"single",
+"step",
+"storage",
+"target",
+"task",
+"tofrom",
+"type",
+"variable"
+]
+},
+{
+"id": "openmp:ch07-data-environment#errata-corrections-nov-2025",
+"doc": "ch07-data-environment",
+"heading": "Chapter 7: Data Environment > Errata corrections (Nov 2025)",
+"text": "- **§7.5.9 (`has_device_addr`)**: added restriction — *if a list item is an array section or array element, the array base must be a base-language identifier.*\n- **§7.5.10 (`is_device_ptr`)**: the text now reads \"is an array section **or an array element**\".\n- **§7.9.9 (`defaultmap`)**: *if `implicit-behavior` is `private`, the attribute is a data-sharing attribute of `private`* (a `private` defaultmap behaves as data-sharing private, not a map).",
+"symbols": [
+"behavior",
+"defaultmap",
+"has_device_addr",
+"implicit",
+"is_device_ptr",
+"private"
+]
+},
+{
+"id": "openmp:ch07-data-environment#key-concepts",
+"doc": "ch07-data-environment",
+"heading": "Chapter 7: Data Environment > Key Concepts",
+"text": "- **Predetermined attributes**: loop iteration variables → private; `threadprivate` → threadprivate; etc. — cannot be overridden by clauses.\n- **`default(none)`** is the OpenMP discipline analog of `implicit none`: forces you to classify every variable, catching accidental sharing.\n- **map ≠ data-sharing**: a variable can be `firstprivate` *and* mapped; on `target`, both attribute systems apply.\n- **reduction on `target`/`teams`**: combines across teams/threads; needs the right modifier and an initializer for user-defined reductions.",
+"symbols": [
+"default",
+"firstprivate",
+"implicit",
+"none",
+"target",
+"teams",
+"threadprivate"
+]
+},
+{
+"id": "openmp:ch07-data-environment#code-examples",
+"doc": "ch07-data-environment",
+"heading": "Chapter 7: Data Environment > Code Examples",
+"text": "```c\n#pragma omp parallel for default(none) shared(a, b) private(tmp) reduction(+: sum)\nfor (int i = 0; i < n; ++i) { tmp = a[i]*b[i]; sum += tmp; }\n\n#pragma omp target map(to: a[0:n], b[0:n]) map(from: c[0:n])\n#pragma omp teams distribute parallel for reduction(+: total)\nfor (int i = 0; i < n; ++i) { c[i] = a[i] + b[i]; total += c[i]; }\n```\n- **Demonstrates**: `default(none)` + explicit sharing + reduction; device `map(to/from)` separating input/output transfers, with a cross-team reduction.",
+"symbols": [
+"default",
+"from",
+"map",
+"none"
+]
+},
+{
+"id": "openmp:ch07-data-environment#anti-patterns",
+"doc": "ch07-data-environment",
+"heading": "Chapter 7: Data Environment > Anti-patterns",
+"text": "- **Omitting `default(none)`**: implicit `shared` hides accidental races — make every variable explicit.\n- **`map(tofrom:)` everywhere**: doubles transfer cost; use `to` for inputs, `from` for outputs, `alloc` for scratch.\n- **`firstprivate` a large array thinking it's free**: it copies per thread.\n- **Manual accumulation into a `shared` var**: data race — use `reduction`.\n- **`has_device_addr`/`is_device_ptr` on a non-identifier array base** (post-errata): now explicitly restricted.\n- **Forgetting array bounds in `map`**: `map(a)` on a pointer is ambiguous — `map(tofrom: a[0:n])`.",
+"symbols": [
+"alloc",
+"default",
+"firstprivate",
+"from",
+"has_device_addr",
+"is_device_ptr",
+"map",
+"none",
+"reduction",
+"shared",
+"tofrom"
+]
+},
+{
+"id": "openmp:ch07-data-environment#key-takeaways",
+"doc": "ch07-data-environment",
+"heading": "Chapter 7: Data Environment > Key Takeaways",
+"text": "1. Two attribute systems: **data-sharing** (shared/private/firstprivate/lastprivate/reduction/linear) and **data-mapping** (map to/from/tofrom/alloc) — composable, never conflate.\n2. `default(none)` forces explicit classification — the key discipline.\n3. Reductions, not manual shared accumulation; `to`/`from` not blanket `tofrom`.\n4. **Errata**: `defaultmap(private)` → data-sharing private; `has_device_addr`/`is_device_ptr` array bases must be base-language identifiers.\n5. On `target`, `defaultmap` overrides `default` for intersecting variable categories.",
+"symbols": [
+"default",
+"defaultmap",
+"from",
+"has_device_addr",
+"is_device_ptr",
+"none",
+"private",
+"target",
+"tofrom"
+]
+},
+{
+"id": "openmp:ch07-data-environment#connects-to",
+"doc": "ch07-data-environment",
+"heading": "Chapter 7: Data Environment > Connects To",
+"text": "- **Ch 13**: worksharing-loop reductions and `lastprivate`.\n- **Ch 14**: task reductions (`reduction(task, ...)`).\n- **Ch 15**: `target`/`map` device data environment.\n- **Ch 8**: allocators for privatized/mapped storage.\n- **Ch 16**: synchronization for `shared` access correctness.",
+"symbols": [
+"lastprivate",
+"map",
+"reduction",
+"shared",
+"target",
+"task"
+]
+},
+{
+"id": "openmp:ch08-memory-management#core-idea",
+"doc": "ch08-memory-management",
+"heading": "Chapter 8: Memory Management > Core Idea",
+"text": "Allocate variables in specific **memory spaces** (high-bandwidth, low-latency, large-capacity, constant) via **allocators** with tunable traits — for placing hot data in fast memory (e.g. HBM) on heterogeneous systems.\n\n> ⚠ **Errata (Nov 2025)** applied below at §8.4 (`allocator` clause).",
+"symbols": [
+"allocator"
+]
+},
+{
+"id": "openmp:ch08-memory-management#frameworks-introduced",
+"doc": "ch08-memory-management",
+"heading": "Chapter 8: Memory Management > Frameworks Introduced",
+"text": "- **Predefined memory spaces** (§8.1): `omp_default_mem_space`, `omp_large_cap_mem_space` (capacity), `omp_const_mem_space` (read-only, init at allocation), `omp_high_bw_mem_space` (bandwidth, e.g. HBM), `omp_low_lat_mem_space` (latency, e.g. scratchpad). Actual mapping is implementation-defined.\n- **Memory allocators** (§8.2): request contiguous storage from a memory space. Predefined handles `omp_default_mem_alloc`, `omp_high_bw_mem_alloc`, `omp_low_lat_mem_alloc`, etc.\n- **Allocator traits** (Table 8.2): `alignment`, `pool_size`, `fallback` (`abort_fb`/`allocator_fb`/`null_fb`/`default_mem_fb`), `fb_data`, `pinned`, `partition` (`environment`/`nearest`/`blocked`/`interleaved`), `sync_hint`, `access`. Build a custom allocator with `omp_init_allocator(space, ntraits, traits)`.\n- **`allocate` directive / `allocate` clause** (§8.4): direct a variable's storage to a given allocator/space. The clause form on a construct privatizes-and-allocates; the directive form applies to declared variables.\n- **`omp_alloc`/`omp_free`** + aligned/calloc variants (runtime API, ch17).",
+"symbols": [
+"abort_fb",
+"access",
+"alignment",
+"allocate",
+"allocator_fb",
+"blocked",
+"default_mem_fb",
+"environment",
+"fallback",
+"fb_data",
+"interleaved",
+"nearest",
+"ntraits",
+"null_fb",
+"omp_alloc",
+"omp_const_mem_space",
+"omp_default_mem_alloc",
+"omp_default_mem_space",
+"omp_free",
+"omp_high_bw_mem_alloc",
+"omp_high_bw_mem_space",
+"omp_init_allocator",
+"omp_large_cap_mem_space",
+"omp_low_lat_mem_alloc",
+"omp_low_lat_mem_space",
+"partition",
+"pinned",
+"pool_size",
+"space",
+"sync_hint",
+"traits"
+]
+},
+{
+"id": "openmp:ch08-memory-management#errata-correction-nov-2025",
+"doc": "ch08-memory-management",
+"heading": "Chapter 8: Memory Management > Errata correction (Nov 2025)",
+"text": "- **§8.4 (`allocator` clause)**: added restriction — *the memory-allocator specified by `allocator` at the directive where the clause appears must be the **same** as the memory-allocator specified at the declaration of the variables being allocated.* (You can't allocate with one allocator and declare with a different one.)",
+"symbols": [
+"allocator"
+]
+},
+{
+"id": "openmp:ch08-memory-management#key-concepts",
+"doc": "ch08-memory-management",
+"heading": "Chapter 8: Memory Management > Key Concepts",
+"text": "- **`partition` trait** is the NUMA knob: `nearest` (allocate near the accessing thread), `interleaved` (spread across nodes for bandwidth), `blocked`.\n- **`fallback`** controls what happens when the space can't satisfy the request: abort, use a fallback allocator, return null, or fall back to default memory.\n- **`omp_const_mem_space` is write-once**: initialized at allocation, never written — for lookup tables/constants the device can cache.\n- Allocators interact with `firstprivate`/`private` (where do privatized copies live?) and with `target` (device-side allocation).",
+"symbols": [
+"blocked",
+"fallback",
+"firstprivate",
+"interleaved",
+"nearest",
+"omp_const_mem_space",
+"partition",
+"private",
+"target"
+]
+},
+{
+"id": "openmp:ch08-memory-management#code-examples",
+"doc": "ch08-memory-management",
+"heading": "Chapter 8: Memory Management > Code Examples",
+"text": "```c\nomp_alloctrait_t traits[] = {\n  {omp_atk_partition, omp_atv_interleaved},\n  {omp_atk_alignment, 64}\n};\nomp_allocator_handle_t hbm =\n  omp_init_allocator(omp_high_bw_mem_space, 2, traits);\n\ndouble *a = omp_alloc(n*sizeof(double), hbm);   // place in HBM, interleaved\n// ... use a ...\nomp_free(a, hbm);\nomp_destroy_allocator(hbm);\n```\n```c\n// allocate clause: privatized copies go in low-latency memory\n#pragma omp parallel allocate(omp_low_lat_mem_alloc: scratch) private(scratch)\n```\n- **Demonstrates**: building an HBM allocator with NUMA-interleave + alignment traits, and steering privatized storage to low-latency memory.",
+"symbols": []
+},
+{
+"id": "openmp:ch08-memory-management#anti-patterns",
+"doc": "ch08-memory-management",
+"heading": "Chapter 8: Memory Management > Anti-patterns",
+"text": "- **Ignoring memory spaces on heterogeneous nodes**: leaving bandwidth-bound data in default memory wastes HBM; place it with `omp_high_bw_mem_alloc`.\n- **Mismatched allocator at declaration vs use** (post-errata): now explicitly forbidden — keep them the same.\n- **Writing to `omp_const_mem_space`**: not permitted; it's read-only after init.\n- **Forgetting `omp_destroy_allocator`** for custom allocators: leaks allocator handles.\n- **Default `partition` on NUMA**: set `nearest`/`interleaved` deliberately rather than relying on first-touch alone.",
+"symbols": [
+"interleaved",
+"nearest",
+"omp_const_mem_space",
+"omp_destroy_allocator",
+"omp_high_bw_mem_alloc",
+"partition"
+]
+},
+{
+"id": "openmp:ch08-memory-management#key-takeaways",
+"doc": "ch08-memory-management",
+"heading": "Chapter 8: Memory Management > Key Takeaways",
+"text": "1. Five memory spaces (default/large/const/high-bw/low-lat); allocators draw from them with traits.\n2. The `partition` trait is the NUMA placement knob (`nearest`/`interleaved`/`blocked`).\n3. **Errata**: the `allocator` clause's allocator must match the one at the variable's declaration.\n4. `omp_const_mem_space` is write-once; build custom allocators with `omp_init_allocator`.\n5. `fallback` trait defines behavior when a space can't satisfy the request.",
+"symbols": [
+"allocator",
+"blocked",
+"fallback",
+"interleaved",
+"nearest",
+"omp_const_mem_space",
+"omp_init_allocator",
+"partition"
+]
+},
+{
+"id": "openmp:ch08-memory-management#connects-to",
+"doc": "ch08-memory-management",
+"heading": "Chapter 8: Memory Management > Connects To",
+"text": "- **Ch 3/4**: `def-allocator-var` / `OMP_ALLOCATOR` set the default allocator.\n- **Ch 7**: `allocate` interacts with `private`/`firstprivate` storage.\n- **Ch 17**: `omp_alloc`/`omp_free`/`omp_init_allocator` runtime API.\n- **hpc-practice pack (gpu-practice) / consumer-GPU notes**: HBM vs default memory placement for bandwidth-bound kernels.",
+"symbols": [
+"allocate",
+"allocator",
+"def",
+"firstprivate",
+"omp_alloc",
+"omp_allocator",
+"omp_free",
+"omp_init_allocator",
+"private",
+"var"
+]
+},
+{
+"id": "openmp:ch09-variant-directives#core-idea",
+"doc": "ch09-variant-directives",
+"heading": "Chapter 9: Variant Directives > Core Idea",
+"text": "Compile-time and run-time **specialization**: select a directive or function implementation based on the **OpenMP context** (active constructs, device/ISA traits, available implementation features). The mechanism for writing one source that adapts to host/GPU/ISA.",
+"symbols": []
+},
+{
+"id": "openmp:ch09-variant-directives#frameworks-introduced",
+"doc": "ch09-variant-directives",
+"heading": "Chapter 9: Variant Directives > Frameworks Introduced",
+"text": "- **OpenMP context** (§9.1): the set of **traits** active at a point — `construct` traits (enclosing constructs, ordered by nesting), `device` traits (kind/ISA/arch), `implementation` traits (vendor, extensions), `target_device` traits. A **context selector** specifies trait-sets to match.\n- **`metadirective`**: choose among candidate directives by `when(context-selector : directive)` clauses, with a `default(directive)` (originally `otherwise`). Resolved at compile time (static traits) or runtime (dynamic traits like `user={condition(...)}`).\n- **`declare variant`**: register an alternate function implementation, selected when the call site's context matches a `match(context-selector)` clause. Optional `adjust_args`/`append_args` to transform the call.\n- **`dispatch`**: control variant substitution at a specific call site (the `dispatch` construct adds a construct trait for the target-call); enables device-side variant dispatch and `nocontext`/`novariants` control.\n- **`declare simd`**: generate SIMD versions of a function callable from `simd` loops (the `simd` trait).",
+"symbols": [
+"adjust_args",
+"append_args",
+"condition",
+"construct",
+"context",
+"declare",
+"default",
+"device",
+"directive",
+"dispatch",
+"implementation",
+"match",
+"metadirective",
+"nocontext",
+"novariants",
+"otherwise",
+"selector",
+"simd",
+"target_device",
+"user",
+"variant",
+"when"
+]
+},
+{
+"id": "openmp:ch09-variant-directives#key-concepts",
+"doc": "ch09-variant-directives",
+"heading": "Chapter 9: Variant Directives > Key Concepts",
+"text": "- **static vs dynamic context**: most selectors (construct/device/ISA) resolve at compile time; `user={condition(expr)}` is dynamic (runtime branch).\n- **scoring/best-match**: when multiple variants match, the one matching the most-specific/highest-scored context wins.\n- **`declare variant` + `dispatch`** is OpenMP's answer to \"call the GPU kernel here, the CPU version there\" without `#ifdef` forests.\n- Context selectors may reference base-function arguments and `this` (C++) in their expressions.",
+"symbols": [
+"condition",
+"declare",
+"dispatch",
+"expr",
+"ifdef",
+"this",
+"user",
+"variant"
+]
+},
+{
+"id": "openmp:ch09-variant-directives#code-examples",
+"doc": "ch09-variant-directives",
+"heading": "Chapter 9: Variant Directives > Code Examples",
+"text": "```c\n// metadirective: GPU gets teams-distribute, host gets a plain parallel-for\n#pragma omp metadirective \\\n  when(target_device={kind(nohost)}: teams distribute parallel for) \\\n  default(parallel for)\nfor (int i = 0; i < n; ++i) c[i] = a[i] + b[i];\n\n// declare variant: substitute an AVX-512 implementation when the ISA matches\n#pragma omp declare variant(dot_avx512) match(device={isa(\"avx512f\")})\ndouble dot(const double *x, const double *y, int n);\n```\n- **Demonstrates**: `metadirective` picking a device-appropriate construct, and `declare variant` selecting an ISA-specialized function by context.",
+"symbols": [
+"declare",
+"metadirective",
+"variant"
+]
+},
+{
+"id": "openmp:ch09-variant-directives#anti-patterns",
+"doc": "ch09-variant-directives",
+"heading": "Chapter 9: Variant Directives > Anti-patterns",
+"text": "- **`#ifdef`-based host/device specialization**: brittle and language-specific — prefer `metadirective`/`declare variant`, which the compiler resolves against the real context.\n- **Over-specific context selectors that match nothing**: falls through to `default`/base — verify the selector matches the intended target.\n- **Forgetting `dispatch`/`nocontext` control**: variant substitution at a call may not happen where you assume; use `dispatch` to be explicit.\n- **Dynamic `user={condition}` selectors expecting compile-time elision**: those become runtime branches.",
+"symbols": [
+"condition",
+"declare",
+"default",
+"dispatch",
+"ifdef",
+"metadirective",
+"nocontext",
+"user",
+"variant"
+]
+},
+{
+"id": "openmp:ch09-variant-directives#key-takeaways",
+"doc": "ch09-variant-directives",
+"heading": "Chapter 9: Variant Directives > Key Takeaways",
+"text": "1. `metadirective` selects a *directive* by context; `declare variant` selects a *function implementation*; both keyed on the OpenMP context.\n2. Context = construct + device + implementation + target_device traits; selectors match trait-sets.\n3. Most selectors resolve at compile time; `user={condition(...)}` is the runtime escape hatch.\n4. `dispatch` controls variant substitution at a call site (and adds a construct trait).\n5. This is the standards-based alternative to `#ifdef` host/GPU/ISA branching.",
+"symbols": [
+"condition",
+"declare",
+"dispatch",
+"ifdef",
+"metadirective",
+"user",
+"variant"
+]
+},
+{
+"id": "openmp:ch09-variant-directives#connects-to",
+"doc": "ch09-variant-directives",
+"heading": "Chapter 9: Variant Directives > Connects To",
+"text": "- **Ch 5**: directive/clause syntax underpinning these.\n- **Ch 15**: device traits for `target` specialization.\n- **Ch 13**: the constructs metadirective chooses among.\n- **openacc-3.4 ch2**: OpenACC's `device_type` is the analogous (simpler) per-device tuning mechanism.",
+"symbols": [
+"device_type",
+"target"
+]
+},
+{
+"id": "openmp:ch10-informational-utility#core-idea",
+"doc": "ch10-informational-utility",
+"heading": "Chapter 10: Informational and Utility Directives > Core Idea",
+"text": "Directives that *don't* generate parallel work but inform the compiler or runtime: **`assume`/`assumes`** (optimization hints/contracts), **`error`** (compile/run-time diagnostics), **`nothing`** (explicit no-op for metaprogramming), and **`requires`** (mandate implementation features).\n\n> ⚠ **Errata (Nov 2025)** applied below at §10.5 (`requires`).",
+"symbols": [
+"assume",
+"assumes",
+"error",
+"nothing",
+"requires"
+]
+},
+{
+"id": "openmp:ch10-informational-utility#frameworks-introduced",
+"doc": "ch10-informational-utility",
+"heading": "Chapter 10: Informational and Utility Directives > Frameworks Introduced",
+"text": "- **`assume`/`assumes`** (§10.1–10.2): assert facts the compiler may exploit — `no_openmp`, `no_openmp_routines`, `no_parallelism`, `holds(expr)`, `absent(directive-list)`, `contains(directive-list)`. A *contract* (undefined behavior if violated), not a check.\n- **`error`** directive (§10.2): emit an implementation-defined diagnostic.\n  - **`at(compilation | execution)`** — when the error fires.\n  - **`severity(warning | fatal)`** — `fatal` aborts (compilation unit or program); `warning` just displays.\n  - **`message(\"...\")`** — the text to include.\n  - Fires the OMPT `runtime-error` event when `at(execution)`.\n- **`nothing`** (§10.x): a directive that does nothing — useful as a `metadirective` branch or macro expansion target.\n- **`requires`** directive (§10.5): declare that the compilation unit *requires* implementation features — `unified_shared_memory`, `unified_address`, `reverse_offload`, `dynamic_allocators`, `atomic_default_mem_order(...)`, `self_maps`. An implementation lacking a required feature must reject the program.",
+"symbols": [
+"absent",
+"assume",
+"assumes",
+"atomic_default_mem_order",
+"compilation",
+"contains",
+"directive",
+"dynamic_allocators",
+"error",
+"execution",
+"expr",
+"fatal",
+"holds",
+"list",
+"message",
+"metadirective",
+"no_openmp",
+"no_openmp_routines",
+"no_parallelism",
+"nothing",
+"requires",
+"reverse_offload",
+"runtime",
+"self_maps",
+"severity",
+"unified_address",
+"unified_shared_memory",
+"warning"
+]
+},
+{
+"id": "openmp:ch10-informational-utility#errata-correction-nov-2025",
+"doc": "ch10-informational-utility",
+"heading": "Chapter 10: Informational and Utility Directives > Errata correction (Nov 2025)",
+"text": "- **§10.5 (`requires`)**: a restriction's wording flipped — \"[...] **must appear** lexically [...]\" is corrected to \"[...] **must not appear** lexically [...]\". (A sign-error fix: the constraint forbids, not requires, the lexical appearance — verify the exact restriction in the spec before relying on the original text.)",
+"symbols": [
+"requires"
+]
+},
+{
+"id": "openmp:ch10-informational-utility#key-concepts",
+"doc": "ch10-informational-utility",
+"heading": "Chapter 10: Informational and Utility Directives > Key Concepts",
+"text": "- **`assume` is a promise, not a query**: if the asserted condition is false, behavior is undefined — only use facts you can guarantee. Big optimization lever (e.g. `assumes no_openmp` lets the compiler skip OpenMP scaffolding).\n- **`requires unified_shared_memory`** changes the whole `target` data model — host and device share an address space, so `map` clauses become largely unnecessary. Declaring it commits the *entire* compilation unit.\n- **`error at(compilation) severity(fatal)`** is the directive analog of `#error` — fail the build on a misconfiguration.\n- `requires` must be specified consistently and lexically per the (errata-corrected) restriction.",
+"symbols": [
+"assume",
+"assumes",
+"compilation",
+"error",
+"fatal",
+"map",
+"no_openmp",
+"requires",
+"severity",
+"target",
+"unified_shared_memory"
+]
+},
+{
+"id": "openmp:ch10-informational-utility#code-examples",
+"doc": "ch10-informational-utility",
+"heading": "Chapter 10: Informational and Utility Directives > Code Examples",
+"text": "```c\n// contract: this region contains no OpenMP, no parallelism -> aggressive opt\n#pragma omp assume no_openmp no_parallelism\n{ /* hot serial kernel */ }\n\n// fail the build if compiled without the needed device feature\n#pragma omp requires unified_shared_memory\n\n// emit a fatal compile-time error from a metadirective fallback\n#pragma omp error at(compilation) severity(fatal) message(\"no supported target\")\n```\n- **Demonstrates**: `assume` as an optimization contract, `requires` committing the unit to USM, and `error` failing the build.",
+"symbols": [
+"assume",
+"error",
+"requires"
+]
+},
+{
+"id": "openmp:ch10-informational-utility#anti-patterns",
+"doc": "ch10-informational-utility",
+"heading": "Chapter 10: Informational and Utility Directives > Anti-patterns",
+"text": "- **`assume`-ing a fact you can't guarantee**: false assumptions are undefined behavior, not a diagnosed error — worse than no hint.\n- **`requires unified_shared_memory` then still writing full `map` clauses**: redundant; USM changes the data model (though explicit maps remain legal/optimizing hints).\n- **Relying on the pre-errata §10.5 wording**: the `must`/`must not` flip changes a `requires` placement restriction — check the corrected text.\n- **`error at(execution)` for things knowable at compile time**: prefer `at(compilation)` to fail fast.",
+"symbols": [
+"assume",
+"compilation",
+"error",
+"execution",
+"map",
+"must",
+"not",
+"requires",
+"unified_shared_memory"
+]
+},
+{
+"id": "openmp:ch10-informational-utility#key-takeaways",
+"doc": "ch10-informational-utility",
+"heading": "Chapter 10: Informational and Utility Directives > Key Takeaways",
+"text": "1. `assume`/`assumes` are optimization *contracts* (UB if violated), not checks — use only guaranteed facts.\n2. `requires` mandates implementation features (USM, reverse_offload, dynamic_allocators…) for the whole compilation unit; a lacking implementation must reject.\n3. `error at(compilation) severity(fatal)` = build-time `#error`; `at(execution)` fires at runtime + an OMPT event.\n4. **Errata**: §10.5 `requires` restriction is \"must **not** appear lexically\" (sign correction).\n5. `nothing` is the explicit no-op for metaprogramming/metadirective branches.",
+"symbols": [
+"assume",
+"assumes",
+"compilation",
+"error",
+"execution",
+"fatal",
+"nothing",
+"requires",
+"severity"
+]
+},
+{
+"id": "openmp:ch10-informational-utility#connects-to",
+"doc": "ch10-informational-utility",
+"heading": "Chapter 10: Informational and Utility Directives > Connects To",
+"text": "- **Ch 9**: `nothing`/`error` as `metadirective` branches.\n- **Ch 15**: `requires unified_shared_memory`/`reverse_offload` reshape the `target` model.\n- **Ch 18**: `error at(execution)` raises the OMPT `runtime-error` event.",
+"symbols": [
+"error",
+"execution",
+"metadirective",
+"nothing",
+"requires",
+"reverse_offload",
+"runtime",
+"target",
+"unified_shared_memory"
+]
+},
+{
+"id": "openmp:ch11-loop-transforming#core-idea",
+"doc": "ch11-loop-transforming",
+"heading": "Chapter 11: Loop-Transforming Constructs > Core Idea",
+"text": "Directives that **reshape a loop nest before parallelization** — `tile`, `unroll`, `reverse`, `interchange`, `fuse`, `split`, `stripe` — composed via the `apply` clause. They transform the canonical loop nest (ch6) so a subsequent worksharing/`simd` construct sees a better-shaped iteration space.",
+"symbols": [
+"apply",
+"fuse",
+"interchange",
+"reverse",
+"simd",
+"split",
+"stripe",
+"tile",
+"unroll"
+]
+},
+{
+"id": "openmp:ch11-loop-transforming#frameworks-introduced",
+"doc": "ch11-loop-transforming",
+"heading": "Chapter 11: Loop-Transforming Constructs > Frameworks Introduced",
+"text": "- **`tile sizes(s1, s2, ...)`**: block a loop nest into tiles for cache locality; produces an outer (inter-tile) and inner (intra-tile) loop nest.\n- **`unroll [full | partial(n)]`**: unroll a loop fully or by factor n.\n- **`reverse`**: iterate a loop backward (logical iteration order reversed).\n- **`interchange permutation(...)`**: swap loop order in a nest (for locality/vectorization).\n- **`fuse` / `split` / `stripe`**: merge adjacent loops / split one loop / strip-mine.\n- **`apply` clause** (§11.1): compose transformations — apply listed loop-transforming directives to the loops generated by this one (transformations chain, e.g. tile then unroll the inner tile loop). List items needn't be unique; default loop-modifier argument is 1.",
+"symbols": [
+"apply",
+"full",
+"fuse",
+"interchange",
+"partial",
+"permutation",
+"reverse",
+"sizes",
+"split",
+"stripe",
+"tile",
+"unroll"
+]
+},
+{
+"id": "openmp:ch11-loop-transforming#key-concepts",
+"doc": "ch11-loop-transforming",
+"heading": "Chapter 11: Loop-Transforming Constructs > Key Concepts",
+"text": "- **Transformations happen *before* worksharing**: `#pragma omp tile` then `#pragma omp parallel for` parallelizes the *tiled* loops. Compose deliberately.\n- **`apply`** lets one construct drive a pipeline of transforms on its generated loops (e.g. `tile` whose inner loops are then `unroll`ed) — the 6.0 way to express multi-stage loop optimization declaratively.\n- These are **hints with defined semantics**: the transformed loop nest is well-specified, unlike a compiler's opaque auto-transform.\n- The result must still be a canonical loop nest for any subsequent parallelization.",
+"symbols": [
+"apply",
+"for",
+"omp",
+"parallel",
+"pragma",
+"tile",
+"unroll"
+]
+},
+{
+"id": "openmp:ch11-loop-transforming#code-examples",
+"doc": "ch11-loop-transforming",
+"heading": "Chapter 11: Loop-Transforming Constructs > Code Examples",
+"text": "```c\n// tile for cache, then parallelize the inter-tile loops\n#pragma omp tile sizes(64, 64)\n#pragma omp parallel for collapse(2)\nfor (int i = 0; i < n; ++i)\n  for (int j = 0; j < m; ++j) a[i][j] = b[i][j] + c[i][j];\n\n// compose via apply: tile, then unroll the intra-tile loop\n#pragma omp tile sizes(32) apply(intratile: unroll partial(4))\nfor (int i = 0; i < n; ++i) work(i);\n```\n- **Demonstrates**: `tile` feeding a `parallel for collapse`, and the `apply` clause chaining `unroll` onto the intra-tile loop generated by `tile`.",
+"symbols": [
+"apply",
+"collapse",
+"for",
+"parallel",
+"tile",
+"unroll"
+]
+},
+{
+"id": "openmp:ch11-loop-transforming#anti-patterns",
+"doc": "ch11-loop-transforming",
+"heading": "Chapter 11: Loop-Transforming Constructs > Anti-patterns",
+"text": "- **Applying a transform to a non-canonical loop**: it must meet ch6's canonical-loop rules first.\n- **Assuming order doesn't matter**: tiling then parallelizing differs from parallelizing then tiling — the construct order defines the transformation pipeline.\n- **`fuse` on loops with differing trip counts / dependences**: restricted; verify the loops are fusion-legal.\n- **Over-tiling**: tile sizes unrelated to cache/vector width can hurt — tie sizes to the target's cache line / L1.",
+"symbols": [
+"fuse"
+]
+},
+{
+"id": "openmp:ch11-loop-transforming#key-takeaways",
+"doc": "ch11-loop-transforming",
+"heading": "Chapter 11: Loop-Transforming Constructs > Key Takeaways",
+"text": "1. `tile`, `unroll`, `reverse`, `interchange`, `fuse`, `split`, `stripe` reshape the loop nest with *defined* semantics.\n2. Transformations apply **before** a subsequent worksharing/`simd` construct sees the loops.\n3. The **`apply` clause** composes transforms on generated loops (e.g. tile → unroll intra-tile) — declarative multi-stage optimization.\n4. The transformed nest must remain canonical for parallelization.\n5. Construct order = transformation pipeline order.",
+"symbols": [
+"apply",
+"fuse",
+"interchange",
+"reverse",
+"simd",
+"split",
+"stripe",
+"tile",
+"unroll"
+]
+},
+{
+"id": "openmp:ch11-loop-transforming#connects-to",
+"doc": "ch11-loop-transforming",
+"heading": "Chapter 11: Loop-Transforming Constructs > Connects To",
+"text": "- **Ch 6**: canonical loop nest these transforms operate on.\n- **Ch 13**: worksharing-loop parallelizes the transformed nest.\n- **Ch 12**: `simd` over a tiled/unrolled inner loop.",
+"symbols": [
+"simd"
+]
+},
+{
+"id": "openmp:ch12-parallelism-control#core-idea",
+"doc": "ch12-parallelism-control",
+"heading": "Chapter 12: Parallelism Generation and Control > Core Idea",
+"text": "The constructs that *create* parallelism: **`parallel`** (a team of threads), **`teams`** (a league of teams, for device offload), **`simd`** (vectorization), and **`masked`** (restrict to some threads). Plus the clauses that size and bind them.",
+"symbols": [
+"masked",
+"parallel",
+"simd",
+"teams"
+]
+},
+{
+"id": "openmp:ch12-parallelism-control#frameworks-introduced",
+"doc": "ch12-parallelism-control",
+"heading": "Chapter 12: Parallelism Generation and Control > Frameworks Introduced",
+"text": "- **`parallel`** (§12.1): forms a team; encountering thread becomes the **primary thread**; implicit barrier at the end. Clauses: `num_threads(list)`, `proc_bind(primary|close|spread)`, `if([parallel:] cond)`, `default`, `shared`/`private`/`firstprivate`/`reduction`/`copyin`, `allocate`, and **`safesync`** (6.0 — assert sync safety on non-host devices).\n- **`teams`** (§12.x): creates a **league** of initial teams (each its own contention group), typically inside `target` for GPU offload. Clauses: `num_teams(lb:ub)`, `thread_limit`, data clauses. Teams may execute concurrently or not (unspecified) — no portable cross-team sync.\n- **`simd`**: execute loop iterations concurrently across SIMD lanes. Clauses: `simdlen`, `safelen`, `aligned`, `linear`, `reduction`, `nontemporal`, `order(concurrent)`.\n- **`masked [filter(thread-num)]`** (replaces `master`): only the filtered thread(s) execute the block. No implicit barrier.\n- **Thread-count algorithm** (Algorithm 12.1): resolves the actual team size from `num_threads`, ICVs (`nthreads-var`, `thread-limit-var`, `dyn-var`), nesting level, and `max-active-levels-var`.",
+"symbols": [
+"active",
+"aligned",
+"allocate",
+"close",
+"concurrent",
+"cond",
+"copyin",
+"default",
+"dyn",
+"filter",
+"firstprivate",
+"levels",
+"limit",
+"linear",
+"list",
+"masked",
+"master",
+"max",
+"nontemporal",
+"nthreads",
+"num",
+"num_teams",
+"num_threads",
+"order",
+"parallel",
+"primary",
+"private",
+"proc_bind",
+"reduction",
+"safelen",
+"safesync",
+"shared",
+"simd",
+"simdlen",
+"spread",
+"target",
+"teams",
+"thread",
+"thread_limit",
+"var"
+]
+},
+{
+"id": "openmp:ch12-parallelism-control#key-concepts",
+"doc": "ch12-parallelism-control",
+"heading": "Chapter 12: Parallelism Generation and Control > Key Concepts",
+"text": "- **`num_threads` is a *request*** — `dyn-var` (dynamic adjustment) and limits may grant fewer. For an exact count, `OMP_DYNAMIC=false`.\n- **`proc_bind`**: `close` packs threads near the primary (cache sharing), `spread` distributes them (bandwidth), `primary` co-locates with the primary thread. Pairs with `OMP_PLACES`.\n- **`teams` is the GPU launch primitive**: `target teams distribute parallel for` is the canonical offload pattern (league of teams → distribute across teams → parallel-for within each team).\n- **`masked filter(n)`** generalizes the old `master` (thread 0 only) to any thread set.\n- **`safesync`** (6.0): asserts that synchronization within the parallel region is safe on the device — required for some non-host barriers.",
+"symbols": [
+"close",
+"distribute",
+"dyn",
+"false",
+"filter",
+"for",
+"masked",
+"master",
+"num_threads",
+"omp_dynamic",
+"omp_places",
+"parallel",
+"primary",
+"proc_bind",
+"safesync",
+"spread",
+"target",
+"teams",
+"var"
+]
+},
+{
+"id": "openmp:ch12-parallelism-control#code-examples",
+"doc": "ch12-parallelism-control",
+"heading": "Chapter 12: Parallelism Generation and Control > Code Examples",
+"text": "```c\n// CPU: exact thread count, spread for bandwidth\n#pragma omp parallel num_threads(8) proc_bind(spread) default(none) shared(a)\n{ /* ... */ }\n\n// GPU offload: the canonical teams pattern\n#pragma omp target teams distribute parallel for \\\n            num_teams(256) thread_limit(128) map(tofrom: a[0:n])\nfor (int i = 0; i < n; ++i) a[i] = f(a[i]);\n\n#pragma omp parallel\n#pragma omp masked filter(0)        // only thread 0; no barrier\n  printf(\"primary only\\n\");\n```\n- **Demonstrates**: a bound CPU team, the `target teams distribute parallel for` GPU idiom, and `masked` replacing `master`.",
+"symbols": [
+"distribute",
+"for",
+"masked",
+"master",
+"parallel",
+"target",
+"teams"
+]
+},
+{
+"id": "openmp:ch12-parallelism-control#anti-patterns",
+"doc": "ch12-parallelism-control",
+"heading": "Chapter 12: Parallelism Generation and Control > Anti-patterns",
+"text": "- **Assuming `num_threads(n)` guarantees n threads**: dynamic adjustment/limits may reduce it — set `OMP_DYNAMIC=false` for exact counts.\n- **Cross-team synchronization in `teams`**: unspecified concurrency → deadlock; sync only within a team.\n- **Using deprecated `master`**: replaced by `masked` (which also takes `filter`).\n- **`teams` without `distribute`**: the league runs the region redundantly per team (analogous to OpenACC bare `parallel`).\n- **Ignoring `proc_bind`/`OMP_PLACES` on NUMA**: threads migrate, killing locality.",
+"symbols": [
+"distribute",
+"false",
+"filter",
+"masked",
+"master",
+"num_threads",
+"omp_dynamic",
+"omp_places",
+"parallel",
+"proc_bind",
+"teams"
+]
+},
+{
+"id": "openmp:ch12-parallelism-control#key-takeaways",
+"doc": "ch12-parallelism-control",
+"heading": "Chapter 12: Parallelism Generation and Control > Key Takeaways",
+"text": "1. `parallel` = team + end barrier; `teams` = league of teams (GPU offload); `simd` = vector lanes; `masked` = thread subset.\n2. `num_threads` is a request; `OMP_DYNAMIC=false` for an exact count; resolution follows Algorithm 12.1.\n3. **`target teams distribute parallel for`** is the canonical GPU offload pattern.\n4. `proc_bind(close|spread|primary)` + `OMP_PLACES` control affinity; essential on NUMA.\n5. `masked filter(n)` replaces `master`; `safesync` (6.0) asserts device sync safety.",
+"symbols": [
+"close",
+"distribute",
+"false",
+"filter",
+"for",
+"masked",
+"master",
+"num_threads",
+"omp_dynamic",
+"omp_places",
+"parallel",
+"primary",
+"proc_bind",
+"safesync",
+"simd",
+"spread",
+"target",
+"teams"
+]
+},
+{
+"id": "openmp:ch12-parallelism-control#connects-to",
+"doc": "ch12-parallelism-control",
+"heading": "Chapter 12: Parallelism Generation and Control > Connects To",
+"text": "- **Ch 13**: `distribute` + worksharing-loop combine with `teams`/`parallel`.\n- **Ch 15**: `target` wraps `teams` for offload.\n- **Ch 3/4**: ICVs/env vars (`OMP_NUM_THREADS`, `OMP_PROC_BIND`) feeding these.\n- **Ch 16**: barriers/synchronization within a team.",
+"symbols": [
+"distribute",
+"omp_num_threads",
+"omp_proc_bind",
+"parallel",
+"target",
+"teams"
+]
+},
+{
+"id": "openmp:ch13-work-distribution#core-idea",
+"doc": "ch13-work-distribution",
+"heading": "Chapter 13: Work-Distribution Constructs > Core Idea",
+"text": "Constructs that **divide work across the threads of a team** (or teams of a league): the worksharing-loop (`for`/`do`), `sections`, `single`, `workshare` (Fortran), `distribute` (across teams), `scan` (prefix sums), and the unifying `loop` construct.",
+"symbols": [
+"distribute",
+"for",
+"loop",
+"scan",
+"sections",
+"single",
+"workshare"
+]
+},
+{
+"id": "openmp:ch13-work-distribution#frameworks-introduced",
+"doc": "ch13-work-distribution",
+"heading": "Chapter 13: Work-Distribution Constructs > Frameworks Introduced",
+"text": "- **worksharing-loop** (`for` / `do`): partition canonical-loop iterations across the team. Clauses: **`schedule(kind[, chunk])`**, `collapse(n)`, `ordered`, `nowait`, `reduction`, `lastprivate`, `linear`, `order(concurrent)`.\n  - **schedule kinds**: `static` (round-robin chunks, low overhead, predictable), `dynamic` (threads grab chunks on demand, load-balances irregular work), `guided` (shrinking chunks), `auto` (compiler/runtime decides), `runtime` (from `run-sched-var`/`OMP_SCHEDULE`). Modifiers: `monotonic`/`nonmonotonic`, `simd`.\n- **`sections`**: each `section` block runs once, on one thread (independent task-like blocks).\n- **`single`**: exactly one thread runs the block; implicit barrier at end unless `nowait`; `copyprivate` broadcasts the result.\n- **`workshare`** (Fortran): parallelize array-syntax / `FORALL` / `WHERE` statements.\n- **`distribute`**: partition loop iterations across the **teams** of a league (the device-offload counterpart of worksharing-loop); combined as `distribute parallel for`.\n- **`scan`** + `reduction(inscan, op: x)`: compute inclusive/exclusive **prefix sums** in parallel.\n- **`loop`** construct: a *descriptive* worksharing — \"these iterations are concurrent, you choose the mapping\" (binds to teams/parallel/single per context); `order(concurrent)` and `bind(...)`.",
+"symbols": [
+"auto",
+"bind",
+"chunk",
+"collapse",
+"concurrent",
+"copyprivate",
+"distribute",
+"dynamic",
+"for",
+"forall",
+"guided",
+"inscan",
+"kind",
+"lastprivate",
+"linear",
+"loop",
+"monotonic",
+"nonmonotonic",
+"nowait",
+"omp_schedule",
+"order",
+"ordered",
+"parallel",
+"reduction",
+"run",
+"runtime",
+"scan",
+"sched",
+"schedule",
+"section",
+"sections",
+"simd",
+"single",
+"static",
+"var",
+"where",
+"workshare"
+]
+},
+{
+"id": "openmp:ch13-work-distribution#key-concepts",
+"doc": "ch13-work-distribution",
+"heading": "Chapter 13: Work-Distribution Constructs > Key Concepts",
+"text": "- **`schedule` choice is the main loop-tuning lever**: `static` for uniform iterations (cache-friendly, no runtime overhead); `dynamic`/`guided` for irregular/imbalanced work (load-balances at the cost of contention).\n- **`nowait`** removes the implicit end barrier — chain independent worksharing regions without forcing all threads to rendezvous.\n- **`loop` vs `for`**: `loop` asserts concurrency and lets the implementation map it (more portable across host/device); `for` is the explicit thread-worksharing form.\n- **`distribute` needs `teams`**; `distribute parallel for` is the two-level GPU split (across teams, then across threads).",
+"symbols": [
+"distribute",
+"dynamic",
+"for",
+"guided",
+"loop",
+"nowait",
+"parallel",
+"schedule",
+"static",
+"teams"
+]
+},
+{
+"id": "openmp:ch13-work-distribution#schedule-kinds",
+"doc": "ch13-work-distribution",
+"heading": "Chapter 13: Work-Distribution Constructs > Reference Tables > schedule kinds",
+"text": "| Kind | Behavior | Use when |\n|---|---|---|\n| `static[,chunk]` | fixed round-robin chunks | uniform iterations; predictable, cache-friendly |\n| `dynamic[,chunk]` | grab chunk on completion | irregular/imbalanced work |\n| `guided[,chunk]` | shrinking chunks | imbalanced, fewer scheduling ops than dynamic |\n| `auto` | implementation decides | trust the runtime |\n| `runtime` | from `OMP_SCHEDULE` | tune without recompiling |",
+"symbols": [
+"auto",
+"chunk",
+"dynamic",
+"guided",
+"omp_schedule",
+"runtime",
+"static"
+]
+},
+{
+"id": "openmp:ch13-work-distribution#code-examples",
+"doc": "ch13-work-distribution",
+"heading": "Chapter 13: Work-Distribution Constructs > Code Examples",
+"text": "```c\n#pragma omp parallel for schedule(dynamic, 16) reduction(+: sum) nowait\nfor (int i = 0; i < n; ++i) sum += expensive_irregular(i);\n\n#pragma omp parallel\n{\n  #pragma omp sections\n  { #pragma omp section\n    phase_a();\n    #pragma omp section\n    phase_b(); }            // a and b run on (up to) two threads\n}\n\n// prefix sum\n#pragma omp parallel for reduction(inscan, +: running)\nfor (int i = 0; i < n; ++i) { running += a[i]; #pragma omp scan inclusive(running) b[i] = running; }\n```\n- **Demonstrates**: `schedule(dynamic)` + `reduction` + `nowait` for irregular work, `sections` for task-parallel phases, and `scan` for a parallel prefix sum.",
+"symbols": [
+"dynamic",
+"nowait",
+"reduction",
+"scan",
+"schedule",
+"sections"
+]
+},
+{
+"id": "openmp:ch13-work-distribution#anti-patterns",
+"doc": "ch13-work-distribution",
+"heading": "Chapter 13: Work-Distribution Constructs > Anti-patterns",
+"text": "- **`schedule(static)` for highly irregular iterations**: load imbalance — use `dynamic`/`guided`.\n- **`schedule(dynamic, 1)` for cheap iterations**: scheduling overhead dominates — increase chunk size.\n- **`nowait` then reading another region's output without synchronization**: removes the barrier you needed — only use when regions are independent.\n- **Worksharing construct outside a `parallel` region (orphaned) without understanding binding**: it binds to the enclosing team at runtime; an orphaned `for` with no team runs serially.\n- **`distribute` without `teams`**: ill-formed; pair them.",
+"symbols": [
+"distribute",
+"dynamic",
+"for",
+"guided",
+"nowait",
+"parallel",
+"schedule",
+"static",
+"teams"
+]
+},
+{
+"id": "openmp:ch13-work-distribution#key-takeaways",
+"doc": "ch13-work-distribution",
+"heading": "Chapter 13: Work-Distribution Constructs > Key Takeaways",
+"text": "1. `schedule` is the loop-tuning lever: `static` (uniform), `dynamic`/`guided` (irregular), `runtime` (`OMP_SCHEDULE`).\n2. `nowait` drops the implicit end barrier — only when regions are independent.\n3. `loop` (descriptive, portable) vs `for` (explicit thread worksharing); `distribute` splits across teams.\n4. `sections` for heterogeneous parallel phases; `single`+`copyprivate` for one-thread-then-broadcast.\n5. `scan` + `reduction(inscan,...)` computes parallel prefix sums.",
+"symbols": [
+"copyprivate",
+"distribute",
+"dynamic",
+"for",
+"guided",
+"inscan",
+"loop",
+"nowait",
+"omp_schedule",
+"reduction",
+"runtime",
+"scan",
+"schedule",
+"sections",
+"single",
+"static"
+]
+},
+{
+"id": "openmp:ch13-work-distribution#connects-to",
+"doc": "ch13-work-distribution",
+"heading": "Chapter 13: Work-Distribution Constructs > Connects To",
+"text": "- **Ch 12**: `parallel`/`teams` create the threads/teams this distributes work across.\n- **Ch 7**: `reduction`/`lastprivate` data handling.\n- **Ch 6**: canonical loop nest + `collapse`.\n- **Ch 3**: `run-sched-var` feeds `schedule(runtime)`.",
+"symbols": [
+"collapse",
+"lastprivate",
+"parallel",
+"reduction",
+"run",
+"runtime",
+"sched",
+"schedule",
+"teams",
+"var"
+]
+},
+{
+"id": "openmp:ch14-tasking#core-idea",
+"doc": "ch14-tasking",
+"heading": "Chapter 14: Tasking Constructs > Core Idea",
+"text": "**Explicit tasks** — deferrable units of work with dependences — for irregular, recursive, and dynamic parallelism: `task`, `taskloop`, the new 6.0 **`taskgraph`** (record/replay a task graph), plus synchronization (`taskwait`, `taskgroup`) and the `depend` clause.\n\n> ⚠ **Errata (Nov 2025)** applied below at §14.3 (`taskgraph`), §14.3.2 (`graph_reset`), §14.6 (`replayable`).",
+"symbols": [
+"depend",
+"graph_reset",
+"replayable",
+"task",
+"taskgraph",
+"taskgroup",
+"taskloop",
+"taskwait"
+]
+},
+{
+"id": "openmp:ch14-tasking#frameworks-introduced",
+"doc": "ch14-tasking",
+"heading": "Chapter 14: Tasking Constructs > Frameworks Introduced",
+"text": "- **`task`** (§14.1): generate an explicit task. Clauses: `depend(dep-type: list)`, `if`, `final`, `mergeable`, `priority`, `untied`, `detach(event)`, `affinity`, `in_reduction`, data-sharing clauses, and 6.0 **`replayable`**, **`threadset`**, **`transparent`**. A task scheduling point is created at the construct.\n- **`taskloop`** (§14.2): partition loop iterations into explicit tasks. Implicitly wrapped in a `taskgroup` unless `nogroup`. Clauses: `grainsize`/`num_tasks`, `collapse`, `reduction`, `priority`, plus `task_iteration` subsidiary directives. 6.0 adds `threadset`, `transparent`, `replayable`.\n- **`taskgraph`** (§14.3, **6.0**): record a region's task graph once, then **replay** it on subsequent encounters — amortizing task-creation overhead for repeated, stable task patterns (e.g. iterative solvers). `graph_reset` (§14.3.2) forces re-recording.\n- **`depend(dep-type: list)`**: data-flow dependences — `in`, `out`, `inout`, `mutexinoutset`, `inoutset`, `depobj`. Builds the task DAG; `iterator(...)` generates a dependence per element.\n- **`taskwait`** (wait for child tasks, optionally `depend`), **`taskgroup`** (wait for all descendants; supports task reductions), **`taskyield`** (task scheduling point).",
+"symbols": [
+"affinity",
+"collapse",
+"dep",
+"depend",
+"depobj",
+"detach",
+"event",
+"final",
+"grainsize",
+"graph_reset",
+"in_reduction",
+"inout",
+"inoutset",
+"iterator",
+"list",
+"mergeable",
+"mutexinoutset",
+"nogroup",
+"num_tasks",
+"out",
+"priority",
+"reduction",
+"replayable",
+"task",
+"task_iteration",
+"taskgraph",
+"taskgroup",
+"taskloop",
+"taskwait",
+"taskyield",
+"threadset",
+"transparent",
+"type",
+"untied"
+]
+},
+{
+"id": "openmp:ch14-tasking#errata-corrections-nov-2025",
+"doc": "ch14-tasking",
+"heading": "Chapter 14: Tasking Constructs > Errata corrections (Nov 2025)",
+"text": "- **§14.3 (`taskgraph`)**: added restriction — *if a task generated by one construct in a taskgraph region is an antecedent of a task generated by another construct in the region, **either both constructs must be `replayable` or both must be not**.* (Can't mix replayable/non-replayable across a dependence.)\n- **§14.3.2 (`graph_reset` clause)**: the `default` property is changed to **`optional`**.\n- **§14.6 (`replayable` clause)**: the `default` property is changed to **`unique`**.",
+"symbols": [
+"default",
+"graph_reset",
+"optional",
+"replayable",
+"taskgraph",
+"unique"
+]
+},
+{
+"id": "openmp:ch14-tasking#key-concepts",
+"doc": "ch14-tasking",
+"heading": "Chapter 14: Tasking Constructs > Key Concepts",
+"text": "- **`depend` builds the DAG**: `out`/`inout` on a producer, `in` on a consumer creates a happens-before edge — the runtime schedules respecting it. This replaces manual barriers for fine-grained pipelines.\n- **`taskgraph` (6.0)** targets the overhead of *re-creating the same task graph every iteration*: record once, replay cheaply. The errata pins down replayability consistency across dependent constructs.\n- **`taskloop` auto-`taskgroup`**: it waits for its tasks unless `nogroup` — so a following statement sees completed work.\n- **`final(cond)` + `mergeable`**: cut task-creation overhead at recursion leaves (final tasks generate no further deferred tasks).\n- **task reductions**: `reduction` on `taskgroup`/`taskloop` + `in_reduction` on participating tasks.",
+"symbols": [
+"cond",
+"depend",
+"final",
+"in_reduction",
+"inout",
+"mergeable",
+"nogroup",
+"out",
+"reduction",
+"taskgraph",
+"taskgroup",
+"taskloop"
+]
+},
+{
+"id": "openmp:ch14-tasking#code-examples",
+"doc": "ch14-tasking",
+"heading": "Chapter 14: Tasking Constructs > Code Examples",
+"text": "```c\n// dependence-driven pipeline: the runtime orders by data flow, no barriers\n#pragma omp parallel\n#pragma omp single\n{\n  #pragma omp task depend(out: x)        x = produce();\n  #pragma omp task depend(in: x, out: y) y = stage2(x);\n  #pragma omp task depend(in: y)         consume(y);\n}   // single's implicit barrier waits for all\n\n// recursive tasking with a cutoff\nvoid quicksort(int *a, int lo, int hi) {\n  if (hi - lo < THRESHOLD) { serial_sort(a, lo, hi); return; }\n  int p = partition(a, lo, hi);\n  #pragma omp task final(hi-lo < BIG) firstprivate(lo,p) quicksort(a, lo, p-1);\n  #pragma omp task final(hi-lo < BIG) firstprivate(p,hi) quicksort(a, p+1, hi);\n  #pragma omp taskwait\n}\n```\n- **Demonstrates**: `depend`-built DAG replacing barriers, and recursive `task` with `final` cutoff + `taskwait`.",
+"symbols": [
+"depend",
+"final",
+"task",
+"taskwait"
+]
+},
+{
+"id": "openmp:ch14-tasking#anti-patterns",
+"doc": "ch14-tasking",
+"heading": "Chapter 14: Tasking Constructs > Anti-patterns",
+"text": "- **Generating tasks outside `single`/`masked`**: every team thread generating the same tasks → duplication; generate from one thread.\n- **Manual flags/barriers instead of `depend`**: fragile — let the `depend` DAG schedule.\n- **No `final`/cutoff in recursive tasking**: unbounded fine-grained tasks → creation overhead dominates.\n- **Mixing replayable/non-replayable across a `taskgraph` dependence** (post-errata): now explicitly forbidden.\n- **Assuming `taskloop` doesn't synchronize**: it implies a `taskgroup` unless `nogroup`.",
+"symbols": [
+"depend",
+"final",
+"masked",
+"nogroup",
+"single",
+"taskgraph",
+"taskgroup",
+"taskloop"
+]
+},
+{
+"id": "openmp:ch14-tasking#key-takeaways",
+"doc": "ch14-tasking",
+"heading": "Chapter 14: Tasking Constructs > Key Takeaways",
+"text": "1. `task` + `depend(in/out/inout/...)` builds a data-flow DAG the runtime schedules — replace barriers with dependences.\n2. **`taskgraph` (6.0)** records a task graph once and replays it — for repeated stable patterns (iterative solvers).\n3. **Errata**: `taskgraph` antecedent tasks must agree on replayability; `graph_reset` default→optional; `replayable` default→unique.\n4. Generate tasks from one thread (`single`/`masked`); use `final`/`mergeable` cutoffs in recursion.\n5. `taskloop` implies a `taskgroup` unless `nogroup`; task reductions via `taskgroup`/`in_reduction`.",
+"symbols": [
+"depend",
+"final",
+"graph_reset",
+"in_reduction",
+"inout",
+"masked",
+"mergeable",
+"nogroup",
+"out",
+"replayable",
+"single",
+"task",
+"taskgraph",
+"taskgroup",
+"taskloop"
+]
+},
+{
+"id": "openmp:ch14-tasking#connects-to",
+"doc": "ch14-tasking",
+"heading": "Chapter 14: Tasking Constructs > Connects To",
+"text": "- **Ch 16**: `depend` shares dependence machinery with synchronization (depobj).\n- **Ch 12**: tasks bind to the innermost `parallel` region's threads.\n- **Ch 7**: task data-sharing + task reductions.\n- **Ch 18**: OMPT task events for profiling task graphs.",
+"symbols": [
+"depend",
+"parallel"
+]
+},
+{
+"id": "openmp:ch15-device-interop#core-idea",
+"doc": "ch15-device-interop",
+"heading": "Chapter 15: Device Directives and Interoperability > Core Idea",
+"text": "Offload to accelerators: the **`target`** construct family creates device data environments and executes regions on a device, with explicit data lifetime control (`target data`, `target enter/exit data`, `target update`) and device-resident declarations (`declare target`). Plus **`interop`** for bridging to foreign runtimes (CUDA/HIP streams).",
+"symbols": [
+"data",
+"declare",
+"enter",
+"exit",
+"interop",
+"target",
+"update"
+]
+},
+{
+"id": "openmp:ch15-device-interop#frameworks-introduced",
+"doc": "ch15-device-interop",
+"heading": "Chapter 15: Device Directives and Interoperability > Frameworks Introduced",
+"text": "- **`target`** (§15.x): generate a **target task** enclosing a region executed on a device. Data environment from `map` clauses + data-environment ICVs. Clauses: `map`, `device([device-modifier:] num)`, `if([target:] cond)`, `nowait`, `depend`, `private`/`firstprivate`, `is_device_ptr`, `has_device_addr`, `defaultmap`. Falls back to host if device unavailable or `if(false)`.\n- **Structured device data** (`target data` region) vs **unstructured** (`target enter data` / `target exit data` directives) — lexical vs arbitrary-lifetime device data (mirrors OpenACC `data` vs `enter/exit data`).\n- **`target update`**: synchronize already-mapped data between host and device (`to(...)` H→D, `from(...)` D→H) without changing its lifetime.\n- **`declare target`** (+ paired `begin/end declare target`): mark functions/variables for device compilation/residence; `enter`/`link`/`device_type` modifiers.\n- **`device` clause modifiers**: `device_num` (default), `ancestor` (reverse-offload to a parent device — only on `target`, needs `requires reverse_offload`).\n- **`interop`** (§16.1): retrieve interoperability properties (`init`/`use`/`destroy` actions, `interop-type` `targetsync`/`target`) to hand OpenMP-managed device context to a foreign runtime (e.g. get the CUDA stream).",
+"symbols": [
+"ancestor",
+"begin",
+"cond",
+"data",
+"declare",
+"defaultmap",
+"depend",
+"destroy",
+"device",
+"device_num",
+"device_type",
+"end",
+"enter",
+"exit",
+"false",
+"firstprivate",
+"from",
+"has_device_addr",
+"init",
+"interop",
+"is_device_ptr",
+"link",
+"map",
+"modifier",
+"nowait",
+"num",
+"private",
+"requires",
+"reverse_offload",
+"target",
+"targetsync",
+"type",
+"update",
+"use"
+]
+},
+{
+"id": "openmp:ch15-device-interop#key-concepts",
+"doc": "ch15-device-interop",
+"heading": "Chapter 15: Device Directives and Interoperability > Key Concepts",
+"text": "- **map lifetime hoisting** = the dominant offload optimization (same as OpenACC): `target enter data map(to:...)` once, kernels use the resident data, `target exit data map(from:...)` at the end — avoid per-kernel transfers.\n- **`target` + `teams distribute parallel for`** is the canonical GPU pattern (ch12).\n- **`is_device_ptr` / `has_device_addr`**: pass an existing device pointer / a variable already having a device address into a `target` region (interop with CUDA-allocated memory). *(Errata sharpens their array-base rules — see ch07.)*\n- **`requires unified_shared_memory`** (ch10) collapses the data model — `map` becomes largely optional.\n- **`nowait` on `target`** makes the target task asynchronous; synchronize via `depend`/`taskwait`.",
+"symbols": [
+"data",
+"depend",
+"distribute",
+"enter",
+"exit",
+"for",
+"from",
+"has_device_addr",
+"is_device_ptr",
+"map",
+"nowait",
+"parallel",
+"requires",
+"target",
+"taskwait",
+"teams",
+"unified_shared_memory"
+]
+},
+{
+"id": "openmp:ch15-device-interop#code-examples",
+"doc": "ch15-device-interop",
+"heading": "Chapter 15: Device Directives and Interoperability > Code Examples",
+"text": "```c\n// hoist data, then run kernels against resident data (no per-kernel transfers)\n#pragma omp target enter data map(to: a[0:n], b[0:n]) map(alloc: c[0:n])\nfor (int t = 0; t < nsteps; ++t) {\n  #pragma omp target teams distribute parallel for\n  for (int i = 0; i < n; ++i) c[i] = a[i]*b[i] + c[i];\n}\n#pragma omp target exit data map(from: c[0:n]) map(delete: a[0:n], b[0:n])\n\n// device-resident function + variable\n#pragma omp begin declare target\ndouble kernel_helper(double x) { return x*x; }\n#pragma omp end declare target\n\n// async offload joined by dependence\n#pragma omp target nowait depend(out: a) map(tofrom: a[0:n]) { /* ... */ }\n#pragma omp taskwait depend(in: a)\n```\n- **Demonstrates**: data-lifetime hoisting with `target enter/exit data`, `declare target` for device functions, and async `target` joined via `depend`/`taskwait`.",
+"symbols": [
+"data",
+"declare",
+"depend",
+"enter",
+"exit",
+"target",
+"taskwait"
+]
+},
+{
+"id": "openmp:ch15-device-interop#anti-patterns",
+"doc": "ch15-device-interop",
+"heading": "Chapter 15: Device Directives and Interoperability > Anti-patterns",
+"text": "- **`map(tofrom:)` on every `target`**: re-transfers each launch — hoist with `target enter/exit data` + resident data.\n- **Forgetting array bounds in `map`**: `map(a)` on a pointer is ambiguous — `map(tofrom: a[0:n])`.\n- **Silent host fallback**: a `target` region runs on host if the device is absent — set `OMP_TARGET_OFFLOAD=MANDATORY` to catch it.\n- **`ancestor` device-modifier off a non-`target` directive**: illegal; reverse-offload needs `requires reverse_offload`.\n- **Async `target nowait` without a join**: reading results before the target task completes races — use `depend`/`taskwait`.",
+"symbols": [
+"ancestor",
+"data",
+"depend",
+"enter",
+"exit",
+"mandatory",
+"map",
+"nowait",
+"omp_target_offload",
+"requires",
+"reverse_offload",
+"target",
+"taskwait",
+"tofrom"
+]
+},
+{
+"id": "openmp:ch15-device-interop#key-takeaways",
+"doc": "ch15-device-interop",
+"heading": "Chapter 15: Device Directives and Interoperability > Key Takeaways",
+"text": "1. `target` offloads a region to a device; `map` controls host↔device data; fallback to host if unavailable.\n2. **Hoist data** with `target enter/exit data` + `target update` — avoid per-kernel transfers (the key perf lever).\n3. `declare target` marks device-resident functions/variables; `target teams distribute parallel for` is the GPU idiom.\n4. `is_device_ptr`/`has_device_addr` + `interop` bridge to CUDA/HIP; `interop` exposes the device stream.\n5. `OMP_TARGET_OFFLOAD=MANDATORY` turns silent host-fallback into a hard error.",
+"symbols": [
+"data",
+"declare",
+"distribute",
+"enter",
+"exit",
+"for",
+"has_device_addr",
+"interop",
+"is_device_ptr",
+"mandatory",
+"map",
+"omp_target_offload",
+"parallel",
+"target",
+"teams",
+"update"
+]
+},
+{
+"id": "openmp:ch15-device-interop#connects-to",
+"doc": "ch15-device-interop",
+"heading": "Chapter 15: Device Directives and Interoperability > Connects To",
+"text": "- **Ch 7**: `map`/`defaultmap` and the `is_device_ptr`/`has_device_addr` errata.\n- **Ch 12**: `teams distribute parallel for` inside `target`.\n- **Ch 10**: `requires unified_shared_memory`/`reverse_offload`.\n- **Ch 17 (runtime)**: `omp_target_alloc`/`omp_target_memcpy`/`omp_target_is_accessible` device-memory API.\n- **openacc-3.4**: the analogous `acc data`/`acc parallel` offload model.",
+"symbols": [
+"acc",
+"data",
+"defaultmap",
+"distribute",
+"for",
+"has_device_addr",
+"is_device_ptr",
+"map",
+"omp_target_alloc",
+"omp_target_is_accessible",
+"omp_target_memcpy",
+"parallel",
+"requires",
+"reverse_offload",
+"target",
+"teams",
+"unified_shared_memory"
+]
+},
+{
+"id": "openmp:ch16-synchronization#core-idea",
+"doc": "ch16-synchronization",
+"heading": "Chapter 16 (§17–19): Synchronization, Cancellation, Composition > Core Idea",
+"text": "The constructs that order and coordinate threads — `barrier`, `critical`, `atomic`, `ordered`, `flush`, `taskwait`/`taskgroup`, `depend` — built on the OpenMP **memory model** (release/acquire flushes establishing happens-before). Plus cancellation and the composition rules for combined constructs.",
+"symbols": [
+"atomic",
+"barrier",
+"critical",
+"depend",
+"flush",
+"ordered",
+"taskgroup",
+"taskwait"
+]
+},
+{
+"id": "openmp:ch16-synchronization#frameworks-introduced",
+"doc": "ch16-synchronization",
+"heading": "Chapter 16 (§17–19): Synchronization, Cancellation, Composition > Frameworks Introduced",
+"text": "- **Memory model** (§17.1, 17.8.7): visibility between threads requires **synchronizing flushes**. A **release flush** (on the writer) before an **acquire flush** (on the reader) of the same data establishes **happens-before**. Many constructs (`barrier`, `critical` exit/entry, `atomic` with memory order, task scheduling) imply flushes.\n- **`barrier`**: all team threads rendezvous; implies a flush. Implicit at the end of `parallel` and worksharing (unless `nowait`).\n- **`critical [(name)] [hint(...)]`**: mutual exclusion — only one thread (per name) in the region at a time. Names are global; unnamed critical regions all share one lock. **Must not be nested** in a same-name critical.\n- **`atomic [read|write|update|capture|compare] [memory-order] [hint]`**: lock-free single-location atomicity. Memory orders: `seq_cst`, `acq_rel`, `acquire`, `release`, `relaxed`. 6.0 adds `compare` (CAS) and `weak`/`fail(...)`.\n- **`ordered [(n)] [clauses]`**: enforce source order within a worksharing-loop (for ordered output or cross-iteration dependences via `doacross` `depend(sink/source)`).\n- **`flush [(list)] [acq_rel|acquire|release]`**: explicit memory fence.\n- **`depend`** (§17.9.5): the task-dependence clause (shared with tasking, ch14).\n- **Cancellation** (§18): `cancel` (activate cancellation of `parallel`/`sections`/`for`/`taskgroup`) + `cancellation point` (where threads check). Requires `OMP_CANCELLATION=true`.\n- **Composition** (§19): rules for combined/composite constructs (`parallel for`, `target teams distribute parallel for`) — clause application and nesting legality.",
+"symbols": [
+"acq_rel",
+"acquire",
+"atomic",
+"barrier",
+"cancel",
+"cancellation",
+"capture",
+"clauses",
+"compare",
+"critical",
+"depend",
+"distribute",
+"doacross",
+"fail",
+"flush",
+"for",
+"hint",
+"list",
+"memory",
+"name",
+"nowait",
+"omp_cancellation",
+"order",
+"ordered",
+"parallel",
+"point",
+"read",
+"relaxed",
+"release",
+"sections",
+"seq_cst",
+"sink",
+"source",
+"target",
+"taskgroup",
+"teams",
+"true",
+"update",
+"weak",
+"write"
+]
+},
+{
+"id": "openmp:ch16-synchronization#synchronization-mechanism-choice",
+"doc": "ch16-synchronization",
+"heading": "Chapter 16 (§17–19): Synchronization, Cancellation, Composition > Reference Tables > Synchronization mechanism choice",
+"text": "| Need | Construct |\n|---|---|\n| all threads rendezvous | `barrier` |\n| mutual exclusion (region) | `critical` |\n| atomic update of one location | `atomic` |\n| source-order / loop-carried dep | `ordered` |\n| explicit fence | `flush` |\n| wait for child tasks | `taskwait` / `taskgroup` |\n| data-flow ordering | `depend` |",
+"symbols": [
+"atomic",
+"barrier",
+"critical",
+"depend",
+"flush",
+"ordered",
+"taskgroup",
+"taskwait"
+]
+},
+{
+"id": "openmp:ch16-synchronization#atomic-memory-orders",
+"doc": "ch16-synchronization",
+"heading": "Chapter 16 (§17–19): Synchronization, Cancellation, Composition > Reference Tables > atomic memory orders",
+"text": "| Order | Meaning |\n|---|---|\n| `seq_cst` | sequential consistency (default-ish, strongest) |\n| `acq_rel` | acquire on read part, release on write part |\n| `acquire` / `release` | one-sided ordering |\n| `relaxed` | atomicity only, no ordering |",
+"symbols": [
+"acq_rel",
+"acquire",
+"relaxed",
+"release",
+"seq_cst"
+]
+},
+{
+"id": "openmp:ch16-synchronization#code-examples",
+"doc": "ch16-synchronization",
+"heading": "Chapter 16 (§17–19): Synchronization, Cancellation, Composition > Code Examples",
+"text": "```c\n#pragma omp parallel for\nfor (int i = 0; i < n; ++i) {\n  #pragma omp atomic update            // race-free accumulation (vs reduction)\n  hist[bin[i]]++;\n}\n\n// CAS loop (6.0 atomic compare)\n#pragma omp atomic compare\nif (max < val) max = val;\n\n#pragma omp parallel\n{\n  work();\n  #pragma omp barrier                  // all threads sync + flush here\n  use_results();\n}\n```\n- **Demonstrates**: `atomic update` for scatter, 6.0 `atomic compare` (CAS), and `barrier` for phase separation.",
+"symbols": [
+"atomic",
+"barrier",
+"compare",
+"update"
+]
+},
+{
+"id": "openmp:ch16-synchronization#anti-patterns",
+"doc": "ch16-synchronization",
+"heading": "Chapter 16 (§17–19): Synchronization, Cancellation, Composition > Anti-patterns",
+"text": "- **Assuming shared writes are visible without a flush/sync construct**: the weak memory model needs release→acquire ordering; otherwise stale reads.\n- **`critical` for a single-variable update**: use `atomic` (lock-free) — `critical` serializes a whole region.\n- **Unnamed `critical` everywhere**: all share one global lock → false contention; name them or use `atomic`.\n- **`reduction` replaced by manual `critical`/`atomic` accumulation in a loop**: prefer `reduction` for performance.\n- **Cross-gang/team or busy-wait locks**: deadlock (ch1) — OpenMP sync is within a team/contention group.\n- **Forgetting `OMP_CANCELLATION=true`**: `cancel` is a no-op without it.",
+"symbols": [
+"atomic",
+"cancel",
+"critical",
+"omp_cancellation",
+"reduction",
+"true"
+]
+},
+{
+"id": "openmp:ch16-synchronization#key-takeaways",
+"doc": "ch16-synchronization",
+"heading": "Chapter 16 (§17–19): Synchronization, Cancellation, Composition > Key Takeaways",
+"text": "1. Visibility requires synchronizing flushes (release→acquire = happens-before); most sync constructs imply them.\n2. `atomic` (lock-free, one location) vs `critical` (region mutex); prefer `atomic`, and `reduction` over both for accumulation.\n3. 6.0 `atomic compare` adds CAS (`weak`/`fail`); memory orders span `seq_cst`…`relaxed`.\n4. `barrier` (team rendezvous), `ordered` (source order / doacross), `taskwait`/`taskgroup` (task sync), `depend` (data-flow).\n5. `cancel` needs `OMP_CANCELLATION=true`; synchronization is scoped within a team/contention group.",
+"symbols": [
+"atomic",
+"barrier",
+"cancel",
+"compare",
+"critical",
+"depend",
+"fail",
+"omp_cancellation",
+"ordered",
+"reduction",
+"relaxed",
+"seq_cst",
+"taskgroup",
+"taskwait",
+"true",
+"weak"
+]
+},
+{
+"id": "openmp:ch16-synchronization#connects-to",
+"doc": "ch16-synchronization",
+"heading": "Chapter 16 (§17–19): Synchronization, Cancellation, Composition > Connects To",
+"text": "- **Ch 2**: the memory-model terms (flush, happens-before, acquire/release).\n- **Ch 14**: `depend`, `taskwait`, `taskgroup` task synchronization.\n- **Ch 13**: implicit barriers and `nowait` on worksharing.\n- **Ch 1**: cancellation flow; no portable cross-team synchronization.",
+"symbols": [
+"depend",
+"nowait",
+"taskgroup",
+"taskwait"
+]
+},
+{
+"id": "openmp:ch17-runtime-library#core-idea",
+"doc": "ch17-runtime-library",
+"heading": "Chapter 17 (§20–30): Runtime Library Routines > Core Idea",
+"text": "The `omp_*` runtime API (~291 routines; C header `omp.h`, Fortran module `omp_lib`) — query/set ICVs, manage devices and device memory, allocators, locks, affinity, and tasking. The imperative complement to the directives.\n\n> ⚠ **Errata (Nov 2025)** applied below at §20.12.1, §25.2.2, §27.11.",
+"symbols": [
+"omp",
+"omp_",
+"omp_lib"
+]
+},
+{
+"id": "openmp:ch17-runtime-library#frameworks-introduced-by-category",
+"doc": "ch17-runtime-library",
+"heading": "Chapter 17 (§20–30): Runtime Library Routines > Frameworks Introduced — by category",
+"text": "- **Parallel-region support** (§21): `omp_set/get_num_threads`, `omp_get_max_threads`, `omp_get_thread_num`, `omp_in_parallel`, `omp_get_level`/`omp_get_active_level`, `omp_get_ancestor_thread_num`, `omp_set/get_dynamic`, `omp_set/get_max_active_levels`, `omp_set/get_schedule`.\n- **Teams** (§22): `omp_get_num_teams`, `omp_get_team_num`, `omp_set/get_num_teams`, `omp_get_teams_thread_limit`.\n- **Tasking** (§23): `omp_in_final`, `omp_get_max_task_priority`, `omp_fulfill_event` (for `detach`).\n- **Device info** (§24): `omp_get_num_devices`, `omp_get_default_device`/`omp_set_default_device`, `omp_get_device_num`, `omp_is_initial_device`, `omp_get_initial_device`, `omp_get_mapped_ptr`, `omp_get_device_from_uid`.\n- **Device memory** (§25): `omp_target_alloc`/`omp_target_free`, `omp_target_memcpy`(`_rect`/`_async`), `omp_target_associate_ptr`/`omp_target_disassociate_ptr`, `omp_target_is_present`, **`omp_target_is_accessible`**.\n- **Interoperability** (§26): `omp_get_interop_ptr`/`omp_get_interop_int`/`omp_get_interop_str` — extract foreign-runtime handles (e.g. the CUDA stream) from an `interop` object.\n- **Memory management** (§27): `omp_alloc`/`omp_aligned_alloc`/`omp_calloc`/`omp_free`, `omp_init_allocator`/`omp_destroy_allocator`, `omp_get/set_default_allocator`, device/host memspace+allocator queries.\n- **Locks** (§28): `omp_init_lock`/`omp_set_lock`/`omp_unset_lock`/`omp_test_lock`/`omp_destroy_lock` (+ `_nest_` variants, `omp_init_lock_with_hint`).\n- **Affinity** (§29): `omp_get_proc_bind`, `omp_get_num_places`, `omp_get_place_num`, `omp_get_partition_*`, `omp_set/get_affinity_format`, `omp_display_affinity`.\n- **Execution control** (§30): `omp_get_wtime`/`omp_get_wtick` (timing), `omp_pause_resource`/`omp_pause_resource_all`.\n- **Tool control** (§31): `omp_control_tool`.",
+"symbols": [
+"_async",
+"_nest_",
+"_rect",
+"detach",
+"get_affinity_format",
+"get_dynamic",
+"get_max_active_levels",
+"get_num_teams",
+"get_num_threads",
+"get_schedule",
+"interop",
+"omp_aligned_alloc",
+"omp_alloc",
+"omp_calloc",
+"omp_control_tool",
+"omp_destroy_allocator",
+"omp_destroy_lock",
+"omp_display_affinity",
+"omp_free",
+"omp_fulfill_event",
+"omp_get",
+"omp_get_active_level",
+"omp_get_ancestor_thread_num",
+"omp_get_default_device",
+"omp_get_device_from_uid",
+"omp_get_device_num",
+"omp_get_initial_device",
+"omp_get_interop_int",
+"omp_get_interop_ptr",
+"omp_get_interop_str",
+"omp_get_level",
+"omp_get_mapped_ptr",
+"omp_get_max_task_priority",
+"omp_get_max_threads",
+"omp_get_num_devices",
+"omp_get_num_places",
+"omp_get_num_teams",
+"omp_get_partition_",
+"omp_get_place_num",
+"omp_get_proc_bind",
+"omp_get_team_num",
+"omp_get_teams_thread_limit",
+"omp_get_thread_num",
+"omp_get_wtick",
+"omp_get_wtime",
+"omp_in_final",
+"omp_in_parallel",
+"omp_init_allocator",
+"omp_init_lock",
+"omp_init_lock_with_hint",
+"omp_is_initial_device",
+"omp_pause_resource",
+"omp_pause_resource_all",
+"omp_set",
+"omp_set_default_device",
+"omp_set_lock",
+"omp_target_alloc",
+"omp_target_associate_ptr",
+"omp_target_disassociate_ptr",
+"omp_target_free",
+"omp_target_is_accessible",
+"omp_target_is_present",
+"omp_target_memcpy",
+"omp_test_lock",
+"omp_unset_lock",
+"set_default_allocator"
+]
+},
+{
+"id": "openmp:ch17-runtime-library#errata-corrections-nov-2025",
+"doc": "ch17-runtime-library",
+"heading": "Chapter 17 (§20–30): Runtime Library Routines > Errata corrections (Nov 2025)",
+"text": "- **§20.12.1**: `omp_control_tool_max = INT32_MAX` added as the last enum value of the control-tool command enum.\n- **§25.2.2 (`omp_target_is_accessible`)**: return rule corrected — \"If `ptr` is NULL, returns zero\" becomes \"If `ptr` is NULL **or the implementation cannot guarantee accessibility**, returns zero.\" (Don't treat a nonzero return as the only \"inaccessible\" signal — NULL *or* unguaranteed accessibility → 0.)\n- **§27.11**: the word \"constant\" removed from a restriction (a memory-management routine restriction is loosened — verify the exact routine in the spec).",
+"symbols": [
+"int32_max",
+"omp_control_tool_max",
+"omp_target_is_accessible",
+"ptr"
+]
+},
+{
+"id": "openmp:ch17-runtime-library#key-concepts",
+"doc": "ch17-runtime-library",
+"heading": "Chapter 17 (§20–30): Runtime Library Routines > Key Concepts",
+"text": "- **`omp_get_wtime`** is the portable wall-clock timer — use it (not `cpu_time`) for OpenMP benchmark timing; pair with proper synchronization before/after the region.\n- **`omp_target_memcpy`/`_async`** + `omp_target_alloc` give explicit device memory control for interop/custom staging.\n- **`omp_get_interop_ptr`** is the bridge: get the underlying CUDA/HIP stream from an `interop` object to mix OpenMP with native device libraries.\n- **Locks**: `omp_init_lock_with_hint` (uncontended/contended/speculative) tunes lock implementation; nestable variants for recursive locking.\n- API `omp_set_*` affects *future* regions (ICV semantics, ch3), not the running one.",
+"symbols": [
+"_async",
+"cpu_time",
+"interop",
+"omp_get_interop_ptr",
+"omp_get_wtime",
+"omp_init_lock_with_hint",
+"omp_set_",
+"omp_target_alloc",
+"omp_target_memcpy"
+]
+},
+{
+"id": "openmp:ch17-runtime-library#code-examples",
+"doc": "ch17-runtime-library",
+"heading": "Chapter 17 (§20–30): Runtime Library Routines > Code Examples",
+"text": "```c\n#include <omp.h>\ndouble t0 = omp_get_wtime();\n#pragma omp parallel for\nfor (int i = 0; i < n; ++i) a[i] = work(a[i]);\ndouble elapsed = omp_get_wtime() - t0;     // portable wall-clock timing\n\n// explicit device memory + async copy\ndouble *d = omp_target_alloc(n*sizeof(double), dev);\nomp_target_memcpy(d, a, n*sizeof(double), 0, 0, dev, omp_get_initial_device());\n```\n- **Demonstrates**: `omp_get_wtime` benchmarking and explicit device allocation + host→device `omp_target_memcpy`.",
+"symbols": [
+"omp_get_wtime",
+"omp_target_memcpy"
+]
+},
+{
+"id": "openmp:ch17-runtime-library#anti-patterns",
+"doc": "ch17-runtime-library",
+"heading": "Chapter 17 (§20–30): Runtime Library Routines > Anti-patterns",
+"text": "- **`cpu_time`/`clock()` for parallel timing**: measures summed CPU across threads, not wall time — use `omp_get_wtime`.\n- **Assuming `omp_set_num_threads` changes the current team**: it sets the ICV for *future* regions.\n- **Treating `omp_target_is_accessible != 0` as guaranteed accessible without the NULL/unguaranteed cases** (post-errata): 0 also means \"cannot guarantee.\"\n- **Raw `omp_target_alloc`/`memcpy` when `map` suffices**: bypasses the mapping/reference-counter model — only for interop/custom staging.\n- **Hardcoding device numbers**: query `omp_get_num_devices` / use `OMP_DEFAULT_DEVICE`.",
+"symbols": [
+"clock",
+"cpu_time",
+"map",
+"memcpy",
+"omp_default_device",
+"omp_get_num_devices",
+"omp_get_wtime",
+"omp_set_num_threads",
+"omp_target_alloc",
+"omp_target_is_accessible"
+]
+},
+{
+"id": "openmp:ch17-runtime-library#key-takeaways",
+"doc": "ch17-runtime-library",
+"heading": "Chapter 17 (§20–30): Runtime Library Routines > Key Takeaways",
+"text": "1. ~291 `omp_*` routines mirror the directives imperatively (query ICVs, devices, allocators, locks, affinity, tasking).\n2. **`omp_get_wtime`** is the portable wall-clock timer for benchmarks — never `cpu_time`.\n3. **Errata**: `omp_target_is_accessible` returns 0 for NULL *or* unguaranteed accessibility; `omp_control_tool_max` enum added; a §27.11 \"constant\" restriction loosened.\n4. `omp_target_alloc`/`memcpy` + `omp_get_interop_ptr` enable CUDA/HIP interop.\n5. `omp_set_*` affects future regions, not the running one (ICV semantics).",
+"symbols": [
+"cpu_time",
+"memcpy",
+"omp_",
+"omp_control_tool_max",
+"omp_get_interop_ptr",
+"omp_get_wtime",
+"omp_set_",
+"omp_target_alloc",
+"omp_target_is_accessible"
+]
+},
+{
+"id": "openmp:ch17-runtime-library#connects-to",
+"doc": "ch17-runtime-library",
+"heading": "Chapter 17 (§20–30): Runtime Library Routines > Connects To",
+"text": "- **Ch 3**: ICVs these routines query/set.\n- **Ch 8**: allocator routines (`omp_init_allocator`, `omp_alloc`).\n- **Ch 15**: device-memory and interop routines for `target`.\n- **Ch 18**: `omp_control_tool` and the OMPT interface.\n- the hpc-practice pack: timing discipline — `omp_get_wtime` + sync.",
+"symbols": [
+"omp_alloc",
+"omp_control_tool",
+"omp_get_wtime",
+"omp_init_allocator",
+"target"
+]
+},
+{
+"id": "openmp:ch18-tool-interfaces#core-idea",
+"doc": "ch18-tool-interfaces",
+"heading": "Chapter 18 (§31–37): OMPT & OMPD Tool Interfaces > Core Idea",
+"text": "Two standardized interfaces for tools: **OMPT** (first-party — profilers/tracers linked *into* the program, observing via callbacks) and **OMPD** (third-party — debuggers running *out-of-process*, inspecting OpenMP state of a target). The basis for portable OpenMP profiling and debugging across implementations.",
+"symbols": []
+},
+{
+"id": "openmp:ch18-tool-interfaces#frameworks-introduced",
+"doc": "ch18-tool-interfaces",
+"heading": "Chapter 18 (§31–37): OMPT & OMPD Tool Interfaces > Frameworks Introduced",
+"text": "- **OMPT** (§32–35): first-party tool interface.\n  - **`ompt_start_tool`**: the tool exports this; the runtime calls it at init to (optionally) activate the tool and get the initializer.\n  - **Callbacks**: registered for events — `parallel-begin/end`, `task-create/schedule`, `target` enter/exit, `mutex-acquired`, `work` (worksharing), `device-initialize`, `sync-region`, etc. The runtime dispatches them on the relevant thread.\n  - **Runtime entry points** + **types**: the tool queries state (thread/task/parallel data, frames, place/proc info) via the entry points the runtime supplies.\n  - **Trace records / device tracing** (§35, 37): buffered event records for device (GPU) activity, since device events can't always use synchronous host callbacks.\n- **OMPD** (§33-ish/OMPD chapters): third-party tool interface for debuggers.\n  - A separate **OMPD library** (named per the implementation) the debugger loads; it provides callbacks to read the target's memory/registers, and APIs to walk OpenMP state (threads, tasks, parallel regions, ICVs) **out-of-process** — even on a core dump.\n  - Enabled via `OMP_DEBUG` / `debug-var`.\n- **`omp_control_tool(command, modifier, arg)`** (§31): the program-side hook to start/pause/flush/stop a connected OMPT tool. *(Errata adds `omp_control_tool_max = INT32_MAX` to its enum — ch17.)*",
+"symbols": [
+"acquired",
+"arg",
+"begin",
+"command",
+"create",
+"debug",
+"device",
+"end",
+"initialize",
+"int32_max",
+"modifier",
+"mutex",
+"omp_control_tool",
+"omp_control_tool_max",
+"omp_debug",
+"ompt_start_tool",
+"parallel",
+"region",
+"schedule",
+"sync",
+"target",
+"task",
+"var",
+"work"
+]
+},
+{
+"id": "openmp:ch18-tool-interfaces#key-concepts",
+"doc": "ch18-tool-interfaces",
+"heading": "Chapter 18 (§31–37): OMPT & OMPD Tool Interfaces > Key Concepts",
+"text": "- **OMPT = in-process profiling** (low overhead, callback-driven, what NVIDIA Nsight Systems / Score-P / TAU hook); **OMPD = out-of-process debugging** (what GDB-style tools use to inspect OpenMP state).\n- **Device tracing** decouples from synchronous callbacks: GPU activity is recorded into buffers the tool drains, because the host can't synchronously call back from device execution.\n- **`ompt_start_tool`** is the contract — define it in a tool library; set `OMP_TOOL_LIBRARIES` so the runtime finds it.\n- These are for **tool authors and advanced profiling**; most users consume them indirectly through a profiler.",
+"symbols": [
+"omp_tool_libraries",
+"ompt_start_tool"
+]
+},
+{
+"id": "openmp:ch18-tool-interfaces#anti-patterns",
+"doc": "ch18-tool-interfaces",
+"heading": "Chapter 18 (§31–37): OMPT & OMPD Tool Interfaces > Anti-patterns",
+"text": "- **Heavy work in OMPT callbacks**: they run on the application's threads, on the critical path — record and defer analysis.\n- **Expecting synchronous host callbacks for device events**: use the device-tracing/trace-record buffers instead.\n- **Assuming a tool is active**: `omp_control_tool` returns `omp_control_tool_notool`/`nocallback` if no tool/callback is connected — check it.\n- **Forgetting `OMP_TOOL_LIBRARIES`/`OMP_DEBUG`**: OMPT tool / OMPD support won't engage without them.",
+"symbols": [
+"nocallback",
+"omp_control_tool",
+"omp_control_tool_notool",
+"omp_debug",
+"omp_tool_libraries"
+]
+},
+{
+"id": "openmp:ch18-tool-interfaces#key-takeaways",
+"doc": "ch18-tool-interfaces",
+"heading": "Chapter 18 (§31–37): OMPT & OMPD Tool Interfaces > Key Takeaways",
+"text": "1. **OMPT** = first-party, in-process, callback-driven profiling (`ompt_start_tool` + event callbacks).\n2. **OMPD** = third-party, out-of-process debugging (separate library the debugger loads; walks OpenMP state, even on core dumps).\n3. Device (GPU) events use **trace-record buffers**, not synchronous host callbacks.\n4. `omp_control_tool` lets the program drive a connected OMPT tool (start/pause/flush/stop).\n5. Engage via `OMP_TOOL`/`OMP_TOOL_LIBRARIES` (OMPT) and `OMP_DEBUG` (OMPD); most users hit these through a profiler.",
+"symbols": [
+"omp_control_tool",
+"omp_debug",
+"omp_tool",
+"omp_tool_libraries",
+"ompt_start_tool"
+]
+},
+{
+"id": "openmp:ch18-tool-interfaces#connects-to",
+"doc": "ch18-tool-interfaces",
+"heading": "Chapter 18 (§31–37): OMPT & OMPD Tool Interfaces > Connects To",
+"text": "- **Ch 17**: `omp_control_tool` and the errata enum addition.\n- **Ch 4**: `OMP_TOOL*`/`OMP_DEBUG` environment variables.\n- **Ch 1**: tool interfaces sit outside the abstract execution model (their observations may reflect implementation deviations).\n- **openacc-3.4 ch10**: the analogous (simpler) OpenACC profiling/error-callback interface.",
+"symbols": [
+"omp_control_tool",
+"omp_debug",
+"omp_tool"
+]
+},
+{
+"id": "openmp:ch19-appendices#core-idea",
+"doc": "ch19-appendices",
+"heading": "Chapter 19 (Appendices A–D) > Core Idea",
+"text": "Reference material: what's left implementation-defined (the portability-hazard list), the version-by-version feature history, region-nesting legality, and the canonical compound-directive forms.",
+"symbols": []
+},
+{
+"id": "openmp:ch19-appendices#key-concepts",
+"doc": "ch19-appendices",
+"heading": "Chapter 19 (Appendices A–D) > Key Concepts",
+"text": "- **Appendix A — Implementation-Defined Behaviors**: the consolidated list of everything OpenMP leaves to the implementation (analogous to OpenACC's processor-dependencies / Fortran's Annex A). Includes: default thread count, default schedule, what memory spaces actually map to, device-number assignment, `omp_get_wtick` resolution, behavior when offload target is unavailable, lock fairness, etc. **For portability, treat every item here as \"don't rely on a specific value.\"**\n- **Appendix B — Features History**: what changed across versions. 6.0 highlights (vs 5.2): the `loop`-transforming constructs + `apply`, `taskgraph`/`replayable`, free-agent threads, `safesync`, expanded memory-allocator/memspace APIs, `groupprivate`, improved `metadirective`, device-UID routines, `assume` extensions. Earlier moves: stubs/interface declarations/examples/C++ grammar moved to *separate* documents (no longer appendices).\n- **Appendix C — Nesting of Regions**: the legality table for nesting constructs (e.g. a worksharing region must not be closely nested in another worksharing/`critical`/`atomic`/`master` region; `barrier` nesting rules; `ordered` requires an enclosing `ordered`-clause loop). The authority on \"can construct X be nested in Y.\"\n- **Appendix D — Conforming Compound Directives**: the legal combined/composite directive forms (e.g. `parallel for`, `target teams distribute parallel for simd`) and how clauses distribute across their leaf constructs.",
+"symbols": [
+"apply",
+"assume",
+"atomic",
+"barrier",
+"critical",
+"distribute",
+"for",
+"groupprivate",
+"loop",
+"master",
+"metadirective",
+"omp_get_wtick",
+"ordered",
+"parallel",
+"replayable",
+"safesync",
+"simd",
+"target",
+"taskgraph",
+"teams"
+]
+},
+{
+"id": "openmp:ch19-appendices#mental-models",
+"doc": "ch19-appendices",
+"heading": "Chapter 19 (Appendices A–D) > Mental Models",
+"text": "- **Appendix A is the portability index**: when behavior differs between compilers (GCC libgomp vs LLVM vs NVHPC), check here — it's likely sanctioned, not a bug.\n- **Appendix C is the nesting-legality oracle**: before nesting constructs, confirm it's permitted (closely-nested worksharing is the classic illegal case).\n- **Appendix B answers \"is feature X in 6.0 or earlier?\"** — useful when targeting a compiler that supports only 5.x.",
+"symbols": []
+},
+{
+"id": "openmp:ch19-appendices#anti-patterns",
+"doc": "ch19-appendices",
+"heading": "Chapter 19 (Appendices A–D) > Anti-patterns",
+"text": "- **Relying on a default schedule / thread count**: implementation-defined (Appendix A) — set `OMP_SCHEDULE`/`OMP_NUM_THREADS` explicitly.\n- **Closely nesting two worksharing constructs**: illegal (Appendix C) — separate them with a `parallel` region or restructure.\n- **Assuming a 6.0 feature works on a 5.2 compiler**: check Appendix B and the compiler's support matrix.\n- **Looking for stub/interface/example code in the spec**: moved to separate documents — not in this PDF.",
+"symbols": [
+"omp_num_threads",
+"omp_schedule",
+"parallel"
+]
+},
+{
+"id": "openmp:ch19-appendices#key-takeaways",
+"doc": "ch19-appendices",
+"heading": "Chapter 19 (Appendices A–D) > Key Takeaways",
+"text": "1. **Appendix A** = implementation-defined behaviors → the portability-hazard list; set defaults explicitly.\n2. **Appendix B** = feature history; confirms which version introduced a feature (6.0 adds loop-transform `apply`, `taskgraph`, free-agent threads, `safesync`).\n3. **Appendix C** = region-nesting legality (closely-nested worksharing is forbidden).\n4. **Appendix D** = conforming compound directives and clause distribution.\n5. Stubs, interface declarations, examples, and grammar are now *separate* documents, not appendices.",
+"symbols": [
+"apply",
+"safesync",
+"taskgraph"
+]
+},
+{
+"id": "openmp:ch19-appendices#connects-to",
+"doc": "ch19-appendices",
+"heading": "Chapter 19 (Appendices A–D) > Connects To",
+"text": "- **Ch 3/4**: implementation-defined defaults set via ICVs/env vars.\n- **Ch 13**: worksharing nesting rules (Appendix C).\n- **Ch 12/15**: compound directives like `target teams distribute parallel for` (Appendix D).\n- **openacc-3.4 ch20 / fortran-2023-standard ch20**: the analogous implementation-/processor-dependency catalogues.",
+"symbols": [
+"distribute",
+"for",
+"parallel",
+"target",
+"teams"
+]
+}
+]
+}

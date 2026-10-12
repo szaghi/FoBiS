@@ -155,6 +155,13 @@ class Rule:
     default: bool = True
 
     @property
+    def refs(self) -> tuple[str, ...]:
+        """Knowledge-pack sections the rule is grounded on (chunk ids, see `fobis.lint.references`)."""
+        from .references import REFERENCES
+
+        return REFERENCES.get(self.id, ())
+
+    @property
     def family(self) -> str:
         return re.match(r"[A-Z]+", self.id).group(0)
 
@@ -173,6 +180,8 @@ class Rule:
             lines += ["", "Preferred:", "", textwrap.indent(textwrap.dedent(self.good).strip(), "    ")]
         if self.equivalent:
             lines += ["", f"Equivalent Fortitude rule: {self.equivalent}"]
+        if self.refs:
+            lines += ["", "References (read with: fobis kb show <id>):", *(f"    {ref}" for ref in self.refs)]
         lines += ["", f"Suppress one occurrence with:  ! fobis: ignore[{self.id}] <reason>"]
         return "\n".join(lines)
 

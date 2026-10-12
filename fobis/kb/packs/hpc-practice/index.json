@@ -1,0 +1,636 @@
+{
+"version": 1,
+"chunks": [
+{
+"id": "hpc-practice:fortran-practice#source-files",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > Source Files",
+"text": "- Use `.F90` extension (uppercase F — preprocessor always enabled)\n- One module per file; filename matches module name (`adam_grid_object.F90` → `module adam_grid_object`)\n- Always `implicit none` at module and procedure level\n- Explicit `intent(in|out|inout)` on all dummy arguments",
+"symbols": [
+"adam_grid_object",
+"f90",
+"implicit",
+"inout",
+"intent",
+"module",
+"none",
+"out"
+]
+},
+{
+"id": "hpc-practice:fortran-practice#memory-and-data-structures",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > Memory and Data Structures",
+"text": "- Prefer `allocatable` over `pointer`: compiler optimizes better, automatic deallocation\n- Use `pointer` only for aliasing, linked data structures, or C interop\n- Derived types: expose `init`/`destroy`/`compute` type-bound procedures; add `final` for automatic cleanup",
+"symbols": [
+"allocatable",
+"compute",
+"destroy",
+"final",
+"init",
+"pointer"
+]
+},
+{
+"id": "hpc-practice:fortran-practice#array-loop-ordering-column-major",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > Array Loop Ordering (Column-Major)",
+"text": "Fortran is column-major: the **leftmost index is stride-1 and must be the innermost loop**.\n```fortran\n! CORRECT: stride-1 on leftmost index\ndo k = 1, nk\n  do j = 1, nj\n    do i = 1, ni        ! leftmost spatial index innermost\n      field(i, j, k) = ...\n    end do\n  end do\nend do\n\n! WRONG: strided access, cache-inefficient\ndo i = 1, ni\n  do j = 1, nj\n    do k = 1, nk\n      field(i, j, k) = ...\n    end do\n  end do\nend do\n```",
+"symbols": []
+},
+{
+"id": "hpc-practice:fortran-practice#preprocessor-discipline",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > Preprocessor Discipline",
+"text": "- Minimize macro use — prefer `select case` or procedure pointers for backend dispatch\n- Never use macros for math expressions or loop bounds (hinders debugging and readability)\n- Always document *why* a macro is needed (compiler version, bug report, feature unavailability)",
+"symbols": [
+"case",
+"select"
+]
+},
+{
+"id": "hpc-practice:fortran-practice#optimization-discipline",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > Optimization Discipline",
+"text": "- Always profile before optimizing; benchmark after every change\n- Correctness first, then performance, maintainability, portability",
+"symbols": []
+},
+{
+"id": "hpc-practice:fortran-practice#style",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > Style",
+"text": "- Indentation: 3 spaces, no hard tabs\n- Line length: up to 132 characters (free-form source); prefer splitting at logical boundaries\n- Spaces around operators and after commas: `x(i, j) = foo(i, j) + bar`\n- Align related declarations and comments for readability",
+"symbols": [
+"bar",
+"foo"
+]
+},
+{
+"id": "hpc-practice:fortran-practice#modern-syntax-use-symbolic-not-legacy",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > Modern Syntax — Use Symbolic, Not Legacy",
+"text": "These are pure rule-substitutions. The legacy forms still compile but are obsolete in F90+;\nmixing them with modern code creates needless visual noise. The LLM default is the legacy\nform for some of these — explicitly override.\n\n- Comparison: use `>`, `>=`, `<`, `<=`, `==`, `/=`. Never `.gt.`, `.ge.`, `.lt.`, `.le.`, `.eq.`, `.ne.`.\n- Array constructors: use `[ 1, 2, 3 ]`. Never `(/ 1, 2, 3 /)`.\n- Logical equivalence: use `.eqv.` / `.neqv.` for `logical` operands. `==` and `/=` are\n  not standard-conforming on `logical` operands, even though most compilers accept them.\n  For `if (flag .eqv. .true.)`-style code, prefer the direct form `if (flag)` instead.\n- Keywords lowercase: `do`, `if`, `then`, `end`, `subroutine`, `module`. Never `DO`, `IF`, `THEN`.",
+"symbols": [
+"end",
+"eqv",
+"flag",
+"logical",
+"module",
+"neqv",
+"subroutine",
+"then",
+"true"
+]
+},
+{
+"id": "hpc-practice:fortran-practice#kind-specifications-portability",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > Kind Specifications (Portability)",
+"text": "- Use `iso_fortran_env` kinds (`int32`, `real64`) or `selected_*_kind` — never bare `real` or `integer`\n- Always suffix literal constants with the kind parameter: `3.14_R8`, `1.0_real64`\n- Use `iso_c_binding` for C interop types",
+"symbols": [
+"_kind",
+"_r8",
+"_real64",
+"int32",
+"integer",
+"iso_c_binding",
+"iso_fortran_env",
+"real",
+"real64",
+"selected_"
+]
+},
+{
+"id": "hpc-practice:fortran-practice#forbidden-kind-violating-patterns",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > Kind Specifications (Portability) > Forbidden kind-violating patterns",
+"text": "These are the LLM's default Fortran sins — the forms generated when no kind discipline\nis enforced. Reject every one of them on sight; they bypass the kind system, hardcode\nprecision, and silently break single/mixed-precision builds.\n\n- `dsqrt`, `dexp`, `dlog`, `dabs`, `dcos`, `dsin`, `dtan`, `datan`, `datan2`, `dble`,\n  `dmin1`, `dmax1`, etc. → use the **generic intrinsics** `sqrt`, `exp`, `log`, `abs`,\n  `cos`, ...; let the compiler resolve to the right kind from the argument.\n- `1.0d0`, `2.5d-3`, `1.d-12` (the `d` exponent literal) → use kind-suffixed literals:\n  `1.0_R8P`, `2.5e-3_R8P`. The `d` form silently locks to double precision.\n- `real(8)`, `real(4)`, `real(16)` → bare numeric kinds are non-portable and\n  meaningless across compilers. Use `real(R8P)` / `real(real64)` via your kind module.\n- `double precision` keyword → use `real(R8P)` / `real(real64)`.\n- `dble(x)` for type conversion → use `real(x, R8P)` / `real(x, real64)`.\n- Hardcoded byte sizes like `int(8._R8P, 8)` → use `storage_size(0._R8P)/8` or\n  `c_sizeof` for portability across precision modes.\n- Bare integer-kinded \"real\" literal like `2_R8P` → spelled `2.0_R8P`; `2_R8P` is an\n  *integer* literal of kind R8P, not a real, and silently wrong in expressions expecting a real.\n\nThe single test: every floating-point literal and every intrinsic call must compile\nidentically when `R8P` is redefined from `real64` to `real32` (single precision) or to\n`real128` (quad). If anything breaks under that re-definition, the discipline is violated.",
+"symbols": [
+"_r8p",
+"abs",
+"c_sizeof",
+"cos",
+"dabs",
+"datan",
+"datan2",
+"dble",
+"dcos",
+"dexp",
+"dlog",
+"dmax1",
+"dmin1",
+"double",
+"dsin",
+"dsqrt",
+"dtan",
+"exp",
+"int",
+"log",
+"precision",
+"r8p",
+"real",
+"real128",
+"real32",
+"real64",
+"sqrt",
+"storage_size"
+]
+},
+{
+"id": "hpc-practice:fortran-practice#implicit-save-trap",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > Implicit SAVE Trap",
+"text": "Initializing a local variable **at declaration** gives it implicit `SAVE` — its value persists across calls:\n```fortran\n! WRONG: ke has implicit SAVE — persists between calls\nreal function kinetic_energy(v)\n   real :: ke = 0.0   ! implicit SAVE!\n   ...\nend function\n\n! CORRECT: initialize in executable section\nreal function kinetic_energy(v)\n   real :: ke\n   ke = 0.0           ! reset each call\n   ...\nend function\n```",
+"symbols": [
+"save"
+]
+},
+{
+"id": "hpc-practice:fortran-practice#pure-permits-module-scope-reads-debug-only-segfaults-are-usu",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > `pure` Permits Module-Scope *Reads* — Debug-Only Segfaults Are Usually the Compiler",
+"text": "**The standard:** a `pure` subprogram may *reference* (read) variables it accesses\nthrough use or host association. It may not *define* them (assign, allocate, pass to\nan `intent(out|inout)` dummy). See F2023 §15.7. Reading an MPI rank-prefix string\nfrom a module singleton inside `pure function description()` is conforming.\n\nThe stronger contract is F2023 `SIMPLE` (§15.8): it forbids referencing use- or\nhost-associated variables at all, so the result depends only on the arguments. Pass\nmodule state as dummies only when you want `SIMPLE` (referential transparency for\nGPU or parallel kernels). That is a design choice, not a bug fix.\n\n**Do not \"fix\" a debug-only crash by deleting `pure`.** The symptom pattern is:\nrelease run fine, debug build (`-fcheck=all`) segfaults during initialization, at a\nstring concatenation or allocatable-component access inside a `description()` /\n`to_string()` method. That pattern is NOT evidence of a purity violation. Before\ntouching the code, suspect the compiler's instrumentation:\n\n1. Check the *actual* compiler behind the MPI wrapper: `mpif90 --version`. On the\n   ADAM WSL box, wrappers under `/opt/openmpi/bin/*/gnu/<ver>/` run **gfortran 16\n   experimental**, whatever `<ver>` says.\n2. gfortran 16 experimental emits **false `-fcheck=bounds` failures (SIGSEGV or\n   abort)** on allocatable components reached through a `class()` passed-object\n   dummy. Reproducer: `adam/src/tests/prism/regression/reproducers/gfortran16_class_alloc_component.f90`.\n3. To discriminate, rebuild with `-fcheck=all,no-bounds`, and with a stable gfortran\n   plus a matching MPI. If either one runs cleanly, the cause is the toolchain.\n\nHistory: ADAM #11's \"secondary finding\" blamed `pure` for exactly this crash. It was\nmisdiagnosed and is corrected in ADAM #62.",
+"symbols": [
+"adam",
+"all",
+"bin",
+"bounds",
+"class",
+"description",
+"f90",
+"fcheck",
+"function",
+"gfortran16_class_alloc_component",
+"gnu",
+"inout",
+"intent",
+"mpif90",
+"openmpi",
+"opt",
+"out",
+"prism",
+"pure",
+"regression",
+"reproducers",
+"simple",
+"src",
+"tests",
+"to_string",
+"ver",
+"version"
+]
+},
+{
+"id": "hpc-practice:fortran-practice#error-handling",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > Error Handling",
+"text": "- Never ignore error codes from `allocate`, MPI, or I/O operations\n- Always use `stat=` and `errmsg=` with `allocate`/`deallocate`\n- Check MPI return codes explicitly\n- Use `error stop 'message'` for unrecoverable errors — never silent failure",
+"symbols": [
+"allocate",
+"deallocate",
+"errmsg",
+"error",
+"message",
+"stat",
+"stop"
+]
+},
+{
+"id": "hpc-practice:fortran-practice#array-programming",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > Array Programming",
+"text": "- Prefer whole-array syntax when vectorizable: `a(:,:) = b(:,:) + c(:,:)`\n- Add `contiguous` attribute on performance-critical dummy arguments: `real(rp), intent(in), contiguous :: a(:,:,:)`\n- Avoid assumed-size arrays `a(*)` — use assumed-shape `a(:)` or explicit-shape instead\n- **Rank-N dummies for arrays-with-ghosts: use EXPLICIT bounds, never assumed-shape.** When the caller declares `U(1:nb, 1-ng:ni+ng, ..., 1:nc)`, an assumed-shape dummy `U(:,:,:,:,:)` silently rebases all lower bounds to 1 inside the callee — so `U(b, 1:ni, ...)` selects the lower ghost region, not the interior. *Why:* silent semantic bug, no compiler warning, `-fbounds-check` does not catch it (indices in range, just wrong). Symptom: constant relative L2 error invariant in step count. *How to apply:* every helper taking ghost-extended arrays must declare the dummy as `real(rp), intent(...) :: U(1:nb, 1-ng:ni+ng, 1-ng:ni+ng, 1-ng:ni+ng, 1:nc)`. The block/component dimensions can be assumed-shape; the ghost-extended spatial ones cannot.",
+"symbols": [
+"check",
+"contiguous",
+"fbounds",
+"intent",
+"real"
+]
+},
+{
+"id": "hpc-practice:fortran-practice#module-visibility",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > Module Visibility",
+"text": "- All module entities `private` by default; explicitly declare `public` only the API surface\n- Type components `private` unless external access is required\n- Use `use module, only: ...` at all use sites — no implicit wildcard imports",
+"symbols": [
+"module",
+"only",
+"private",
+"public",
+"use"
+]
+},
+{
+"id": "hpc-practice:fortran-practice#module-wiring-completeness-envelope",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > Module Wiring — Completeness Envelope",
+"text": "A task that creates or moves a Fortran module file is **not done** until the module is\nreachable from the rest of the project. \"Reachable\" means at least one consumer file\ncontains a `use ModuleName, only: ...` and a call site that exercises the new symbols,\nand the project build (FoBiS / make / fpm) still compiles.\n\nRules — apply on every task that creates, splits, or relocates a `.F90`:\n\n1. **Same-task wiring.** Creating the module and adding `use` in consumers is **one task**,\n   not two. Splitting them leaves a window where the new file exists but is dead code, and\n   the second task depends on wiring that may not exist yet.\n2. **Public surface must be explicit.** If callers will `use` new symbols, declare them\n   `public ::` explicitly — do not rely on the module being public-by-default. (You\n   default to `private`-by-default per the rule above; this is the corollary.)\n3. **Update stale `use` lists on rename/move.** Renaming or moving a module without\n   sweeping all `use OldName` sites is a guaranteed build break — grep before committing.\n4. **Self-test, every time.** After the change, the question to ask is:\n   *\"If I run `fobis build` (or `make` / `fpm build`) right now, does the new code compile\n   AND is it reached from at least one call site?\"* If either half fails, the task is\n   incomplete — don't move on.\n\nA module file with no `use` referencing it is dead code by definition. The compiler will\nnot warn; only the wiring discipline catches this.",
+"symbols": [
+"build",
+"f90",
+"fobis",
+"fpm",
+"make",
+"modulename",
+"oldname",
+"only",
+"private",
+"public",
+"use"
+]
+},
+{
+"id": "hpc-practice:fortran-practice#method-extraction-from-a-legacy-loop-absorb-the-whole-iterat",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > Method Extraction From a Legacy Loop — Absorb the Whole Iteration Body",
+"text": "When carving a method out of a long-lived loop body (a `do while`, a time-stepping\nintegration loop, a per-timestep substage loop), the extracted method must absorb\n**every** inline operation the loop wrapper ran during that iteration — not just the\nobvious \"compute\" body. The non-obvious operations include counters being incremented,\ncaps applied to arguments, progress printing, cadence-gated side dumps, AMR/IO hooks,\nand barriers used as timing fences. *Why:* the original loop wrapper keeps calling the\nextracted method, so the leftover inline operations continue to fire **for that\ncaller** and the bug is invisible. The moment a **different** orchestrator drives the\nextracted method (a new wrapper, a different framework loop, a test harness), the\nmissing operations stop firing — and the failure mode is \"loop never terminates\" or\n\"output frozen at iteration 0\", which reads like a counter bug rather than an\nextraction bug.\n\n*How to apply:* before committing an extraction, diff the original loop body against\nthe new method's body **plus** the new wrapper. Anything in the original body that\ndoesn't appear in either half is a leak. The \"behavior unchanged\" claim is true only\nfor the original caller; a new caller will expose every leak. Regression suites\ndriven only by the original caller cannot catch this — they pass through the leak\npath. The right test is to drive the extracted method from a NEW caller (even a\ntrivial one that just calls the method N times) and check the output matches the\noriginal loop's output for the same inputs.",
+"symbols": [
+"while"
+]
+},
+{
+"id": "hpc-practice:fortran-practice#per-component-vs-blanket-private",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > OOP & Encapsulation > Per-component vs blanket `private`",
+"text": "Two ways to make derived-type components private — they are NOT interchangeable:\n\n```fortran\n! Blanket — all-or-nothing. Every component declared after it is private.\ntype :: t\n   private\n   integer :: a   ! private\n   integer :: b   ! private\nendtype\n\n! Per-component attribute — mix freely with public components.\ntype :: t\n   integer, private :: a   ! private\n   integer          :: b   ! public\nendtype\n```\n\nThe blanket `private` statement applies to all subsequent components and **cannot be\noverridden** for a single later component. To get partial encapsulation (e.g. one\npublic allocatable + several private scalars), use the `, private` attribute on each\nhidden component individually.\n\nSame applies to type-bound procedures: `procedure, private :: helper` works per-binding.\n\nWhen in doubt about a Fortran rule, write a 5-line test program and compile it. Do not\nguess from C++/Java intuition.",
+"symbols": [
+"helper",
+"private",
+"procedure"
+]
+},
+{
+"id": "hpc-practice:fortran-practice#function-result-component-access-chained-func-component-is-i",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > OOP & Encapsulation > Function-result component access — chained `func()%component` is illegal",
+"text": "Fortran does NOT allow `surface%get_bmax()%x` (component access on a function result).\nThree workarounds:\n\n```fortran\n! 1. Local temp\nv = surface%get_bmax(); print *, v%x\n\n! 2. associate (preferred — scoped, no name pollution)\nassociate (v => surface%get_bmax())\n   print *, v%x\nend associate\n\n! 3. Method chain on a derived-type function result IS allowed (TBP call, not %)\nprint *, surface%get_bmax()%norm()   ! OK if get_bmax returns a type with %norm()\n```\n\nUse `associate` over scalar accessors-per-component (`get_bmax_x()`, `get_bmax_y()`,\n`get_bmax_z()`) — three accessors per vector is API noise.",
+"symbols": [
+"associate",
+"get_bmax",
+"get_bmax_x",
+"get_bmax_y",
+"get_bmax_z",
+"surface"
+]
+},
+{
+"id": "hpc-practice:fortran-practice#encapsulation-without-copy-cost-zero-copy-patterns",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > OOP & Encapsulation > Encapsulation without copy-cost (zero-copy patterns)",
+"text": "The \"private + accessor = copy\" intuition is wrong for Fortran. Patterns that preserve\nencapsulation at zero data-copy cost:\n\n| Pattern | Use for | Cost |\n|---|---|---|\n| `pure function get_x(self)` returning a scalar / small derived type | Read access to scalar state | Inlined at -O2 |\n| `function ptr(self)` returning `pointer` to internal array | Whole-array read-write external access | Pointer descriptor only |\n| `subroutine adopt(self, arr)` using `move_alloc(arr, self%arr)` | Hand off ownership from caller | Pointer swap |\n| `subroutine for_each(self, op)` taking a procedure pointer | Mutate every element without exposing storage | None |\n| Index-based mutator `subroutine set_at(self, i, v)` | Single-element writes | None |\n\nPointer-returning accessors require `target` on the component AND on `self` in the accessor\nsignature, and the accessor cannot be `pure`. Reserve them for cases where the whole-array\nview is genuinely needed by external code.",
+"symbols": [
+"adopt",
+"arr",
+"for_each",
+"function",
+"get_x",
+"move_alloc",
+"pointer",
+"ptr",
+"pure",
+"self",
+"set_at",
+"subroutine",
+"target"
+]
+},
+{
+"id": "hpc-practice:fortran-practice#when-not-to-encapsulate",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > OOP & Encapsulation > When NOT to encapsulate",
+"text": "Genuine cases for keeping components public:\n- POD value types whose fields ARE the contract (`vector_R8P`'s `%x %y %z`, geometric\n  primitives in tight kernels).\n- Hot inner-loop element fields where accessor inlining can't be relied upon (verify with\n  `-fdump-tree-optimized` before keeping public).\n- Internal state-machine records with no invariants worth defending.\n\nFor domain types that carry invariants (sizes that must match arrays, init flags, file\nhandles) — encapsulate. The dispatch-knob lesson: if external code is poking a flag like\n`is_initialized=.false.` to force a code path, the right fix is a separate `set_*` mutator\nexpressing intent, not exposing the invariant flag. Don't lie about state to control\nbehaviour.",
+"symbols": [
+"false",
+"fdump",
+"is_initialized",
+"optimized",
+"set_",
+"tree",
+"vector_r8p"
+]
+},
+{
+"id": "hpc-practice:fortran-practice#assignment-overloads-are-easy-to-get-wrong",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > OOP & Encapsulation > Assignment overloads are easy to get wrong",
+"text": "When overloading `assignment(=)`, the procedure must explicitly copy every component.\nForgetting one silently corrupts the LHS — the compiler will not warn. Common bug pattern:\nadding a new component to the type and forgetting to update the assignment overload.\n\nIf the type's components are all-allocatable / intrinsic-assignable, **prefer dropping\nthe overload entirely** — Fortran 2003+ intrinsic assignment correctly deep-copies\nallocatable components. Custom overloads should exist only when copy semantics genuinely\ndiffer from the intrinsic (shallow copy of pointers, lazy clone, etc.).",
+"symbols": [
+"assignment"
+]
+},
+{
+"id": "hpc-practice:fortran-practice#finalisers-final-for-arrays-of-types",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > OOP & Encapsulation > Finalisers (`final ::`) for arrays-of-types",
+"text": "A type with `allocatable` components needs a `final :: cleanup` procedure to release\nstorage when wrapped in an `allocatable :: arr(:)` of that type. Without it, gfortran\nmostly does the right thing today, but ifort and older compilers leak.\n\n```fortran\ntype :: container\n   integer, allocatable :: data(:)\ncontains\n   final :: container_finalize\nendtype\n\ncontains\n   subroutine container_finalize(self)\n   type(container), intent(inout) :: self   ! NOT class — final must take type\n   if (allocated(self%data)) deallocate(self%data)\n   endsubroutine\n```\n\nNote the `type(...)` (not `class(...)`) on the finaliser dummy.",
+"symbols": [
+"allocatable",
+"arr",
+"class",
+"cleanup",
+"final",
+"type"
+]
+},
+{
+"id": "hpc-practice:fortran-practice#i-o",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > I/O",
+"text": "- Use standard units from `iso_fortran_env`: `input_unit`, `output_unit`, `error_unit`\n- Never hardcode unit numbers 5/6",
+"symbols": [
+"error_unit",
+"input_unit",
+"iso_fortran_env",
+"output_unit"
+]
+},
+{
+"id": "hpc-practice:fortran-practice#openmp",
+"doc": "fortran-practice",
+"heading": "Fortran Conventions > OpenMP",
+"text": "- Always `default(none)` — forces explicit scoping of all variables, catches bugs\n- Use `reduction(op:var)` for accumulations; never manually sum into a shared variable\n- Use `workshare` for array-syntax parallelism",
+"symbols": [
+"default",
+"none",
+"reduction",
+"var",
+"workshare"
+]
+},
+{
+"id": "hpc-practice:gpu-practice#openacc-directives",
+"doc": "gpu-practice",
+"heading": "GPU / OpenACC / CUDA Conventions > OpenACC Directives",
+"text": "- Always use `!$acc parallel loop` with explicit `gang`, `vector`, `seq` clauses — never bare `!$acc kernels` (compiler may silently under-parallelize)\n- Specify `collapse(N)` depth explicitly on nested loops\n- Use `-Minfo=accel` (nvfortran) to verify compiler parallelization decisions",
+"symbols": [
+"!$acc kernels",
+"!$acc parallel loop",
+"accel",
+"collapse",
+"gang",
+"minfo",
+"seq",
+"vector"
+]
+},
+{
+"id": "hpc-practice:gpu-practice#device-variable-declaration-rules",
+"doc": "gpu-practice",
+"heading": "GPU / OpenACC / CUDA Conventions > Device Variable Declaration Rules",
+"text": "Which variables need `!$acc declare` in a module:\n\n| Variable type | Needs `!$acc declare`? | Directive |\n|---|---|---|\n| Scalar `parameter` | No | Inlined at compile time |\n| Array `parameter` | Yes | `!$acc declare copyin(arr)` |\n| Module `allocatable` | Yes | `!$acc declare create(arr)` |\n| Module fixed-size | Yes | `!$acc declare create(arr)` |\n| Local variable | No | Use `private` clause instead |\n| Subroutine argument | No | Use `deviceptr` or data clauses |\n\n- Module-level variables **cannot** use the `private` clause — this causes \"No device symbol for address reference\"; only local variables can be `private`\n- After allocating a module `allocatable` on the host, call `!$acc update device(arr)` to populate the device copy\n- **Exception — reduction targets**: a module `allocatable` with `declare create` must never be the target of a `reduction` clause (nvfortran kernel-launch failure; see Compiler Pitfalls below). Reduce into a procedure-local array, then copy to module storage on the host.",
+"symbols": [
+"!$acc declare",
+"!$acc declare copyin",
+"!$acc declare create",
+"!$acc update device",
+"allocatable",
+"arr",
+"create",
+"declare",
+"deviceptr",
+"parameter",
+"private",
+"reduction"
+]
+},
+{
+"id": "hpc-practice:gpu-practice#data-movement",
+"doc": "gpu-practice",
+"heading": "GPU / OpenACC / CUDA Conventions > Data Movement",
+"text": "- Minimize host↔device transfers; maximize data reuse on device\n- Unstructured data regions (`enter data`/`exit data`) require explicit lifetime management — missing `exit data` leaks device memory\n- Missing `update device`/`update host` causes stale data bugs that are hard to diagnose\n- Use `present` clause to assert data residency; assertion failures surface bugs early",
+"symbols": [
+"data",
+"device",
+"enter",
+"exit",
+"host",
+"present",
+"update"
+]
+},
+{
+"id": "hpc-practice:gpu-practice#gpu-mpi-coherence",
+"doc": "gpu-practice",
+"heading": "GPU / OpenACC / CUDA Conventions > GPU ↔ MPI Coherence",
+"text": "When MPI ranks own GPU-resident data, every halo/boundary exchange has a coherence\ncontract that the compiler will not enforce: the buffer sent must be the most recent\n*host* copy, and the buffer received must be propagated back to the *device* copy.\nSkipping either side produces stale-data bugs that pass smoke tests and silently\ndiverge under refinement.\n\nThe rule, in two lines:\n\n- Before `MPI_Send` / `MPI_Isend` / `MPI_*_all*` from a device buffer: `!$acc update host(buf)` (or `!$omp target update from(buf)`).\n- After `MPI_Recv` / `MPI_Irecv` into a device buffer: `!$acc update device(buf)` (or `!$omp target update to(buf)`).\n\n```fortran\n! Non-GPU-aware MPI — explicit host staging required\n!$acc update host(send_buf)\ncall MPI_Sendrecv(send_buf, n, MPI_R8P, dst, tag, &\n                  recv_buf, n, MPI_R8P, src, tag, comm, status, ierr)\n!$acc update device(recv_buf)\n```\n\nGPU-aware MPI (CUDA-aware OpenMPI/MPICH, ROCm-aware MPI, Cray MPICH+GTL) lets the MPI\ncall read/write device pointers directly and removes the staging — but only if the build,\nthe runtime, and the device buffer registration are all aligned. Default to host staging\nand only enable GPU-aware MPI behind a build-time or env-var toggle (e.g. `*_GPU_AWARE_MPI=1`)\nwith the staging path remaining available as fallback. The toggle exists because GPU-aware\nMPI fails opaquely on misconfigured clusters and you need a working baseline to bisect against.\n\nForensic hint: if a multi-rank GPU run gives bit-identical results to a single-rank run\non small grids but diverges as the decomposition is refined, suspect a missing\n`update host` before a send or `update device` after a receive. The halo region is\nthe prime suspect.",
+"symbols": [
+"!$acc update device",
+"!$acc update host",
+"!$omp target update",
+"_all",
+"_gpu_aware_mpi",
+"buf",
+"device",
+"from",
+"host",
+"mpi_",
+"mpi_irecv",
+"mpi_isend",
+"mpi_recv",
+"mpi_send",
+"update"
+]
+},
+{
+"id": "hpc-practice:gpu-practice#gpu-mpi-coherence-2",
+"doc": "gpu-practice",
+"heading": "GPU / OpenACC / CUDA Conventions > GPU ↔ MPI Coherence",
+"text": "**Multi-realm: never read program-scope singletons inside a per-realm GPU object.** When a\nsolver supports multiple concurrent domains/realms over one `MPI_COMM_WORLD`, program-scope\n\"singleton\" shims (grid/field/maps bound to \"the last-initialized realm\") silently give a GPU\nobject another realm's decomposition — its halo exchange indexes the wrong comm map into its\nown device buffers, a silent cross-realm corruption with no abort. Pass the realm-local CPU\nobjects (and per-rank comm-map offset arrays) in as dummy arguments from the caller's own\n`self%...`; reserve singletons for genuinely program-global state (the MPI handler — one\nrank/world/device). Cache scalars (`ngc`, `ni/nj/nk`, `nv`) on the object via `self%`, not by\nreaching into a `grid%`/`field%` global.",
+"symbols": [
+"field",
+"grid",
+"mpi_comm_world",
+"ngc",
+"self"
+]
+},
+{
+"id": "hpc-practice:gpu-practice#device-code-pitfalls",
+"doc": "gpu-practice",
+"heading": "GPU / OpenACC / CUDA Conventions > Device Code Pitfalls",
+"text": "- **Never pass strided sections of shared device arrays from inside a kernel** (e.g. `call op(dxyz=dxyz_gpu(b,1:3), ...)` inside a `collapse` region): the compiler materializes the section into a temporary that is **not privatized** — threads race on it. The race is *value-invisible when all threads write equal values* (uniform grids, constant coefficients) and destructive the moment per-thread values differ (measured: ADAM #22, nvfortran 26.1 — AMR 2:1 level mixes corrupted the field nondeterministically while every uniform-grid golden stayed bit-perfect). *How to apply:* hoist into a `private` fixed-size local (`dxyz_b(3)` filled by scalar assignments) before the call, or pass the full array plus scalar indices.\n- **`associate` variables in OpenACC regions**: use `copyin`, not `firstprivate` — `firstprivate` fails with some compilers\n- **Assumed-shape with non-default lower bounds** in device routines: pass bounds explicitly as integers and use them for indexing\n- **Private arrays inside CONTAINED OpenACC kernels are not trustworthy on nvfortran (observed on 26.1).** Two failure layers, measured in ADAM #22: (a) runtime-sized automatic private arrays (`buf(1-s:1+s)` with `s` a dummy) are mis-privatized — scheduling-dependent garbage that grows with gang count (kicked in above ~32 blocks/rank); (b) even with **compile-time-constant bounds**, private arrays of a *contained* (internal) kernel procedure can still bleed between threads — one variable's stencil fill landing in another thread's buffer (signature: two diagnostics tracking each other, e.g. `div(J) ≈ div(D)` with J identically zero). *How to apply:* in diagnostics and other simple kernels, prefer **buffer-free scalar accumulation** (e.g. pair-form `FD1_CC` sums) over private stencil arrays; where arrays are unavoidable, use module-level (non-contained) kernel subroutines with `parameter`-bounded locals, and validate with data that makes a race *visible* (next rule).\n- **Zero (or uniform) planes make races invisible.** A race that mixes two threads' values is undetectable when those values coincide — zeros racing zeros, or equal per-block constants racing each other. A kernel \"validated\" on such data is not validated (ADAM #22: the uniform-grid exact-0.0 result was vacuous for the buffer race).",
+"symbols": [
+"associate",
+"buf",
+"call",
+"collapse",
+"copyin",
+"div",
+"dxyz",
+"dxyz_b",
+"dxyz_gpu",
+"fd1_cc",
+"firstprivate",
+"parameter",
+"private"
+]
+},
+{
+"id": "hpc-practice:gpu-practice#atomic-operations-red-flag",
+"doc": "gpu-practice",
+"heading": "GPU / OpenACC / CUDA Conventions > Atomic Operations — Red Flag",
+"text": "- GPU atomics cause severe serialization (observed: 10–100× slowdown on vertex-based ops)\n- Before using atomics, consider: graph coloring, data reordering, privatization, or `reduction` clause",
+"symbols": [
+"reduction"
+]
+},
+{
+"id": "hpc-practice:gpu-practice#floating-point-reproducibility",
+"doc": "gpu-practice",
+"heading": "GPU / OpenACC / CUDA Conventions > Floating-Point Reproducibility",
+"text": "- Non-associative MPI reductions produce different results with different process counts — document or design around it\n- GPU atomics introduce non-determinism — document explicitly or eliminate",
+"symbols": []
+},
+{
+"id": "hpc-practice:gpu-practice#correctness-and-debugging-tools",
+"doc": "gpu-practice",
+"heading": "GPU / OpenACC / CUDA Conventions > Correctness and Debugging Tools",
+"text": "- Development builds: `-fbounds-check -fcheck=all` (GNU), `-check all -traceback` (Intel)\n- FP exception trapping: `-ffpe-trap=invalid,zero,overflow` (GNU) — enable during development to catch NaN/Inf at source\n- CPU memory: Valgrind; GPU memory: `cuda-memcheck` / `compute-sanitizer`\n- OpenACC runtime diagnostics: `NV_ACC_DEBUG=1`; `ACC_SYNCHRONOUS=1` for immediate (synchronous) error reporting\n- Check data residency at runtime: `acc_is_present(arr, size(arr))`\n- Stack size: run `ulimit -s unlimited` before Fortran programs with deep recursion\n- MPI hangs: first diagnostic — set `MPICH_ASYNC_PROGRESS=1` or `OMPI_MCA_opal_progress_threads=1`; reduce to 2 ranks to isolate\n- **Optimized-build backtraces lie.** A `-fast`/`-O2+` traceback frame is often mis-resolved: if the apparent crash line *marches forward* or *vanishes* as you add prints around it, the frame is an artifact, not the fault site. Localize a crash by step-by-step `write`/`flush` instrumentation (or a debug `-O0 -g` rebuild) before theorizing a cause from the frame.\n- **Uniform-grid validation cannot exonerate value-coincident races — vary the data, not just the size.** Goldens and scaling runs on uniform grids/levels leave every \"wrong-source-but-equal-value\" race green (wrong block's `dxyz`, wrong thread's buffer, duplicate ghost writers that agree). To actually test race-freedom: run the same case **twice and diff bit-for-bit** (nondeterminism = race, full stop); compare against the CPU backend on a case where per-thread values *differ* (multi-level AMR, spatially varying coefficients); and judge by **state dumps (restart files, field h5), never by derived diagnostics** — a racing diagnostic kernel can fabricate garbage over a bit-perfect solution, and a fixed solution can hide behind a still-lying diagnostic (both happened, stacked, in ADAM #22). `compute-sanitizer` memcheck/initcheck are blind to in-bounds private-memory races and to garbage arriving via H2D from uninitialized host memory.",
+"symbols": [
+"acc_is_present",
+"acc_synchronous",
+"all",
+"arr",
+"check",
+"compute",
+"cuda",
+"dxyz",
+"fast",
+"fbounds",
+"fcheck",
+"ffpe",
+"flush",
+"invalid",
+"memcheck",
+"mpich_async_progress",
+"nv_acc_debug",
+"ompi_mca_opal_progress_threads",
+"overflow",
+"sanitizer",
+"size",
+"traceback",
+"trap",
+"ulimit",
+"unlimited",
+"write",
+"zero"
+]
+},
+{
+"id": "hpc-practice:gpu-practice#conservation-diagnostic-normalisation",
+"doc": "gpu-practice",
+"heading": "GPU / OpenACC / CUDA Conventions > Conservation Diagnostic Normalisation",
+"text": "- Never normalise a CFD conservation drift by the signed integral of the field. For any conservative variable whose physical mean is zero by symmetry (momentum components of a zero-mean perturbation, anti-symmetric fields), `s0 = sum(U_init)` is structurally O(eps) — dividing absolute drift by `|s0|` then explodes by `1/eps`. Symptom: drift = 3.4e+305 (= `1/tiny`). *How to apply:* normalise by a positive norm — `sum(abs(U_init(...)))` (L1), `sqrt(sum(U_init**2))` (L2), or a problem-specific reference scale (freestream, max). Same rule for relative error of any field that can be zero-mean. When a CFD diagnostic produces huge numbers (1e+200+) early in a run, suspect denominator collapse before solver instability.",
+"symbols": [
+"abs",
+"eps",
+"sqrt",
+"sum",
+"tiny",
+"u_init"
+]
+},
+{
+"id": "hpc-practice:gpu-practice#diagnostic-precision-floor-pairwise-kahan-sum-in-measurement",
+"doc": "gpu-practice",
+"heading": "GPU / OpenACC / CUDA Conventions > Diagnostic Precision Floor — pairwise/Kahan sum in measurements",
+"text": "- When measuring FP64-quality results, the diagnostic's own rounding error must be below the threshold being measured. The intrinsic Fortran `sum()` over N elements gives O(N·eps) error in the worst case. Reading at the machine-eps floor with naive sum over 4096 elements gives 4e-13 of diagnostic noise — masking any kernel error below that. *How to apply:* use a recursive **pairwise (tree) sum** for any diagnostic that sums >32 numbers and intends to read FP64-quality results — O(log N · eps) error, cache-friendly base case of 8 elements summed naively. For very long sums or eps-exact reads, use Kahan/Neumaier-compensated sum (O(eps) regardless of N). *Symptom:* a \"high-precision\" baseline reports an error suspiciously close to `N · eps` rather than `eps`. Check the diagnostic before suspecting the kernel.",
+"symbols": [
+"eps",
+"sum"
+]
+},
+{
+"id": "hpc-practice:gpu-practice#gpu-benchmark-timing",
+"doc": "gpu-practice",
+"heading": "GPU / OpenACC / CUDA Conventions > GPU Benchmark Timing",
+"text": "- **`!$acc wait` (OpenACC) or `!$omp taskwait` (OpenMP target) immediately before every stop-time read.** Without it, async kernel launches return instantly and you measure launch latency (μs), not work completion (ms–s). Sub-millisecond \"GPU speedups\" are almost always this bug.\n- **`system_clock` for wall time, never `cpu_time`.** `cpu_time` measures CPU thread time; the CPU thread is idle waiting on the device, so `cpu_time` reports near-zero — meaningless.\n- Bracket the timed region: `wait → wall_clock(t0) → kernels → wait → wall_clock(t1)`. The starting wait ensures warmup has fully completed.\n- Structured `!$acc data` regions around the whole driver eliminate per-step H↔D transfers — without them the \"timed\" region measures transfer cost, not device-side throughput. Always pair structured data regions with wait-bracketed timing.\n- If a reported GPU speedup is >100× over CPU on a non-trivial kernel, the first hypothesis is \"the timer is wrong,\" not \"the kernel is amazing.\"",
+"symbols": [
+"!$acc data",
+"!$acc wait",
+"!$omp taskwait",
+"cpu_time",
+"kernels",
+"system_clock",
+"wait",
+"wall_clock"
+]
+},
+{
+"id": "hpc-practice:gpu-practice#mixed-precision-on-consumer-gpus-the-fp64-trap",
+"doc": "gpu-practice",
+"heading": "GPU / OpenACC / CUDA Conventions > Mixed Precision on Consumer GPUs — the FP64 Trap",
+"text": "NVIDIA consumer GPUs (RTX 30/40/50 — Ampere, Ada, consumer Blackwell) have an FP64:FP32 ALU throughput ratio of **1:64**. Datacenter GPUs (H100, B200) have **1:2**. This is deliberate market segmentation, not silicon accident.\n\n**The consequence:** \"FP32 storage + FP64 compute\" — textbook or surgical — is *strictly slower than full FP64* on consumer GPU. The FP64 work is the bottleneck; cutting storage to FP32 doesn't help, and promote/demote latency adds cost on top of unchanged FP64 ALU work. *Surgical* promotion of only the cancellation-sensitive sub-expression (e.g. WENO5 β-indicators) is even worse than blanket promotion.\n\nMeasured (RTX 4070 Ada, WENO5 stencil, 208 MiB per array, 100 steps, with pairwise-sum diagnostic):\n\n| Variant                                | speedup vs FP64 | errMax  | drMax       |\n|----------------------------------------|----------------:|--------:|------------:|\n| V1  FP64 throughout                    |           1.00× | 0       | 1.8e-16 (= eps_R8P) |\n| V2  FP32 store + FP64 compute (blanket)|           0.99× | 6.4e-7  | 5.4e-8      |\n| V3  FP32 throughout (naive)            |          14.55× | 1.1e-6  | 5.4e-8      |\n| V2b FP32 + FP64 β-indicators only      |           ~1.0× | 6.4e-7  | 5.5e-8      |\n| V3b FP32 + Neumaier-compensated RK1    |          13.64× | 9.0e-7  | 4.1e-9      |\n| V3c FP32 + Klein 2nd-order RK1         |          12.48× | 9.0e-7  | 6.7e-9      |",
+"symbols": []
+},
+{
+"id": "hpc-practice:gpu-practice#mixed-precision-on-consumer-gpus-the-fp64-trap-2",
+"doc": "gpu-practice",
+"heading": "GPU / OpenACC / CUDA Conventions > Mixed Precision on Consumer GPUs — the FP64 Trap",
+"text": "Four counterintuitive empirical facts:\n1. **Surgical FP64 promotion (V2b) is in the same trap regime as blanket (V2)** — any FP64 work in the inner loop engages the FP64 datapath. The \"promote only the cancellation-sensitive parts\" recipe fails on consumer silicon.\n2. **The dominant FP32 error is per-step storage round-trip, not β cancellation** — V2 and V2b give identical errMax. The only way to fix the L2 floor would be storage-level (Dekker double-FP32 pair); selectively promoting expressions does not.\n3. **Compensated FP32 (V3b: Neumaier-accumulated RK) gives 13× better conservation drift at only 9% speedup cost** vs naive FP32. For long-trajectory CFD where drift matters most, V3b strictly dominates V3.\n4. **Higher-order compensation (V3c: Klein 2nd-order) is WORSE than first-order Neumaier at typical step counts.** First-level carry doesn't saturate until ≥10⁴ steps of typical dt·rhs, so second-level compensator catches nothing. V3c crosses over V3b on drift only at very long trajectories. **Default to first-order Neumaier, not higher-order cascades**, unless the trajectory genuinely exceeds 10⁴ steps.\n\nOn CPU the same kernel gives mixed ≈ FP32 ≈ 1.3× — the regime flips depending on the target's FP64:FP32 ratio. Datacenter GPUs keep CPU-like intuition; consumer GPUs invert it.",
+"symbols": []
+},
+{
+"id": "hpc-practice:gpu-practice#mixed-precision-on-consumer-gpus-the-fp64-trap-3",
+"doc": "gpu-practice",
+"heading": "GPU / OpenACC / CUDA Conventions > Mixed Precision on Consumer GPUs — the FP64 Trap",
+"text": "**How to apply:** For HPC code targeting consumer GPUs:\n- **Three viable strategies:** all-FP64, naive all-FP32, all-FP32 with Kahan/Neumaier-compensated time integration. Default to compensated FP32 (V3b pattern) for any long-trajectory or conservation-sensitive work — the 9% speedup loss is paid back many times over in drift quality.\n- **Three dead ends:** \"FP32 storage + FP64 compute\" (blanket V2 OR surgical V2b), and Klein second-order compensation (V3c) at typical step counts. V2/V2b fail because any FP64 work in the inner loop engages the slow datapath; V3c fails because its second-level compensator has nothing to catch in normal trajectories.\n- Iterative refinement at the linear-solve level (factor in FP32, residual in FP64, correct) still works when FP32 work dominates — the FP64 residual is cheap *relative to* the FP32 factor cost. This is a different regime where FP64 work is amortised over many FP32 operations.\n- Tensor Cores (FP16/BF16 + FP32 accumulate) remain valid for matmul-shaped sub-problems but require iso_c_binding to CUDA WMMA — not reachable from pure Fortran. Stencils are not matmul-shaped.\n- Before recommending mixed-precision storage for a consumer-GPU workload, ask: \"does this code do *any* FP64 work in the inner loop?\" If yes, the recipe fails.\n- nvfortran 26.1 `-fast` preserves Kahan/Neumaier compensation when an explicit branch (`if (abs(u_old) >= abs(y))`) is present — the branch blocks algebraic re-association. Verified by PTX inspection. Branchless variants (Sum2/Ogita) may behave differently — verify before assuming.",
+"symbols": [
+"abs",
+"fast",
+"u_old"
+]
+},
+{
+"id": "hpc-practice:gpu-practice#gfortran-o2-bug-pointer-array-assumed-shape-dummy-with-expli",
+"doc": "gpu-practice",
+"heading": "GPU / OpenACC / CUDA Conventions > Compiler Pitfalls > gfortran -O2 bug: pointer array + assumed-shape dummy with explicit lower bounds",
+"text": "When an actual argument is a **pointer array section** (lb=1, from Fortran section rules) passed\nto a dummy with explicit lower bounds (e.g. `q(1-ngc:,...)`), gfortran -O2+ computes a wrong\nC data pointer. This causes `errno=14 EFAULT` in HDF5 writes. Works at -O0/-O1 and nvfortran.\n\n**Fix**: use separate routines for pointer-derived actuals — declare dummy as `q(:,:,:,:)` (no\nexplicit lb) and pass `nijk` directly. For scalar rank-3 fields use explicit-shape\n`q(ijk(1,1):ijk(2,1),...)` to bypass the descriptor entirely.\nIndividual `-fno-*` flags do not isolate the trigger. Do not use allocatable copies as a workaround — allocation overhead is unacceptable in HPC hot paths.",
+"symbols": [
+"efault",
+"errno",
+"fno",
+"ijk",
+"ngc",
+"nijk"
+]
+},
+{
+"id": "hpc-practice:gpu-practice#nvfortran-bug-openacc-reduction-into-a-declare-create-module",
+"doc": "gpu-practice",
+"heading": "GPU / OpenACC / CUDA Conventions > Compiler Pitfalls > nvfortran bug: OpenACC reduction into a `declare create` module allocatable",
+"text": "`reduction(+:arr(1:n))` targeting a **module allocatable that has module-scope\n`!$acc declare create`** fails at kernel launch with `CUDA_ERROR_LAUNCH_FAILED (719)`\n(\"invalid pointer dereference\"). Verified 25.11 (`-acc=gpu -gpu=mem:managed,ccnative,fastmath`,\nRTX 4070/WSL2) and bisected in a standalone reproducer: `declare create` on the target is the\npoison; `enter data copyin` is irrelevant (fails with or without); the identical kernel with\nthe same module allocatable *without* `declare create` runs correctly. Mechanism: nvfortran\ngenerates the reduction epilogue (cross-gang combine) through the static global device symbol —\nthe device copy of the *descriptor* — instead of the present-table pointer; for descriptor-based\nallocatables that dereference is invalid. The code is conforming OpenACC 3.4; this is an NVHPC\ncodegen defect.\n\n**Not affected**: `declare create` *scalars* (the symbol is the storage) and procedure-local\narrays — automatic or allocatable — with procedure-scope `declare create`.\n\n**Fix pattern** (Xall `l2res`): local allocatable + procedure-scope `declare create` +\nper-call `allocate` → `enter data copyin` → kernel reduction → `update host` →\n`exit data delete` → `deallocate`; copy to module storage on the host if persistence is needed.\n\n**WSL2 corollary**: dropping the directives and relying on `-gpu=mem:managed` alone is not\nportable — `update host` on purely managed data is a `cuMemPrefetchAsync` to CPU, which fails\nwith error 101 (`CUDA_ERROR_INVALID_DEVICE`) on WSL2.\n\nFull audit: `~/fortran/xall/Xall_GPU/audit_l2res_openacc_reduction.md`.",
+"symbols": [
+"!$acc declare create",
+"acc",
+"allocate",
+"arr",
+"audit_l2res_openacc_reduction",
+"ccnative",
+"copyin",
+"create",
+"cuda_error_invalid_device",
+"cuda_error_launch_failed",
+"cumemprefetchasync",
+"data",
+"deallocate",
+"declare",
+"delete",
+"enter",
+"exit",
+"fastmath",
+"fortran",
+"gpu",
+"host",
+"l2res",
+"managed",
+"mem",
+"reduction",
+"update",
+"xall",
+"xall_gpu"
+]
+}
+]
+}

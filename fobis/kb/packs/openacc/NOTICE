@@ -1,0 +1,23 @@
+NOTICE — openacc-3.4 skill
+==========================
+
+This skill is an independent, original knowledge base. The frameworks,
+structure, explanatory synthesis, decision tables, and indices are our own
+expression, licensed CC-BY-4.0 (see repository LICENSE).
+
+Source material
+---------------
+Synthesized while reading the publicly available "OpenACC Application
+Programming Interface, Version 3.4" (© 2011-2025 OpenACC-Standard.org, all
+rights reserved).
+
+This skill does NOT reproduce the OpenACC specification. It expresses, in our
+own words, the facts and ideas it describes — API names, clause semantics, and
+example code — which are not themselves protected by copyright. Verbatim
+overlap with the specification is limited to such functional elements
+(directive/clause names and code), not explanatory prose.
+
+Not affiliated with, endorsed by, or a reproduction of the OpenACC
+specification. Directive/clause names and code snippets remain subject to
+OpenACC-Standard.org's terms. For authoritative behavior, consult the
+specification at https://www.openacc.org.

@@ -1,0 +1,23 @@
+NOTICE — mpi-5.0 skill
+======================
+
+This skill is an independent, original knowledge base: the frameworks,
+structure, explanatory synthesis, decision tables, and indices are our own
+expression, licensed CC-BY-4.0 (see repository LICENSE).
+
+Source material
+---------------
+Synthesized while reading the "MPI: A Message-Passing Interface Standard,
+Version 5.0" (© University of Tennessee, Knoxville). That document grants:
+
+    "Permission to copy without fee all or part of this material is granted,
+     provided the University of Tennessee copyright notice and the title of
+     this document appear, and notice is given that copying is by permission
+     of the University of Tennessee."
+
+This notice is reproduced in accordance with those terms.
+
+This skill is not affiliated with, endorsed by, or a verbatim reproduction of
+the MPI Standard. Code snippets and routine signatures are facts/functional
+elements drawn from the standard and remain subject to its terms. For
+authoritative behavior, consult the standard itself at https://www.mpi-forum.org.

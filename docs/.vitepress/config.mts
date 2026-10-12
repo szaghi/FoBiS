@@ -60,6 +60,7 @@ export default defineConfig({
           { text: 'Analysis & AI', link: '/ai/' },
           { text: 'Linting',       link: '/ai/lint' },
           { text: 'Lint Rules',    link: '/lint-rules/' },
+          { text: 'Knowledge Packs', link: '/ai/knowledge-packs' },
         ],
       },
       { text: 'Ecosystem', link: '/advanced/ecosystem' },
@@ -166,6 +167,7 @@ export default defineConfig({
           text: 'Analysis & AI',
           items: [
             { text: 'lint',     link: '/reference/lint' },
+            { text: 'kb',       link: '/reference/kb' },
             { text: 'commit',   link: '/reference/commit' },
           ],
         },
@@ -178,6 +180,7 @@ export default defineConfig({
             { text: 'Overview',          link: '/ai/' },
             { text: 'Linting',           link: '/ai/lint' },
             { text: 'Lint Rules',        link: '/lint-rules/' },
+            { text: 'Knowledge Packs',   link: '/ai/knowledge-packs' },
             { text: 'LLM Commit Messages', link: '/advanced/commit' },
           ],
         },
@@ -185,6 +188,7 @@ export default defineConfig({
           text: 'Reference',
           items: [
             { text: 'lint command',      link: '/reference/lint' },
+            { text: 'kb command',        link: '/reference/kb' },
             { text: '[lint] section',    link: '/fobos/lint' },
           ],
         },

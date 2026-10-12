@@ -108,4 +108,7 @@ include = ["fobis*"]
   "scaffolds/**/.github/actions/*/*",
   "scaffolds/**/.vitepress/**/*",
   "scaffolds/**/.vitepress/*",
+  "kb/packs/*/pack.ini",
+  "kb/packs/*/NOTICE",
+  "kb/packs/*/index.json",
 ]

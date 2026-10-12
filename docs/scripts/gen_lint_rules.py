@@ -69,6 +69,15 @@ def rule_page(rid: str) -> str:
         "",
         f"For the whole project, `ignore = {rid}` in the fobos [`[lint]` section](/fobos/lint).",
     ]
+    if rul.refs:
+        lines += [
+            "",
+            "## References",
+            "",
+            "Sections of the shipped [knowledge packs](/ai/knowledge-packs) behind this rule:",
+            "",
+        ]
+        lines += [f"- `{ref}` (`fobis kb show {ref}`)" for ref in rul.refs]
     if rul.equivalent:
         lines += [
             "",

@@ -1,0 +1,2528 @@
+{
+"version": 1,
+"chunks": [
+{
+"id": "fortran-std:overview#iso-iec-1539-1-2023-fortran-2023-base-language",
+"doc": "overview",
+"heading": "ISO/IEC 1539-1:2023 — Fortran 2023 (Base Language)",
+"text": "**Source**: J3/23-007r1 working draft (13 Jun 2023) | **Pages**: ~687 | **Chapters**: 22 (19 clauses + Annexes A–C) | **Generated**: 2026-06-09",
+"symbols": []
+},
+{
+"id": "fortran-std:overview#the-conformance-contract-ch-4",
+"doc": "overview",
+"heading": "ISO/IEC 1539-1:2023 — Fortran 2023 (Base Language) > Core Frameworks & Mental Models > The conformance contract (Ch 4)",
+"text": "- The standard binds **programs**, not processors — a processor's only duty is correct execution **plus** the capability to *detect and report* 10 violation classes (deleted/obsolescent use, bad kinds/source, scope violations, nonstandard intrinsics).\n- **`Rsnn`** = BNF syntax rule; **`Csnn`** = a *detectable* constraint. A constraint annotated `(Rxxx)` is part of that rule everywhere it appears. **The BNF is not a complete grammar** — constraints + prose complete it.\n- **Processor-dependent** = deliberately unspecified (Annex A / ch20). Don't rely on it for portability.\n- F2023 is upward-compatible from F2018 **except** a short list (notably `SYSTEM_CLOCK` now requires all integer args to share kind).",
+"symbols": [
+"csnn",
+"rsnn",
+"rxxx",
+"system_clock"
+]
+},
+{
+"id": "fortran-std:overview#the-type-system-ch-7",
+"doc": "overview",
+"heading": "ISO/IEC 1539-1:2023 — Fortran 2023 (Base Language) > Core Frameworks & Mental Models > The type system (Ch 7)",
+"text": "- Five intrinsic types; nonintrinsic = derived / enum / enumeration.\n- **Two parameter species**: *kind* (compile-time constant, drives generic resolution) vs *length* (runtime-variable, does not).\n- **Declared type vs dynamic type** is the master distinction for polymorphism — resolve dynamic type with `SELECT TYPE` (ch11); `CLASS(t)` polymorphic, `CLASS(*)`/`TYPE(*)` unlimited/assumed-type.",
+"symbols": [
+"class",
+"select",
+"type"
+]
+},
+{
+"id": "fortran-std:overview#purity-hierarchy-ch-15-strongest-contracts-win-for-paralleli",
+"doc": "overview",
+"heading": "ISO/IEC 1539-1:2023 — Fortran 2023 (Base Language) > Core Frameworks & Mental Models > Purity hierarchy (Ch 15) — strongest contracts win for parallelism",
+"text": "- `PURE` (no side effects) ⊃ **`SIMPLE`** (F2023: result depends *only* on arguments — no use/host/COMMON state). `ELEMENTAL` applies a scalar kernel array-wide and is implicitly pure.\n- Modern dummies (assumed-shape/rank, optional, allocatable, pointer, elemental, bind(c)) **require an explicit interface** → keep procedures in **modules**.",
+"symbols": [
+"elemental",
+"pure",
+"simple"
+]
+},
+{
+"id": "fortran-std:overview#argument-data-discipline-ch-8-9-19",
+"doc": "overview",
+"heading": "ISO/IEC 1539-1:2023 — Fortran 2023 (Base Language) > Core Frameworks & Mental Models > Argument & data discipline (Ch 8, 9, 19)",
+"text": "- **INTENT(OUT)** makes the dummy *undefined on entry* and *deallocates* allocatables — not a value-preserving update; use INTENT(INOUT) for that.\n- **Assumed-shape `a(:)` rebases the lower bound to 1** — use explicit bounds `a(lb:ub)` for ghost/halo arrays.\n- Prefer **ALLOCATABLE** over POINTER unless aliasing is required.\n- A non-SAVE, uninitialized local is **undefined** every entry — not zero.\n- Fortran does **not** short-circuit `.AND.`/`.OR.` — never guard-and-access in one logical expression.",
+"symbols": [
+"and"
+]
+},
+{
+"id": "fortran-std:overview#what-s-new-in-fortran-2023-use-these",
+"doc": "overview",
+"heading": "ISO/IEC 1539-1:2023 — Fortran 2023 (Base Language) > Core Frameworks & Mental Models > What's new in Fortran 2023 (use these)",
+"text": "- **Conditional expressions** `( cond ? a : b )` — only the chosen branch evaluates (ch10).\n- **`SIMPLE`** procedures — referential transparency for parallel/GPU kernels (ch15).\n- **Enum types** `ENUM :: t` and **enumeration types** `ENUMERATION TYPE :: t` — real, type-checked, distinct from legacy `ENUM, BIND(C)` integer constants (ch7).\n- **`TYPEOF` / `CLASSOF`** — declare an entity mirroring another's type (ch7).\n- **`DO CONCURRENT ... REDUCE(op:var)`** — the standard parallel-reduction primitive (ch11).\n- **`SPLIT` / `TOKENIZE`** string parsing, **`SELECTED_LOGICAL_KIND`**, circular trig (`SINPI`…) and degree trig (`SIND`…) (ch16).\n- **`C_F_STRPOINTER` / `F_C_STRING`** C-string interop (ch18); **`AT`** and **`LZS/LZP/LZ`** edit descriptors (ch13); rank-from-bounds-array `ALLOCATE` (ch9).",
+"symbols": [
+"allocate",
+"bind",
+"c_f_strpointer",
+"classof",
+"concurrent",
+"cond",
+"enum",
+"enumeration",
+"f_c_string",
+"lzp",
+"lzs",
+"reduce",
+"selected_logical_kind",
+"simple",
+"sind",
+"sinpi",
+"split",
+"tokenize",
+"type",
+"typeof",
+"var"
+]
+},
+{
+"id": "fortran-std:overview#modern-style-defaults-ch-21-says-avoid-the-rest",
+"doc": "overview",
+"heading": "ISO/IEC 1539-1:2023 — Fortran 2023 (Base Language) > Core Frameworks & Mental Models > Modern-style defaults (Ch 21 says avoid the rest)",
+"text": "`implicit none` everywhere · `use mod, only:` · kinds from `ISO_FORTRAN_ENV` · procedures in modules, heavy bodies in submodules · free form · `DO CONCURRENT` not FORALL · `SELECT CASE` not computed GOTO · module variables not COMMON/EQUIVALENCE.\n\n---",
+"symbols": [
+"case",
+"concurrent",
+"implicit",
+"iso_fortran_env",
+"mod",
+"none",
+"only",
+"select",
+"use"
+]
+},
+{
+"id": "fortran-std:overview#chapter-index",
+"doc": "overview",
+"heading": "ISO/IEC 1539-1:2023 — Fortran 2023 (Base Language) > Chapter Index",
+"text": "| # | Clause | Title | Key topics |\n|---|--------|-------|------------|\n| [ch01](chapters/ch01-scope.md) | 1 | Scope | what the standard does/doesn't specify |\n| [ch02](chapters/ch02-normative-references.md) | 2 | Normative references | IEEE 60559:2020, ISO 646/10646 |\n| [ch03](chapters/ch03-terms-definitions.md) | 3 | Terms and definitions | 243 normative terms; declared/dynamic type |\n| [ch04](chapters/ch04-notation-conformance.md) | 4 | Notation, conformance, compatibility | Rxxx/Cxxx, conformance, F-version deltas |\n| [ch05](chapters/ch05-fortran-concepts.md) | 5 | Fortran concepts | program-unit hierarchy, statement order |\n| [ch06](chapters/ch06-lexical-tokens.md) | 6 | Lexical tokens and source form | names, operators, free form (10k chars) |\n| [ch07](chapters/ch07-types.md) | 7 | Types | type params, polymorphism, enums, TYPEOF |\n| [ch08](chapters/ch08-attribute-declarations.md) | 8 | Attribute declarations | INTENT, array shapes, ALLOCATABLE/POINTER |\n| [ch09](chapters/ch09-data-objects.md) | 9 | Use of data objects | sections, ALLOCATE, coarrays, image selectors |\n| [ch10](chapters/ch10-expressions-assignment.md) | 10 | Expressions and assignment | precedence, conditional expr, WHERE/FORALL |\n| [ch11](chapters/ch11-execution-control.md) | 11 | Execution control | DO CONCURRENT+REDUCE, SELECT TYPE/RANK, BLOCK |\n| [ch12](chapters/ch12-io-statements.md) | 12 | Input/output statements | OPEN/READ/WRITE, stream, async, NEWUNIT |\n| [ch13](chapters/ch13-io-editing.md) | 13 | Input/output editing | edit descriptors, AT, LZ, rounding |\n| [ch14](chapters/ch14-program-units.md) | 14 | Program units | modules, submodules, USE association |\n| [ch15](chapters/ch15-procedures.md) | 15 | Procedures | interfaces, PURE/SIMPLE/ELEMENTAL, generics |\n| [ch16](chapters/ch16-intrinsic-procedures.md) | 16 | Intrinsic procedures and modules | intrinsics, SPLIT/TOKENIZE, IEEE/C/ENV modules |\n| [ch17](chapters/ch17-exceptions-ieee.md) | 17 | Exceptions and IEEE arithmetic | flags, rounding, FMA, support inquiries |\n| [ch18](chapters/ch18-c-interoperability.md) | 18 | Interoperability with C | ISO_C_BINDING, BIND(C), descriptors, strings |\n| [ch19](chapters/ch19-scope-association.md) | 19 | Scope, association, definition | scoping, associations, defined/undefined |\n| [ch20](chapters/ch20-annex-a-processor-dependencies.md) | A | Processor dependencies | the portability-hazard catalogue |\n| [ch21](chapters/ch21-annex-b-deleted-obsolescent.md) | B | Deleted & obsolescent features | what not to use + replacements |\n| [ch22](chapters/ch22-annex-c-extended-notes.md) | C | Extended notes | F2018 feature list, worked examples |",
+"symbols": []
+},
+{
+"id": "fortran-std:overview#topic-index",
+"doc": "overview",
+"heading": "ISO/IEC 1539-1:2023 — Fortran 2023 (Base Language) > Topic Index",
+"text": "- **allocate / deallocate** → ch09\n- **arrays / sections / shapes** → ch08, ch09\n- **assignment (intrinsic/defined/pointer)** → ch10\n- **assumed-rank / assumed-type** → ch07, ch08, ch11\n- **C interoperability / BIND(C)** → ch18, ch16\n- **coarrays / images / teams** → ch09, ch11, ch16\n- **conditional expressions (F2023)** → ch10\n- **conformance / Rxxx / Cxxx** → ch04\n- **deleted / obsolescent features** → ch21, ch04\n- **DO CONCURRENT / REDUCE** → ch11\n- **edit descriptors / formats** → ch13\n- **enum / enumeration types (F2023)** → ch07\n- **generic resolution** → ch15\n- **IEEE / floating-point / exceptions** → ch17, ch02\n- **INTENT / dummy arguments** → ch08, ch15\n- **interfaces (explicit/abstract)** → ch15\n- **intrinsic procedures** → ch16\n- **I/O (OPEN/READ/WRITE/stream/async)** → ch12\n- **kind / length type parameters** → ch07, ch16\n- **modules / submodules / USE** → ch14, ch19\n- **pointers / TARGET / association** → ch08, ch09, ch19\n- **polymorphism / CLASS / SELECT TYPE** → ch07, ch11\n- **processor-dependent behavior** → ch20, ch04\n- **PURE / SIMPLE / ELEMENTAL** → ch15\n- **scope / host/use association / definition status** → ch19\n- **source form / lexical tokens** → ch06\n- **string parsing (SPLIT/TOKENIZE, F2023)** → ch16\n- **trig (circular SINPI / degree SIND, F2023)** → ch16\n- **TYPEOF / CLASSOF (F2023)** → ch07",
+"symbols": []
+},
+{
+"id": "fortran-std:overview#supporting-files",
+"doc": "overview",
+"heading": "ISO/IEC 1539-1:2023 — Fortran 2023 (Base Language) > Supporting Files",
+"text": "- [glossary.md](glossary.md) — key normative terms with definitions and clause refs\n- [patterns.md](patterns.md) — modern Fortran idioms the standard enables\n- [cheatsheet.md](cheatsheet.md) — F2023 new-feature table + decision rules + tells/smells\n\n---",
+"symbols": []
+},
+{
+"id": "fortran-std:cheatsheet#what-s-new-in-fortran-2023-vs-f2018",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — Fortran 2023 Standard > What's NEW in Fortran 2023 (vs F2018)",
+"text": "| Feature | Form | Ch |\n|---|---|---|\n| Conditional expressions | `( cond ? a : ... : b )` | 10 |\n| SIMPLE procedures | `simple function f(x)` (pure + arg-only) | 15 |\n| Enum *types* / enumeration types | `ENUM :: t` (TYPE(t)) / `ENUMERATION TYPE :: t` | 7 |\n| TYPEOF / CLASSOF | `typeof(a) :: t` / `classof(p) :: q` | 7 |\n| DO CONCURRENT REDUCE | `reduce(+:s)` locality | 11 |\n| String parsing | `SPLIT`, `TOKENIZE` (SIMPLE) | 16 |\n| Logical kind selection | `SELECTED_LOGICAL_KIND(bits)` | 16 |\n| Circular / degree trig | `SINPI/COSPI/...`, `SIND/COSD/...` | 16 |\n| C string interop | `C_F_STRPOINTER`, `F_C_STRING` | 18 |\n| Edit descriptors | `AT` (auto-trim), `LZS/LZP/LZ` (leading zeros) | 13 |\n| Rank-from-bounds ALLOCATE | `allocate(a(bounds_array))` | 9 |\n| `IEEE_MAX_NUM`/`MIN_NUM` w/ sNaN | returns the number (was NaN) | 4, 17 |",
+"symbols": [
+"allocate",
+"bits",
+"bounds_array",
+"c_f_strpointer",
+"classof",
+"cond",
+"cosd",
+"cospi",
+"enum",
+"enumeration",
+"f_c_string",
+"function",
+"ieee_max_num",
+"lzp",
+"lzs",
+"min_num",
+"reduce",
+"selected_logical_kind",
+"simple",
+"sind",
+"sinpi",
+"split",
+"tokenize",
+"type",
+"typeof"
+]
+},
+{
+"id": "fortran-std:cheatsheet#f2023-breaking-changes-from-f2018-check-these",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — Fortran 2023 Standard > F2023 breaking changes from F2018 — check these",
+"text": "- `SYSTEM_CLOCK`: **all integer args must share kind** and have ≥ default-int exponent range. (fixes likely needed in timing code)\n- BLOCK + DATA: using a DATA-only variable *before* its DATA stmt no longer allowed.\n- `ASSOCIATED(P,T)`: POINTER/TARGET must have **same rank**.",
+"symbols": [
+"associated",
+"system_clock"
+]
+},
+{
+"id": "fortran-std:cheatsheet#intent-pick-the-right-one",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — Fortran 2023 Standard > Decision rules > INTENT — pick the right one",
+"text": "- Read-only input → **INTENT(IN)** (cannot define).\n- Produce fresh output, prior value irrelevant → **INTENT(OUT)** (⚠ undefined on entry; allocatables **deallocated**).\n- Update in place, must keep prior value → **INTENT(INOUT)** (actual always definable).\n- *Never* use INTENT(OUT) to preserve a value — it zeroes/deallocates on entry.",
+"symbols": []
+},
+{
+"id": "fortran-std:cheatsheet#array-dummy-bounds-avoid-the-rebasing-trap",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — Fortran 2023 Standard > Decision rules > Array dummy bounds — avoid the rebasing trap",
+"text": "- Want shape, origin irrelevant → `a(:)` (lower bound **rebases to 1**).\n- Need a specific origin / ghost cells → `a(lb:ub)` **explicit-shape** (preserves bounds).\n- Pass to C / vectorized kernel → ensure **simply contiguous** or `CONTIGUOUS` (else hidden copy).",
+"symbols": [
+"contiguous"
+]
+},
+{
+"id": "fortran-std:cheatsheet#purity-how-strong",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — Fortran 2023 Standard > Decision rules > Purity — how strong?",
+"text": "- Has side effects / I/O → plain (or `IMPURE`).\n- No side effects, may read module state → **PURE**.\n- Result depends only on args (parallel/GPU/memoizable) → **SIMPLE** (F2023).\n- Scalar op applied array-wide → **ELEMENTAL** (implicitly pure).",
+"symbols": [
+"impure"
+]
+},
+{
+"id": "fortran-std:cheatsheet#allocatable-vs-pointer",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — Fortran 2023 Standard > Decision rules > Allocatable vs pointer",
+"text": "- Owned, scoped lifetime, no aliasing → **ALLOCATABLE** (preferred; optimizer-friendly).\n- Must alias / build linked structures / point at TARGET → **POINTER** (manual lifetime; can dangle).",
+"symbols": []
+},
+{
+"id": "fortran-std:cheatsheet#loop-choice",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — Fortran 2023 Standard > Decision rules > Loop choice",
+"text": "- Independent iterations, want parallel/offload → **DO CONCURRENT** (+`REDUCE`/`LOCAL`/`DEFAULT(NONE)`).\n- Reduction → `DO CONCURRENT ... REDUCE(op:acc)` (F2023).\n- Sequential dependence → ordinary `DO`.\n- *Never* new FORALL (obsolescent).",
+"symbols": [
+"acc",
+"concurrent",
+"default",
+"local",
+"none",
+"reduce"
+]
+},
+{
+"id": "fortran-std:cheatsheet#kind-selection",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — Fortran 2023 Standard > Decision rules > Kind selection",
+"text": "- Need ~double → `selected_real_kind(15,307)` **or** `use iso_fortran_env, only: real64`.\n- Never `real(8)` / `real*8` — kind integers are processor-dependent (Annex A).",
+"symbols": [
+"iso_fortran_env",
+"only",
+"real",
+"real64",
+"selected_real_kind",
+"use"
+]
+},
+{
+"id": "fortran-std:cheatsheet#enum-which-of-the-three",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — Fortran 2023 Standard > Decision rules > Enum — which of the three?",
+"text": "- C-interop integer constants only → `ENUM, BIND(C)` (legacy; values are plain integers).\n- A real, type-checked enum → **enum type** `ENUM :: t` → `TYPE(t)` (constructor `t(expr)` needed).\n- Ordinal, non-interoperable distinct type → **enumeration type** `ENUMERATION TYPE :: t`.",
+"symbols": [
+"bind",
+"enum",
+"enumeration",
+"expr",
+"type"
+]
+},
+{
+"id": "fortran-std:cheatsheet#tells-smells",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — Fortran 2023 Standard > Tells & smells",
+"text": "- `if (allocated(a) .and. a(1) > 0)` → **bug**: Fortran does not short-circuit `.AND.`; use nested IF or a conditional expression.\n- Reading a non-SAVE local you didn't assign → **undefined**, not 0.\n- `>100×` GPU speedup → almost always a missing `!$acc wait` before `system_clock` (timing artifact).\n- Mixed FP32-store/FP64-compute on a consumer GPU → **slower** than full FP64 (1:64 ratio); not an optimization.\n- Naive `sum()` for FP64-quality diagnostics → O(N·eps) error; use pairwise/Kahan or `IEEE_FMA`.\n- Different results across compilers → check **Annex A** (likely processor-dependent, not a bug).\n- `*****` in output → fixed-width descriptor overflow; use `I0`/`G0`.",
+"symbols": [
+"!$acc wait",
+"allocated",
+"and",
+"ieee_fma",
+"sum",
+"system_clock"
+]
+},
+{
+"id": "fortran-std:cheatsheet#modern-style-defaults",
+"doc": "cheatsheet",
+"heading": "Cheatsheet — Fortran 2023 Standard > Modern-style defaults",
+"text": "- `implicit none` (+ `(external)` to force EXTERNAL declarations) in every scoping unit.\n- `use mod, only: ...` everywhere; kinds from `ISO_FORTRAN_ENV`.\n- Procedures in **modules** (free explicit interfaces); heavy bodies in **submodules**.\n- Free source form; `CHARACTER(LEN=n)` not `CHARACTER*n`; generic intrinsic names (`SQRT` not `DSQRT`).\n- Replace: arithmetic IF → `IF`; computed GOTO → `SELECT CASE`; FORALL → `DO CONCURRENT`; COMMON/EQUIVALENCE → module variables.",
+"symbols": [
+"case",
+"character",
+"concurrent",
+"dsqrt",
+"external",
+"implicit",
+"iso_fortran_env",
+"len",
+"mod",
+"none",
+"only",
+"select",
+"sqrt",
+"use"
+]
+},
+{
+"id": "fortran-std:glossary#glossary-fortran-2023-standard",
+"doc": "glossary",
+"heading": "Glossary — Fortran 2023 Standard",
+"text": "Key normative terms (Clause 3 has 243; this is the high-leverage subset). Format: **Term** — definition (Ch).",
+"symbols": []
+},
+{
+"id": "fortran-std:glossary#glossary-fortran-2023-standard-2",
+"doc": "glossary",
+"heading": "Glossary — Fortran 2023 Standard",
+"text": "**actual argument** — an expression, variable, or procedure passed in a procedure reference; associated with a dummy argument (15).\n**allocatable** — attribute for an object whose allocation status is dynamic; auto-deallocated at scope exit (8).\n**array section** — a designator selecting a subset of an array via triplets or vector subscripts (9).\n**assumed-rank** — dummy `a(..)` whose rank is taken from the actual argument; used with SELECT RANK (8, 11).\n**assumed-shape** — dummy `a(:)` whose extents come from the actual; **lower bound defaults to 1** (8).\n**assumed-size** — dummy `a(*)`; last dimension size unknown; legacy/interop (8).\n**assumed-type** — `TYPE(*)` dummy; unlimited polymorphic, opaque pass-through (7).\n**association** — a relationship by which an entity is reachable by another name/storage; 9 kinds (3, 19).\n**attribute** — a property of an entity (ALLOCATABLE, POINTER, INTENT, …) (8).\n**BIND(C)** — gives an entity C linkage and an optional binding label (18).\n**BLOCK construct** — a nested scope permitting local declarations within the execution part (11).\n**characteristics** — the fixed properties of a procedure/dummy used in interface matching (15).\n**CLASS(*)** — unlimited polymorphic declaration; dynamic type may be anything (7).\n**coarray** — an object with codimensions, accessible across images (8, 9).\n**collating sequence** — processor-dependent ordering of a character set (3, 20).\n**conditional expression** — F2023 `( cond ? a : ... : b )`; only the chosen branch evaluates (10).\n**conformable** — arrays/scalars compatible in shape for an operation (3).\n**constant expression** — expression guaranteed constant; gates kind selectors, bounds, initializers (3, 10).\n**construct entity** — an entity whose scope is a construct (e.g. ASSOCIATE name, DO index) (19).\n**contiguous** — object whose elements are not separated in memory; CONTIGUOUS attribute / IS_CONTIGUOUS (3, 8).\n**declared type** — the static type of an entity (vs dynamic type) (3, 7).\n**deferred type parameter** — a `:` type parameter set by ALLOCATE/assignment/pointer-assign (7).\n**defined / undefined** — whether a variable currently holds a valid value (19).\n**dummy argument** — the procedure-side placeholder associated with an actual argument (15).\n**dynamic type** — the runtime type of a polymorphic entity (3, 7, 11).\n**elemental** — a procedure defined on scalars that applies element-wise to arrays; implicitly pure (15).\n**enum type** — F2023 integer-backed type declared `ENUM`/`ENUM, BIND(C)`, used as `TYPE(name)` (7).\n**enumeration type** — F2023 ordinal nonintrinsic type via `ENUMERATION TYPE`; not interoperable (7).\n**extensible type** — a type that may be extended via EXTENDS (7).\n**final subroutine** — a FINAL-bound subroutine invoked on finalization; order processor-dependent (7, 20).\n**generic resolution** — selecting a specific procedure from a generic by type/kind/rank/presence (15).\n**host association** — access to a host scoping unit's entities from a contained unit (19).\n**image** — an instance of the program in coarray/parallel execution (1, 9).\n**IMPORT** — statement controlling host association into an interface body/BLOCK (14, 19).\n**INTENT** — IN / OUT / INOUT use specification for a dummy; OUT undefines/deallocates on entry (8).\n**interoperable** — having a defined correspondence with a C entity (18).\n**intrinsic type** — integer, real, complex, character, logical (7).\n**kind type parameter** — integer parameter known at compile time; drives generic resolution (7).\n**length type parameter** — integer parameter that may vary at runtime; does not drive generics (7).\n**module** — program unit whose public entities are accessible by use association (14).\n**named constant** — a data object with the PARAMETER attribute (3, 8).\n**pointer association** — link between a pointer and its target; associated/disassociated/undefined (19).\n**polymorphic** — able to be of differing dynamic types; declared with CLASS (7).\n**potential subobject component** — a component that could be a subobject; affects finalization/init (3).\n**processor** — compiler + runtime + system implementing Fortran (1, 4).\n**processor-dependent** — behavior the standard leaves to the processor; cataloged in Annex A (4, 20).\n**PROTECTED** — module variable read-only outside its defining module (8).\n**pure** — procedure with no side effects; required for DO CONCURRENT bodies, spec expressions (15).\n**RANK clause** — declare rank separately for rank-agnostic code (8).\n**SELECT RANK** — construct dispatching on the rank of an assumed-rank dummy (11).\n**SELECT TYPE** — construct dispatching on the dynamic type of a polymorphic selector (11).\n**simple** — F2023 prefix: pure **and** result depends only on arguments (no host/use/COMMON state) (15).\n**simply contiguous** — a designator the compiler can prove contiguous syntactically (9).\n**SOURCE= / MOLD=** — ALLOCATE options copying value+shape / shape+type only (9).\n**stream access** — byte-addressable file access via POS= (12).\n**submodule** — a program unit holding the bodies of a module's separate module procedures (14).\n**TARGET** — attribute marking an object as a permissible pointer target (8).\n**TYPEOF / CLASSOF** — F2023 specifiers declaring an entity that mirrors a data-ref's type (non-poly / poly) (7).\n**type parameter inquiry** — `x%kind`, `s%len` (9).\n**unlimited polymorphic** — `CLASS(*)` or `TYPE(*)`; no declared type (7).\n**use association** — access to module entities via USE (14, 19).\n**variable definition context** — syntactic positions where a variable may be defined (19).\n**vector subscript** — array section by an integer index array (gather/scatter) (9).",
+"symbols": [
+"bind",
+"class",
+"cond",
+"enum",
+"enumeration",
+"kind",
+"len",
+"name",
+"type"
+]
+},
+{
+"id": "fortran-std:patterns#patterns-fortran-2023-idioms-the-standard-enables",
+"doc": "patterns",
+"heading": "Patterns — Fortran 2023 idioms the standard enables",
+"text": "Concrete techniques sanctioned (or newly enabled) by the standard. Format: **When to use / How / Trade-offs.**",
+"symbols": []
+},
+{
+"id": "fortran-std:patterns#modular-encapsulation-with-submodules",
+"doc": "patterns",
+"heading": "Patterns — Fortran 2023 idioms the standard enables > Modular encapsulation with submodules",
+"text": "**When**: a module's procedure *bodies* change often but its *interface* is stable, and rebuild time hurts.\n**How**: declare `MODULE FUNCTION/SUBROUTINE` interfaces in the module; put bodies in `SUBMODULE (parent) impl`. (Ch 14)\n**Trade-offs**: extra file/unit; payoff is localized recompilation — users of the module don't rebuild when a body changes.",
+"symbols": [
+"function",
+"impl",
+"module",
+"parent",
+"submodule",
+"subroutine"
+]
+},
+{
+"id": "fortran-std:patterns#polymorphic-dispatch-select-type-abstract-base",
+"doc": "patterns",
+"heading": "Patterns — Fortran 2023 idioms the standard enables > Polymorphic dispatch (SELECT TYPE) + abstract base",
+"text": "**When**: runtime type-based behavior over a type hierarchy.\n**How**: `ABSTRACT` base with `DEFERRED` type-bound procedures; `CLASS(base)` containers; `SELECT TYPE` to narrow. (Ch 7, 11)\n**Trade-offs**: dynamic dispatch cost; clearer than manual tag fields.",
+"symbols": [
+"abstract",
+"base",
+"class",
+"deferred",
+"select",
+"type"
+]
+},
+{
+"id": "fortran-std:patterns#rank-agnostic-kernels-assumed-rank-select-rank",
+"doc": "patterns",
+"heading": "Patterns — Fortran 2023 idioms the standard enables > Rank-agnostic kernels (assumed-rank + SELECT RANK)",
+"text": "**When**: one routine must accept arrays of several ranks (e.g. generic I/O, interop shims).\n**How**: dummy `a(..)`; `SELECT RANK (a)` with `rank(1)/rank(2)/rank(*)/rank default`. (Ch 8, 11)\n**Trade-offs**: per-rank branches; avoids N near-duplicate procedures.",
+"symbols": [
+"default",
+"rank",
+"select"
+]
+},
+{
+"id": "fortran-std:patterns#parallel-reduction-with-do-concurrent-reduce-f2023",
+"doc": "patterns",
+"heading": "Patterns — Fortran 2023 idioms the standard enables > Parallel reduction with DO CONCURRENT REDUCE (F2023)",
+"text": "**When**: data-parallel accumulation (sum/min/max/logical) you want the processor to parallelize/offload.\n**How**: `do concurrent (i=1:n) reduce(+:acc) default(none) shared(a)`. (Ch 11)\n**Trade-offs**: independence/REDUCE is a *programmer assertion*; the processor may still run serially — verify offload (and timing, per GPU-benchmark discipline).",
+"symbols": [
+"acc",
+"concurrent",
+"default",
+"none",
+"reduce",
+"shared"
+]
+},
+{
+"id": "fortran-std:patterns#referentially-transparent-kernels-with-simple-f2023",
+"doc": "patterns",
+"heading": "Patterns — Fortran 2023 idioms the standard enables > Referentially transparent kernels with SIMPLE (F2023)",
+"text": "**When**: a function whose result must depend only on its arguments (parallel safety, memoization, GPU).\n**How**: `simple function f(x)` — no use/host vars, no COMMON, only-SIMPLE callees. (Ch 15)\n**Trade-offs**: stricter than PURE; cannot read module state — pass everything as arguments.",
+"symbols": [
+"function",
+"simple"
+]
+},
+{
+"id": "fortran-std:patterns#element-wise-scalar-kernels-elemental",
+"doc": "patterns",
+"heading": "Patterns — Fortran 2023 idioms the standard enables > Element-wise scalar kernels (ELEMENTAL)",
+"text": "**When**: a scalar operation you want to apply across whole arrays without explicit loops.\n**How**: `pure elemental function clamp(x,lo,hi)`; call on scalars or conformable arrays. (Ch 15)\n**Trade-offs**: must be pure; great for vectorization and readability.",
+"symbols": [
+"clamp",
+"elemental",
+"function",
+"pure"
+]
+},
+{
+"id": "fortran-std:patterns#conditional-expressions-instead-of-temporary-laden-if-f2023",
+"doc": "patterns",
+"heading": "Patterns — Fortran 2023 idioms the standard enables > Conditional expressions instead of temporary-laden IF (F2023)",
+"text": "**When**: choose one of several values inline without a statement-level branch.\n**How**: `y = ( cond ? a : cond2 ? b : c )`; only the chosen branch evaluates. (Ch 10)\n**Trade-offs**: all branches must share type/kind/rank; replaces MERGE (which evaluates both arms).",
+"symbols": [
+"cond",
+"cond2"
+]
+},
+{
+"id": "fortran-std:patterns#type-tracking-declarations-typeof-classof-f2023",
+"doc": "patterns",
+"heading": "Patterns — Fortran 2023 idioms the standard enables > Type-tracking declarations (TYPEOF / CLASSOF, F2023)",
+"text": "**When**: declare a local/temporary that must match another entity's (possibly deferred) type.\n**How**: `typeof(a) :: tmp` (non-poly) / `classof(p) :: q` (poly). (Ch 7)\n**Trade-offs**: tracks deferred params correctly (unlike restating the declaration).",
+"symbols": [
+"classof",
+"tmp",
+"typeof"
+]
+},
+{
+"id": "fortran-std:patterns#safe-dynamic-memory-allocate-with-stat-source-mold",
+"doc": "patterns",
+"heading": "Patterns — Fortran 2023 idioms the standard enables > Safe dynamic memory (ALLOCATE with STAT/SOURCE/MOLD)",
+"text": "**When**: dynamic arrays with failure handling or cloning.\n**How**: `allocate(a(n), stat=s, errmsg=m)`; `allocate(b, source=a)` to clone; F2023 `allocate(c(bounds_array))` for rank from a bounds array. (Ch 9)\n**Trade-offs**: SOURCE copies values (cost); MOLD copies only shape/type.",
+"symbols": [
+"allocate",
+"bounds_array",
+"errmsg",
+"source",
+"stat"
+]
+},
+{
+"id": "fortran-std:patterns#string-tokenizing-split-tokenize-f2023",
+"doc": "patterns",
+"heading": "Patterns — Fortran 2023 idioms the standard enables > String tokenizing (SPLIT / TOKENIZE, F2023)",
+"text": "**When**: parsing delimited text.\n**How**: `call tokenize(string, set=',', tokens=toks)` (all) or `split(...)` (one at a time). (Ch 16)\n**Trade-offs**: replaces hand-rolled index/scan loops; SIMPLE procedures.",
+"symbols": [
+"call",
+"set",
+"split",
+"string",
+"tokenize",
+"tokens",
+"toks"
+]
+},
+{
+"id": "fortran-std:patterns#ieee-aware-numerics-status-save-restore-fma",
+"doc": "patterns",
+"heading": "Patterns — Fortran 2023 idioms the standard enables > IEEE-aware numerics (status save/restore + FMA)",
+"text": "**When**: detecting FP exceptions or controlling rounding around a kernel.\n**How**: `ieee_get_status` → clear flags/set halting off → compute → `ieee_get_flag` → `ieee_set_status`; use `ieee_fma(a,b,c)` for compensated accuracy. (Ch 17)\n**Trade-offs**: must restore caller state; query `ieee_support_*` first.",
+"symbols": [
+"ieee_fma",
+"ieee_get_flag",
+"ieee_get_status",
+"ieee_set_status",
+"ieee_support_"
+]
+},
+{
+"id": "fortran-std:patterns#c-interop-with-descriptors-and-string-bridges",
+"doc": "patterns",
+"heading": "Patterns — Fortran 2023 idioms the standard enables > C interop with descriptors and string bridges",
+"text": "**When**: calling C with Fortran arrays/strings.\n**How**: `bind(c, name=)`; `c_loc`/`c_f_pointer` for memory; F2023 `f_c_string`/`c_f_strpointer` for strings; CFI descriptor for assumed-shape/rank. (Ch 18)\n**Trade-offs**: mind column-major vs row-major (reversed dims); contiguity may force copies.",
+"symbols": [
+"bind",
+"c_f_pointer",
+"c_f_strpointer",
+"c_loc",
+"f_c_string",
+"name"
+]
+},
+{
+"id": "fortran-std:patterns#disciplined-modules-use-only-iso-fortran-env-kinds",
+"doc": "patterns",
+"heading": "Patterns — Fortran 2023 idioms the standard enables > Disciplined modules (USE ONLY + ISO_FORTRAN_ENV kinds)",
+"text": "**When**: every module import, every kind declaration.\n**How**: `use mod, only: ...`; `use, intrinsic :: iso_fortran_env, only: real64`; `real(real64) :: x`. (Ch 14, 16)\n**Trade-offs**: more verbose; eliminates namespace pollution and nonportable kind integers.",
+"symbols": [
+"intrinsic",
+"iso_fortran_env",
+"mod",
+"only",
+"real",
+"real64",
+"use"
+]
+},
+{
+"id": "fortran-std:ch01-scope#core-idea",
+"doc": "ch01-scope",
+"heading": "Chapter 1 (Clause 1): Scope > Core Idea",
+"text": "ISO/IEC 1539-1:2023 specifies the **form** and **interpretation** of programs in the base Fortran language — the syntactic forms a program may take and the meaning of those forms. It constrains *programs*, not *processors*, except where it explicitly lists processor detection/reporting duties.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch01-scope#frameworks-introduced",
+"doc": "ch01-scope",
+"heading": "Chapter 1 (Clause 1): Scope > Frameworks Introduced",
+"text": "- **What the standard specifies**: (1) the forms a program can take; (2) rules for interpreting program + data meaning; (3) the form of input data; (4) the form of output data.\n- **What it deliberately does NOT specify**: the compilation mechanism; OS setup/control; transcription to storage media; behavior where interpretation fails (beyond the 4.2 detect/report duties); the number/size of images or program-size limits; physical properties of images, numeric representation/rounding (except via ISO/IEC 60559:2020 under Clause 17), I/O records, or storage implementation.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch01-scope#key-concepts",
+"doc": "ch01-scope",
+"heading": "Chapter 1 (Clause 1): Scope > Key Concepts",
+"text": "- **Base language**: Part 1 of the ISO/IEC 1539 series — the core language, as opposed to varying-length-string or conditional-compilation auxiliary parts.\n- **Processor**: the combination of compiler + runtime + computing system that implements Fortran. The standard governs programs; processors get only detection duties.\n- **Image**: an instance of the program (coarray/parallel execution model); the standard refuses to fix image count or physical mapping.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch01-scope#mental-models",
+"doc": "ch01-scope",
+"heading": "Chapter 1 (Clause 1): Scope > Mental Models",
+"text": "- Think of the standard as a **contract on portability**: it pins down meaning so a conforming program runs equivalently across conforming processors — but explicitly leaves numerics, image count, and storage layout to the processor, which is exactly where portability surprises live.\n- When a behavior \"isn't in the standard,\" it's usually **deliberately processor-dependent**, not an oversight — check Annex A (ch20) for the catalogue.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch01-scope#key-takeaways",
+"doc": "ch01-scope",
+"heading": "Chapter 1 (Clause 1): Scope > Key Takeaways",
+"text": "1. The standard binds programs, not processors — the only processor obligations are the detect/report list in 4.2 (ch04).\n2. Numeric rounding/representation is out of scope *except* through IEEE (Clause 17 / ch17) — do not assume bit-reproducibility across processors otherwise.\n3. Parallelism (images) is in scope semantically but image *count* and physical mapping are not.\n4. \"Portability, reliability, maintainability, efficient execution\" is the stated purpose — the lens for resolving interpretation questions.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch01-scope#connects-to",
+"doc": "ch01-scope",
+"heading": "Chapter 1 (Clause 1): Scope > Connects To",
+"text": "- **Ch 4**: Conformance — the precise meaning of \"standard-conforming\" and the processor detect/report duties.\n- **Ch 17**: IEEE arithmetic — the one place numeric properties enter scope.\n- **Ch 20 (Annex A)**: the full list of processor-dependent behaviors this clause gestures at.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch02-normative-references#core-idea",
+"doc": "ch02-normative-references",
+"heading": "Chapter 2 (Clause 2): Normative references > Core Idea",
+"text": "Lists the external documents whose content is **normatively** incorporated into the Fortran standard — chiefly the IEEE floating-point standard and the character-set standards.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch02-normative-references#key-concepts",
+"doc": "ch02-normative-references",
+"heading": "Chapter 2 (Clause 2): Normative references > Key Concepts",
+"text": "- **ISO/IEC 60559:2020** — the floating-point arithmetic standard (formerly IEEE 754). Normatively referenced by Clause 17; the source of IEEE conformance semantics, exceptions, and rounding modes.\n- **ISO/IEC 646** — the 7-bit ASCII character set, basis of the default and ASCII character kinds.\n- **ISO/IEC 10646** — the universal coded character set (Unicode-aligned), basis of the ISO 10646 character kind for wide characters.\n- **ISO 8601** — date/time representation, relevant to `DATE_AND_TIME`.",
+"symbols": [
+"date_and_time"
+]
+},
+{
+"id": "fortran-std:ch02-normative-references#mental-models",
+"doc": "ch02-normative-references",
+"heading": "Chapter 2 (Clause 2): Normative references > Mental Models",
+"text": "- A normative reference means: **the cited document's requirements are binding as if written here**. So \"IEEE conformance\" in Clause 17 is precisely conformance to 60559:2020, not a Fortran-local approximation.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch02-normative-references#key-takeaways",
+"doc": "ch02-normative-references",
+"heading": "Chapter 2 (Clause 2): Normative references > Key Takeaways",
+"text": "1. Floating-point semantics are defined by reference to ISO/IEC 60559:2020 — for FP64/FP32 behavior, the IEEE doc is authoritative, surfaced through Clause 17 (ch17).\n2. The three character kinds (default/ASCII, ISO 10646) trace to ISO/IEC 646 and 10646.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch02-normative-references#connects-to",
+"doc": "ch02-normative-references",
+"heading": "Chapter 2 (Clause 2): Normative references > Connects To",
+"text": "- **Ch 7**: Types — character kinds depend on these character-set standards.\n- **Ch 17**: IEEE arithmetic — built directly on ISO/IEC 60559:2020.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch03-terms-definitions#core-idea",
+"doc": "ch03-terms-definitions",
+"heading": "Chapter 3 (Clause 3): Terms and definitions > Core Idea",
+"text": "The normative vocabulary — **243 defined terms** that fix the precise meaning of every word the rest of the standard relies on. When two readings of a clause conflict, the Clause 3 definition decides. This chapter is a map to the vocabulary; the full alphabetical list lives in `glossary.md`.",
+"symbols": [
+"glossary"
+]
+},
+{
+"id": "fortran-std:ch03-terms-definitions#key-concepts-the-load-bearing-definitions",
+"doc": "ch03-terms-definitions",
+"heading": "Chapter 3 (Clause 3): Terms and definitions > Key Concepts (the load-bearing definitions)",
+"text": "- **entity** — anything a program can refer to: a data object, procedure, type, etc. The umbrella term.\n- **data object** — a constant, variable, or subobject; a \"thing with a value.\" Distinguished from a *data entity* (object, function reference value, or constant expression value).\n- **declared type** vs **dynamic type** — the type a polymorphic entity is *declared* with vs the type it *actually has* at runtime. The split is the basis of polymorphism (ch07, ch15).\n- **attribute** — a property an entity has (e.g. ALLOCATABLE, POINTER, TARGET, INTENT). Attributes compose; many constraints are attribute-compatibility rules.\n- **association** — the standard recognizes 9 named kinds: argument, construct, host, inheritance, linkage, name, pointer, storage, use. Each has distinct rules (ch19).\n- **companion processor** — the (often C) processor a Fortran processor interoperates with; the anchor for C interoperability (ch18).\n- **contiguous** — array/multi-part object whose elements are not separated in memory by other objects; governs performance and C interop.\n- **constant expression** — an expression whose value is guaranteed constant (rules in 10.1.12); gates what may appear as a kind selector, bound, or initializer.\n- **potential subobject component** — a component that could be a subobject; central to finalization and default-initialization rules.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch03-terms-definitions#mental-models",
+"doc": "ch03-terms-definitions",
+"heading": "Chapter 3 (Clause 3): Terms and definitions > Mental Models",
+"text": "- Treat Clause 3 as a **type system for English**: every italic term elsewhere is a defined term here. \"Resolve by definition\" is the standard's own dispute-resolution rule.\n- The **declared/dynamic type** distinction is the single most important conceptual split in the language — master it before reasoning about CLASS, SELECT TYPE, or generic resolution.\n- Association is **not** one concept — when you read \"associated,\" ask *which* of the 9 associations; the rules differ sharply (pointer vs argument vs storage).",
+"symbols": []
+},
+{
+"id": "fortran-std:ch03-terms-definitions#anti-patterns",
+"doc": "ch03-terms-definitions",
+"heading": "Chapter 3 (Clause 3): Terms and definitions > Anti-patterns",
+"text": "- **Conflating \"data object\" with \"variable\"**: constants and subobjects are data objects too; some rules apply to the wider category.\n- **Assuming \"associated\" means pointer association**: in argument passing or host scoping it means something else entirely.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch03-terms-definitions#key-takeaways",
+"doc": "ch03-terms-definitions",
+"heading": "Chapter 3 (Clause 3): Terms and definitions > Key Takeaways",
+"text": "1. 243 normative terms; the alphabetical reference is `glossary.md`.\n2. Declared type vs dynamic type underpins all of OOP-Fortran.\n3. There are 9 distinct *associations* — never reason about \"association\" generically.\n4. \"Contiguous,\" \"constant expression,\" and \"potential subobject component\" are quiet but high-leverage definitions that gate many later constraints.",
+"symbols": [
+"glossary"
+]
+},
+{
+"id": "fortran-std:ch03-terms-definitions#connects-to",
+"doc": "ch03-terms-definitions",
+"heading": "Chapter 3 (Clause 3): Terms and definitions > Connects To",
+"text": "- **Ch 7**: Types — declared/dynamic type, type parameters.\n- **Ch 9 & 19**: Data objects and association — the association taxonomy is applied here.\n- **glossary.md**: full alphabetical term list.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch04-notation-conformance#core-idea",
+"doc": "ch04-notation-conformance",
+"heading": "Chapter 4 (Clause 4): Notation, conformance, and compatibility > Core Idea",
+"text": "Defines the **BNF notation** used for every syntax rule, the precise meaning of **standard-conforming** (for both programs and processors), and the **backward-compatibility deltas** against every prior Fortran standard. This is the clause that tells you how to *read* the rest of the document and what \"conforming\" actually obligates.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch04-notation-conformance#frameworks-introduced",
+"doc": "ch04-notation-conformance",
+"heading": "Chapter 4 (Clause 4): Notation, conformance, and compatibility > Frameworks Introduced",
+"text": "- **Syntax rule numbering Rsnn**: `s` = clause number (1–2 digits), `nn` = sequence within clause. Rules in Clauses 5–6 may be repeated in a later clause `s` where fully described. Rules are **not** a complete parser grammar — constraints + prose complete them.\n  - Metasymbols: `is` (defines a class), `or` (alternative), `[ ]` (optional), `[ ] ...` (zero-or-more repeat).\n- **Constraint numbering Csnn**: a requirement a conforming **processor must be able to detect and report**. A constraint annotated `(Rxxx)` is part of that rule's definition and applies everywhere the term appears. Unannotated constraints act like prose restrictions but with the detect/report obligation.\n  - When to use: the broad requirement may be in prose, with a *subset* restated as a constraint — the program must obey the prose; the processor need only diagnose the constraint.\n- **Assumed syntax rules**: `R401 xyz-list is xyz [, xyz]...`, `R402 xyz-name is name`, `R403 scalar-xyz is xyz` (+ C401: scalar-xyz shall be scalar). An explicit rule overrides the assumed one.",
+"symbols": [
+"c401",
+"list",
+"name",
+"r401",
+"r402",
+"r403",
+"rxxx",
+"scalar",
+"xyz"
+]
+},
+{
+"id": "fortran-std:ch04-notation-conformance#key-concepts",
+"doc": "ch04-notation-conformance",
+"heading": "Chapter 4 (Clause 4): Notation, conformance, and compatibility > Key Concepts",
+"text": "- **standard-conforming program**: uses only forms/relationships described herein and has an interpretation per the document.\n- **standard-conforming processor**: executes conforming programs correctly AND has the *capability* to detect+report the 10 enumerated violation classes (obsolescent use, non-permitted forms incl. deleted features, unsupported kinds, bad source form, scope violations, nonstandard intrinsics/modules, etc.).\n- **processor-dependent**: semantics the standard deliberately leaves to the processor; must be *provided*, not necessarily *specified* (catalogue in Annex A / ch20).\n- **obsolescent feature**: redundant since F90/F95, still common, printed in *smaller type*; a future revision may delete it.\n- **deleted feature**: removed entirely (Annex B / ch21).",
+"symbols": []
+},
+{
+"id": "fortran-std:ch04-notation-conformance#prior-editions-table-4-3",
+"doc": "ch04-notation-conformance",
+"heading": "Chapter 4 (Clause 4): Notation, conformance, and compatibility > Reference Tables > Prior editions (Table 4.3)",
+"text": "| Designation | Informal name |\n|---|---|\n| ISO R 1539-1972 | Fortran 66 |\n| ISO 1539-1980 | Fortran 77 |\n| ISO/IEC 1539:1991 | Fortran 90 |\n| ISO/IEC 1539-1:1997 | Fortran 95 |\n| ISO/IEC 1539-1:2004 | Fortran 2003 |\n| ISO/IEC 1539-1:2010 | Fortran 2008 |\n| ISO/IEC 1539-1:2018 | Fortran 2018 |",
+"symbols": []
+},
+{
+"id": "fortran-std:ch04-notation-conformance#f2023-vs-f2018-incompatibilities-that-bite-4-3-3",
+"doc": "ch04-notation-conformance",
+"heading": "Chapter 4 (Clause 4): Notation, conformance, and compatibility > Reference Tables > F2023 vs F2018 — incompatibilities that bite (4.3.3)",
+"text": "| Area | F2018 allowed | F2023 requires |\n|---|---|---|\n| `SYSTEM_CLOCK` | integer args of any kind | args ≥ default-int exponent range; **all integer args same kind** |\n| BLOCK + DATA | use a DATA-only variable *before* its DATA stmt | not permitted |\n| `ASSOCIATED(P,T)` | POINTER/TARGET of different rank | same rank required |\n| `IEEE_MAX_NUM` etc. w/ number+sNaN | result is NaN | result is the **number** |",
+"symbols": [
+"associated",
+"ieee_max_num",
+"system_clock"
+]
+},
+{
+"id": "fortran-std:ch04-notation-conformance#worked-example",
+"doc": "ch04-notation-conformance",
+"heading": "Chapter 4 (Clause 4): Notation, conformance, and compatibility > Worked Example",
+"text": "Reading a rule + constraint together — the name rule:\n```\nR603  name  is  letter [ alphanumeric-character ] ...\nC601  (R603) The maximum length of a name is 63 characters.\n```\nR603 says a name is a letter optionally followed by letters/digits/underscores. R603 alone permits arbitrary length; **C601 restricts it to 63 characters** and, being annotated `(R603)`, applies *everywhere* `name` appears. A conforming processor must diagnose a 64-character name. This is the rule+constraint pairing pattern you apply throughout the document.",
+"symbols": [
+"c601",
+"name",
+"r603"
+]
+},
+{
+"id": "fortran-std:ch04-notation-conformance#anti-patterns",
+"doc": "ch04-notation-conformance",
+"heading": "Chapter 4 (Clause 4): Notation, conformance, and compatibility > Anti-patterns",
+"text": "- **Treating the BNF as a complete grammar**: it isn't — you *cannot* auto-generate a Fortran parser from R-rules alone; constraints and prose are load-bearing.\n- **Assuming upward compatibility is total**: F2023 is *mostly* upward-compatible from F2018, but the 4.3.3 list (esp. `SYSTEM_CLOCK` same-kind rule) breaks real code — see the hpc-practice pack-style timing code.\n- **Ignoring obsolescent type-size cues**: the smaller font is normative signal, not typography.",
+"symbols": [
+"system_clock"
+]
+},
+{
+"id": "fortran-std:ch04-notation-conformance#key-takeaways",
+"doc": "ch04-notation-conformance",
+"heading": "Chapter 4 (Clause 4): Notation, conformance, and compatibility > Key Takeaways",
+"text": "1. `Rsnn` = syntax rule, `Csnn` = detectable constraint; a `(Rxxx)`-annotated constraint is part of that rule everywhere.\n2. \"Conforming processor\" = correct execution **plus** capability to detect+report 10 violation classes — diagnosis is mandated, not optional.\n3. F2023 is upward-compatible from F2018 *except* the 4.3.3 list — the `SYSTEM_CLOCK` \"all integer args same kind\" rule is the most likely to break existing timing code.\n4. Obsolescent (smaller font) ≠ deleted (Annex B); obsolescent still works, deleted does not.\n5. Processor-dependent behavior must be *documented* by the processor; it is intentionally unspecified here.",
+"symbols": [
+"csnn",
+"rsnn",
+"rxxx",
+"system_clock"
+]
+},
+{
+"id": "fortran-std:ch04-notation-conformance#connects-to",
+"doc": "ch04-notation-conformance",
+"heading": "Chapter 4 (Clause 4): Notation, conformance, and compatibility > Connects To",
+"text": "- **Ch 1**: Scope — the detect/report duties referenced from item lists.\n- **Ch 20 (Annex A)**: full processor-dependency catalogue.\n- **Ch 21 (Annex B)**: the deleted features this clause references.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch05-fortran-concepts#core-idea",
+"doc": "ch05-fortran-concepts",
+"heading": "Chapter 5 (Clause 5): Fortran concepts > Core Idea",
+"text": "The **high-level syntax** — the grammar above the statement/expression level — and the foundational concepts of program structure, names, statement classification, and statement ordering. This is the skeleton onto which every other clause hangs.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch05-fortran-concepts#frameworks-introduced",
+"doc": "ch05-fortran-concepts",
+"heading": "Chapter 5 (Clause 5): Fortran concepts > Frameworks Introduced",
+"text": "- **Program unit hierarchy** (R501–R511): a `program` is one or more `program-unit`s. A `program-unit` is one of: `main-program`, `external-subprogram` (function/subroutine), `module`, `submodule`, `block-data`.\n  - Each program unit = optional `specification-part` then optional `execution-part` then optional `internal-subprogram-part`, bracketed by its begin/end statements.\n- **specification-part vs execution-part** (R504, R509): specifications (USE, IMPORT, IMPLICIT, declarations) come first; executable constructs follow. Statement *ordering* is defined rigorously by `program-unit` (R502); expression hierarchy by `expr` (R1023).\n- **declaration-construct** (R507/R508): derived-type-def, **enum-def**, **enumeration-type-def** (← new typed enums, F2023), generic-stmt, interface-block, parameter-stmt, procedure-declaration-stmt, type-declaration-stmt, etc.",
+"symbols": [
+"block",
+"data",
+"execution",
+"expr",
+"external",
+"internal",
+"main",
+"module",
+"part",
+"program",
+"r1023",
+"r501",
+"r502",
+"r504",
+"r507",
+"r508",
+"r509",
+"r511",
+"specification",
+"submodule",
+"subprogram",
+"unit"
+]
+},
+{
+"id": "fortran-std:ch05-fortran-concepts#key-concepts",
+"doc": "ch05-fortran-concepts",
+"heading": "Chapter 5 (Clause 5): Fortran concepts > Key Concepts",
+"text": "- **executable construct** (R514): the unit of control flow — action-stmt, ASSOCIATE, BLOCK, CHANGE TEAM, CRITICAL, DO, IF, SELECT, WHERE, FORALL, etc.\n- **action-stmt** (R515): a single executable statement (assignment, CALL, ALLOCATE, etc.).\n- **keyword**: a name used in a specific syntactic role; *statement keywords* (e.g. `INTEGER`) vs *argument keywords* (dummy names in `name=value`).\n- **companion concepts**: program, image, execution sequence — the runtime model.\n- **statement order**: specification statements precede executable statements; within specifications, USE → IMPORT → IMPLICIT → other declarations.",
+"symbols": [
+"integer",
+"name",
+"r514",
+"r515",
+"value"
+]
+},
+{
+"id": "fortran-std:ch05-fortran-concepts#mental-models",
+"doc": "ch05-fortran-concepts",
+"heading": "Chapter 5 (Clause 5): Fortran concepts > Mental Models",
+"text": "- Read every program unit as the same template: **header → specs → executables → contained procedures → end**. Modules omit executables; block-data has only specs.\n- The R-rule for `program-unit` *is* the statement-ordering law — there's no separate \"ordering table\" to memorize; the grammar enforces it.",
+"symbols": [
+"program",
+"unit"
+]
+},
+{
+"id": "fortran-std:ch05-fortran-concepts#code-examples",
+"doc": "ch05-fortran-concepts",
+"heading": "Chapter 5 (Clause 5): Fortran concepts > Code Examples",
+"text": "The five program-unit forms, schematically:\n```fortran\nprogram main           ! main-program\n  use mymod            ! specification-part\n  implicit none\n  integer :: i         ! declaration-construct\n  i = compute()        ! execution-part\ncontains               ! internal-subprogram-part\n  integer function compute()\n    compute = 42\n  end function\nend program main\n\nmodule mymod           ! module: specs + module-subprograms, no top-level executables\ncontains\n  subroutine s; end subroutine\nend module\n```\n- **What it demonstrates**: the uniform header→specs→exec→contains→end skeleton (R1401, R1404).",
+"symbols": [
+"r1401",
+"r1404"
+]
+},
+{
+"id": "fortran-std:ch05-fortran-concepts#anti-patterns",
+"doc": "ch05-fortran-concepts",
+"heading": "Chapter 5 (Clause 5): Fortran concepts > Anti-patterns",
+"text": "- **Interleaving declarations and executables**: F still requires specs *before* executables in a scoping unit (BLOCK construct gives a nested scope if you need late declarations).\n- **Confusing module-subprogram-part with internal-subprogram-part**: modules contain module procedures (callable via USE); main programs/subprograms contain *internal* procedures (host-associated, not separately accessible).",
+"symbols": []
+},
+{
+"id": "fortran-std:ch05-fortran-concepts#key-takeaways",
+"doc": "ch05-fortran-concepts",
+"heading": "Chapter 5 (Clause 5): Fortran concepts > Key Takeaways",
+"text": "1. Five program-unit kinds: main-program, external-subprogram, module, submodule, block-data.\n2. The order is law: specifications before executables; the `program-unit` R-rule encodes it.\n3. `enumeration-type-def` appears in R508 — typed enumerations are a first-class F2023 declaration construct.\n4. \"Executable construct\" ⊋ \"action statement\": constructs (DO/IF/SELECT/BLOCK/ASSOCIATE) wrap action statements.",
+"symbols": [
+"def",
+"enumeration",
+"program",
+"r508",
+"type",
+"unit"
+]
+},
+{
+"id": "fortran-std:ch05-fortran-concepts#connects-to",
+"doc": "ch05-fortran-concepts",
+"heading": "Chapter 5 (Clause 5): Fortran concepts > Connects To",
+"text": "- **Ch 14**: Program units — full rules for each unit kind.\n- **Ch 11**: Execution control — the executable constructs introduced here.\n- **Ch 7**: Types — derived-type-def and the new enumeration-type-def.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch06-lexical-tokens#core-idea",
+"doc": "ch06-lexical-tokens",
+"heading": "Chapter 6 (Clause 6): Lexical tokens and source form > Core Idea",
+"text": "Defines the character set, the lexical tokens (names, constants, operators, labels, delimiters), and the two **source forms** (free and fixed). Home of two notable F2023 relaxations: **free-form lines up to 10,000 characters** and the new `.NIL.` token / `?` for conditional expressions.",
+"symbols": [
+"nil"
+]
+},
+{
+"id": "fortran-std:ch06-lexical-tokens#frameworks-introduced",
+"doc": "ch06-lexical-tokens",
+"heading": "Chapter 6 (Clause 6): Lexical tokens and source form > Frameworks Introduced",
+"text": "- **Fortran character set**: 26 letters (case-insensitive *except in a character context*), 10 digits, underscore, and the special characters of Table 6.1. `alphanumeric-character` (R601) = letter | digit | underscore.\n- **Names** (R603): `letter [ alphanumeric-character ]...`; **C601 caps length at 63 characters**. Case-insensitive. \"name\" is a strict syntactic form; \"identifier\" is the looser context-dependent notion.\n- **Lexical token** (6.2.1): keyword, name, literal constant (except complex), `.NIL.`, operator, label, delimiter, comma, `=`, `=>`, `:`, `::`, `;`, `..`, `?`, or `%`.\n- **Operators** (R608): intrinsic-operator categories — power `**`, mult `* /`, add `+ -`, concat `//`, rel (`.EQ./==`, `.NE./=`, `.LT./<`, `.LE./<=`, `.GT./>`, `.GE./>=`), `.NOT.`, `.AND.`, `.OR.`, `.EQV./.NEQV.`. Defined operators: `.letter[letter]...` (R1004/R1024).\n- **Statement labels** (R611): 1–5 digits, at least one nonzero (C603); used only for branch targets, FORMAT, and labeled-DO terminals. 99999 possible labels.",
+"symbols": [
+"alphanumeric",
+"and",
+"c601",
+"c603",
+"character",
+"eqv",
+"letter",
+"neqv",
+"nil",
+"not",
+"r1004",
+"r1024",
+"r601",
+"r603",
+"r608",
+"r611"
+]
+},
+{
+"id": "fortran-std:ch06-lexical-tokens#key-concepts",
+"doc": "ch06-lexical-tokens",
+"heading": "Chapter 6 (Clause 6): Lexical tokens and source form > Key Concepts",
+"text": "- **Two source forms**: free (6.3.2) and fixed (6.3.3, obsolescent). **Must not be mixed in one program unit.** Which form applies is processor-dependent (typically by file extension).\n- **Free-form line length** (6.3.2.1): **up to 10,000 characters per line** (F2023 — was 132). No positional restrictions; a line may be empty.\n- **Continuation**: free form uses trailing `&` (and optional leading `&` on the next line); fixed form uses a character in column 6.\n- **Comments**: `!` to end of line (free form); a line whose first nonblank is `!`, or that is blank, is a comment line. No limit on consecutive comment lines.\n- **Blank rules**: blanks separate adjacent keywords/names/constants/labels; Table 6.2 lists keyword pairs where the blank is optional (`ENDIF`/`END IF`, `GOTO`/`GO TO`, etc.).\n- **`%`**: component/part selector (`x%re`, `x%im`, derived-type component access).\n- **BOZ literals**: binary `B'...'`, octal `O'...'`, hex `Z'...'` constants.",
+"symbols": [
+"end",
+"endif",
+"goto"
+]
+},
+{
+"id": "fortran-std:ch06-lexical-tokens#real-literal-kind-complex-char-literals-selected-token-forms",
+"doc": "ch06-lexical-tokens",
+"heading": "Chapter 6 (Clause 6): Lexical tokens and source form > Reference Tables > Real-literal kind & complex/char literals (selected token forms)",
+"text": "| Token | Form | Note |\n|---|---|---|\n| int-literal | `digit-string [_kind-param]` | `123_int64` |\n| real-literal | `... [E\\|D exp] [_kind]` | `1.0d0`, `3.14_wp` |\n| char-literal | `[kind_] '...'` or `\"...\"` | doubled quote escapes |\n| boz-literal | `B'...'` `O'...'` `Z'...'` | binary/octal/hex |\n| complex-literal | `( real-part , imag-part )` | blanks allowed inside |",
+"symbols": [
+"_int64",
+"_kind",
+"_wp",
+"digit",
+"exp",
+"imag",
+"kind_",
+"param",
+"part",
+"real",
+"string"
+]
+},
+{
+"id": "fortran-std:ch06-lexical-tokens#anti-patterns",
+"doc": "ch06-lexical-tokens",
+"heading": "Chapter 6 (Clause 6): Lexical tokens and source form > Anti-patterns",
+"text": "- **Mixing free and fixed form in one program unit**: forbidden; symptoms are cryptic column/continuation errors.\n- **Relying on the old 132-char limit**: F2023 allows 10,000 — but wrapping at ~80–132 remains a *style* convention (`fprettify`), not a language limit.\n- **Names > 63 characters**: violates C601; a conforming processor must reject.\n- **Significant trailing-blank assumptions**: outside a character context, a run of blanks ≡ one blank.",
+"symbols": [
+"c601",
+"fprettify"
+]
+},
+{
+"id": "fortran-std:ch06-lexical-tokens#worked-example",
+"doc": "ch06-lexical-tokens",
+"heading": "Chapter 6 (Clause 6): Lexical tokens and source form > Worked Example",
+"text": "Free-form continuation and the optional-blank keywords:\n```fortran\nreal :: very_long_expression_result\nvery_long_expression_result = a*b + c*d &   ! trailing & continues\n                            & - e*f          ! optional leading &\nif (cond) then; end if          ! ENDIF and END IF both legal (Table 6.2)\n```\n- Demonstrates: trailing-`&` continuation, that blanks are free between tokens, and the keyword-pair blank-optionality.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch06-lexical-tokens#key-takeaways",
+"doc": "ch06-lexical-tokens",
+"heading": "Chapter 6 (Clause 6): Lexical tokens and source form > Key Takeaways",
+"text": "1. **Free-form lines now allow up to 10,000 characters** (F2023) — a real change from F2018's 132.\n2. Names: ≤63 chars, case-insensitive, `letter` then alphanumerics/underscores.\n3. Free and fixed form must never be mixed in one program unit; fixed form is obsolescent.\n4. Relational ops have dual spellings (`.LT.`/`<`); both are standard.\n5. `?` and `.NIL.` are lexical tokens supporting F2023 conditional expressions and the null pointer/allocatable sentinel.",
+"symbols": [
+"letter",
+"nil"
+]
+},
+{
+"id": "fortran-std:ch06-lexical-tokens#connects-to",
+"doc": "ch06-lexical-tokens",
+"heading": "Chapter 6 (Clause 6): Lexical tokens and source form > Connects To",
+"text": "- **Ch 7**: Types — literal-constant forms map to intrinsic types and kinds.\n- **Ch 10**: Expressions — operator precedence and conditional expressions (`?`).\n- **Ch 21 (Annex B)**: fixed source form is obsolescent.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch07-types#core-idea",
+"doc": "ch07-types",
+"heading": "Chapter 7 (Clause 7): Types > Core Idea",
+"text": "The type system: five intrinsic types, derived types, and the **three F2023 enum concepts**, plus the kind/length type-parameter machinery, polymorphism (CLASS), and the new **TYPEOF / CLASSOF** specifiers. A type = name + value set + value notation + operations.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch07-types#frameworks-introduced",
+"doc": "ch07-types",
+"heading": "Chapter 7 (Clause 7): Types > Frameworks Introduced",
+"text": "- **Type classification**: intrinsic (integer, real, complex, character, logical) vs nonintrinsic (derived, enum, enumeration). A nonintrinsic name is usable only where accessible; intrinsic types are always accessible.\n- **Type parameters** (7.2): every type parameter is integer, of two kinds —\n  - **kind type parameter** (named `KIND`): a *constant expression*, known at compile time, **participates in generic resolution**.\n  - **length type parameter** (e.g. character `LEN`): need not be known at compile time, may change during execution, **does not** participate in generic resolution.\n  - `type-param-value` (R701) = `scalar-int-expr` | `*` (assumed) | `:` (deferred). C702: `:` only for POINTER/ALLOCATABLE.\n- **declaration-type-spec** (R703): `intrinsic-type-spec`, `TYPE(...)`, `CLASS(derived)`, `CLASS(*)` (unlimited polymorphic), `TYPE(*)` (assumed-type), and **F2023: `TYPEOF(data-ref)`** (non-polymorphic, mirrors data-ref's type) and **`CLASSOF(data-ref)`** (polymorphic, mirrors data-ref's type).\n- **Polymorphism**: `CLASS(t)` → declared type t, dynamic type any extension of t. `CLASS(*)` → unlimited polymorphic. C708: CLASS/CLASSOF entities must be dummy args or ALLOCATABLE/POINTER.",
+"symbols": [
+"c702",
+"c708",
+"class",
+"classof",
+"data",
+"derived",
+"expr",
+"int",
+"intrinsic",
+"kind",
+"len",
+"param",
+"r701",
+"r703",
+"ref",
+"scalar",
+"spec",
+"type",
+"typeof",
+"value"
+]
+},
+{
+"id": "fortran-std:ch07-types#key-concepts",
+"doc": "ch07-types",
+"heading": "Chapter 7 (Clause 7): Types > Key Concepts",
+"text": "- **declared type vs dynamic type**: the static type vs the runtime type of a polymorphic entity; resolved via SELECT TYPE (ch11).\n- **assumed-type `TYPE(*)`**: unlimited polymorphic dummy; usable only as actual arg or to a handful of inquiry intrinsics (C715) — for opaque pass-through (often to C).\n- **derived type** (7.5): user type with components, type parameters (KIND/LEN), type-bound procedures, finalizers, and single inheritance (`EXTENDS`).\n- **extensible / extended / abstract type**: `EXTENDS(parent)` for inheritance; `ABSTRACT` + `DEFERRED` bindings for abstract base types.\n- **default initialization** & **finalization** (7.5.6 FINAL subroutines).\n- **structure constructor** `t(comp=val, ...)`; **enum/enumeration constructor**.",
+"symbols": [
+"abstract",
+"c715",
+"comp",
+"deferred",
+"extends",
+"parent",
+"type",
+"val"
+]
+},
+{
+"id": "fortran-std:ch07-types#the-three-enum-concepts-f2023-the-key-new-feature",
+"doc": "ch07-types",
+"heading": "Chapter 7 (Clause 7): Types > The three enum concepts (F2023) — the key new feature",
+"text": "| Construct | Syntax | Is a type? | Interoperable? | Values |\n|---|---|---|---|---|\n| **Interop enum** (F2003) | `ENUM, BIND(C) ... ENUMERATOR :: ... END ENUM` | No — integer named constants | Yes (C enum) | integers; first=0 (or set), then +1 |\n| **Enum type** (F2023) | `ENUM [, BIND(C)] :: name ... END ENUM` declared as `TYPE(name)` | **Yes** | Yes if BIND(C) | integer representation; needs constructor `name(expr)` |\n| **Enumeration type** (F2023) | `ENUMERATION TYPE :: name ... END ENUMERATION TYPE` | **Yes** | **No** | ordinal-valued; not a derived type |",
+"symbols": [
+"bind",
+"end",
+"enum",
+"enumeration",
+"enumerator",
+"expr",
+"name",
+"type"
+]
+},
+{
+"id": "fortran-std:ch07-types#code-examples",
+"doc": "ch07-types",
+"heading": "Chapter 7 (Clause 7): Types > Code Examples",
+"text": "F2023 enum type with constructor (interoperable):\n```fortran\nmodule enum_mod\n  enum, bind(c) :: myenum\n    enumerator :: one = 1, two, three   ! two=2, three=3\n  end enum\ncontains\n  subroutine sub(a) bind(c)\n    type(myenum), value :: a\n    print *, a                          ! prints integer value\n  end subroutine\nend module\n\nprogram example\n  use enum_mod\n  type(myenum) :: x  = one              ! enumerator -> enum var\n  type(myenum) :: y  = myenum(12345)    ! constructor from integer\n  call sub(three)\nend program\n! INVALID:  type(myenum) :: z = 12345   ! bare integer, no constructor\n!           call sub(999)               ! not type-compatible\n!           call sub(f1)                ! wrong enum type\n```\n- **What it demonstrates**: an enum *type* (`type(myenum)`) is type-checked, unlike the old integer-valued `ENUM, BIND(C)` constants — you cannot assign a bare integer without the constructor.\n\nTYPEOF / CLASSOF (F2023):\n```fortran\nsubroutine wrap(x)\n  class(*), intent(in) :: x\n  ! ... TYPEOF/CLASSOF let you declare locals matching another entity's type\nend subroutine\nreal :: a(100)\ntypeof(a) :: tmp        ! tmp is real(100), non-polymorphic, mirrors a\n```\n- **What it demonstrates**: `TYPEOF`/`CLASSOF` declare an entity whose type *tracks* a data-ref's type (incl. deferred params), without restating it.",
+"symbols": [
+"bind",
+"classof",
+"enum",
+"myenum",
+"type",
+"typeof"
+]
+},
+{
+"id": "fortran-std:ch07-types#anti-patterns",
+"doc": "ch07-types",
+"heading": "Chapter 7 (Clause 7): Types > Anti-patterns",
+"text": "- **Using `:` (deferred param) on a non-POINTER/ALLOCATABLE entity**: violates C702.\n- **Putting a length param where a kind param's generic resolution is expected**: length params don't disambiguate generics — only kind params do.\n- **Assigning a bare integer to an enum-type variable**: the F2023 *enum type* requires the constructor; the old `ENUM, BIND(C)` constants behaved like plain integers (a real source of confusion now that both exist).\n- **Declaring `CLASS(t)` for a non-dummy, non-allocatable, non-pointer local**: C708 forbids it.",
+"symbols": [
+"bind",
+"c702",
+"c708",
+"class",
+"enum"
+]
+},
+{
+"id": "fortran-std:ch07-types#type-param-value-r701",
+"doc": "ch07-types",
+"heading": "Chapter 7 (Clause 7): Types > Reference Tables > type-param-value (R701)",
+"text": "| Form | Meaning | Constraint |\n|---|---|---|\n| `scalar-int-expr` | explicit value | kind param must be constant expr (C701) |\n| `*` | assumed (from arg / selector / named const) | length params only |\n| `:` | deferred (set by ALLOCATE/assignment/ptr-assign) | POINTER/ALLOCATABLE only (C702) |",
+"symbols": [
+"c701",
+"c702",
+"expr",
+"int",
+"scalar"
+]
+},
+{
+"id": "fortran-std:ch07-types#key-takeaways",
+"doc": "ch07-types",
+"heading": "Chapter 7 (Clause 7): Types > Key Takeaways",
+"text": "1. Two parameter species: **kind** (compile-time constant, drives generic resolution) vs **length** (runtime-variable, does not).\n2. **F2023 adds `TYPEOF` and `CLASSOF`** — declare an entity that mirrors another's type without repeating it.\n3. **F2023 adds true enum *types* and *enumeration* types** distinct from the legacy integer `ENUM, BIND(C)`; enum types are type-checked and need a constructor.\n4. `TYPE(*)` = assumed-type (opaque pass-through, esp. to C); `CLASS(*)` = unlimited polymorphic.\n5. Declared type vs dynamic type is resolved at runtime with SELECT TYPE; CLASS entities must be dummy/allocatable/pointer.",
+"symbols": [
+"bind",
+"class",
+"classof",
+"enum",
+"type",
+"typeof"
+]
+},
+{
+"id": "fortran-std:ch07-types#connects-to",
+"doc": "ch07-types",
+"heading": "Chapter 7 (Clause 7): Types > Connects To",
+"text": "- **Ch 8**: Attribute declarations — how types are attached to objects (ALLOCATABLE, POINTER, etc.).\n- **Ch 11**: Execution control — SELECT TYPE resolves dynamic type.\n- **Ch 15**: Procedures — type-bound procedures, generic resolution by kind param.\n- **Ch 18**: C interoperability — `ENUM, BIND(C)`, `TYPE(*)`, interoperable enum types.",
+"symbols": [
+"bind",
+"enum",
+"type"
+]
+},
+{
+"id": "fortran-std:ch08-attribute-declarations#core-idea",
+"doc": "ch08-attribute-declarations",
+"heading": "Chapter 8 (Clause 8): Attribute declarations and specifications > Core Idea",
+"text": "How objects get a type and **attributes** — the full attribute catalogue (ALLOCATABLE, POINTER, TARGET, INTENT, SAVE, VALUE, CONTIGUOUS, …) and the **array-shape taxonomy** that governs how dummy arrays receive bounds. The single richest clause for everyday declaration correctness.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch08-attribute-declarations#frameworks-introduced",
+"doc": "ch08-attribute-declarations",
+"heading": "Chapter 8 (Clause 8): Attribute declarations and specifications > Frameworks Introduced",
+"text": "- **Type declaration statement** (8.2): `declaration-type-spec [, attr-spec]... :: entity-decl-list`. Attributes may be set on the type-decl line or by standalone attribute statements (8.6).\n- **INTENT** (8.5.10, R828: IN | OUT | INOUT):\n  - **IN**: shall not be defined/redefined (C846: not in a variable-definition context). For pointers, association shall not change.\n  - **OUT**: **becomes undefined on entry** (except default-initialized subcomponents); allocatable INTENT(OUT) is **deallocated on entry**; actual arg must be definable.\n  - **INOUT**: actual arg must *always* be definable — **not** equivalent to omitting INTENT (which requires definability only if actually redefined).\n  - C849: INTENT(OUT) forbidden for EVENT_TYPE/LOCK_TYPE/NOTIFY_TYPE (would corrupt sync state).\n- **Array-shape taxonomy** (8.5.8) — the bounds rules that bite:\n  - **explicit-shape**: `a(n)`, `a(lb:ub)` — all bounds given.\n  - **assumed-shape**: `a(:)` — extent from actual; **lower bound defaults to 1** unless you write `a(lb:)`.\n  - **deferred-shape**: `a(:)` with ALLOCATABLE/POINTER — shape set by ALLOCATE/assignment.\n  - **assumed-size**: `a(*)` — last dim size unknown (legacy/interop; no whole-array ops).\n  - **implied-shape**: `parameter :: a(*) = [...]` — shape from the constant.\n  - **assumed-rank**: `a(..)` — rank itself assumed from actual (F2018; for generic/interop pass-through).",
+"symbols": [
+"attr",
+"c846",
+"c849",
+"decl",
+"declaration",
+"entity",
+"list",
+"parameter",
+"r828",
+"spec",
+"type"
+]
+},
+{
+"id": "fortran-std:ch08-attribute-declarations#key-concepts",
+"doc": "ch08-attribute-declarations",
+"heading": "Chapter 8 (Clause 8): Attribute declarations and specifications > Key Concepts",
+"text": "- **ALLOCATABLE** vs **POINTER**: allocatable = owned, auto-deallocated at scope exit, no aliasing; pointer = may alias a TARGET, manual lifetime, can dangle.\n- **CONTIGUOUS** (8.5.7): asserts/requires contiguous storage — enables vectorization and C interop; the processor may copy to satisfy it.\n- **TARGET / POINTER**: only a TARGET (or another pointer's target) may be pointer-associated.\n- **VALUE**: pass-by-value copy (esp. for C interop / `bind(c)`).\n- **PROTECTED**: a module variable that is read-only outside its defining module.\n- **SAVE**: retains value between invocations; module/initialized variables get it implicitly.\n- **VOLATILE / ASYNCHRONOUS**: defeat optimization for externally/async-modified data.\n- **BIND(C)**: C linkage for the entity.\n- **RANK clause** (8.5.17): specify rank separately, supporting rank-agnostic code.",
+"symbols": [
+"bind"
+]
+},
+{
+"id": "fortran-std:ch08-attribute-declarations#array-dummy-bounds-the-rebasing-trap",
+"doc": "ch08-attribute-declarations",
+"heading": "Chapter 8 (Clause 8): Attribute declarations and specifications > Reference Tables > Array dummy bounds — the rebasing trap",
+"text": "| Declaration | Lower bound in callee | Use when |\n|---|---|---|\n| `a(:)` assumed-shape | **1** (rebased!) unless `a(lb:)` | want shape, accept rebasing |\n| `a(lb:)` assumed-shape | `lb` | preserve a known origin |\n| `a(lb:ub)` explicit-shape | as declared | arrays-with-ghosts / interior selections |\n| `a(*)` assumed-size | n/a (no whole-array) | legacy/C interop only |\n| `a(..)` assumed-rank | n/a | generic/interop pass-through |",
+"symbols": []
+},
+{
+"id": "fortran-std:ch08-attribute-declarations#worked-example",
+"doc": "ch08-attribute-declarations",
+"heading": "Chapter 8 (Clause 8): Attribute declarations and specifications > Worked Example",
+"text": "INTENT semantics that surprise people:\n```fortran\nsubroutine move(from, to)\n  type(person), intent(in)  :: from   ! cannot be modified here\n  type(person), intent(out) :: to     ! UNDEFINED on entry; actual must be definable\nend subroutine\n\nsubroutine grow(buf)\n  real, allocatable, intent(out) :: buf(:)  ! DEALLOCATED on entry — old contents lost\n  allocate(buf(100))\nend subroutine\n```\nFor a derived type `X` with pointer component `P`, `intent(in)` blocks `X%P => t` (changing the pointer) but allows `X%P = 0` (defining its target) — the intent restricts the pointer-as-subobject, not its target (NOTE 3).\n- **Demonstrates**: INTENT(OUT) zeroes/deallocates on entry — never use it to \"update in place\"; use INTENT(INOUT).",
+"symbols": [
+"intent"
+]
+},
+{
+"id": "fortran-std:ch08-attribute-declarations#anti-patterns",
+"doc": "ch08-attribute-declarations",
+"heading": "Chapter 8 (Clause 8): Attribute declarations and specifications > Anti-patterns",
+"text": "- **Assumed-shape rebasing** (the hpc-practice pack): a dummy `a(:)` silently rebases the lower bound to 1, breaking interior selections of arrays-with-ghosts — use **explicit bounds** `a(lb:ub)` for ghost-cell arrays.\n- **INTENT(OUT) to preserve a value**: it makes the dummy undefined on entry (and deallocates allocatables) — use INTENT(INOUT) when the prior value should survive.\n- **INTENT(OUT) on a sync type**: forbidden (C849) for EVENT/LOCK/NOTIFY_TYPE.\n- **Aliasing via POINTER where ALLOCATABLE suffices**: allocatable gives automatic lifetime and no-alias guarantees the optimizer can exploit.\n- **Omitting CONTIGUOUS then passing a strided section to C / a vectorized kernel**: forces a hidden copy or breaks interop.",
+"symbols": [
+"c849"
+]
+},
+{
+"id": "fortran-std:ch08-attribute-declarations#key-takeaways",
+"doc": "ch08-attribute-declarations",
+"heading": "Chapter 8 (Clause 8): Attribute declarations and specifications > Key Takeaways",
+"text": "1. INTENT(OUT) makes the dummy **undefined on entry** and **deallocates allocatables** — semantically different from INTENT(INOUT) and from omitting INTENT.\n2. Assumed-shape `a(:)` **rebases the lower bound to 1**; use explicit bounds for ghost/halo arrays.\n3. Prefer ALLOCATABLE over POINTER unless aliasing is genuinely required — it's safer and faster.\n4. CONTIGUOUS is a contract that enables vectorization/interop, possibly via a processor copy.\n5. PROTECTED + module = read-only-outside; SAVE is implicit for initialized and module variables.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch08-attribute-declarations#connects-to",
+"doc": "ch08-attribute-declarations",
+"heading": "Chapter 8 (Clause 8): Attribute declarations and specifications > Connects To",
+"text": "- **Ch 7**: Types — the type half of a declaration; CLASS/POINTER interplay.\n- **Ch 9**: Use of data objects — array sections, ALLOCATE, pointer association at runtime.\n- **Ch 15**: Procedures — INTENT governs dummy/actual argument rules; explicit-interface needs.\n- **Ch 18**: C interoperability — BIND(C), VALUE, CONTIGUOUS, assumed-rank for `c_f_pointer`.",
+"symbols": [
+"c_f_pointer"
+]
+},
+{
+"id": "fortran-std:ch09-data-objects#core-idea",
+"doc": "ch09-data-objects",
+"heading": "Chapter 9 (Clause 9): Use of data objects > Core Idea",
+"text": "How to *refer to* data: designators (substrings, components, complex parts, array elements/sections), image selectors for coarrays, and the **dynamic association machinery** — ALLOCATE/DEALLOCATE/NULLIFY with STAT/ERRMSG/SOURCE/MOLD.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch09-data-objects#frameworks-introduced",
+"doc": "ch09-data-objects",
+"heading": "Chapter 9 (Clause 9): Use of data objects > Frameworks Introduced",
+"text": "- **Designator** (9.1): the syntax that picks out a variable or part — name, array element, array section, substring, structure component, coindexed object, complex part.\n- **Array sections** (9.5.3.4): three subscript forms —\n  - **element**: `a(i)`\n  - **subscript triplet** `lb:ub:stride`: a regular slice; `a(2:8:2)`, `a(:)`, `a(::−1)`.\n  - **vector subscript** `a(idx)`: gather/scatter by an integer index array (may not be a pointer target; duplicates forbidden on the LHS).\n- **Complex part designators** (9.4.4, F2008): `z%RE` and `z%IM` — real-valued, same shape as `z`, *assignable* (`x%im = 0.0`). Equivalent to `REAL(z)`/`AIMAG(z)` for reading.\n- **Image selector** (9.6): `coarray[image]` / `coarray[cosubscripts, STAT=, TEAM=, TEAM_NUMBER=]` — references a coarray on another image.\n- **ALLOCATE** (9.7.1, R929): `ALLOCATE([type-spec ::] allocation-list [, alloc-opt-list])`\n  - `alloc-opt`: `STAT=`, `ERRMSG=`, **`SOURCE=`** (allocate + copy value & shape), **`MOLD=`** (allocate with shape/type of expr, no value copy).\n  - **F2023 bounds-array form**: `ALLOCATE(arr([lower:]upper))` where bounds are *integer arrays* → rank set by the bounds array (rank-agnostic allocation).",
+"symbols": [
+"aimag",
+"alloc",
+"allocate",
+"allocation",
+"arr",
+"coarray",
+"cosubscripts",
+"errmsg",
+"idx",
+"image",
+"list",
+"lower",
+"mold",
+"opt",
+"r929",
+"real",
+"source",
+"spec",
+"stat",
+"stride",
+"team",
+"team_number",
+"type",
+"upper"
+]
+},
+{
+"id": "fortran-std:ch09-data-objects#key-concepts",
+"doc": "ch09-data-objects",
+"heading": "Chapter 9 (Clause 9): Use of data objects > Key Concepts",
+"text": "- **simply contiguous** (9.5.4): a designator the compiler can *prove* contiguous syntactically — gates passing to CONTIGUOUS dummies / C without a copy.\n- **STAT= / ERRMSG=**: nonzero STAT on failed (de)allocation; ERRMSG receives the message; without STAT, failure stops execution.\n- **NULLIFY**: disassociate a pointer (`nullify(p)` ≡ `p => null()`).\n- **deallocation rules**: allocatables auto-deallocate at scope exit; deallocating a pointer whose target is allocatable/another pointer follows 9.7.3.3.\n- **type parameter inquiry** (9.4.5): `x%kind`, `s%len`.",
+"symbols": [
+"kind",
+"len",
+"null",
+"nullify"
+]
+},
+{
+"id": "fortran-std:ch09-data-objects#allocate-options",
+"doc": "ch09-data-objects",
+"heading": "Chapter 9 (Clause 9): Use of data objects > Reference Tables > ALLOCATE options",
+"text": "| Option | Effect |\n|---|---|\n| `SOURCE=expr` | allocate, then copy shape **and** value of expr |\n| `MOLD=expr` | allocate with type/shape of expr; value undefined |\n| `STAT=v` | v=0 success, nonzero failure (suppresses auto-stop) |\n| `ERRMSG=c` | character variable receives failure message |\n| `type-spec ::` | allocate polymorphic/deferred objects to a concrete type |",
+"symbols": [
+"errmsg",
+"expr",
+"mold",
+"source",
+"spec",
+"stat",
+"type"
+]
+},
+{
+"id": "fortran-std:ch09-data-objects#array-section-subscripts",
+"doc": "ch09-data-objects",
+"heading": "Chapter 9 (Clause 9): Use of data objects > Reference Tables > Array section subscripts",
+"text": "| Form | Example | Notes |\n|---|---|---|\n| element | `a(i)` | scalar |\n| triplet | `a(2:8:2)` | regular slice; negative stride reverses |\n| vector | `a([1,3,3])` | gather; **no dup on LHS**, not a target |",
+"symbols": []
+},
+{
+"id": "fortran-std:ch09-data-objects#worked-example",
+"doc": "ch09-data-objects",
+"heading": "Chapter 9 (Clause 9): Use of data objects > Worked Example",
+"text": "```fortran\nreal, allocatable :: a(:,:), b(:,:)\ninteger :: ub(2) = [100, 50], st\nallocate(a(ub), stat=st)            ! F2023: rank-2 from bounds array ub\nallocate(b, source=a)               ! same shape AND values as a\na(2:99, ::2) = 0.0                   ! triplet section, stride 2 on dim 2\nz%im = 0.0                           ! assign imaginary part (complex-part designator)\nif (this_image() == 1) x[2] = 5     ! coarray: set x on image 2\n```\n- **Demonstrates**: F2023 bounds-array ALLOCATE, SOURCE= cloning, strided section assignment, assignable complex part, and a coarray image selector.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch09-data-objects#anti-patterns",
+"doc": "ch09-data-objects",
+"heading": "Chapter 9 (Clause 9): Use of data objects > Anti-patterns",
+"text": "- **Duplicate indices in a vector subscript on the LHS**: `a([1,1]) = [...]` is undefined — forbidden.\n- **Passing a strided section to a CONTIGUOUS dummy / C**: not simply contiguous → hidden copy or error; allocate contiguous or accept the copy knowingly.\n- **ALLOCATE without STAT in failure-prone paths**: an allocation failure stops the program; use STAT= to recover.\n- **Forgetting SOURCE= copies value, MOLD= does not**: choosing MOLD when you needed the values gives undefined contents.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch09-data-objects#key-takeaways",
+"doc": "ch09-data-objects",
+"heading": "Chapter 9 (Clause 9): Use of data objects > Key Takeaways",
+"text": "1. **F2023**: `ALLOCATE(arr(bounds_array))` sets rank from an integer bounds array — rank-agnostic allocation.\n2. `SOURCE=` copies shape + value; `MOLD=` copies shape/type only.\n3. `z%RE` / `z%IM` are real, shaped like `z`, and **assignable**.\n4. Vector subscripts gather/scatter but forbid LHS duplicates and can't be pointer targets.\n5. \"Simply contiguous\" is a *syntactic* contiguity proof — the gate to copy-free CONTIGUOUS/C passing.",
+"symbols": [
+"allocate",
+"arr",
+"bounds_array",
+"mold",
+"source"
+]
+},
+{
+"id": "fortran-std:ch09-data-objects#connects-to",
+"doc": "ch09-data-objects",
+"heading": "Chapter 9 (Clause 9): Use of data objects > Connects To",
+"text": "- **Ch 8**: Attributes — ALLOCATABLE/POINTER/CONTIGUOUS are declared there, exercised here.\n- **Ch 11**: Execution control — coarray/team constructs (CHANGE TEAM, image control).\n- **Ch 16**: Intrinsics — MOVE_ALLOC, ALLOCATED, ASSOCIATED, image-query intrinsics.\n- **Ch 18**: C interop — simply-contiguous designators and c_f_pointer.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch10-expressions-assignment#core-idea",
+"doc": "ch10-expressions-assignment",
+"heading": "Chapter 10 (Clause 10): Expressions and assignment > Core Idea",
+"text": "The expression grammar (five precedence levels), operator precedence, the **F2023 conditional expression** (`( cond ? a : b )`), and the four assignment forms: intrinsic, defined, pointer, and masked (WHERE / FORALL).",
+"symbols": [
+"cond"
+]
+},
+{
+"id": "fortran-std:ch10-expressions-assignment#frameworks-introduced",
+"doc": "ch10-expressions-assignment",
+"heading": "Chapter 10 (Clause 10): Expressions and assignment > Frameworks Introduced",
+"text": "- **Conditional expression** (10.1.2.3, R1002, **F2023**): `( scalar-logical-expr ? expr [ : scalar-logical-expr ? expr ]... : expr )`. Evaluates each guard in order, picks the first true branch's expr (else the final expr), and **only the chosen expr is evaluated** (short-circuit selection). C1004: every branch expr must share declared type, kind, and rank.\n- **Expression levels** (10.1.2): level-1 (defined unary) → level-2 (numeric `** * / + -`) → level-3 (`//`) → level-4 (relational) → level-5 (logical `.NOT. .AND. .OR. .EQV. .NEQV.`). The grammar *is* the precedence.\n- **Intrinsic assignment** (10.2.1.2): `var = expr`; for allocatable LHS, automatic (re)allocation to the RHS shape (the \"auto-LHS-realloc\" semantics, also extended to deferred-length character — see ch04 F2018 delta).\n- **Defined assignment** (10.2.1.4): `interface assignment(=)` bound to a subroutine; elemental allowed.\n- **Pointer assignment** (10.2.2): `p => target` (data) / `p => proc` (procedure); bounds/rank-remapping forms `p(lb:ub) => t`.\n- **Masked assignment**: `WHERE (mask) a = b [ELSEWHERE ...]`; `FORALL (i=...) a(i) = ...` (FORALL is **obsolescent** — prefer DO CONCURRENT).",
+"symbols": [
+"and",
+"assignment",
+"c1004",
+"elsewhere",
+"eqv",
+"expr",
+"forall",
+"interface",
+"logical",
+"mask",
+"neqv",
+"not",
+"proc",
+"r1002",
+"scalar",
+"target",
+"var",
+"where"
+]
+},
+{
+"id": "fortran-std:ch10-expressions-assignment#key-concepts",
+"doc": "ch10-expressions-assignment",
+"heading": "Chapter 10 (Clause 10): Expressions and assignment > Key Concepts",
+"text": "- **Integrity of parentheses** (10.1.8): the processor shall respect parentheses — it may *not* reassociate `(a+b)+c` to `a+(b+c)`. Use parentheses to pin numerically sensitive evaluation order.\n- **Evaluation of operands** (10.1.7): operands of `.AND.`/`.OR.` need **not** be short-circuited — Fortran does **not** guarantee short-circuit evaluation of logical operators (unlike C). Side-effecting guards are unsafe.\n- **`-A ** 2` parses as `-(A**2)`**: `**` binds tighter than unary minus.\n- **Integer division truncates toward zero**; `MOD`/`MODULO` differ in sign handling; F2023 forbids a zero second argument (ch04 F90 delta).",
+"symbols": [
+"and",
+"mod",
+"modulo"
+]
+},
+{
+"id": "fortran-std:ch10-expressions-assignment#operator-precedence-table-10-1-high-low",
+"doc": "ch10-expressions-assignment",
+"heading": "Chapter 10 (Clause 10): Expressions and assignment > Reference Tables > Operator precedence (Table 10.1, high → low)",
+"text": "| Operator | Category |\n|---|---|\n| `defined-unary-op` | Extension (highest) |\n| `**` | Numeric |\n| `* /` | Numeric |\n| unary `+ -` | Numeric |\n| binary `+ -` | Numeric |\n| `//` | Character |\n| `.EQ. .NE. .LT. .LE. .GT. .GE.` / `== /= < <= > >=` | Relational |\n| `.NOT.` | Logical |\n| `.AND.` | Logical |\n| `.OR.` | Logical |\n| `.EQV. .NEQV.` | Logical |\n| `defined-binary-op` | Extension (lowest) |",
+"symbols": [
+"and",
+"binary",
+"defined",
+"eqv",
+"neqv",
+"not",
+"unary"
+]
+},
+{
+"id": "fortran-std:ch10-expressions-assignment#worked-example",
+"doc": "ch10-expressions-assignment",
+"heading": "Chapter 10 (Clause 10): Expressions and assignment > Worked Example",
+"text": "F2023 conditional expressions (from the standard's own NOTE):\n```fortran\nmsg = ( abs(residual) <= tolerance ? 'ok' : 'did not converge' )\nval = ( i > 0 .and. i <= size(a) ? a(i) : present(opt) ? opt : 0.0 )\n```\nPointer rank-remapping and WHERE:\n```fortran\nreal, target  :: flat(100)\nreal, pointer :: mat(:,:)\nmat(1:10, 1:10) => flat        ! remap rank-1 target as 10x10\nwhere (a > 0.0)\n  b = sqrt(a)\nelsewhere\n  b = 0.0\nend where\n```\n- **Demonstrates**: conditional-expr chaining (note nested `?`), the only-chosen-branch evaluation, pointer remapping, and masked assignment.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch10-expressions-assignment#anti-patterns",
+"doc": "ch10-expressions-assignment",
+"heading": "Chapter 10 (Clause 10): Expressions and assignment > Anti-patterns",
+"text": "- **Assuming short-circuit `.AND.`/`.OR.`**: Fortran may evaluate both operands. Guard pointer/array-bound checks with a *conditional expression* or nested IF, never `if (allocated(a) .and. a(1) > 0)`.\n- **Relying on reassociation for speed**: parentheses are honored (10.1.8); but writing `(a+b)+c` to control rounding is *exactly* the right tool for numerically sensitive sums (cf. pairwise/Kahan summation, the hpc-practice pack).\n- **Using FORALL for performance**: it's obsolescent and rarely faster; use **DO CONCURRENT** (ch11) for parallel-safe loops.\n- **Forgetting auto-reallocation of an allocatable LHS**: `a = b` may silently reallocate `a` to `b`'s shape — usually wanted, occasionally a hidden cost.",
+"symbols": [
+"allocated",
+"and"
+]
+},
+{
+"id": "fortran-std:ch10-expressions-assignment#key-takeaways",
+"doc": "ch10-expressions-assignment",
+"heading": "Chapter 10 (Clause 10): Expressions and assignment > Key Takeaways",
+"text": "1. **F2023 conditional expressions** `( cond ? a : b )` evaluate only the chosen branch; all branches must match type/kind/rank.\n2. `**` > unary `-`; precedence follows Table 10.1 top-to-bottom.\n3. Fortran does **not** short-circuit `.AND.`/`.OR.` — never write bound-guard-then-access in one logical expression.\n4. Parentheses are honored and **not** reassociated — your tool for pinning floating-point evaluation order.\n5. Four assignments: intrinsic (auto-realloc allocatable LHS), defined, pointer (with rank remapping), masked (WHERE; FORALL obsolescent).",
+"symbols": [
+"and",
+"cond"
+]
+},
+{
+"id": "fortran-std:ch10-expressions-assignment#connects-to",
+"doc": "ch10-expressions-assignment",
+"heading": "Chapter 10 (Clause 10): Expressions and assignment > Connects To",
+"text": "- **Ch 6**: Lexical tokens — operator spellings, the `?` token.\n- **Ch 11**: Execution control — DO CONCURRENT supersedes FORALL.\n- **Ch 15**: Procedures — defined operators/assignment via OPERATOR/ASSIGNMENT interfaces.\n- **Ch 17**: IEEE — evaluation order and parentheses for FP reproducibility.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch11-execution-control#core-idea",
+"doc": "ch11-execution-control",
+"heading": "Chapter 11 (Clause 11): Execution control > Core Idea",
+"text": "All control-flow constructs: BLOCK, ASSOCIATE, IF, SELECT CASE/TYPE/RANK, DO (incl. **DO CONCURRENT with the F2023 REDUCE locality**), CRITICAL, CHANGE TEAM, and the branch/stop statements. The home of the parallel-loop and polymorphic-dispatch constructs.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch11-execution-control#frameworks-introduced",
+"doc": "ch11-execution-control",
+"heading": "Chapter 11 (Clause 11): Execution control > Frameworks Introduced",
+"text": "- **DO CONCURRENT** (11.1.7.4.2, 11.1.7.5): asserts iterations are independent so the processor may run them in any order / in parallel. `concurrent-locality` (R1130):\n  - **LOCAL(vars)** — each iteration gets a fresh, uninitialized copy.\n  - **LOCAL_INIT(vars)** — fresh copy initialized from the outer value on entry.\n  - **SHARED(vars)** — shared across iterations (caller's variable).\n  - **DEFAULT(NONE)** — force explicit locality for every variable (discipline; like OpenMP).\n  - **REDUCE(op : vars)** (**F2023**) — reduction with op ∈ `+ * .AND. .OR. .EQV. .NEQV.` or function `IAND IEOR IOR MAX MIN` (C1122). Reduce vars must be intrinsic type, definable, not ASYNCHRONOUS/VOLATILE/coindexed/assumed-size (C1131).\n- **SELECT TYPE** (11.1.11): dispatch on the *dynamic* type of a polymorphic selector — `type is (t)`, `class is (t)`, `class default`. The associate name takes the guarded type in each block.\n- **SELECT RANK** (11.1.10): dispatch on the rank of an assumed-rank (`a(..)`) dummy — `rank(0)`, `rank(1)`, `rank(*)` (assumed-size), `rank default`.\n- **ASSOCIATE** (11.1.3): bind a name to an expression/variable for the construct's scope — readability + avoids recomputation.\n- **BLOCK** (11.1.4): a nested scope with its own declarations *inside* the execution part — the standard way to introduce late/locally-scoped variables.\n- **CHANGE TEAM / CRITICAL** (11.1.5–6): coarray team scoping and mutual exclusion across images.",
+"symbols": [
+"and",
+"c1122",
+"c1131",
+"class",
+"concurrent",
+"default",
+"eqv",
+"iand",
+"ieor",
+"ior",
+"locality",
+"max",
+"min",
+"neqv",
+"r1130",
+"rank",
+"type"
+]
+},
+{
+"id": "fortran-std:ch11-execution-control#key-concepts",
+"doc": "ch11-execution-control",
+"heading": "Chapter 11 (Clause 11): Execution control > Key Concepts",
+"text": "- **DO CONCURRENT body must be pure-ish**: no branches out, no image control, no impure procedure calls that violate independence; the mask must be pure (C1123).\n- **CRITICAL**: only one image executes the block at a time (cross-image lock).\n- **EXIT / CYCLE**: leave / skip-to-next-iteration; may name a construct label.\n- **STOP / ERROR STOP**: normal vs error termination; ERROR STOP signals failure to the environment.\n- **GO TO / arithmetic IF**: present but **obsolescent** (arithmetic IF, computed GOTO).",
+"symbols": [
+"c1123"
+]
+},
+{
+"id": "fortran-std:ch11-execution-control#worked-example",
+"doc": "ch11-execution-control",
+"heading": "Chapter 11 (Clause 11): Execution control > Worked Example",
+"text": "F2023 DO CONCURRENT reduction (the construct most relevant to HPC):\n```fortran\nreal    :: a(n), total\ninteger :: i\ntotal = 0.0\ndo concurrent (i = 1:n) reduce(+:total) default(none) shared(a)\n  total = total + a(i)          ! parallel-safe reduction, F2023\nend do\n```\nPolymorphic dispatch + rank dispatch:\n```fortran\nselect type (p => obj)          ! dynamic-type dispatch\ntype is (real);     print *, p          ! p is real here\nclass is (shape_t); call p%area()       ! p is class(shape_t)\nclass default;      error stop 'unknown'\nend select\n\nselect rank (a)                 ! a is assumed-rank a(..)\nrank (1); call kern1d(a)\nrank (2); call kern2d(a)\nrank default; error stop\nend select\n```\n- **Demonstrates**: REDUCE locality (the new parallel-reduction primitive), SELECT TYPE narrowing the associate name, SELECT RANK over assumed-rank dummies.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch11-execution-control#anti-patterns",
+"doc": "ch11-execution-control",
+"heading": "Chapter 11 (Clause 11): Execution control > Anti-patterns",
+"text": "- **Pre-F2023 DO CONCURRENT reductions via SHARED + atomics**: now expressible with `REDUCE`; the old workaround was error-prone — but note DO CONCURRENT independence is a *programmer assertion*, the processor need not parallelize it (cf. the hpc-practice pack — verify it actually offloaded).\n- **Treating DO CONCURRENT as a parallelism guarantee**: it permits, not mandates, parallel execution; a serial processor may run it sequentially.\n- **Mutating SHARED vars without REDUCE**: data race / undefined; only REDUCE/atomic patterns are safe for cross-iteration accumulation.\n- **Using arithmetic IF / computed GOTO**: obsolescent — use IF/SELECT CASE.\n- **Forgetting `class default`/`rank default`**: an unmatched dynamic type/rank with no default is a program error.",
+"symbols": [
+"class",
+"default",
+"rank",
+"reduce"
+]
+},
+{
+"id": "fortran-std:ch11-execution-control#do-concurrent-locality-specs-r1130",
+"doc": "ch11-execution-control",
+"heading": "Chapter 11 (Clause 11): Execution control > Reference Tables > DO CONCURRENT locality specs (R1130)",
+"text": "| Spec | Per-iteration semantics |\n|---|---|\n| `LOCAL(v)` | fresh, uninitialized |\n| `LOCAL_INIT(v)` | fresh, initialized from outer value |\n| `SHARED(v)` | shared (caller's) |\n| `REDUCE(op:v)` | reduction (F2023) |\n| `DEFAULT(NONE)` | require explicit locality for all |",
+"symbols": [
+"default",
+"local",
+"local_init",
+"none",
+"reduce",
+"shared"
+]
+},
+{
+"id": "fortran-std:ch11-execution-control#key-takeaways",
+"doc": "ch11-execution-control",
+"heading": "Chapter 11 (Clause 11): Execution control > Key Takeaways",
+"text": "1. **F2023 `DO CONCURRENT ... REDUCE(op:var)`** is the standard parallel-reduction primitive — op ∈ `+ * .AND. .OR. .EQV. .NEQV.` / `IAND IEOR IOR MAX MIN`.\n2. `DEFAULT(NONE)` forces explicit locality — adopt it like `implicit none` for parallel loops.\n3. DO CONCURRENT permits but does not require parallel execution — always verify offload/vectorization actually happened.\n4. SELECT TYPE dispatches on dynamic type; SELECT RANK on assumed-rank dummy rank.\n5. BLOCK gives a nested scope for late declarations; ASSOCIATE binds readable names.",
+"symbols": [
+"and",
+"concurrent",
+"default",
+"eqv",
+"iand",
+"ieor",
+"implicit",
+"ior",
+"max",
+"min",
+"neqv",
+"none",
+"reduce",
+"var"
+]
+},
+{
+"id": "fortran-std:ch11-execution-control#connects-to",
+"doc": "ch11-execution-control",
+"heading": "Chapter 11 (Clause 11): Execution control > Connects To",
+"text": "- **Ch 7**: Types — SELECT TYPE resolves declared vs dynamic type.\n- **Ch 8**: Attributes — assumed-rank `a(..)` feeds SELECT RANK; locality interacts with attributes (C1130/C1131).\n- **Ch 16**: Intrinsics — atomic subroutines, image control, ISO_FORTRAN_ENV team/event types.\n- **Ch 21 (Annex B)**: arithmetic IF, computed GOTO are obsolescent/deleted.",
+"symbols": [
+"c1130",
+"c1131"
+]
+},
+{
+"id": "fortran-std:ch12-io-statements#core-idea",
+"doc": "ch12-io-statements",
+"heading": "Chapter 12 (Clause 12): Input/output statements > Core Idea",
+"text": "The I/O model: records, files (external/internal), unit↔file connection (OPEN/CLOSE), and the data-transfer statements (READ/WRITE/PRINT) with their full specifier sets, including asynchronous I/O and WAIT.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch12-io-statements#frameworks-introduced",
+"doc": "ch12-io-statements",
+"heading": "Chapter 12 (Clause 12): Input/output statements > Frameworks Introduced",
+"text": "- **Record kinds** (12.2): formatted, unformatted, endfile.\n- **Access methods** (12.3.3): **sequential**, **direct** (fixed-length records, `REC=`), **stream** (byte-addressable, `POS=`, F2003+).\n- **File connection** (12.5): OPEN binds a *unit* (integer or `NEWUNIT=` value) to a file; CLOSE severs it. Preconnected units exist at program start (typically input/output/error via `ISO_FORTRAN_ENV`).\n- **Data-transfer forms** (12.6): READ/WRITE/PRINT with a *control information list* (`UNIT=`, `FMT=`, `IOSTAT=`, `IOMSG=`, `ERR=`, `END=`, `EOR=`, `ADVANCE=`, `ASYNCHRONOUS=`, `ID=`, `POS=`, `REC=`, `SIZE=`, `DECIMAL=`, `ROUND=`, `SIGN=`, …) and an output/input list.\n- **List-directed** (`FMT=*`), **namelist** (`NML=`), **formatted** (FMT=label/string), **unformatted** (no FMT), and **user-defined derived-type I/O** (DT edit + `read(formatted)`/`write(formatted)` bindings).",
+"symbols": [
+"advance",
+"asynchronous",
+"decimal",
+"end",
+"eor",
+"err",
+"fmt",
+"formatted",
+"iomsg",
+"iostat",
+"iso_fortran_env",
+"newunit",
+"nml",
+"pos",
+"read",
+"rec",
+"round",
+"sign",
+"size",
+"unit",
+"write"
+]
+},
+{
+"id": "fortran-std:ch12-io-statements#key-concepts",
+"doc": "ch12-io-statements",
+"heading": "Chapter 12 (Clause 12): Input/output statements > Key Concepts",
+"text": "- **`NEWUNIT=`** (F2008): processor allocates a free, negative unit number — never hardcode unit numbers.\n- **`IOSTAT=` / `IOMSG=`**: nonzero IOSTAT on error/EOR/EOF; `IS_IOSTAT_END`/`IS_IOSTAT_EOR` test them. Without ERR=/END=/IOSTAT=, an error stops the program.\n- **Asynchronous I/O**: `ASYNCHRONOUS='YES'` + `ID=`, completed/queried by **WAIT**.\n- **Internal files**: a character variable used as a \"file\" for in-memory formatted I/O (parsing/formatting strings).\n- **Stream access**: byte stream, `ACCESS='STREAM'`, `POS=` to seek — closest to C `fread`/`fwrite`.\n- **OPEN re-OPEN rules**: re-OPENing a connected unit may only change changeable modes; `STATUS=` if present must be `OLD`.",
+"symbols": [
+"access",
+"asynchronous",
+"fread",
+"fwrite",
+"iomsg",
+"iostat",
+"is_iostat_end",
+"is_iostat_eor",
+"newunit",
+"old",
+"pos",
+"status",
+"stream",
+"yes"
+]
+},
+{
+"id": "fortran-std:ch12-io-statements#open-specifiers-selected",
+"doc": "ch12-io-statements",
+"heading": "Chapter 12 (Clause 12): Input/output statements > Reference Tables > OPEN specifiers (selected)",
+"text": "| Specifier | Values / role |\n|---|---|\n| `UNIT=` / `NEWUNIT=` | unit number / auto-allocated |\n| `FILE=` | path |\n| `STATUS=` | OLD / NEW / REPLACE / SCRATCH / UNKNOWN |\n| `ACCESS=` | SEQUENTIAL / DIRECT / STREAM |\n| `FORM=` | FORMATTED / UNFORMATTED |\n| `ACTION=` | READ / WRITE / READWRITE |\n| `POSITION=` | ASIS / REWIND / APPEND |\n| `RECL=` | record length (direct/sequential) |\n| `ASYNCHRONOUS=` | YES / NO |\n| `ENCODING=` | UTF-8 / DEFAULT |",
+"symbols": [
+"access",
+"action",
+"asynchronous",
+"encoding",
+"file",
+"form",
+"newunit",
+"position",
+"recl",
+"status",
+"unit"
+]
+},
+{
+"id": "fortran-std:ch12-io-statements#worked-example",
+"doc": "ch12-io-statements",
+"heading": "Chapter 12 (Clause 12): Input/output statements > Worked Example",
+"text": "```fortran\ninteger :: u, ios\ncharacter(256) :: msg\nopen(newunit=u, file='data.bin', access='stream', form='unformatted', &\n     action='read', status='old', iostat=ios, iomsg=msg)\nif (ios /= 0) error stop trim(msg)\nread(u, pos=1) header           ! seek to byte 1, stream read\nclose(u)\n\n! internal file: format a number into a string\ncharacter(20) :: s\nwrite(s, '(i0)') 42             ! s = \"42\"\n```\n- **Demonstrates**: `NEWUNIT=`, stream access with `POS=`, `IOSTAT=`/`IOMSG=` error handling, and an internal-file write.",
+"symbols": [
+"iomsg",
+"iostat",
+"newunit",
+"pos"
+]
+},
+{
+"id": "fortran-std:ch12-io-statements#anti-patterns",
+"doc": "ch12-io-statements",
+"heading": "Chapter 12 (Clause 12): Input/output statements > Anti-patterns",
+"text": "- **Hardcoding unit numbers** (e.g. `open(10, ...)`): collides with other code; use `NEWUNIT=`.\n- **Ignoring IOSTAT on I/O that can fail**: an unhandled error terminates the program — pass `IOSTAT=` and test it.\n- **Assuming SYSTEM_CLOCK kinds are free**: unrelated to I/O but a common F2023 trap — integer args must now share kind (ch04).\n- **Comparing IOSTAT to a literal for EOF**: use `IS_IOSTAT_END(ios)` — the EOF value is processor-dependent (but must differ from EOR; ch04 F2008 delta).",
+"symbols": [
+"ios",
+"iostat",
+"is_iostat_end",
+"newunit",
+"open"
+]
+},
+{
+"id": "fortran-std:ch12-io-statements#key-takeaways",
+"doc": "ch12-io-statements",
+"heading": "Chapter 12 (Clause 12): Input/output statements > Key Takeaways",
+"text": "1. Always use `NEWUNIT=` for unit allocation; never hardcode.\n2. Three access methods: sequential, direct (`REC=`), stream (`POS=`); stream is the C-like byte interface.\n3. Handle errors with `IOSTAT=`/`IOMSG=` + `IS_IOSTAT_END`/`IS_IOSTAT_EOR`; otherwise errors abort.\n4. Asynchronous I/O needs `ASYNCHRONOUS='YES'`, `ID=`, and a matching `WAIT`.\n5. Internal files (character variables) are the idiom for in-memory format/parse.",
+"symbols": [
+"asynchronous",
+"iomsg",
+"iostat",
+"is_iostat_end",
+"is_iostat_eor",
+"newunit",
+"pos",
+"rec",
+"wait",
+"yes"
+]
+},
+{
+"id": "fortran-std:ch12-io-statements#connects-to",
+"doc": "ch12-io-statements",
+"heading": "Chapter 12 (Clause 12): Input/output statements > Connects To",
+"text": "- **Ch 13**: I/O editing — the format/edit descriptors used by formatted transfers.\n- **Ch 16**: Intrinsics — `ISO_FORTRAN_ENV` unit constants, `IS_IOSTAT_*`.\n- **Ch 15**: Procedures — user-defined derived-type I/O bindings.",
+"symbols": [
+"is_iostat_",
+"iso_fortran_env"
+]
+},
+{
+"id": "fortran-std:ch13-io-editing#core-idea",
+"doc": "ch13-io-editing",
+"heading": "Chapter 13 (Clause 13): Input/output editing > Core Idea",
+"text": "Format specifications and edit descriptors — how values map to/from text. Numeric, logical, character, and generalized editing; control descriptors; and the **F2023 additions: `AT` (auto-trim) and `LZS`/`LZP`/`LZ` (leading-zero control)**.",
+"symbols": [
+"lzp",
+"lzs"
+]
+},
+{
+"id": "fortran-std:ch13-io-editing#frameworks-introduced",
+"doc": "ch13-io-editing",
+"heading": "Chapter 13 (Clause 13): Input/output editing > Frameworks Introduced",
+"text": "- **Format specification** (13.1): a parenthesized list of edit descriptors, in a FORMAT statement (labeled) or a character expression (`FMT='(...)'`).\n- **Data edit descriptors** (13.7): `I` (integer), `F`/`E`/`EN`/`ES`/`D` (real), `G` (generalized), `B`/`O`/`Z` (binary/octal/hex), `L` (logical), `A` (character), `DT` (derived-type), `EX` (hex real).\n- **Control edit descriptors** (13.8): `T`/`TL`/`TR`/`X` (positioning), `/` (slash, new record), `:` (colon, stop if list exhausted), `SS`/`SP`/`S` (sign), `BN`/`BZ` (blank handling), `RU`/`RD`/`RZ`/`RN`/`RC`/`RP` (rounding), `DC`/`DP` (decimal comma/point), `P` (scale factor).\n- **F2023 new descriptors**:\n  - **`AT`** — like `A` but **auto-trims trailing blanks** (writes the trimmed character value; convenient for variable-width text).\n  - **`LZS` / `LZP` / `LZ`** — leading-zero control: suppress / print / (LZ) the leading-zero behavior for numeric output.",
+"symbols": [
+"fmt",
+"lzp",
+"lzs"
+]
+},
+{
+"id": "fortran-std:ch13-io-editing#key-concepts",
+"doc": "ch13-io-editing",
+"heading": "Chapter 13 (Clause 13): Input/output editing > Key Concepts",
+"text": "- **`I0`, `F0.d`, `G0`**: zero-width forms — minimal field width, no padding. The idiom for clean, width-agnostic output.\n- **`ES`/`EN`**: scientific (`d.dddE±xx`, one digit before point) vs engineering (exponent a multiple of 3).\n- **Reversion**: when the list outlasts the format, control reverts to the last top-level `( )` group, emitting a new record.\n- **`*` repeat / unlimited**: `'(*(...))'` repeats the group as needed (F2008) — pairs well with list output of unknown length.\n- **Rounding modes** (`RU`/`RD`/`RZ`/`RN`/`RC`): up/down/zero/nearest/compatible — match IEEE rounding for reproducible text (ch17).\n- **`DC`/`DP`**: decimal comma vs point (locale-style), per-connection or per-descriptor.",
+"symbols": [
+"ddde"
+]
+},
+{
+"id": "fortran-std:ch13-io-editing#common-data-edit-descriptors",
+"doc": "ch13-io-editing",
+"heading": "Chapter 13 (Clause 13): Input/output editing > Reference Tables > Common data edit descriptors",
+"text": "| Descriptor | Meaning | Idiom |\n|---|---|---|\n| `Iw[.m]` / `I0` | integer | `I0` = minimal width |\n| `Fw.d` / `F0.d` | fixed real | |\n| `ESw.d` | scientific | `ES12.4` |\n| `ENw.d` | engineering | exponent mult. of 3 |\n| `Gw.d` / `G0` | generalized | auto F/E choice |\n| `Aw` / `A` / **`AT`** | character / **trimmed** (F2023) | `AT` drops trailing blanks |\n| `Lw` | logical | |\n| `Zw` `Ow` `Bw` | hex/oct/bin | |\n| `DT'...'(...)` | user-defined derived-type | |",
+"symbols": [
+"enw",
+"es12",
+"esw"
+]
+},
+{
+"id": "fortran-std:ch13-io-editing#f2023-leading-zero-control",
+"doc": "ch13-io-editing",
+"heading": "Chapter 13 (Clause 13): Input/output editing > Reference Tables > F2023 leading-zero control",
+"text": "| Descriptor | Effect |\n|---|---|\n| `LZS` | suppress leading zeros |\n| `LZP` | print leading zeros |\n| `LZ` | (controls leading-zero default for subsequent numeric output) |",
+"symbols": [
+"lzp",
+"lzs"
+]
+},
+{
+"id": "fortran-std:ch13-io-editing#worked-example",
+"doc": "ch13-io-editing",
+"heading": "Chapter 13 (Clause 13): Input/output editing > Worked Example",
+"text": "```fortran\nreal    :: x = 0.012345\ncharacter(*), parameter :: name = 'value   '   ! trailing blanks\nwrite(*, '(a, 1x, es12.4)')      'x =', x       ! x =   1.2345E-02\nwrite(*, '(at, 1x, f0.3)')        name, x       ! F2023: trims 'value', then number\nwrite(*, '(*(i0,:,\",\"))')         [1,22,333]    ! 1,22,333  (unlimited repeat + colon)\nwrite(*, '(lzs, f8.4)')           0.5           ! F2023: ' .5000' (leading zero suppressed)\n```\n- **Demonstrates**: `ES`, the `AT` auto-trim (F2023), unlimited-repeat `*` with colon separator, and `LZS` leading-zero suppression (F2023).",
+"symbols": [
+"lzs"
+]
+},
+{
+"id": "fortran-std:ch13-io-editing#anti-patterns",
+"doc": "ch13-io-editing",
+"heading": "Chapter 13 (Clause 13): Input/output editing > Anti-patterns",
+"text": "- **Fixed-width descriptors for unknown magnitudes**: `I5` overflows to `*****` when the value needs 6 digits — use `I0`.\n- **Padding strings manually then writing with `A`**: use `AT` (F2023) to auto-trim instead of `trim()` gymnastics.\n- **Assuming `.5` vs `0.5` output**: leading-zero rendering is now controllable (`LZS`/`LZP`) — set it explicitly when format matters.\n- **Mismatched decimal symbol**: data written with `DC` (comma) and read with `DP` (point) corrupts values — keep them consistent.",
+"symbols": [
+"lzp",
+"lzs",
+"trim"
+]
+},
+{
+"id": "fortran-std:ch13-io-editing#key-takeaways",
+"doc": "ch13-io-editing",
+"heading": "Chapter 13 (Clause 13): Input/output editing > Key Takeaways",
+"text": "1. **F2023 `AT`** = `A` with automatic trailing-blank trimming — cleaner variable-width text output.\n2. **F2023 `LZS`/`LZP`/`LZ`** give explicit leading-zero control for numeric fields.\n3. `I0`/`F0.d`/`G0` (zero-width) avoid overflow asterisks and manual width math.\n4. `ES`/`EN` for scientific/engineering; rounding descriptors (`RU`…`RC`) align text with IEEE rounding.\n5. Unlimited-repeat `'(*(...))'` + colon `:` cleanly prints lists of unknown length.",
+"symbols": [
+"lzp",
+"lzs"
+]
+},
+{
+"id": "fortran-std:ch13-io-editing#connects-to",
+"doc": "ch13-io-editing",
+"heading": "Chapter 13 (Clause 13): Input/output editing > Connects To",
+"text": "- **Ch 12**: I/O statements — formats are consumed by formatted READ/WRITE.\n- **Ch 17**: IEEE — rounding descriptors mirror IEEE rounding modes.\n- **Ch 15**: Procedures — `DT` editing dispatches to user-defined I/O bindings.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch14-program-units#core-idea",
+"doc": "ch14-program-units",
+"heading": "Chapter 14 (Clause 14): Program units > Core Idea",
+"text": "The five program-unit kinds in detail: **main program**, **module** (+ USE association), **submodule** (separates interface from implementation), block data, and the external subprogram. The clause that governs modularity, encapsulation, and separate compilation.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch14-program-units#frameworks-introduced",
+"doc": "ch14-program-units",
+"heading": "Chapter 14 (Clause 14): Program units > Frameworks Introduced",
+"text": "- **Main program** (14.1): `[PROGRAM name]` … `END [PROGRAM [name]]`. Exactly one per program; cannot be referenced from anywhere (C: no self-reference). May be defined in another language (then no Fortran main-program unit).\n- **Module** (14.2): declarations + specifications + definitions; public identifiers reach other units via **use association**. Module spec-part forbids statement functions, ENTRY, FORMAT (C1403). `module-subprogram` may be a function, subroutine, or **separate-module-subprogram** (the implementation half of a submodule interface).\n- **USE statement** (R1409): `USE [, INTRINSIC | NON_INTRINSIC ::] module-name [, rename-list]` or `USE module, ONLY: only-list`.\n  - **rename** `local => used`; operator rename `OPERATOR(.x.) => OPERATOR(.y.)`.\n  - **ONLY:** restricts the imported set — the disciplined default for large modules.\n  - `module-nature` disambiguates an intrinsic vs nonintrinsic module of the same name (C1406: not both).\n- **Submodule** (14.2.3): `SUBMODULE (parent[:ancestor]) name`; holds the *bodies* of module procedures whose interfaces are declared `MODULE PROCEDURE`/`MODULE FUNCTION` in the parent — **breaks compile-time coupling** between interface and implementation.",
+"symbols": [
+"ancestor",
+"c1403",
+"c1406",
+"end",
+"function",
+"intrinsic",
+"list",
+"local",
+"module",
+"name",
+"nature",
+"non_intrinsic",
+"only",
+"operator",
+"parent",
+"procedure",
+"program",
+"r1409",
+"rename",
+"submodule",
+"subprogram",
+"use",
+"used"
+]
+},
+{
+"id": "fortran-std:ch14-program-units#key-concepts",
+"doc": "ch14-program-units",
+"heading": "Chapter 14 (Clause 14): Program units > Key Concepts",
+"text": "- **Accessibility**: PUBLIC (default) / PRIVATE control what USE exposes; PROTECTED makes a public variable read-only outside.\n- **Use-associated entity** is \"previously declared/defined\" — you do not redeclare it.\n- **Intrinsic modules**: `ISO_FORTRAN_ENV`, `ISO_C_BINDING`, `IEEE_*` — accessed with `USE, INTRINSIC ::` to be explicit.\n- **Submodule benefit**: changing a module procedure's *body* (in a submodule) does not force recompilation of the module's *users* — only the submodule recompiles. Cuts rebuild cascades in large codebases.\n- **Block data** (obsolescent): initializes named COMMON; superseded by module variables with initializers.",
+"symbols": [
+"ieee_",
+"intrinsic",
+"iso_c_binding",
+"iso_fortran_env",
+"use"
+]
+},
+{
+"id": "fortran-std:ch14-program-units#worked-example",
+"doc": "ch14-program-units",
+"heading": "Chapter 14 (Clause 14): Program units > Worked Example",
+"text": "Submodule splitting interface from implementation:\n```fortran\nmodule geometry\n  implicit none\n  interface\n    module function area(r) result(a)   ! interface only\n      real, intent(in) :: r\n      real :: a\n    end function\n  end interface\nend module\n\nsubmodule (geometry) geometry_impl       ! implementation in a submodule\ncontains\n  module function area(r) result(a)       ! the body\n    real, intent(in) :: r\n    real :: a\n    a = 3.14159 * r**2\n  end function\nend submodule\n```\nDisciplined USE:\n```fortran\nuse geometry, only: area\nuse, intrinsic :: iso_fortran_env, only: real64, output_unit\nuse mymod, only: mysolve => solve        ! rename to avoid clash\n```\n- **Demonstrates**: the submodule interface/body split (faster rebuilds), `ONLY:` to limit imports, `USE, INTRINSIC`, and renaming.",
+"symbols": [
+"intrinsic",
+"only",
+"use"
+]
+},
+{
+"id": "fortran-std:ch14-program-units#anti-patterns",
+"doc": "ch14-program-units",
+"heading": "Chapter 14 (Clause 14): Program units > Anti-patterns",
+"text": "- **Bare `USE module` without `ONLY:`** in large code: pollutes the namespace and creates accidental dependencies — prefer `ONLY:`.\n- **Putting heavy implementations directly in a module**: every body change recompiles all users; move bodies to a **submodule** to localize rebuilds.\n- **Block data / named COMMON for new code**: obsolescent — use module variables with initializers.\n- **Referencing the main program / circular `USE`**: forbidden (no self-reference, no module self-use directly or indirectly).\n- **Declaring an intrinsic procedure in a module without INTRINSIC**: must carry the INTRINSIC attribute or be used as intrinsic there.",
+"symbols": [
+"module",
+"only",
+"use"
+]
+},
+{
+"id": "fortran-std:ch14-program-units#key-takeaways",
+"doc": "ch14-program-units",
+"heading": "Chapter 14 (Clause 14): Program units > Key Takeaways",
+"text": "1. **Submodules** separate a module's interface from its implementation → changing a procedure body recompiles only the submodule, not its users.\n2. Always prefer `USE module, ONLY: ...` for namespace discipline; rename with `local => used`.\n3. Modules are the unit of encapsulation: PUBLIC/PRIVATE/PROTECTED govern exposure.\n4. Exactly one main program; it may be non-Fortran (then omit the Fortran main-program unit).\n5. Block data + named COMMON are obsolescent — use module variables.",
+"symbols": [
+"local",
+"module",
+"only",
+"use",
+"used"
+]
+},
+{
+"id": "fortran-std:ch14-program-units#connects-to",
+"doc": "ch14-program-units",
+"heading": "Chapter 14 (Clause 14): Program units > Connects To",
+"text": "- **Ch 5**: Fortran concepts — the program-unit grammar overview.\n- **Ch 15**: Procedures — `MODULE PROCEDURE` separate bodies, explicit interfaces.\n- **Ch 16**: Intrinsic modules — ISO_FORTRAN_ENV, ISO_C_BINDING, IEEE_*.\n- **Ch 19**: Scope/association — use association rules in full.",
+"symbols": [
+"module",
+"procedure"
+]
+},
+{
+"id": "fortran-std:ch15-procedures#core-idea",
+"doc": "ch15-procedures",
+"heading": "Chapter 15 (Clause 15): Procedures > Core Idea",
+"text": "The procedure model: interfaces (implicit vs explicit, abstract), dummy/actual argument association, the purity hierarchy (**F2023 adds `SIMPLE`** above PURE), elemental procedures, and generic resolution. The clause that governs every call.",
+"symbols": [
+"simple"
+]
+},
+{
+"id": "fortran-std:ch15-procedures#frameworks-introduced",
+"doc": "ch15-procedures",
+"heading": "Chapter 15 (Clause 15): Procedures > Frameworks Introduced",
+"text": "- **Purity hierarchy** (prefix-spec R1530): `PURE` ⊃ `SIMPLE` (F2023); also `ELEMENTAL`, `IMPURE`, `RECURSIVE`/`NON_RECURSIVE`, `MODULE`.\n  - **PURE** (15.7): no side effects — no global state modification, no I/O, INTENT(IN) for nonpointer dummies, no volatile, no STOP. Required for DO CONCURRENT bodies, FORALL, specification expressions.\n  - **SIMPLE** (15.8, **F2023**): a *pure* procedure that is also **referentially transparent** — additionally **may not reference any use- or host-associated variable** (except constant-expression inquiries) and **no COMMON**; all called procedures and internal subprograms must be SIMPLE; no ENTRY. Result depends only on arguments.\n  - **ELEMENTAL**: defined on scalars, applies element-wise to conformable arrays; implicitly PURE unless IMPURE.\n- **Interfaces** (15.4): **explicit** interface required (15.4.2.2) when the procedure has optional/keyword args, assumed-shape/assumed-rank/coarray/allocatable/pointer dummies, a result that is array/pointer/allocatable, is elemental, or is bound by `bind(c)` — i.e. nearly all modern code. **Abstract interface** + `PROCEDURE(iface)` declares procedure-pointer/dummy-procedure shapes.\n- **Argument association** (15.5.2): positional then keyword (`name=actual`); OPTIONAL dummies tested with `PRESENT`; INTENT governs definability (ch08).\n- **Generic resolution** (15.5.5): overload by distinguishing arguments — disambiguated by type, **kind** type parameter, rank, and presence; length params do **not** disambiguate.",
+"symbols": [
+"actual",
+"bind",
+"elemental",
+"iface",
+"impure",
+"module",
+"name",
+"non_recursive",
+"present",
+"procedure",
+"pure",
+"r1530",
+"recursive",
+"simple"
+]
+},
+{
+"id": "fortran-std:ch15-procedures#key-concepts",
+"doc": "ch15-procedures",
+"heading": "Chapter 15 (Clause 15): Procedures > Key Concepts",
+"text": "- **Explicit interface** comes free from: module procedures, internal procedures, intrinsics. External procedures need an `interface` block.\n- **Dummy procedure / procedure pointer**: pass/store procedures via `PROCEDURE(abstract_iface) :: p`.\n- **Elemental** is the idiomatic way to write a scalar kernel and apply it array-wide without explicit loops.\n- **`MODULE` prefix**: the separate-module-procedure body (submodule); must match the interface's characteristics and dummy names exactly (C1558).\n- **Statement functions** and **ENTRY**: obsolescent.",
+"symbols": [
+"abstract_iface",
+"c1558",
+"interface",
+"module",
+"procedure"
+]
+},
+{
+"id": "fortran-std:ch15-procedures#purity-prefix-specs",
+"doc": "ch15-procedures",
+"heading": "Chapter 15 (Clause 15): Procedures > Reference Tables > Purity / prefix specs",
+"text": "| Prefix | Guarantee | Notable constraints |\n|---|---|---|\n| `PURE` | no side effects | INTENT(IN) dummies, no I/O, no global writes |\n| `SIMPLE` (F2023) | pure **+ result depends only on args** | no use/host vars, no COMMON, callees SIMPLE |\n| `ELEMENTAL` | element-wise over arrays | implicitly PURE (unless IMPURE) |\n| `IMPURE` | opt out of implied purity | not with PURE/SIMPLE |\n| `RECURSIVE`/`NON_RECURSIVE` | self-call allowed/forbidden | mutually exclusive |",
+"symbols": [
+"elemental",
+"impure",
+"non_recursive",
+"pure",
+"recursive",
+"simple"
+]
+},
+{
+"id": "fortran-std:ch15-procedures#worked-example",
+"doc": "ch15-procedures",
+"heading": "Chapter 15 (Clause 15): Procedures > Worked Example",
+"text": "```fortran\npure elemental function clamp(x, lo, hi) result(y)   ! element-wise, pure\n  real, intent(in) :: x, lo, hi\n  real :: y\n  y = max(lo, min(hi, x))\nend function\n! clamp applies to scalars AND arrays: b = clamp(a, 0.0, 1.0)\n\nsimple function f(x) result(r)        ! F2023: referentially transparent\n  real, intent(in) :: x\n  real :: r\n  r = x*x + 1.0                        ! uses ONLY x — no module/host/common state\nend function\n```\nGeneric resolution by kind:\n```fortran\ninterface solve\n  module procedure solve_sp   ! real(real32) arg\n  module procedure solve_dp   ! real(real64) arg  -- distinguished by KIND\nend interface\n```\n- **Demonstrates**: elemental scalar-kernel-over-arrays, the new SIMPLE referential-transparency contract, and kind-based generic overloading.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch15-procedures#anti-patterns",
+"doc": "ch15-procedures",
+"heading": "Chapter 15 (Clause 15): Procedures > Anti-patterns",
+"text": "- **External procedure without an explicit interface** for modern features: passing an assumed-shape array or using keyword/optional args without an interface block is a conformance error (15.4.2.2) and a silent-bug source — put procedures in modules.\n- **Expecting PURE to mean referentially transparent**: PURE still permits reading module variables; use **SIMPLE** (F2023) when the result must depend only on arguments (e.g. for aggressive parallelization / memoization).\n- **Disambiguating generics by length parameter**: only kind params, rank, type, and presence disambiguate — length params do not.\n- **Statement functions / ENTRY in new code**: obsolescent — use internal/module procedures.\n- **Relying on argument aliasing**: passing the same variable to two non-pointer dummies that get modified is undefined.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch15-procedures#key-takeaways",
+"doc": "ch15-procedures",
+"heading": "Chapter 15 (Clause 15): Procedures > Key Takeaways",
+"text": "1. **F2023 `SIMPLE`** = PURE + result depends only on arguments (no use/host/COMMON state) — the strongest transparency contract, ideal for parallel/GPU kernels.\n2. Modern dummies (assumed-shape/rank, optional, allocatable, pointer, elemental, bind(c)) **require an explicit interface** — keep procedures in modules to get it automatically.\n3. ELEMENTAL writes one scalar kernel that applies element-wise — implicitly PURE.\n4. Generics resolve by type, **kind**, rank, and presence — never by length parameter.\n5. INTENT + PRESENT + keyword arguments are the safe calling discipline; argument aliasing is undefined.",
+"symbols": [
+"simple"
+]
+},
+{
+"id": "fortran-std:ch15-procedures#connects-to",
+"doc": "ch15-procedures",
+"heading": "Chapter 15 (Clause 15): Procedures > Connects To",
+"text": "- **Ch 8**: Attributes — INTENT, OPTIONAL, dummy-array shapes feed the interface rules.\n- **Ch 11**: Execution control — DO CONCURRENT bodies must be pure; SIMPLE strengthens that.\n- **Ch 14**: Program units — MODULE PROCEDURE bodies live in submodules.\n- **Ch 16**: Intrinsics — many intrinsics are SIMPLE or ELEMENTAL.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch16-intrinsic-procedures#core-idea",
+"doc": "ch16-intrinsic-procedures",
+"heading": "Chapter 16 (Clause 16): Intrinsic procedures and modules > Core Idea",
+"text": "The catalogue of built-in procedures (≈200) and the standard intrinsic modules. The largest clause; treated here as an organized index emphasizing **F2023 additions** (degree/circular trig, string SPLIT/TOKENIZE, SELECTED_LOGICAL_KIND) and the four intrinsic modules.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch16-intrinsic-procedures#frameworks-introduced",
+"doc": "ch16-intrinsic-procedures",
+"heading": "Chapter 16 (Clause 16): Intrinsic procedures and modules > Frameworks Introduced",
+"text": "- **Intrinsic classes** (16.1, the trailing letter in the 16.7 table): **E**lemental, **T**ransformational, **I**nquiry, **S**ubroutine, **SS** simple subroutine, **A**tomic, **C**ollective, **P**ure.\n- **Numeric / bit models** (16.3–16.4): the abstract integer/real/bit models that define `DIGITS`, `EPSILON`, `HUGE`, `TINY`, `RADIX`, `PRECISION`, `RANGE`, `SPACING`, etc. — the basis of kind selection and FP reasoning.\n- **Reduction functions**: `SUM`, `PRODUCT`, `MAXVAL`, `MINVAL`, `ALL`, `ANY`, `COUNT`, `NORM2`, `DOT_PRODUCT`, `MATMUL`, and the general `REDUCE(array, operation, ...)`.\n- **Atomic / collective / image** (16.5–16.6): `ATOMIC_*`, `CO_SUM`/`CO_MAX`/`CO_MIN`/`CO_REDUCE`/`CO_BROADCAST`, `THIS_IMAGE`/`NUM_IMAGES`/`IMAGE_INDEX` — the coarray parallel toolkit.",
+"symbols": [
+"all",
+"any",
+"array",
+"atomic_",
+"co_broadcast",
+"co_max",
+"co_min",
+"co_reduce",
+"co_sum",
+"count",
+"digits",
+"dot_product",
+"epsilon",
+"huge",
+"image_index",
+"matmul",
+"maxval",
+"minval",
+"norm2",
+"num_images",
+"operation",
+"precision",
+"product",
+"radix",
+"range",
+"reduce",
+"spacing",
+"sum",
+"this_image",
+"tiny"
+]
+},
+{
+"id": "fortran-std:ch16-intrinsic-procedures#f2023-new-intrinsics-the-headline-additions",
+"doc": "ch16-intrinsic-procedures",
+"heading": "Chapter 16 (Clause 16): Intrinsic procedures and modules > F2023 new intrinsics (the headline additions)",
+"text": "| Intrinsic | Class | Purpose |\n|---|---|---|\n| `SPLIT(string, set, pos[, back])` | SS (simple) | parse one token at a time from a string |\n| `TOKENIZE(string, set, tokens[, separator])` | SS (simple) | split a string into all tokens at once |\n| `SELECTED_LOGICAL_KIND(bits)` | T | logical kind with ≥ bits storage |\n| `ACOSPI ASINPI ATANPI ATAN2PI COSPI SINPI TANPI` | E | circular trig (argument/result in half-turns: `sinpi(x)=sin(πx)`) |\n| `ACOSD ASIND ATAND COSD SIND TAND` (+ `ATAND(Y,X)`) | E | degree trig |\n\nAlso: `MOVE_ALLOC` (noncoarray FROM), `SPLIT`, `TOKENIZE`, and elemental `MVBITS` are now **SIMPLE** (ch15).",
+"symbols": [
+"acosd",
+"acospi",
+"asind",
+"asinpi",
+"atan2pi",
+"atand",
+"atanpi",
+"back",
+"bits",
+"cosd",
+"cospi",
+"move_alloc",
+"mvbits",
+"pos",
+"selected_logical_kind",
+"separator",
+"set",
+"sin",
+"sind",
+"sinpi",
+"split",
+"string",
+"tand",
+"tanpi",
+"tokenize",
+"tokens"
+]
+},
+{
+"id": "fortran-std:ch16-intrinsic-procedures#intrinsic-modules-16-10",
+"doc": "ch16-intrinsic-procedures",
+"heading": "Chapter 16 (Clause 16): Intrinsic procedures and modules > Intrinsic modules (16.10)",
+"text": "- **ISO_FORTRAN_ENV**: kind constants `INT8/16/32/64`, `REAL32/64/128`, `LOGICAL8…`; `INPUT_UNIT`/`OUTPUT_UNIT`/`ERROR_UNIT`; `IOSTAT_END`/`IOSTAT_EOR`; `COMPILER_VERSION()`/`COMPILER_OPTIONS()`; sync types `EVENT_TYPE`, `LOCK_TYPE`, `NOTIFY_TYPE`, `TEAM_TYPE`; `STAT_*` constants.\n- **ISO_C_BINDING**: `C_INT`, `C_DOUBLE`, … kinds; `C_PTR`, `C_FUNPTR`, `C_NULL_PTR`; `C_LOC`, `C_F_POINTER`, `C_ASSOCIATED`, `C_SIZEOF`, `C_F_PROCPOINTER` (ch18).\n- **IEEE_ARITHMETIC / IEEE_EXCEPTIONS / IEEE_FEATURES**: IEEE rounding, exceptions, NaN/Inf handling (ch17).",
+"symbols": [
+"c_associated",
+"c_double",
+"c_f_pointer",
+"c_f_procpointer",
+"c_funptr",
+"c_int",
+"c_loc",
+"c_null_ptr",
+"c_ptr",
+"c_sizeof",
+"compiler_options",
+"compiler_version",
+"error_unit",
+"event_type",
+"input_unit",
+"int8",
+"iostat_end",
+"iostat_eor",
+"lock_type",
+"logical8",
+"notify_type",
+"output_unit",
+"real32",
+"stat_",
+"team_type"
+]
+},
+{
+"id": "fortran-std:ch16-intrinsic-procedures#worked-example",
+"doc": "ch16-intrinsic-procedures",
+"heading": "Chapter 16 (Clause 16): Intrinsic procedures and modules > Worked Example",
+"text": "F2023 string tokenizing and degree/circular trig:\n```fortran\nuse iso_fortran_env, only: real64\ncharacter(:), allocatable :: tokens(:)\ncall tokenize('a,bb,ccc', set=',', tokens=tokens)   ! tokens = ['a  ','bb ','ccc']\n\nreal(real64) :: x = 0.5_real64\nprint *, sinpi(x)      ! sin(pi*0.5) = 1.0 exactly-ish — no pi round-off in the arg\nprint *, sind(90.0)    ! 1.0  (degrees)\nprint *, cospi(1.0_real64)  ! cos(pi) = -1.0\n```\nKind selection from the numeric model:\n```fortran\ninteger, parameter :: wp = selected_real_kind(15, 307)   ! ~ double\nreal(wp) :: a\nprint *, epsilon(a), huge(a), precision(a)               ! model inquiries\n```\n- **Demonstrates**: F2023 `TOKENIZE`, the circular-trig family (avoids manual `pi` round-off), degree trig, and numeric-model kind selection.",
+"symbols": [
+"tokenize"
+]
+},
+{
+"id": "fortran-std:ch16-intrinsic-procedures#anti-patterns",
+"doc": "ch16-intrinsic-procedures",
+"heading": "Chapter 16 (Clause 16): Intrinsic procedures and modules > Anti-patterns",
+"text": "- **Manual `sin(pi*x)`**: prefer `SINPI(x)` (F2023) — it avoids representing π inexactly in the argument, improving accuracy at integer/half multiples.\n- **Hand-rolled string splitting**: use `SPLIT`/`TOKENIZE` (F2023) instead of index/scan loops.\n- **Hardcoded kind numbers** (`real(8)`): use `ISO_FORTRAN_ENV` (`real64`) or `SELECTED_REAL_KIND` — kind integers are processor-dependent.\n- **Naive `SUM` over many elements for FP64-quality results**: gives O(N·eps) error; use a pairwise/Kahan scheme in diagnostics (the hpc-practice pack). `NORM2` is already accurate for the 2-norm.\n- **Assuming `SYSTEM_CLOCK` integer args may differ in kind**: F2023 requires same kind (ch04) — fix benchmark timing code.",
+"symbols": [
+"iso_fortran_env",
+"norm2",
+"real",
+"real64",
+"selected_real_kind",
+"sin",
+"sinpi",
+"split",
+"sum",
+"system_clock",
+"tokenize"
+]
+},
+{
+"id": "fortran-std:ch16-intrinsic-procedures#key-takeaways",
+"doc": "ch16-intrinsic-procedures",
+"heading": "Chapter 16 (Clause 16): Intrinsic procedures and modules > Key Takeaways",
+"text": "1. **F2023 adds `SPLIT`/`TOKENIZE`** (string parsing), **`SELECTED_LOGICAL_KIND`**, the **circular trig** (`SINPI`…) and **degree trig** (`SIND`…) families.\n2. Use circular trig (`SINPI`) over `sin(pi*x)` for accuracy at rational multiples of π.\n3. Numeric-model inquiries (`EPSILON`/`HUGE`/`PRECISION`/`RADIX`) are the rigorous basis for kind selection and FP reasoning.\n4. Always source kinds from `ISO_FORTRAN_ENV` or `SELECTED_*_KIND`, never literal kind integers.\n5. Coarray parallelism uses `CO_*` collectives, `ATOMIC_*`, and image-query intrinsics; `REDUCE` generalizes array reduction.",
+"symbols": [
+"_kind",
+"atomic_",
+"co_",
+"epsilon",
+"huge",
+"iso_fortran_env",
+"precision",
+"radix",
+"reduce",
+"selected_",
+"selected_logical_kind",
+"sin",
+"sind",
+"sinpi",
+"split",
+"tokenize"
+]
+},
+{
+"id": "fortran-std:ch16-intrinsic-procedures#connects-to",
+"doc": "ch16-intrinsic-procedures",
+"heading": "Chapter 16 (Clause 16): Intrinsic procedures and modules > Connects To",
+"text": "- **Ch 7**: Types — kind type parameters chosen via SELECTED_*_KIND.\n- **Ch 15**: Procedures — SIMPLE/ELEMENTAL classification of intrinsics.\n- **Ch 17**: IEEE modules — IEEE_ARITHMETIC/EXCEPTIONS/FEATURES.\n- **Ch 18**: C interop — ISO_C_BINDING contents.\n- **glossary.md / cheatsheet.md**: F2023-new-feature quick table.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch17-exceptions-ieee#core-idea",
+"doc": "ch17-exceptions-ieee",
+"heading": "Chapter 17 (Clause 17): Exceptions and IEEE arithmetic > Core Idea",
+"text": "Fortran's binding to **ISO/IEC/IEEE 60559:2020** floating-point: exception flags, rounding modes, halting control, NaN/Inf handling, and the support-inquiry functions — all via the three IEEE intrinsic modules. The clause that makes FP behavior portable *and* inspectable.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch17-exceptions-ieee#frameworks-introduced",
+"doc": "ch17-exceptions-ieee",
+"heading": "Chapter 17 (Clause 17): Exceptions and IEEE arithmetic > Frameworks Introduced",
+"text": "- **Three modules**:\n  - `IEEE_EXCEPTIONS`: flag types, `IEEE_GET/SET_FLAG`, `IEEE_GET/SET_HALTING_MODE`, `IEEE_GET/SET_STATUS`, `IEEE_GET/SET_MODES`.\n  - `IEEE_ARITHMETIC`: the arithmetic ops + `IEEE_VALUE`, `IEEE_CLASS`, `IEEE_IS_*`, `IEEE_FMA`, `IEEE_MAX/MIN[_MAG/_NUM]`, `IEEE_RINT`, `IEEE_INT`, `IEEE_SCALB`, `IEEE_NEXT_AFTER`, rounding mode get/set, and the `IEEE_SUPPORT_*` inquiries.\n  - `IEEE_FEATURES`: named feature constants to request specific IEEE support.\n- **Five exceptions** (17.3): `IEEE_OVERFLOW`, `IEEE_UNDERFLOW`, `IEEE_DIVIDE_BY_ZERO`, `IEEE_INVALID`, `IEEE_INEXACT`. Each has a sticky flag (quiet/signaling) set when the condition occurs.\n- **Rounding modes** (17.4): `IEEE_NEAREST` (default, round-half-even), `IEEE_TO_ZERO`, `IEEE_UP`, `IEEE_DOWN`, `IEEE_AWAY` (round-half-away). Get/set with `IEEE_GET/SET_ROUNDING_MODE`.\n- **Halting** (17.6): `IEEE_SET_HALTING_MODE(flag, halting)` — whether an exception traps (aborts) or just sets the flag.\n- **Support inquiries** (17.11.55+): `IEEE_SUPPORT_DATATYPE`, `IEEE_SUPPORT_NAN`, `IEEE_SUPPORT_INF`, `IEEE_SUPPORT_FLAG`, `IEEE_SUPPORT_HALTING`, `IEEE_SUPPORT_ROUNDING` — *always query before relying on a feature*; not every kind/processor supports full IEEE.",
+"symbols": [
+"_mag",
+"_num",
+"flag",
+"halting",
+"ieee_arithmetic",
+"ieee_away",
+"ieee_class",
+"ieee_divide_by_zero",
+"ieee_down",
+"ieee_exceptions",
+"ieee_features",
+"ieee_fma",
+"ieee_get",
+"ieee_inexact",
+"ieee_int",
+"ieee_invalid",
+"ieee_is_",
+"ieee_max",
+"ieee_nearest",
+"ieee_next_after",
+"ieee_overflow",
+"ieee_rint",
+"ieee_scalb",
+"ieee_set_halting_mode",
+"ieee_support_",
+"ieee_support_datatype",
+"ieee_support_flag",
+"ieee_support_halting",
+"ieee_support_inf",
+"ieee_support_nan",
+"ieee_support_rounding",
+"ieee_to_zero",
+"ieee_underflow",
+"ieee_up",
+"ieee_value",
+"min",
+"set_flag",
+"set_halting_mode",
+"set_modes",
+"set_rounding_mode",
+"set_status"
+]
+},
+{
+"id": "fortran-std:ch17-exceptions-ieee#key-concepts",
+"doc": "ch17-exceptions-ieee",
+"heading": "Chapter 17 (Clause 17): Exceptions and IEEE arithmetic > Key Concepts",
+"text": "- **Sticky flags**: once an exception flag is signaling it stays signaling until explicitly cleared — `IEEE_GET_FLAG` reads, `IEEE_SET_FLAG` clears/sets. Flags are saved/restored around procedure calls by the standard.\n- **`IEEE_FMA(a,b,c)`** = fused multiply-add `a*b+c` with a single rounding — better accuracy and the building block for compensated algorithms.\n- **`IEEE_VALUE(x, class)`**: construct special values (`IEEE_QUIET_NAN`, `IEEE_POSITIVE_INF`, …); `IEEE_CLASS(x)` classifies; `IEEE_IS_NAN`/`IEEE_IS_FINITE`/`IEEE_IS_NORMAL` test.\n- **Save/restore pattern**: bracket a region that changes rounding/halting with `IEEE_GET_MODES`/`IEEE_SET_MODES` (or get/set status) so callers are unaffected.\n- **F2023 NaN-number rule**: `IEEE_MAX_NUM`/`IEEE_MIN_NUM` with one number + one signaling NaN now return the **number** (was NaN in F2018) — ch04 delta.",
+"symbols": [
+"class",
+"ieee_class",
+"ieee_fma",
+"ieee_get_flag",
+"ieee_get_modes",
+"ieee_is_finite",
+"ieee_is_nan",
+"ieee_is_normal",
+"ieee_max_num",
+"ieee_min_num",
+"ieee_positive_inf",
+"ieee_quiet_nan",
+"ieee_set_flag",
+"ieee_set_modes",
+"ieee_value"
+]
+},
+{
+"id": "fortran-std:ch17-exceptions-ieee#exceptions-and-rounding",
+"doc": "ch17-exceptions-ieee",
+"heading": "Chapter 17 (Clause 17): Exceptions and IEEE arithmetic > Reference Tables > Exceptions and rounding",
+"text": "| Exception | Trigger |\n|---|---|\n| `IEEE_OVERFLOW` | result too large |\n| `IEEE_UNDERFLOW` | result subnormal/too small |\n| `IEEE_DIVIDE_BY_ZERO` | x/0 |\n| `IEEE_INVALID` | 0/0, sqrt(-1), Inf−Inf |\n| `IEEE_INEXACT` | rounded result |\n\n| Rounding mode | Behavior |\n|---|---|\n| `IEEE_NEAREST` | round half to even (default) |\n| `IEEE_TO_ZERO` | truncate |\n| `IEEE_UP` / `IEEE_DOWN` | toward +∞ / −∞ |\n| `IEEE_AWAY` | round half away from zero |",
+"symbols": [
+"ieee_away",
+"ieee_divide_by_zero",
+"ieee_down",
+"ieee_inexact",
+"ieee_invalid",
+"ieee_nearest",
+"ieee_overflow",
+"ieee_to_zero",
+"ieee_underflow",
+"ieee_up"
+]
+},
+{
+"id": "fortran-std:ch17-exceptions-ieee#worked-example",
+"doc": "ch17-exceptions-ieee",
+"heading": "Chapter 17 (Clause 17): Exceptions and IEEE arithmetic > Worked Example",
+"text": "Detect exceptions around a kernel, restoring caller state:\n```fortran\nuse, intrinsic :: ieee_exceptions\nuse, intrinsic :: ieee_arithmetic\nlogical :: flags(5), divz\ntype(ieee_status_type) :: save_status\n\ncall ieee_get_status(save_status)            ! save caller FP state\ncall ieee_set_flag(ieee_all, .false.)        ! clear flags\ncall ieee_set_halting_mode(ieee_overflow, .false.)  ! flag, don't trap\n\ny = risky_kernel(x)                          ! compute\n\ncall ieee_get_flag(ieee_divide_by_zero, divz)\nif (divz) print *, 'division by zero occurred'\ncall ieee_set_status(save_status)            ! restore caller state\n\n! FMA for compensated accuracy:\nr = ieee_fma(a, b, c)                         ! a*b + c, one rounding\n```\n- **Demonstrates**: save/restore of FP status, non-trapping exception detection via sticky flags, and `IEEE_FMA`.",
+"symbols": [
+"ieee_fma"
+]
+},
+{
+"id": "fortran-std:ch17-exceptions-ieee#anti-patterns",
+"doc": "ch17-exceptions-ieee",
+"heading": "Chapter 17 (Clause 17): Exceptions and IEEE arithmetic > Anti-patterns",
+"text": "- **FP32-store + FP64-compute on consumer NVIDIA GPUs**: a *trap* — consumer GPUs have a 1:64 FP64:FP32 throughput ratio (vs 1:2 on datacenter parts), so mixed precision is **strictly slower** than full FP64; the storage saving doesn't pay for the compute penalty (`reference_consumer_gpu_fp64_trap`).\n- **Naive `sum()` for FP64-quality diagnostics**: O(N·eps) accumulation error masks true kernel behavior — use pairwise/Kahan or `IEEE_FMA`-based compensation (the hpc-practice pack).\n- **Changing rounding/halting without restoring**: corrupts caller FP state — always bracket with get/set status or modes.\n- **Assuming full IEEE support**: query `IEEE_SUPPORT_*` first; some kinds (e.g. extended/half) or processors lack NaN/Inf/halting.\n- **Comparing with `==` a value that may be NaN**: NaN ≠ NaN; use `IEEE_IS_NAN`.",
+"symbols": [
+"ieee_fma",
+"ieee_is_nan",
+"ieee_support_",
+"reference_consumer_gpu_fp64_trap",
+"sum"
+]
+},
+{
+"id": "fortran-std:ch17-exceptions-ieee#key-takeaways",
+"doc": "ch17-exceptions-ieee",
+"heading": "Chapter 17 (Clause 17): Exceptions and IEEE arithmetic > Key Takeaways",
+"text": "1. Five sticky exception flags; query with `IEEE_GET_FLAG`, clear with `IEEE_SET_FLAG`; saved/restored around calls.\n2. Default rounding is `IEEE_NEAREST` (round-half-even); change/restore via get/set rounding mode, bracketed by status save/restore.\n3. `IEEE_FMA` (single-rounding `a*b+c`) is the accuracy primitive for compensated summation/dot products.\n4. **Always `IEEE_SUPPORT_*`-query before relying on a feature** — IEEE support is per-kind, per-processor.\n5. Mixed FP32-store/FP64-compute is a performance trap on consumer GPUs; verify precision *and* throughput against measurements.",
+"symbols": [
+"ieee_fma",
+"ieee_get_flag",
+"ieee_nearest",
+"ieee_set_flag",
+"ieee_support_"
+]
+},
+{
+"id": "fortran-std:ch17-exceptions-ieee#connects-to",
+"doc": "ch17-exceptions-ieee",
+"heading": "Chapter 17 (Clause 17): Exceptions and IEEE arithmetic > Connects To",
+"text": "- **Ch 2**: Normative references — ISO/IEC/IEEE 60559:2020.\n- **Ch 10**: Expressions — parentheses pin evaluation order for reproducibility.\n- **Ch 13**: I/O editing — rounding edit descriptors mirror IEEE modes.\n- **Ch 16**: Intrinsics — numeric model inquiries (EPSILON/HUGE/SPACING).",
+"symbols": []
+},
+{
+"id": "fortran-std:ch18-c-interoperability#core-idea",
+"doc": "ch18-c-interoperability",
+"heading": "Chapter 18 (Clause 18): Interoperability with C > Core Idea",
+"text": "How Fortran and C exchange types, variables, and procedures: the `ISO_C_BINDING` module, `BIND(C)` linkage, interoperable types/arrays, C pointers, and the **C descriptor** (`CFI_cdesc_t` / `ISO_Fortran_binding.h`) for assumed-shape/assumed-rank/allocatable interop. **F2023 adds string interop** (`C_F_STRPOINTER`, `F_C_STRING`).",
+"symbols": [
+"bind",
+"c_f_strpointer",
+"cfi_cdesc_t",
+"f_c_string",
+"iso_c_binding",
+"iso_fortran_binding"
+]
+},
+{
+"id": "fortran-std:ch18-c-interoperability#frameworks-introduced",
+"doc": "ch18-c-interoperability",
+"heading": "Chapter 18 (Clause 18): Interoperability with C > Frameworks Introduced",
+"text": "- **`ISO_C_BINDING`** module: interoperable kinds (`C_INT`, `C_DOUBLE`, `C_FLOAT`, `C_CHAR`, `C_SIZE_T`, …); opaque types `C_PTR`, `C_FUNPTR`; constants `C_NULL_PTR`, `C_NULL_FUNPTR`, `C_NULL_CHAR`.\n- **Pointer bridge procedures**: `C_LOC(x)` → `C_PTR`; `C_F_POINTER(cptr, fptr [, shape, lower])` → associate a Fortran pointer with a C address; `C_FUNLOC`/`C_F_PROCPOINTER` for procedures; `C_ASSOCIATED`, `C_SIZEOF`.\n- **F2023 string interop**: `C_F_STRPOINTER(cstr, fstrptr [, nchars])` makes a Fortran character pointer over a C string; `F_C_STRING(string)` builds a NUL-terminated C string from a Fortran one.\n- **`BIND(C)`**: gives an entity C linkage and an optional `NAME=` binding label; applies to procedures, derived types (`type, bind(c)`), variables, and common blocks.\n- **C descriptor** (18.4–18.5): `CFI_cdesc_t` in `ISO_Fortran_binding.h` lets C receive/construct Fortran assumed-shape, assumed-rank, allocatable, and pointer arrays — with `CFI_establish`, `CFI_allocate`, `CFI_section`, `CFI_setpointer`, etc.",
+"symbols": [
+"bind",
+"c_associated",
+"c_char",
+"c_double",
+"c_f_pointer",
+"c_f_procpointer",
+"c_f_strpointer",
+"c_float",
+"c_funloc",
+"c_funptr",
+"c_int",
+"c_loc",
+"c_null_char",
+"c_null_funptr",
+"c_null_ptr",
+"c_ptr",
+"c_size_t",
+"c_sizeof",
+"cfi_allocate",
+"cfi_cdesc_t",
+"cfi_establish",
+"cfi_section",
+"cfi_setpointer",
+"cptr",
+"cstr",
+"f_c_string",
+"fptr",
+"fstrptr",
+"iso_c_binding",
+"iso_fortran_binding",
+"lower",
+"name",
+"nchars",
+"shape",
+"string",
+"type"
+]
+},
+{
+"id": "fortran-std:ch18-c-interoperability#key-concepts",
+"doc": "ch18-c-interoperability",
+"heading": "Chapter 18 (Clause 18): Interoperability with C > Key Concepts",
+"text": "- **Interoperable type**: a type with a defined C correspondence — intrinsic types of `C_*` kinds, `bind(c)` derived types (sequence-like, no allocatable/pointer components, no type-bound procedures), interoperable enum types.\n- **`VALUE` attribute**: pass-by-value, matching C's default scalar passing.\n- **Array interop**: explicit-shape/assumed-size arrays map to C arrays directly (column-major ↔ row-major — **C sees transposed dimensions**); assumed-shape/rank require the C descriptor.\n- **CONTIGUOUS / simply contiguous**: needed to pass without a copy to C expecting a flat buffer.\n- **Procedure interop**: `bind(c)` procedures with interoperable dummies; the Fortran name and C name linked via the binding label.",
+"symbols": [
+"bind",
+"value"
+]
+},
+{
+"id": "fortran-std:ch18-c-interoperability#worked-example",
+"doc": "ch18-c-interoperability",
+"heading": "Chapter 18 (Clause 18): Interoperability with C > Worked Example",
+"text": "```fortran\nuse, intrinsic :: iso_c_binding\ninterface\n  function c_malloc(n) bind(c, name='malloc') result(p)\n    import :: c_ptr, c_size_t\n    integer(c_size_t), value :: n\n    type(c_ptr) :: p\n  end function\nend interface\n\nreal(c_double), pointer :: buf(:)\ntype(c_ptr) :: cp\ncp = c_malloc(int(100*c_sizeof(0.0_c_double), c_size_t))\ncall c_f_pointer(cp, buf, [100])      ! view C memory as Fortran array\n\n! F2023 string interop:\ncharacter(:), pointer :: fstr\ncall c_f_strpointer(c_str_from_lib(), fstr)   ! Fortran view of a C string\ncharacter(len=:), allocatable :: cs\ncs = f_c_string('hello')              ! NUL-terminated C string\n```\nInteroperable derived type:\n```fortran\ntype, bind(c) :: vec3\n  real(c_double) :: x, y, z          ! no allocatable/pointer/TBP components\nend type\n```\n- **Demonstrates**: `bind(c, name=)` linkage, `C_F_POINTER` over C memory, F2023 `C_F_STRPOINTER`/`F_C_STRING`, and a `bind(c)` struct.",
+"symbols": [
+"bind",
+"c_f_pointer",
+"c_f_strpointer",
+"f_c_string",
+"name"
+]
+},
+{
+"id": "fortran-std:ch18-c-interoperability#anti-patterns",
+"doc": "ch18-c-interoperability",
+"heading": "Chapter 18 (Clause 18): Interoperability with C > Anti-patterns",
+"text": "- **Forgetting column-major vs row-major**: a Fortran `a(m,n)` is C `a[n][m]` — index order is reversed; mismatches silently corrupt data.\n- **Passing assumed-shape to plain C without a descriptor**: C needs `CFI_cdesc_t`; a bare pointer loses bounds/stride. Use explicit-shape/contiguous or the descriptor API.\n- **`bind(c)` type with allocatable/pointer components or TBPs**: not interoperable — flatten to interoperable members.\n- **Manual NUL-termination of strings**: use F2023 `F_C_STRING`/`C_F_STRPOINTER` instead of appending `C_NULL_CHAR` by hand.\n- **Assuming `default` integer/real kinds match C**: always use `C_INT`/`C_DOUBLE`/etc. kinds.",
+"symbols": [
+"bind",
+"c_double",
+"c_f_strpointer",
+"c_int",
+"c_null_char",
+"cfi_cdesc_t",
+"default",
+"f_c_string"
+]
+},
+{
+"id": "fortran-std:ch18-c-interoperability#key-takeaways",
+"doc": "ch18-c-interoperability",
+"heading": "Chapter 18 (Clause 18): Interoperability with C > Key Takeaways",
+"text": "1. Bridge memory with `C_LOC` + `C_F_POINTER`; bridge procedures with `C_FUNLOC` + `C_F_PROCPOINTER`.\n2. **F2023 `C_F_STRPOINTER` / `F_C_STRING`** handle Fortran↔C string conversion — stop hand-rolling NUL termination.\n3. Use `C_*` kinds from `ISO_C_BINDING`; `VALUE` for by-value scalars; `bind(c, name=)` for linkage.\n4. Fortran arrays are **column-major** → C sees reversed dimension order; assumed-shape/rank/allocatable need the C descriptor (`ISO_Fortran_binding.h`).\n5. Interoperable `bind(c)` derived types must avoid allocatable/pointer components and type-bound procedures.",
+"symbols": [
+"bind",
+"c_f_pointer",
+"c_f_procpointer",
+"c_f_strpointer",
+"c_funloc",
+"c_loc",
+"f_c_string",
+"iso_c_binding",
+"iso_fortran_binding",
+"name",
+"value"
+]
+},
+{
+"id": "fortran-std:ch18-c-interoperability#connects-to",
+"doc": "ch18-c-interoperability",
+"heading": "Chapter 18 (Clause 18): Interoperability with C > Connects To",
+"text": "- **Ch 7**: Types — interoperable enum types, assumed-type `TYPE(*)` for opaque pass-through.\n- **Ch 8**: Attributes — BIND(C), VALUE, CONTIGUOUS.\n- **Ch 16**: Intrinsics — full ISO_C_BINDING procedure list.\n- **Ch 9**: Data objects — simply-contiguous designators for copy-free passing.",
+"symbols": [
+"type"
+]
+},
+{
+"id": "fortran-std:ch19-scope-association#core-idea",
+"doc": "ch19-scope-association",
+"heading": "Chapter 19 (Clause 19): Scope, association, and definition > Core Idea",
+"text": "The rules for *where a name means what* (scoping), the **kinds of association** that link entities, and the precise **definition/undefinition** status of variables (when a variable holds a usable value vs. is undefined). The clause that resolves \"is this variable defined here?\" and \"do these two names refer to the same thing?\"",
+"symbols": []
+},
+{
+"id": "fortran-std:ch19-scope-association#frameworks-introduced",
+"doc": "ch19-scope-association",
+"heading": "Chapter 19 (Clause 19): Scope, association, and definition > Frameworks Introduced",
+"text": "- **Scope levels** (19.1): identifiers have **global** (program/module/external-procedure/common-block/bind-c names), **local** (scoping-unit names), or **construct/statement** scope (e.g. an ASSOCIATE name, a DO CONCURRENT index, an implied-DO variable).\n- **Associations** (19.5) — the link kinds:\n  - **name association**: argument, use, host, and *construct* association (the same entity reachable by another name).\n  - **pointer association** (19.5.2): a pointer ↔ its target; status is *associated* / *disassociated* / *undefined*.\n  - **storage association** (19.5.3): EQUIVALENCE and COMMON overlay storage (obsolescent technique).\n  - **inheritance association** (19.5.4): a polymorphic object and its parent-type component.\n- **Variable definition status** (19.6): a variable is *defined* (has a valid value) or *undefined*. The clause enumerates exactly which events define (assignment, input, ALLOCATE with SOURCE, DATA, …) and undefine (INTENT(OUT) entry, deallocation, failed I/O, end of a procedure for non-SAVE locals, …) a variable.\n- **Variable definition context** (19.6.7) / **pointer association context** (19.6.8): the syntactic positions where a variable may be defined / a pointer associated — the formal basis for INTENT(IN) constraints (ch08).",
+"symbols": []
+},
+{
+"id": "fortran-std:ch19-scope-association#key-concepts",
+"doc": "ch19-scope-association",
+"heading": "Chapter 19 (Clause 19): Scope, association, and definition > Key Concepts",
+"text": "- **Host association**: an internal/module procedure sees its host's entities unless shadowed; the source of \"where did this variable come from\" confusion.\n- **`IMPORT`**: control host association into an interface body (block it, or import specific names).\n- **Undefined ≠ zero**: a non-SAVE local without initialization is *undefined* between invocations — reading it is a program error, not a guaranteed 0.\n- **SAVE / initialization**: an initialized variable (`integer :: n = 0`) implicitly has SAVE and is *initially defined*; without init and without SAVE it is *initially undefined* and undefined on each entry.\n- **Pointer initial status is undefined** unless declared `=> null()` or NULLIFYed — never test/deref a pointer of undefined status.",
+"symbols": [
+"import",
+"integer",
+"null"
+]
+},
+{
+"id": "fortran-std:ch19-scope-association#the-associations-19-5",
+"doc": "ch19-scope-association",
+"heading": "Chapter 19 (Clause 19): Scope, association, and definition > Reference Tables > The associations (19.5)",
+"text": "| Association | Links | Mechanism |\n|---|---|---|\n| argument | actual ↔ dummy | procedure call |\n| use | module entity ↔ local name | USE |\n| host | host entity ↔ inner scope | nesting |\n| construct | selector ↔ ASSOCIATE/SELECT name | construct |\n| pointer | pointer ↔ target | `=>` |\n| storage | overlaid storage | COMMON/EQUIVALENCE (obsolescent) |\n| inheritance | polymorphic ↔ parent component | EXTENDS |\n| linkage | Fortran ↔ C entity | BIND(C) |",
+"symbols": []
+},
+{
+"id": "fortran-std:ch19-scope-association#worked-example",
+"doc": "ch19-scope-association",
+"heading": "Chapter 19 (Clause 19): Scope, association, and definition > Worked Example",
+"text": "Definition status that bites:\n```fortran\nsubroutine f()\n  integer :: counter          ! NOT saved, NOT initialized -> undefined each entry\n  integer :: n = 0            ! initialized -> implicit SAVE, defined, persists\n  real, pointer :: p          ! pointer status UNDEFINED -> must not test/deref\n  real, pointer :: q => null()! disassociated -> associated(q) is .false., safe to test\n  counter = counter + 1       ! ERROR: reads an undefined variable\nend subroutine\n```\nHost association + IMPORT:\n```fortran\nmodule m\n  integer :: shared_n\ncontains\n  subroutine outer()\n    integer :: x\n    call inner()\n  contains\n    subroutine inner()        ! sees x and shared_n by host association\n      x = shared_n            ! both visible without redeclaration\n    end subroutine\n  end subroutine\nend module\n```\n- **Demonstrates**: the undefined-vs-initialized distinction, safe vs unsafe pointer status, and host association reaching outer/module entities.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch19-scope-association#anti-patterns",
+"doc": "ch19-scope-association",
+"heading": "Chapter 19 (Clause 19): Scope, association, and definition > Anti-patterns",
+"text": "- **Assuming an uninitialized local is 0**: it is *undefined* (and undefined on each call without SAVE) — initialize explicitly or declare SAVE.\n- **Relying on the implicit-SAVE of an initializer accidentally**: `integer :: n = 0` persists across calls — surprising if you wanted a fresh 0 each time (use an explicit assignment in the body).\n- **Testing/dereferencing a pointer of undefined status**: only *disassociated* (`=> null()`) pointers are safe to test with `ASSOCIATED`.\n- **COMMON/EQUIVALENCE for new code**: storage association is obsolescent — use modules.\n- **Shadowing a host name unintentionally**: a local declaration silently hides the host's entity; use `IMPORT, NONE`/explicit imports in interface bodies to control it.",
+"symbols": [
+"associated",
+"import",
+"integer",
+"none",
+"null"
+]
+},
+{
+"id": "fortran-std:ch19-scope-association#key-takeaways",
+"doc": "ch19-scope-association",
+"heading": "Chapter 19 (Clause 19): Scope, association, and definition > Key Takeaways",
+"text": "1. Eight association kinds link entities; \"associated\" is meaningless without naming *which* (cf. ch03).\n2. A non-SAVE, non-initialized local is **undefined** every entry — reading it is an error, not a guaranteed zero.\n3. An initializer (`= value`) implies SAVE and persistence — sometimes a surprise.\n4. Only `=> null()`/NULLIFYed pointers have *disassociated* (safely testable) status; default is *undefined*.\n5. Host association makes outer/module entities visible inward; control it with `IMPORT`.",
+"symbols": [
+"import",
+"null",
+"value"
+]
+},
+{
+"id": "fortran-std:ch19-scope-association#connects-to",
+"doc": "ch19-scope-association",
+"heading": "Chapter 19 (Clause 19): Scope, association, and definition > Connects To",
+"text": "- **Ch 3**: Terms — the 9 associations are defined there; this clause gives their rules.\n- **Ch 8**: Attributes — INTENT(IN) maps onto \"variable definition context\" (19.6.7).\n- **Ch 14**: Program units — use/host association in modules and submodules.\n- **Ch 9**: Data objects — pointer association set by ALLOCATE/pointer assignment.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch20-annex-a-processor-dependencies#core-idea",
+"doc": "ch20-annex-a-processor-dependencies",
+"heading": "Chapter 20 (Annex A, informative): Processor dependencies > Core Idea",
+"text": "The consolidated list of everything the standard **deliberately leaves to the processor** — the portability-hazard catalogue. If portable behavior matters, every item here is a place where two conforming compilers may legitimately differ.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch20-annex-a-processor-dependencies#key-concepts-the-hazards-that-bite-hpc-code",
+"doc": "ch20-annex-a-processor-dependencies",
+"heading": "Chapter 20 (Annex A, informative): Processor dependencies > Key Concepts (the hazards that bite HPC code)",
+"text": "- **Unspecified (A.1)**: the Clause-1 exclusions; error-detection beyond 4.2; which *extra* intrinsics/modules exist; number/kind of companion processors. Guaranteed only: ≥2 real representation methods, and a complex method per real method.\n- **Processor-dependent (A.2)** — high-impact selections:\n  - **Order of evaluation of specification expressions** in a procedure's spec part.\n  - **The set of values of each intrinsic type** (except logical) and **which kinds exist** — never assume `real(16)`/`int(16)` is available; query.\n  - **Result kind of mixed-kind binary operations** when ranges/precisions tie (10.1.9.3) — mixed-kind arithmetic result kind is *not* fully pinned.\n  - **Finalization order** of components / of multiple objects finalized by one event; whether a pointer-allocated object is finalized when it becomes unreachable.\n  - **Whether an array is contiguous** (except as forced by CONTIGUOUS, 8.5.7).\n  - **ALLOCATE/DEALLOCATE error condition set**, **STAT values**, **ERRMSG text**, and **deallocation order** of multiple objects.\n  - **Image failure**: what causes it, whether it's detectable, the value of a coindexed object on a failed image, how fast other images terminate.\n  - **Process exit status** support and value.\n  - **Collating sequence**, **blank padding char for nondefault character kinds**, **source-form selection mechanism**, **max statement labels**, **include nesting depth**.",
+"symbols": [
+"int",
+"real"
+]
+},
+{
+"id": "fortran-std:ch20-annex-a-processor-dependencies#mental-models",
+"doc": "ch20-annex-a-processor-dependencies",
+"heading": "Chapter 20 (Annex A, informative): Processor dependencies > Mental Models",
+"text": "- Treat Annex A as the **\"do not rely on this for portability\" index**. When a result differs between compilers, check here first — it's usually a sanctioned divergence, not a bug.\n- For reproducible numerics across processors, the dangerous items are: mixed-kind result kind, evaluation order of spec expressions, and contiguity assumptions — pin them explicitly (kinds via `ISO_FORTRAN_ENV`, order via parentheses, contiguity via CONTIGUOUS).",
+"symbols": [
+"iso_fortran_env"
+]
+},
+{
+"id": "fortran-std:ch20-annex-a-processor-dependencies#anti-patterns",
+"doc": "ch20-annex-a-processor-dependencies",
+"heading": "Chapter 20 (Annex A, informative): Processor dependencies > Anti-patterns",
+"text": "- **Assuming a kind exists** (`real(16)`): query `SELECTED_REAL_KIND`/`IEEE_SUPPORT_DATATYPE` — kind availability is processor-dependent.\n- **Relying on finalization order**: it's unspecified for sibling components and multi-object events — never sequence side effects through finalizers.\n- **Depending on a specific STAT/ERRMSG value**: only zero-vs-nonzero is portable; the positive codes and message text are processor-dependent.\n- **Assuming mixed-kind arithmetic picks \"the bigger kind\"**: when ranges/precisions tie, the result kind is processor-dependent — convert explicitly.\n- **Treating a strided section as contiguous**: contiguity is processor-dependent unless CONTIGUOUS forces it.",
+"symbols": [
+"ieee_support_datatype",
+"real",
+"selected_real_kind"
+]
+},
+{
+"id": "fortran-std:ch20-annex-a-processor-dependencies#key-takeaways",
+"doc": "ch20-annex-a-processor-dependencies",
+"heading": "Chapter 20 (Annex A, informative): Processor dependencies > Key Takeaways",
+"text": "1. Annex A is the portability-hazard index — sanctioned divergences, not bugs.\n2. Kind availability, mixed-kind result kind, contiguity, finalization order, and STAT/ERRMSG specifics are all processor-dependent.\n3. Pin numerics explicitly: kinds from `ISO_FORTRAN_ENV`, evaluation order via parentheses, contiguity via CONTIGUOUS.\n4. Image-failure semantics are largely processor-dependent — handle via STAT= and the `STAT_FAILED_IMAGE` constant, don't assume detection.",
+"symbols": [
+"iso_fortran_env",
+"stat_failed_image"
+]
+},
+{
+"id": "fortran-std:ch20-annex-a-processor-dependencies#connects-to",
+"doc": "ch20-annex-a-processor-dependencies",
+"heading": "Chapter 20 (Annex A, informative): Processor dependencies > Connects To",
+"text": "- **Ch 1 & 4**: Scope/conformance — the source of \"processor-dependent\" as a category.\n- **Ch 17**: IEEE — `IEEE_SUPPORT_*` queries cover the FP processor-dependencies.\n- **Ch 7 / 16**: Types/intrinsics — kind selection in the face of processor-dependent kinds.",
+"symbols": [
+"ieee_support_"
+]
+},
+{
+"id": "fortran-std:ch21-annex-b-deleted-obsolescent#core-idea",
+"doc": "ch21-annex-b-deleted-obsolescent",
+"heading": "Chapter 21 (Annex B, informative): Deleted and obsolescent features > Core Idea",
+"text": "The authoritative \"what not to use\" list: **deleted** features (removed — a conforming processor must be able to reject them) and **obsolescent** features (still legal, printed in smaller type, candidates for future deletion), each paired with the standard's recommended replacement.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch21-annex-b-deleted-obsolescent#from-fortran-90-b-1",
+"doc": "ch21-annex-b-deleted-obsolescent",
+"heading": "Chapter 21 (Annex B, informative): Deleted and obsolescent features > Deleted features > From Fortran 90 (B.1)",
+"text": "| Deleted feature | Replacement |\n|---|---|\n| Real/double-precision DO variables | integer DO + explicit exit test |\n| Branching to an END IF from outside its block | branch to a CONTINUE after the END IF |\n| `PAUSE` statement | WRITE a message then READ |\n| `ASSIGN` / assigned `GO TO` / assigned format | other control constructs; a character variable holding the format |\n| `H` edit descriptor | character-string edit descriptor (`'...'`) |\n| Vertical format control (column-1 carriage control) | post-process the file |",
+"symbols": [
+"assign",
+"pause"
+]
+},
+{
+"id": "fortran-std:ch21-annex-b-deleted-obsolescent#from-fortran-2008-b-2",
+"doc": "ch21-annex-b-deleted-obsolescent",
+"heading": "Chapter 21 (Annex B, informative): Deleted and obsolescent features > Deleted features > From Fortran 2008 (B.2)",
+"text": "| Deleted feature | Why |\n|---|---|\n| **Arithmetic IF** (`IF (e) l1, l2, l3`) | incompatible with IEEE 60559:2020 (NaN); needs labels; hinders optimization |\n| **Nonblock DO** (shared termination / labeled-action terminus) | confusing, error-prone |",
+"symbols": []
+},
+{
+"id": "fortran-std:ch21-annex-b-deleted-obsolescent#obsolescent-features-b-3-still-legal-avoid-in-new-code",
+"doc": "ch21-annex-b-deleted-obsolescent",
+"heading": "Chapter 21 (Annex B, informative): Deleted and obsolescent features > Obsolescent features (B.3) — still legal, avoid in new code",
+"text": "| Obsolescent feature | Replacement |\n|---|---|\n| **Alternate return** (`*label` args) | return code + `SELECT CASE` |\n| **Computed GO TO** | `SELECT CASE` |\n| **Statement functions** | internal procedures |\n| **DATA among executables** | DATA in the specification part / initializers |\n| **Assumed-length character functions** | explicit/deferred length |\n| **Fixed source form** | free source form |\n| **`CHARACTER*n`** declaration form | `CHARACTER(LEN=n)` |\n| **`ENTRY` statements** | separate module/internal procedures |\n| **Label form of DO** (`DO 10 i=...`) | block DO (`DO ... END DO`) |\n| **COMMON / EQUIVALENCE / block data** | module variables |\n| **Specific names for intrinsics** (e.g. `DSQRT`) | the generic name (`SQRT`) |\n| **FORALL** construct and statement | `DO CONCURRENT` (ch11) |",
+"symbols": [
+"case",
+"character",
+"concurrent",
+"dsqrt",
+"end",
+"entry",
+"label",
+"len",
+"select",
+"sqrt"
+]
+},
+{
+"id": "fortran-std:ch21-annex-b-deleted-obsolescent#worked-example",
+"doc": "ch21-annex-b-deleted-obsolescent",
+"heading": "Chapter 21 (Annex B, informative): Deleted and obsolescent features > Worked Example",
+"text": "Replacing an alternate return (from B.3.2):\n```fortran\n! OBSOLESCENT alternate return:\ncall subr_name(x, y, z, *100, *200, *300)\n! ... 100 / 200 / 300 are caller labels\n\n! RECOMMENDED replacement:\ncall subr_name(x, y, z, return_code)\nselect case (return_code)\ncase (1); ...\ncase (2); ...\ncase (3); ...\ncase default; ...\nend select\n```\n- **Demonstrates**: trading an irregular argument-list mechanism for a structured, label-free return-code dispatch.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch21-annex-b-deleted-obsolescent#mental-models",
+"doc": "ch21-annex-b-deleted-obsolescent",
+"heading": "Chapter 21 (Annex B, informative): Deleted and obsolescent features > Mental Models",
+"text": "- **Deleted ≠ obsolescent.** Deleted features *must* be rejectable by a conforming processor (though many compilers still accept them as extensions). Obsolescent features still conform but signal \"migrate away.\"\n- The smaller type font in the normative text *is* the obsolescence marker (4.1.5) — treat it as a deprecation warning baked into the standard.\n- Every entry here has a clean modern replacement; there is no obsolescent feature you *need*.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch21-annex-b-deleted-obsolescent#anti-patterns",
+"doc": "ch21-annex-b-deleted-obsolescent",
+"heading": "Chapter 21 (Annex B, informative): Deleted and obsolescent features > Anti-patterns",
+"text": "- **FORALL for parallel loops**: obsolescent and rarely optimized well — use `DO CONCURRENT` with locality/REDUCE (ch11).\n- **`CHARACTER*n` / specific intrinsic names / labeled DO**: legacy style; modernize to `CHARACTER(LEN=n)`, generic names, block DO.\n- **COMMON/EQUIVALENCE/block data for sharing/init**: use module variables with initializers.\n- **Arithmetic IF / computed GOTO / assigned GOTO**: deleted or obsolescent — use IF/SELECT CASE.",
+"symbols": [
+"character",
+"concurrent",
+"len"
+]
+},
+{
+"id": "fortran-std:ch21-annex-b-deleted-obsolescent#key-takeaways",
+"doc": "ch21-annex-b-deleted-obsolescent",
+"heading": "Chapter 21 (Annex B, informative): Deleted and obsolescent features > Key Takeaways",
+"text": "1. Deleted (must be rejectable): real DO vars, PAUSE, ASSIGN/assigned-GOTO, H descriptor, vertical format control, **arithmetic IF**, nonblock DO.\n2. Obsolescent (legal, avoid): alternate return, computed GOTO, statement functions, fixed form, `CHARACTER*n`, ENTRY, labeled DO, COMMON/EQUIVALENCE/block data, specific intrinsic names, **FORALL**.\n3. Every item has a documented modern replacement — migration is mechanical.\n4. The smaller-font marker in the standard's text is the in-band obsolescence signal.",
+"symbols": [
+"character"
+]
+},
+{
+"id": "fortran-std:ch21-annex-b-deleted-obsolescent#connects-to",
+"doc": "ch21-annex-b-deleted-obsolescent",
+"heading": "Chapter 21 (Annex B, informative): Deleted and obsolescent features > Connects To",
+"text": "- **Ch 4**: Conformance — the deleted/obsolescent categories and the smaller-font convention.\n- **Ch 11**: Execution control — DO CONCURRENT replaces FORALL; SELECT CASE replaces computed GOTO.\n- **Ch 14 & 19**: Modules replace COMMON/EQUIVALENCE/block data.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch22-annex-c-extended-notes#core-idea",
+"doc": "ch22-annex-c-extended-notes",
+"heading": "Chapter 22 (Annex C, informative): Extended notes > Core Idea",
+"text": "Informative, tutorial-style explanations and worked examples for the harder normative clauses, plus **C.1's consolidated list of what was new in Fortran 2018** — the single best map of the F2018 feature set (which, with the F2023 deltas elsewhere, defines \"modern Fortran\").",
+"symbols": []
+},
+{
+"id": "fortran-std:ch22-annex-c-extended-notes#what-was-new-in-fortran-2018-c-1-the-modern-feature-inventor",
+"doc": "ch22-annex-c-extended-notes",
+"heading": "Chapter 22 (Annex C, informative): Extended notes > What was new in Fortran 2018 (C.1) — the modern-feature inventory",
+"text": "- **Data / computation**: COMMON/EQUIVALENCE/block-data made obsolescent; **FORALL** made obsolescent; **SELECT RANK** for assumed-rank arrays; implied-DO variable type/kind specifiable in constructors; IEEE-aware `<`/`<=`/`>`/`>=` are *signaling* compares, `==`/`/=` are *quiet*.\n- **I/O**: `SIZE=` on advancing input; a file may be open on more than one unit; `G0.d` for integer/logical/character; zero field width for `D/E/EN/ES` and zero exponent width; **`EX`** hex-significand output; hex-significand FP input.\n- **Execution control**: **arithmetic IF deleted**; labeled DO obsolescent; nonblock DO deleted; **DO CONCURRENT locality** specifiable; **nonconstant stop codes**; controllable stop-code/exception-summary output.\n- **Intrinsics**: `CMPLX` needs no KIND keyword for complex arg; `DIM` may be a present optional dummy in reductions; new **`COSHAPE`**, **`OUT_OF_RANGE`**, **`REDUCE`**, **`RANDOM_INIT`**; most integer/logical intrinsic args freed from default-kind requirement; specific intrinsic names obsolescent; most `ISO_C_BINDING` procedures pure; `SIGN` args may differ in kind.\n- **Program units / procedures**: **`IMPORT`** usable in contained subprograms/BLOCK with restriction; the **`GENERIC` statement**; argument *count* used in generic resolution; separate control of default accessibility for accessed vs declared entities; `IMPLICIT NONE (EXTERNAL)`; recursion is the **default** (`RECURSIVE` advisory; `NON_RECURSIVE` to forbid); `ERROR STOP` allowed in pure subprograms.\n- **From TS 29113 (assumed-rank/type interop)**: **assumed-rank `a(..)`** and **assumed-type `TYPE(*)`** dummies; interoperable procedures with allocatable/assumed-shape/optional/pointer dummies; `C_LOC`/`C_F_POINTER`/`C_FUNLOC` on noninteroperable entities; new **`C_PTRDIFF_T`**.\n- **IEEE (60559:2020 conformance)**: new rounding mode **`IEEE_AWAY`**; new `IEEE_MODES_TYPE`; expanded IEEE procedures (`IEEE_FMA`, `IEEE_MAX/MIN` family, `IEEE_INT`, `IEEE_SIGNBIT`, …).",
+"symbols": [
+"c_f_pointer",
+"c_funloc",
+"c_loc",
+"c_ptrdiff_t",
+"cmplx",
+"coshape",
+"dim",
+"error",
+"external",
+"generic",
+"ieee_away",
+"ieee_fma",
+"ieee_int",
+"ieee_max",
+"ieee_modes_type",
+"ieee_signbit",
+"implicit",
+"import",
+"iso_c_binding",
+"min",
+"non_recursive",
+"none",
+"out_of_range",
+"random_init",
+"recursive",
+"reduce",
+"sign",
+"size",
+"stop",
+"type"
+]
+},
+{
+"id": "fortran-std:ch22-annex-c-extended-notes#selected-clause-notes-worth-knowing-c-3-c-10",
+"doc": "ch22-annex-c-extended-notes",
+"heading": "Chapter 22 (Annex C, informative): Extended notes > Selected clause notes worth knowing (C.3–C.10)",
+"text": "- **C.3.6 Final subroutines**: finalization semantics, ordering caveats (order is processor-dependent — see ch20).\n- **C.4 VOLATILE**: when the optimizer must reload (memory-mapped / async-modified data).\n- **C.7 DO CONCURRENT**: valid vs invalid examples; coarray team/event examples; failed-image-tolerant patterns.\n- **C.10.2 Dependent compilation**: how modules create build dependencies — the rationale for **submodules** (ch14) to cut recompilation cascades.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch22-annex-c-extended-notes#mental-models",
+"doc": "ch22-annex-c-extended-notes",
+"heading": "Chapter 22 (Annex C, informative): Extended notes > Mental Models",
+"text": "- \"Modern Fortran\" ≈ **F2018 (C.1 list) + the F2023 deltas** scattered through the other chapters (conditional expressions, SIMPLE, enum types, TYPEOF/CLASSOF, REDUCE locality, SPLIT/TOKENIZE, AT/LZ descriptors). Use C.1 as the F2018 baseline and the per-chapter \"F2023\" callouts as the increment.\n- Annex C is the **why**, not the **what** — read it when a normative rule's intent is unclear, or for a worked example of a construct.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch22-annex-c-extended-notes#anti-patterns",
+"doc": "ch22-annex-c-extended-notes",
+"heading": "Chapter 22 (Annex C, informative): Extended notes > Anti-patterns",
+"text": "- **Treating Annex C as normative**: it's informative — the binding rules are in Clauses 1–19. Use C for intent and examples only.\n- **Ignoring C.10.2 on dependent compilation**: not understanding module→user build dependencies leads to giant rebuilds; submodules are the fix.",
+"symbols": []
+},
+{
+"id": "fortran-std:ch22-annex-c-extended-notes#key-takeaways",
+"doc": "ch22-annex-c-extended-notes",
+"heading": "Chapter 22 (Annex C, informative): Extended notes > Key Takeaways",
+"text": "1. **C.1 is the F2018 feature inventory** — the baseline of \"modern Fortran\"; combine with the F2023 per-chapter callouts for the full modern set.\n2. Recursion became the default in F2018 (`RECURSIVE` advisory; `NON_RECURSIVE` to forbid).\n3. The `GENERIC` statement, `IMPLICIT NONE (EXTERNAL)`, and argument-count-in-generic-resolution are F2018 ergonomics worth adopting.\n4. Annex C is informative (intent + examples), not normative — defer to Clauses 1–19 for binding rules.\n5. C.10.2 explains module build dependencies — the rationale for submodules.",
+"symbols": [
+"external",
+"generic",
+"implicit",
+"non_recursive",
+"none",
+"recursive"
+]
+},
+{
+"id": "fortran-std:ch22-annex-c-extended-notes#connects-to",
+"doc": "ch22-annex-c-extended-notes",
+"heading": "Chapter 22 (Annex C, informative): Extended notes > Connects To",
+"text": "- **Ch 4**: Conformance — F2018/F2008 compatibility deltas (the normative complement to C.1).\n- **All chapters**: C is the cross-cutting \"why/example\" companion to the normative clauses.\n- **cheatsheet.md**: the consolidated F2023+F2018 new-feature table.",
+"symbols": []
+}
+]
+}

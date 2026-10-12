@@ -1,0 +1,23 @@
+NOTICE — fortran-2023-standard skill
+====================================
+
+This skill is an independent, original knowledge base. The frameworks,
+structure, explanatory synthesis, decision tables, and indices are our own
+expression, licensed CC-BY-4.0 (see repository LICENSE).
+
+Source material
+---------------
+Synthesized while reading the freely circulated Fortran 2023 working draft
+J3/23-007r1 ("Draft Fortran 2023"), an internal working document of
+INCITS/Fortran and ISO/IEC JTC1/SC22/WG5.
+
+This skill does NOT reproduce the draft or the published ISO/IEC 1539-1:2023
+standard. It expresses, in our own words, the facts and ideas the language
+defines — syntax rules, constraints, and feature semantics — which are not
+themselves protected by copyright. Verbatim overlap is limited to such
+functional elements (keywords, syntax, constraint identifiers), not
+explanatory prose.
+
+Not affiliated with, endorsed by, or a reproduction of the Fortran standard.
+The authoritative, normative text is the published ISO/IEC 1539-1:2023, available
+from ISO. For conformance questions, consult that standard.

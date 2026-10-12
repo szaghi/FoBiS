@@ -1,0 +1,7 @@
+NOTICE - hpc-practice pack
+
+Fortran and GPU/HPC practice: conventions, pitfalls, measured lessons.
+
+Copyright (C) Stefano Zaghi. Licensed CC-BY-4.0
+(https://creativecommons.org/licenses/by/4.0/). Original writing of the author,
+distilled from HPC development experience. Source: https://github.com/szaghi/dotfiles (rev ceb81d8).

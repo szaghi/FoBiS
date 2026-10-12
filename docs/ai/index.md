@@ -7,7 +7,7 @@ features use that knowledge in layers.
 | Layer | What it does | Needs a model? | Commands |
 |-------|--------------|----------------|----------|
 | **Rules** | Deterministic checks of the sources: bug-prone, obsolescent and non-portable constructs, OpenMP/OpenACC/MPI defects | No | [`fobis lint`](/ai/lint) |
-| **Knowledge** | Reference material distilled from the Fortran, MPI, OpenMP and OpenACC standards, used to ground explanations | No | *planned* |
+| **Knowledge** | Reference material distilled from the Fortran, MPI, OpenMP and OpenACC standards and from HPC practice, searchable and cited by rule explanations | No | [`fobis kb`](/ai/knowledge-packs) |
 | **LLM assistance** | Generation and explanation on top of the two layers above | Yes | [`fobis commit`](/advanced/commit) |
 
 ## Trust tiers
@@ -22,4 +22,5 @@ is advisory: it is labelled as such and never fails a build unless you explicitl
 |-----|---------|
 | Find bug-prone and obsolescent constructs, data races and GPU/MPI pitfalls | [`fobis lint`](/ai/lint) |
 | Read why a rule matters | `fobis lint --explain COR020`, or the [rule reference](/lint-rules/) |
+| Look up a standard's rule or an HPC pitfall | [`fobis kb search "firstprivate associate"`](/ai/knowledge-packs) |
 | Write a Conventional Commits message for the staged changes | [`fobis commit`](/advanced/commit) |

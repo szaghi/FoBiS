@@ -1,0 +1,25 @@
+NOTICE — openmp-6.0 skill
+=========================
+
+This skill is an independent, original knowledge base: the frameworks,
+structure, explanatory synthesis, decision tables, and indices are our own
+expression, licensed CC-BY-4.0 (see repository LICENSE).
+
+Source material
+---------------
+Synthesized while reading the "OpenMP Application Programming Interface,
+Version 6.0" and its Nov-2025 errata (© 1997-2024 OpenMP Architecture Review
+Board). That document grants:
+
+    "Permission to copy without fee all or part of this material is granted,
+     provided the OpenMP Architecture Review Board copyright notice and the
+     title of this document appear. Notice is given that copying is by
+     permission of the OpenMP Architecture Review Board."
+
+This notice is reproduced in accordance with those terms.
+
+This skill is not affiliated with, endorsed by, or a verbatim reproduction of
+the OpenMP specification. Directive/clause names and code snippets are
+facts/functional elements drawn from the specification and remain subject to
+its terms. For authoritative behavior, consult the specification at
+https://www.openmp.org.
