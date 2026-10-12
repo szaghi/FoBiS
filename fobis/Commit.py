@@ -21,11 +21,13 @@ Commit.py — LLM-assisted semantic commit-message generation for FoBiS.
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import textwrap
 from typing import TYPE_CHECKING
 
+from .llm.errors import ProviderResponseError
 from .llm.provider import messages
 
 if TYPE_CHECKING:
@@ -540,6 +542,82 @@ def wrap_message(message: str, width: int = 90, print_w=None) -> str:
     return "\n".join(wrapped)
 
 
+# ── Structured output ──────────────────────────────────────────────────────────
+
+COMMIT_TYPES = ("feat", "fix", "perf", "refactor", "docs", "style", "test", "chore", "ci", "build", "revert")
+COMMIT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "type": {"type": "string", "enum": list(COMMIT_TYPES)},
+        "scope": {"type": "string"},
+        "breaking": {"type": "boolean"},
+        "description": {"type": "string"},
+        "body": {"type": "string"},
+        "footers": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["type", "scope", "breaking", "description", "body", "footers"],
+    "additionalProperties": False,
+}
+_STRUCTURED_NOTE = """
+
+## Output format for this request
+
+Answer with ONE JSON object, nothing else, with these fields:
+  type        one of the types above
+  scope       the component name, or "" when the change is cross-cutting
+  breaking    true only for a breaking change of a published API (see the rules above)
+  description the subject-line description: imperative, lowercase, no trailing period,
+              WITHOUT the "type(scope):" prefix (the program builds the header)
+  body        the body paragraphs ("" when the subject says it all)
+  footers     footer lines such as "BREAKING CHANGE: ..." or "Refs #12" ([] when none)
+The examples above show finished messages; they are not the change to describe."""
+_STATUS_UNSUPPORTED = (400, 422)  # the provider rejected response_format
+
+
+def render_message(data: dict) -> str:
+    """Build the commit message from a structured answer (see `COMMIT_SCHEMA`).
+
+    Raises
+    ------
+    ValueError
+        *data* misses a field or has a type outside `COMMIT_TYPES`.
+    """
+    kind = str(data.get("type", "")).strip().lower()
+    description = str(data.get("description", "")).strip()
+    if kind not in COMMIT_TYPES or not description:
+        raise ValueError(f"not a commit message: {data!r}")
+    prefix = rf"^(?:{'|'.join(COMMIT_TYPES)})(?:\([^)]*\))?!?:\s*"
+    description = re.sub(prefix, "", description, flags=re.IGNORECASE).rstrip(".").strip()
+    if not re.match(r"^[A-Z]{2}", description):  # lowercase the first word, unless it is an acronym (API, MPI)
+        description = description[:1].lower() + description[1:]
+    raw_scope = str(data.get("scope", "")).strip().strip("()").rsplit("/", 1)[-1]
+    scope = re.sub(r"\.\w+$", "", raw_scope).lower()  # a component name, never a file name
+    footers = [str(f).strip() for f in data.get("footers") or [] if str(f).strip()]
+    footers = [f for f in footers if not f.lower().startswith("co-authored-by")]
+    breaking = bool(data.get("breaking")) or any(f.startswith("BREAKING CHANGE:") for f in footers)
+    header = f"{kind}{f'({scope})' if scope else ''}{'!' if breaking else ''}: {description}"
+    parts = [header]
+    body = str(data.get("body", "")).strip()
+    if body:
+        parts.append(body)
+    if footers:
+        parts.append("\n".join(footers))
+    return "\n\n".join(parts)
+
+
+def _parse_structured(text: str) -> dict | None:
+    """The JSON object of a structured answer, None when *text* is not one."""
+    text = _strip_markdown_fences(_strip_think_tags(text)).strip()
+    start, end = text.find("{"), text.rfind("}")
+    if start < 0 or end <= start:
+        return None
+    try:
+        data = json.loads(text[start : end + 1])
+    except ValueError:
+        return None
+    return data if isinstance(data, dict) else None
+
+
 # ── Public entry point ─────────────────────────────────────────────────────────
 
 
@@ -549,9 +627,14 @@ def generate(
     refine_passes: int = 0,
     print_n=print,
     print_w=print,
+    structured: bool = True,
 ) -> str:
     """
     Generate a Conventional Commits message for the currently staged changes.
+
+    With *structured* the model answers a JSON object (`COMMIT_SCHEMA`, enforced by the provider's grammar)
+    and `render_message` builds the header, so the model cannot get the header syntax wrong; when the
+    provider rejects the schema (HTTP 400/422) or the answer is not that JSON, the free-text pipeline is used.
 
     Parameters
     ----------
@@ -564,6 +647,8 @@ def generate(
         0 = single pass (default). 1-3 recommended for small models.
     print_n, print_w : callable
         Normal / warning message printers.
+    structured : bool
+        Ask for the structured answer (default); False uses the free-text pipeline only.
 
     Returns
     -------
@@ -586,31 +671,46 @@ def generate(
     commits = recent_commits()
     branch = current_branch()
 
+    use_schema = structured
+
+    def _from_text(raw: str) -> str:
+        """The legacy pipeline: clean a free-text answer."""
+        return _strip_file_manifest(
+            _take_first_message(_strip_markdown_fences(_strip_think_tags(raw))),
+            print_w=print_w,
+        )
+
     def _ask(prompt: str) -> str:
-        return provider.chat(messages(prompt, system=_SYSTEM_PROMPT)).text
+        nonlocal use_schema
+        if use_schema:
+            try:
+                raw = provider.chat(
+                    messages(prompt, system=_SYSTEM_PROMPT + _STRUCTURED_NOTE), schema=COMMIT_SCHEMA, temperature=0.0
+                ).text
+            except ProviderResponseError as exc:
+                if exc.status not in _STATUS_UNSUPPORTED:
+                    raise
+                print_w(f"{label} the provider rejected structured output (HTTP {exc.status}): using free text")
+                use_schema = False
+            else:
+                data = _parse_structured(raw)
+                if data is not None:
+                    try:
+                        return render_message(data)
+                    except ValueError:
+                        pass
+                print_w(f"{label} the answer is not the requested JSON: using it as free text")
+                return _from_text(raw)
+        return _from_text(provider.chat(messages(prompt, system=_SYSTEM_PROMPT)).text)
 
     label = f"[{provider.name}:{provider.model}]"
     print_n(f"{label} Generating commit message…")
     prompt = build_prompt(stat, diff, commits, branch=branch, files=files)
-    raw = _ask(prompt)
-    draft = wrap_message(
-        _strip_file_manifest(
-            _take_first_message(_strip_markdown_fences(_strip_think_tags(raw))),
-            print_w=print_w,
-        ),
-        print_w=print_w,
-    )
+    draft = wrap_message(_ask(prompt), print_w=print_w)
 
     for i in range(refine_passes):
         print_n(f"{label} Refining… (pass {i + 1}/{refine_passes})")
         refine_prompt = build_refine_prompt(draft, stat, diff, commits, files=files)
-        raw = _ask(refine_prompt)
-        draft = wrap_message(
-            _strip_file_manifest(
-                _take_first_message(_strip_markdown_fences(_strip_think_tags(raw))),
-                print_w=print_w,
-            ),
-            print_w=print_w,
-        )
+        draft = wrap_message(_ask(refine_prompt), print_w=print_w)
 
     return draft

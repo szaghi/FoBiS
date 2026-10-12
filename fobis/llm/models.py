@@ -74,7 +74,7 @@ RECOMMENDED: dict[str, Recommended] = {
             "qwen2.5-coder-0.5b-instruct-q4_k_m.gguf",
             491_400_064,
             "Apache-2.0",
-            "smoke tests, laptops without GPU; weak at reasoning",
+            "smoke tests of the setup only: too small to describe a diff",
         ),
         Recommended(
             "coder-1.5b",
@@ -82,7 +82,7 @@ RECOMMENDED: dict[str, Recommended] = {
             "qwen2.5-coder-1.5b-instruct-q4_k_m.gguf",
             1_117_320_768,
             "Apache-2.0",
-            "commit messages on CPU",
+            "quick experiments on CPU; copies prompt examples instead of reading the diff",
         ),
         Recommended(
             "coder-7b",
@@ -397,6 +397,11 @@ class ModelStore:
         spec = parse_spec(text)
         if spec.is_local:
             if not os.path.isfile(spec.path):
+                if not text.strip().lower().endswith(".gguf"):
+                    raise ModelMissingError(
+                        f"model {text!r} is not an alias (fobis llm recommended), an hf:<org>/<repo>/<file>.gguf "
+                        "spec or a .gguf file; an Ollama or server model name needs provider = ollama or openai"
+                    )
                 raise ModelMissingError(f"model file {spec.path} does not exist")
             return spec.path
         for model in self._match(spec):

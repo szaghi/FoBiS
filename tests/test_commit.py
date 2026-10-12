@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -370,7 +371,75 @@ def test_generate_sends_commit_system_prompt_then_user_prompt(staged):
     Commit.generate(provider, 1000)
     sent = provider.calls[0].messages
     assert [m["role"] for m in sent] == ["system", "user"]
-    assert sent[0]["content"] == Commit._SYSTEM_PROMPT
+    assert sent[0]["content"] == Commit._SYSTEM_PROMPT + Commit._STRUCTURED_NOTE
+    assert provider.calls[0].schema == Commit.COMMIT_SCHEMA
+    Commit.generate(provider := FakeProvider(["feat: x"]), 1000, structured=False)
+    assert provider.calls[0].messages[0]["content"] == Commit._SYSTEM_PROMPT and provider.calls[0].schema is None
+
+
+def _answer(**fields) -> str:
+    data = {"type": "fix", "scope": "", "breaking": False, "description": "x", "body": "", "footers": []}
+    data.update(fields)
+    return json.dumps(data)
+
+
+def test_render_message_builds_the_header():
+    render = Commit.render_message
+    assert render(json.loads(_answer(scope="fetcher", description="handle a missing deps dir."))) == (
+        "fix(fetcher): handle a missing deps dir"
+    )
+    full = json.loads(
+        _answer(
+            type="feat",
+            scope="fobis/Fetcher.py",  # a file given as scope: the component name is kept
+            breaking=True,
+            description="Fix(cli): Drop the -compiler flag",
+            body="Replaced by --compiler.",
+            footers=["BREAKING CHANGE: use --compiler", "Co-authored-by: bot <b@b>"],
+        )
+    )
+    assert render(full) == (
+        "feat(fetcher)!: drop the -compiler flag\n\nReplaced by --compiler.\n\nBREAKING CHANGE: use --compiler"
+    )
+    assert render(json.loads(_answer(description="API keys from env"))) == "fix: API keys from env"
+    assert render(json.loads(_answer(footers=["BREAKING CHANGE: y"]))).startswith("fix!: x")
+    for bad in ({"type": "wip", "description": "x"}, {"type": "fix", "description": ""}):
+        with pytest.raises(ValueError):
+            render(bad)
+
+
+def test_generate_structured_answer_is_rendered(staged):
+    provider = FakeProvider(
+        ["```json\n" + _answer(scope="cli", description="restore completion", body="Why.") + "\n```"]
+    )
+    assert Commit.generate(provider, 1000) == "fix(cli): restore completion\n\nWhy."
+
+
+def test_generate_falls_back_when_the_schema_is_rejected(staged):
+    from fobis.llm import ProviderResponseError
+
+    calls = []
+
+    def reply(messages):
+        calls.append(messages)
+        if len(calls) == 1:
+            raise ProviderResponseError("response_format not supported", status=400)
+        return "feat(cli): plain text answer"
+
+    warnings = []
+    assert Commit.generate(FakeProvider(reply), 1000, print_w=warnings.append) == "feat(cli): plain text answer"
+    assert "rejected structured output (HTTP 400)" in warnings[0]
+    assert calls[1][0]["content"] == Commit._SYSTEM_PROMPT  # second request: free text
+
+
+def test_generate_other_provider_errors_are_not_swallowed(staged):
+    from fobis.llm import ProviderResponseError
+
+    def reply(messages):
+        raise ProviderResponseError("server error", status=500)
+
+    with pytest.raises(ProviderResponseError):
+        Commit.generate(FakeProvider(reply), 1000)
 
 
 def test_generate_strips_think_tags_from_response(staged):

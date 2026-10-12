@@ -12,7 +12,7 @@ fobis commit [options]
 
 | Option | Short | Description |
 |--------|-------|-------------|
-| `--provider TEXT` | `-b` | LLM provider: `ollama` (default) or `openai`. `--backend` is accepted as the former name |
+| `--provider TEXT` | `-b` | LLM provider: `managed` (default: llama.cpp run locally by FoBiS), `ollama` or `openai`. `--backend` is accepted as the former name |
 | `--url TEXT` | `-u` | Base URL of the LLM server (default: `http://localhost:11434`) |
 | `--api-key-env NAME` | | Name of the environment variable holding the API key, sent as `Authorization: Bearer <key>`; required by hosted endpoints. Without it no credentials are sent |
 | `--model TEXT` | `-m` | Model identifier (default: `qwen3-coder:30b-a3b-q4_K_M`) |
@@ -37,11 +37,25 @@ The prompt includes:
 
 The generated message is printed to standard output. Passing `--apply` prompts for confirmation and then runs `git commit -m <message>` automatically.
 
-No network access to external APIs is required — the LLM runs locally via [Ollama](https://ollama.com) or any OpenAI-compatible server (LM Studio, vLLM, llama.cpp, etc.).
+No network access to external APIs is required: by default FoBiS runs the model itself with llama.cpp ([Local LLM runtime](/ai/runtime)); [Ollama](https://ollama.com) and any OpenAI-compatible server (LM Studio, vLLM, llama-server, hosted services) work too.
+
+The model answers a JSON object (type, scope, breaking, description, body, footers) constrained by a JSON Schema, and FoBiS builds the `type(scope)!: description` header itself, so the header syntax cannot be wrong. A server that rejects the schema (HTTP 400/422) gets the free-text request instead, cleaned as before.
 
 ## Backends
 
-### `ollama` (default)
+### `managed` (default)
+
+FoBiS starts `llama-server` (llama.cpp) on loopback with a stored model, uses it for the command, and stops it. One-time setup:
+
+```bash
+fobis llm runtime install     # the pinned llama.cpp build, GPU variant detected
+fobis llm pull coder-7b       # see: fobis llm recommended
+fobis commit
+```
+
+See [Local LLM runtime](/ai/runtime) and [Local models](/ai/models).
+
+### `ollama`
 
 Calls the Ollama native streaming chat API at `{url}/api/chat`. Requires Ollama to be running locally.
 
@@ -50,8 +64,8 @@ Calls the Ollama native streaming chat API at `{url}/api/chat`. Requires Ollama 
 # Pull a model:
 ollama pull qwen3-coder:30b-a3b-q4_K_M
 
-# Run fobis commit (Ollama default, no extra flags needed):
-fobis commit
+# Run fobis commit with Ollama:
+fobis commit --provider ollama
 ```
 
 ### `openai`
@@ -95,9 +109,10 @@ The generated file looks like:
 # All values shown are the defaults.  Uncomment and edit to override.
 
 [llm]
-# LLM provider: "ollama" (native API) or "openai" (any OpenAI-compatible endpoint)
+# LLM provider: "managed" (fobis runs llama.cpp locally: fobis llm runtime install, fobis llm pull),
+# "ollama" (native API) or "openai" (any OpenAI-compatible endpoint)
 # (the former key name `backend` is still read)
-# provider = ollama
+# provider = managed
 
 # Base URL of the LLM server (no trailing slash)
 # url = http://localhost:11434
@@ -138,10 +153,15 @@ Inspect effective settings at any time:
 fobis commit --show-config
 # Config file : /home/user/.config/fobis/config.ini
 #   [llm]
-#   provider      = ollama
+#   provider      = managed
 #   url           = http://localhost:11434
 #   api_key_env   = (none)
-#   model         = qwen3-coder:30b-a3b-q4_K_M
+#   model         = coder-7b
+#   runtime       = pinned (variant auto)
+#   n_ctx         = 16384
+#   n_gpu_layers  = auto
+#   threads       = 0
+#   startup_timeout = 120
 #   max_diff_chars= 12000
 #   refine_passes = 0
 ```

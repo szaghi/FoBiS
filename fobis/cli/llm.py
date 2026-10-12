@@ -21,7 +21,8 @@ def _fail(message: str) -> None:
 
 
 def _gb(size: int) -> str:
-    return f"{size / 1e9:.1f} GB"
+    """A size in GB, or MB below 1 GB."""
+    return f"{size / 1e9:.1f} GB" if size >= 1e9 else f"{size / 1e6:.0f} MB"
 
 
 def _store():
@@ -120,3 +121,192 @@ def cmd_llm_rm(
         _fail(str(exc))
     for m in removed:
         typer.echo(f"Removed {m.spec} ({_gb(m.size)})")
+
+
+runtime_app = typer.Typer(
+    name="runtime", help="Install, list and remove the llama.cpp runtime (llama-server).", no_args_is_help=True
+)
+llm_app.add_typer(runtime_app, name="runtime")
+
+
+def _manager():
+    from ..llm.runtime import RuntimeManager
+
+    return RuntimeManager()
+
+
+@runtime_app.command("install")
+def cmd_runtime_install(
+    variant: Annotated[
+        str, typer.Option("--variant", help="auto, cpu, metal, cuda12, cuda13, vulkan, rocm or sycl.")
+    ] = "auto",
+    build: Annotated[
+        str | None, typer.Option("--build", help="A llama.cpp build tag other than the pinned one.")
+    ] = None,
+    sha256: Annotated[str | None, typer.Option("--sha256", help="Expected sha256 of a non-pinned build.")] = None,
+    trust: Annotated[bool, typer.Option("--trust", help="Accept a non-pinned build without a known sha256.")] = False,
+) -> None:
+    """Download, verify and install llama-server (the pinned build by default)."""
+    from ..llm import LLMError
+
+    try:
+        runtime, reason = _manager().install(
+            variant=variant, build=build, sha256=sha256, trust=trust, progress=_progress()
+        )
+    except LLMError as exc:
+        _fail(str(exc))
+    typer.echo(f"Installed {runtime.name} ({reason})\n  {runtime.binary}\n  {runtime.version or 'version: unknown'}")
+    if not runtime.version:
+        typer.echo(
+            "Warning: llama-server did not run (--version failed). On an older system set "
+            "'runtime = /path/to/llama-server' in the [llm] section of the user config.",
+            err=True,
+        )
+
+
+@runtime_app.command("list")
+def cmd_runtime_list() -> None:
+    """List the installed llama.cpp builds."""
+    from ..llm.pins import PINNED_BUILD
+    from ..llm.runtime import available_variants, platform_key
+
+    installed = _manager().installed()
+    if not installed:
+        typer.echo("No runtime installed. Install with: fobis llm runtime install")
+    for runtime in installed:
+        pinned = " (pinned)" if runtime.build == PINNED_BUILD else ""
+        typer.echo(f"{runtime.name:<18}{pinned:<10} {runtime.version}")
+    key = platform_key()
+    typer.echo(f"\nPinned build {PINNED_BUILD}; variants for {key[0]}/{key[1]}: {', '.join(available_variants(key))}")
+
+
+@runtime_app.command("remove")
+def cmd_runtime_remove(name: Annotated[str, typer.Argument(help="<build>-<variant>, as listed.")]) -> None:
+    """Remove an installed llama.cpp build."""
+    from ..llm import LLMError
+
+    try:
+        runtime = _manager().remove(name)
+    except LLMError as exc:
+        _fail(str(exc))
+    typer.echo(f"Removed {runtime.name}")
+
+
+def _llm_config(provider: str | None, model: str | None):
+    from ..llm import LLMConfig
+    from ..UserConfig import UserConfig
+
+    return LLMConfig.from_user_config(UserConfig(), provider=provider, model=model)
+
+
+@llm_app.command("ask")
+def cmd_llm_ask(
+    prompt: Annotated[str, typer.Argument(help="The question; '-' reads it from standard input.")],
+    schema: Annotated[
+        str | None, typer.Option("--schema", help="JSON Schema file: the answer is constrained to it.")
+    ] = None,
+    system: Annotated[str | None, typer.Option("--system", help="System prompt.")] = None,
+    provider: Annotated[str | None, typer.Option("--provider", help="managed, ollama or openai.")] = None,
+    model: Annotated[str | None, typer.Option("--model", "-m", help="Model (alias or spec for managed).")] = None,
+) -> None:
+    """Ask the configured model a question (smoke test, scripting); the answer streams to standard output."""
+    from ..llm import LLMError, get_provider, messages
+
+    text = sys.stdin.read() if prompt == "-" else prompt
+    constraint = None
+    if schema:
+        try:
+            with open(schema, encoding="utf-8") as handle:
+                constraint = json.load(handle)
+        except (OSError, ValueError) as exc:
+            _fail(f"cannot read the schema {schema}: {exc}")
+    client = None
+    try:
+        client = get_provider(_llm_config(provider, model), on_status=lambda m: typer.echo(m, err=True))
+        client.chat(
+            messages(text, system=system),
+            schema=constraint,
+            temperature=0.0,
+            on_token=lambda t: (sys.stdout.write(t), sys.stdout.flush()),
+        )
+        sys.stdout.write("\n")
+    except LLMError as exc:
+        _fail(str(exc))
+    finally:
+        if client is not None and hasattr(client, "close"):
+            client.close()
+
+
+@llm_app.command("doctor")
+def cmd_llm_doctor(
+    sample: Annotated[
+        bool, typer.Option("--sample/--no-sample", help="Start the model and time a short answer.")
+    ] = True,
+) -> None:
+    """Check the local LLM setup: platform, runtime, model, and (managed) a timed sample answer."""
+    import time
+
+    from ..llm import LLMError, get_provider, messages
+    from ..llm.pins import PINNED_BUILD
+    from ..llm.runtime import available_variants, detect_variant, platform_key, server_version
+
+    ok = True
+
+    def report(label: str, value: str, good: bool = True) -> None:
+        nonlocal ok
+        ok = ok and good
+        typer.echo(f"{'ok ' if good else 'BAD'}  {label:<10} {value}")
+
+    try:
+        cfg = _llm_config(None, None)
+    except LLMError as exc:
+        _fail(str(exc))
+    key = platform_key()
+    report("provider", f"{cfg.provider}  (model {cfg.model})")
+    if cfg.provider != "managed":
+        report("server", f"{cfg.url} (not managed by fobis: start it yourself)")
+    else:
+        try:
+            variant, reason = detect_variant(key)
+            report(
+                "platform",
+                f"{key[0]}/{key[1]}, variants {', '.join(available_variants(key))}; auto -> {variant} ({reason})",
+            )
+        except LLMError as exc:
+            report("platform", str(exc), False)
+        try:
+            binary = _manager().resolve(cfg.runtime, cfg.runtime_variant)
+            version = server_version(binary)
+            report(
+                "runtime", f"{binary}\n                {version or 'does not run (--version failed)'}", bool(version)
+            )
+            if cfg.runtime == "pinned" and f"build {PINNED_BUILD[1:]}" not in version:
+                report("build", f"expected {PINNED_BUILD}", False)
+        except LLMError as exc:
+            report("runtime", str(exc), False)
+        try:
+            report("model", _store().locate(cfg.model))
+        except LLMError as exc:
+            report("model", str(exc), False)
+    if sample and ok:
+        client = None
+        try:
+            client = get_provider(cfg)
+            started = time.monotonic()
+            if hasattr(client, "start"):
+                client.start()
+                report("start", f"server ready in {time.monotonic() - started:.1f} s")
+            started = time.monotonic()
+            answer = client.chat(
+                messages("Reply with the single word: ready"), temperature=0.0, seed=0, max_tokens=16
+            ).text.strip()
+            speed = client.server.generation_speed() if getattr(client, "server", None) else None
+            detail = f", {speed:.0f} tokens/s" if speed else ""
+            report("sample", f"{answer!r} in {time.monotonic() - started:.1f} s{detail}")
+        except LLMError as exc:
+            report("sample", str(exc), False)
+        finally:
+            if client is not None and hasattr(client, "close"):
+                client.close()
+    if not ok:
+        raise typer.Exit(1)

@@ -15,7 +15,28 @@ Writing good Conventional Commits messages consistently is harder than it looks:
 
 ## Setup
 
-### Ollama (recommended)
+### Managed llama.cpp (default)
+
+FoBiS can run the model itself: it installs a pinned [llama.cpp](https://github.com/ggml-org/llama.cpp) build,
+stores open models from the Hugging Face Hub, and starts and stops `llama-server` around each command. Nothing
+else to install or keep running:
+
+```bash
+fobis llm runtime install     # once: the pinned llama.cpp build (CUDA, Metal or CPU, detected)
+fobis llm pull coder-7b       # once: 4.7 GB; see fobis llm recommended
+fobis llm doctor              # optional: checks everything and times a short answer
+fobis commit
+```
+
+Details: [Local LLM runtime](/ai/runtime), [Local models](/ai/models).
+
+::: warning Upgrading from an earlier FoBiS
+The default provider used to be Ollama. A configuration that sets `model` or `url` in `[llm]` without a
+`provider` keeps using Ollama. With no `[llm]` settings at all, `fobis commit` now uses the managed runtime and
+tells you which `fobis llm` command to run first; add `provider = ollama` to keep using Ollama.
+:::
+
+### Ollama
 
 [Ollama](https://ollama.com) is the easiest way to run local models. Install it once and pull any compatible model.
 
@@ -38,7 +59,7 @@ ollama list          # should show the pulled model
 curl http://localhost:11434/api/tags   # should return JSON
 ```
 
-No extra configuration needed — `fobis commit` defaults to `provider=ollama`, `url=http://localhost:11434`.
+Select it with `provider = ollama` in the config file (or `--provider ollama`); the default URL is `http://localhost:11434`.
 
 ### LM Studio
 
@@ -129,6 +150,11 @@ fobis commit --show-config
 #   url           = http://localhost:11434
 #   api_key_env   = (none)
 #   model         = qwen2.5-coder:7b
+#   runtime       = pinned (variant auto)
+#   n_ctx         = 16384
+#   n_gpu_layers  = auto
+#   threads       = 0
+#   startup_timeout = 120
 #   max_diff_chars= 12000
 #   refine_passes = 1
 ```

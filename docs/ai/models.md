@@ -7,6 +7,10 @@ prepared elsewhere.
 
 Nothing is downloaded behind your back: only `fobis llm pull` downloads.
 
+Size matters more than anything else for quality. Measured on FoBiS's own commit task: the 0.5B and 1.5B
+models do not read the diff, they copy examples and instructions from the prompt. Use them to check that the
+setup works, and `coder-7b` or larger for real work.
+
 ## Choosing a model
 
 ```bash
@@ -14,8 +18,8 @@ fobis llm recommended
 ```
 
 ```text
-coder-0.5b       0.5 GB  Apache-2.0  smoke tests, laptops without GPU; weak at reasoning
-coder-1.5b       1.1 GB  Apache-2.0  commit messages on CPU
+coder-0.5b       491 MB  Apache-2.0  smoke tests of the setup only: too small to describe a diff
+coder-1.5b       1.1 GB  Apache-2.0  quick experiments on CPU; copies prompt examples instead of reading the diff
 coder-7b         4.7 GB  Apache-2.0  default choice: 8 GB GPU, or a recent CPU
 coder-14b        9.0 GB  Apache-2.0  12-16 GB GPU
 coder-30b-a3b   18.6 GB  Apache-2.0  24 GB GPU; mixture of experts (3B active), fast for its size
@@ -86,13 +90,8 @@ download to its content-delivery network, the token is not forwarded.
 `HF_ENDPOINT` points FoBiS to a Hub mirror (for example an institutional proxy) instead of
 `https://huggingface.co`.
 
-## Using a stored model today
+## Using a model
 
-The managed runtime, with which FoBiS starts and stops llama.cpp itself, is the next step of the harness.
-Until then, serve a stored model with any [llama.cpp](https://github.com/ggml-org/llama.cpp) build and
-point the OpenAI-compatible provider at it:
-
-```bash
-llama-server -m "$(fobis llm list --json | python3 -c 'import json,sys; print(json.load(sys.stdin)[0]["path"])')" --port 8080
-fobis commit --provider openai --url http://127.0.0.1:8080
-```
+With the default `managed` provider, set the model in the `[llm]` section of the configuration (default
+`coder-7b`) and FoBiS starts it when needed: see [Local LLM runtime](/ai/runtime). The stored files are plain
+GGUF, so any llama.cpp build can also serve them (`fobis llm list --json` prints their paths).

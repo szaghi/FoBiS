@@ -247,7 +247,9 @@ def test_llm_config_rejects_unknown_provider():
 
 def test_llm_config_from_user_config_defaults(tmp_path):
     cfg = LLMConfig.from_user_config(UserConfig(path=str(tmp_path / "none.ini")))
-    assert cfg == LLMConfig(provider="ollama", url=UserConfig.DEFAULT_URL, model=UserConfig.DEFAULT_MODEL)
+    assert cfg == LLMConfig(provider="managed", url=UserConfig.DEFAULT_URL, model="coder-7b")
+    ollama = LLMConfig.from_user_config(UserConfig(path=str(tmp_path / "none.ini")), provider="ollama")
+    assert ollama.model == UserConfig.DEFAULT_MODELS["ollama"]  # the CLI provider picks its own default model
 
 
 def test_llm_config_cli_overrides_file(tmp_path):

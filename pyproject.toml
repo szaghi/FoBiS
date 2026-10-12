@@ -73,6 +73,9 @@ indent-style = "space"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --cov=fobis --cov-report=term-missing"
+markers = [
+    "llm: real llama.cpp runtime and model downloads (~0.5 GB); run with FOBIS_TEST_LLM=1 pytest -m llm",
+]
 
 [tool.coverage.run]
 source = ["fobis"]

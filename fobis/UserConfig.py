@@ -24,11 +24,11 @@ import os
 import re
 import tempfile
 
-_DEFAULT_CONFIG_PATH = os.path.join(
-    os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")),
-    "fobis",
-    "config.ini",
-)
+
+def default_config_path() -> str:
+    """``$XDG_CONFIG_HOME/fobis/config.ini`` (``~/.config`` when unset), read when called, not at import."""
+    return os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "fobis", "config.ini")
+
 
 _TEMPLATE = """\
 # FoBiS user configuration
@@ -37,9 +37,10 @@ _TEMPLATE = """\
 # All values shown are the defaults.  Uncomment and edit to override.
 
 [llm]
-# LLM provider: "ollama" (native API) or "openai" (any OpenAI-compatible endpoint)
+# LLM provider: "managed" (fobis runs llama.cpp locally: fobis llm runtime install, fobis llm pull),
+# "ollama" (native API) or "openai" (any OpenAI-compatible endpoint)
 # (the former key name `backend` is still read)
-# provider = ollama
+# provider = managed
 
 # Base URL of the LLM server (no trailing slash)
 # url = http://localhost:11434
@@ -48,8 +49,20 @@ _TEMPLATE = """\
 # Needed by hosted endpoints (OpenAI, Mistral, ...); unset = no credentials are sent.
 # api_key_env = OPENAI_API_KEY
 
-# Model to use for commit-message generation
-# model = qwen3-coder:30b-a3b-q4_K_M
+# Model: for "managed" an alias (fobis llm recommended), hf:<org>/<repo>[@<rev>]/<file>.gguf or a GGUF path;
+# for ollama/openai the server's model name. Default: coder-7b (managed), qwen3-coder:30b-a3b-q4_K_M (others)
+# model = coder-7b
+
+# managed only: which llama-server to run: "pinned" (fobis llm runtime install), "PATH", or a path
+# runtime = pinned
+# managed only: build variant when several are installed: auto, cpu, metal, cuda12, cuda13, vulkan, rocm, sycl
+# runtime_variant = auto
+# managed only: context size, layers offloaded to the GPU (a number, auto or all), CPU threads (0 = llama.cpp
+# default), seconds to wait for the model to load
+# n_ctx = 16384
+# n_gpu_layers = auto
+# threads = 0
+# startup_timeout = 120
 
 # Maximum staged-diff characters sent to the model (long diffs are truncated)
 # max_diff_chars = 12000
@@ -72,7 +85,7 @@ _TEMPLATE = """\
 # mode = auto
 """
 
-_BACKENDS = ("ollama", "openai")
+_BACKENDS = ("managed", "ollama", "openai")
 _KEY_RE = re.compile(r"^([A-Za-z_][\w-]*)\s*[=:]")  # an uncommented, unindented key line
 
 
@@ -95,15 +108,28 @@ class UserConfig:
     LLM settings with hardcoded defaults as fallback.
     """
 
-    DEFAULT_PROVIDER = "ollama"
+    DEFAULT_PROVIDER = "managed"
     DEFAULT_BACKEND = DEFAULT_PROVIDER  # former name, kept for compatibility
     DEFAULT_URL = "http://localhost:11434"
-    DEFAULT_MODEL = "qwen3-coder:30b-a3b-q4_K_M"
+    # The default model depends on the provider: an alias of the local store for "managed", an Ollama tag
+    # otherwise (also sent to OpenAI-compatible servers, which mostly ignore it).
+    DEFAULT_MODELS = {
+        "managed": "coder-7b",
+        "ollama": "qwen3-coder:30b-a3b-q4_K_M",
+        "openai": "qwen3-coder:30b-a3b-q4_K_M",
+    }
+    DEFAULT_MODEL = DEFAULT_MODELS[DEFAULT_PROVIDER]
+    DEFAULT_RUNTIME = "pinned"
+    DEFAULT_RUNTIME_VARIANT = "auto"
+    DEFAULT_N_CTX = 16384
+    DEFAULT_N_GPU_LAYERS = "auto"
+    DEFAULT_THREADS = 0
+    DEFAULT_STARTUP_TIMEOUT = 120.0
     DEFAULT_MAX_DIFF_CHARS = 12_000
     DEFAULT_REFINE_PASSES = 0
 
     def __init__(self, path: str | None = None) -> None:
-        self.path = path or _DEFAULT_CONFIG_PATH
+        self.path = path or default_config_path()
         self._cp = configparser.ConfigParser()
         if os.path.exists(self.path):
             self._cp.read(self.path)
@@ -113,10 +139,22 @@ class UserConfig:
 
     # ── LLM settings ──────────────────────────────────────────────────────────
 
+    LEGACY_PROVIDER = "ollama"  # the default before the managed runtime existed
+
     @property
     def llm_provider(self) -> str:
-        """The LLM provider: key ``provider``, else the former key ``backend``, else the default."""
-        return self._get("llm", "provider", self._get("llm", "backend", self.DEFAULT_PROVIDER))
+        """The LLM provider: key ``provider``, else the former key ``backend``, else the default.
+
+        A ``[llm]`` section that sets ``model`` or ``url`` without naming a provider was written for the former
+        implicit default (Ollama): it keeps meaning Ollama, so that the switch of the default to ``managed``
+        does not turn an Ollama model tag into a missing local file.
+        """
+        explicit = self._get("llm", "provider", self._get("llm", "backend", ""))
+        if explicit:
+            return explicit
+        if self._get("llm", "model", "") or self._get("llm", "url", ""):
+            return self.LEGACY_PROVIDER
+        return self.DEFAULT_PROVIDER
 
     @property
     def llm_backend(self) -> str:
@@ -134,7 +172,36 @@ class UserConfig:
 
     @property
     def llm_model(self) -> str:
-        return self._get("llm", "model", self.DEFAULT_MODEL)
+        return self.llm_model_for(self.llm_provider)
+
+    def llm_model_for(self, provider: str) -> str:
+        """The configured model, else the default model of *provider*."""
+        return self._get("llm", "model", self.DEFAULT_MODELS.get(provider, self.DEFAULT_MODEL))
+
+    @property
+    def llm_runtime(self) -> str:
+        """Managed provider: ``pinned`` (installed by fobis), ``PATH`` or a path to llama-server."""
+        return self._get("llm", "runtime", self.DEFAULT_RUNTIME)
+
+    @property
+    def llm_runtime_variant(self) -> str:
+        return self._get("llm", "runtime_variant", self.DEFAULT_RUNTIME_VARIANT)
+
+    @property
+    def llm_n_ctx(self) -> int:
+        return int(self._get("llm", "n_ctx", str(self.DEFAULT_N_CTX)))
+
+    @property
+    def llm_n_gpu_layers(self) -> str:
+        return self._get("llm", "n_gpu_layers", self.DEFAULT_N_GPU_LAYERS)
+
+    @property
+    def llm_threads(self) -> int:
+        return int(self._get("llm", "threads", str(self.DEFAULT_THREADS)))
+
+    @property
+    def llm_startup_timeout(self) -> float:
+        return float(self._get("llm", "startup_timeout", str(self.DEFAULT_STARTUP_TIMEOUT)))
 
     @property
     def llm_max_diff_chars(self) -> int:
@@ -250,6 +317,11 @@ class UserConfig:
             f"  url           = {self.llm_url}",
             f"  api_key_env   = {self.llm_api_key_env or '(none)'}",
             f"  model         = {self.llm_model}",
+            f"  runtime       = {self.llm_runtime} (variant {self.llm_runtime_variant})",
+            f"  n_ctx         = {self.llm_n_ctx}",
+            f"  n_gpu_layers  = {self.llm_n_gpu_layers}",
+            f"  threads       = {self.llm_threads}",
+            f"  startup_timeout = {self.llm_startup_timeout:g}",
             f"  max_diff_chars= {self.llm_max_diff_chars}",
             f"  refine_passes = {self.llm_refine_passes}",
         ]

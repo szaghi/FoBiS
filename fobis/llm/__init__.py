@@ -33,6 +33,8 @@ from .errors import (
     ModelMissingError,
     ProviderResponseError,
     ProviderUnavailableError,
+    RuntimeMissingError,
+    ServerStartError,
 )
 from .fake import FakeProvider
 from .ollama import OllamaProvider
@@ -56,20 +58,39 @@ __all__ = [
     "Provider",
     "ProviderResponseError",
     "ProviderUnavailableError",
+    "RuntimeMissingError",
+    "ServerStartError",
     "get_provider",
     "messages",
     "resolve_api_key",
 ]
 
 
-def get_provider(cfg: LLMConfig) -> Provider:
+def get_provider(cfg: LLMConfig, on_status=None) -> Provider:
     """Build the provider described by *cfg*.
+
+    A ``managed`` provider starts llama-server on its first chat: call its ``close()`` when done (interpreter
+    exit stops it too). *on_status* receives its progress messages.
 
     Raises
     ------
     ApiKeyError
         ``cfg.api_key_env`` names an unset or empty environment variable.
     """
+    if cfg.provider == "managed":
+        from .managed import ManagedProvider
+
+        return ManagedProvider(
+            cfg.model,
+            runtime=cfg.runtime,
+            variant=cfg.runtime_variant,
+            n_ctx=cfg.n_ctx,
+            n_gpu_layers=cfg.n_gpu_layers,
+            threads=cfg.threads,
+            startup_timeout=cfg.startup_timeout,
+            timeout=cfg.timeout,
+            on_status=on_status,
+        )
     api_key = resolve_api_key(cfg.api_key_env)
     cls = OpenAICompatProvider if cfg.provider == "openai" else OllamaProvider
     return cls(cfg.url, cfg.model, api_key=api_key, timeout=cfg.timeout)

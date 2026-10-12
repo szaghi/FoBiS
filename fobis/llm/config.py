@@ -29,7 +29,7 @@ from .http import DEFAULT_TIMEOUT
 if TYPE_CHECKING:
     from ..UserConfig import UserConfig
 
-PROVIDERS = ("ollama", "openai")
+PROVIDERS = ("managed", "ollama", "openai")
 
 
 def resolve_api_key(api_key_env: str | None) -> str | None:
@@ -67,6 +67,8 @@ class LLMConfig:
         Name of the environment variable holding the API key ('' = no credentials).
     timeout : float
         Socket timeout in seconds.
+    runtime, runtime_variant, n_ctx, n_gpu_layers, threads, startup_timeout :
+        Managed provider only (see `fobis.llm.managed.ManagedProvider`).
     """
 
     provider: str
@@ -74,6 +76,12 @@ class LLMConfig:
     model: str
     api_key_env: str = ""
     timeout: float = DEFAULT_TIMEOUT
+    runtime: str = "pinned"
+    runtime_variant: str = "auto"
+    n_ctx: int = 16384
+    n_gpu_layers: str = "auto"
+    threads: int = 0
+    startup_timeout: float = 120.0
 
     def __post_init__(self) -> None:
         if self.provider not in PROVIDERS:
@@ -91,9 +99,16 @@ class LLMConfig:
         api_key_env: str | None = None,
     ) -> LLMConfig:
         """Settings of *ucfg* (``[llm]`` section), each overridden by the matching non-empty argument."""
+        provider = provider or ucfg.llm_provider
         return cls(
-            provider=provider or ucfg.llm_provider,
+            provider=provider,
             url=url or ucfg.llm_url,
-            model=model or ucfg.llm_model,
+            model=model or ucfg.llm_model_for(provider),
             api_key_env=api_key_env or ucfg.llm_api_key_env,
+            runtime=ucfg.llm_runtime,
+            runtime_variant=ucfg.llm_runtime_variant,
+            n_ctx=ucfg.llm_n_ctx,
+            n_gpu_layers=ucfg.llm_n_gpu_layers,
+            threads=ucfg.llm_threads,
+            startup_timeout=ucfg.llm_startup_timeout,
         )

@@ -54,3 +54,11 @@ class DownloadError(LLMError):
 
 class ChecksumMismatchError(DownloadError):
     """A downloaded file does not match the size or sha256 published by the Hub."""
+
+
+class RuntimeMissingError(LLMError):
+    """The llama.cpp runtime is not installed or the configured executable does not exist."""
+
+
+class ServerStartError(LLMError):
+    """llama-server exited or did not become ready; the message ends with the tail of its log."""

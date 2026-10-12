@@ -409,6 +409,7 @@ def run_fobis_commit(configuration):
     refine_passes_cli = getattr(cliargs, "refine_passes", None)
     refine_passes = refine_passes_cli if refine_passes_cli is not None else ucfg.llm_refine_passes
 
+    provider = None
     try:
         llm_cfg = LLMConfig.from_user_config(
             ucfg,
@@ -417,8 +418,9 @@ def run_fobis_commit(configuration):
             model=getattr(cliargs, "model", None),
             api_key_env=getattr(cliargs, "api_key_env", None),
         )
+        provider = get_provider(llm_cfg, on_status=configuration.print_b)
         message = generate(
-            provider=get_provider(llm_cfg),
+            provider=provider,
             max_diff_chars=max_diff,
             refine_passes=refine_passes,
             print_n=configuration.print_b,
@@ -427,6 +429,9 @@ def run_fobis_commit(configuration):
     except (CommitError, LLMError) as exc:
         configuration.print_r(f"Error: {exc}")
         sys.exit(1)
+    finally:
+        if provider is not None and hasattr(provider, "close"):
+            provider.close()  # the managed provider stops its llama-server
 
     configuration.print_b("")
     configuration.print_b(message)

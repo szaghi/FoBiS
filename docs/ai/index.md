@@ -26,4 +26,4 @@ is advisory: it is labelled as such and never fails a build unless you explicitl
 | Confirm GPU data movement and sequential loops with the compiler's own report | [`fobis lint --compiler-feedback build.log`](/ai/lint#compiler-feedback) |
 | Let an AI agent lint, search the packs, build and test | [`fobis mcp`](/ai/mcp) |
 | Write a Conventional Commits message for the staged changes | [`fobis commit`](/advanced/commit) |
-| Download and manage open models for local use | [`fobis llm pull coder-7b`](/ai/models) |
+| Run open models locally, managed by FoBiS | [`fobis llm runtime install`](/ai/runtime), [`fobis llm pull coder-7b`](/ai/models) |

@@ -12,7 +12,8 @@ _ProviderOpt = Annotated[
         "--provider",
         "--backend",
         "-b",
-        help='LLM provider: "ollama" or "openai" (--backend is the former name).',
+        help='LLM provider: "managed" (local llama.cpp run by fobis, the default), "ollama" or "openai" '
+        "(--backend is the former name).",
     ),
 ]
 _UrlOpt = Annotated[
