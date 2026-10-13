@@ -109,6 +109,7 @@ fobis matrix [--modes] [--shadows] [--verify] [--recheck]  # every mode x shadow
 fobis assess CASE [--families precision,rounding,compiler,parallel,inputs,refinement] [--jobs N]  # error/uncertainty
 fobis diff-run [REF] [CASE...] [--assess] [--keep]  # cases on a revision vs the working tree (scratch copies)
 fobis query callers|callees|uses|writers|readers|defines|region|device|mpi|interface ARG  # code graph answers
+fobis agents-md [-o CLAUDE.md] [--check] [--print]  # AGENTS.md block of facts (modes, commands, cases, kinds)
 fobis ask "QUESTION"     # answer from the knowledge packs (+ project procedures with -p DIR), with citations
 fobis build --explain    # on failure: explain from facts (missing module, unlinked object ...), then LLM
 fobis run --explain      # runtime crash: located facts, debug mode to use, known compiler bugs, then LLM
@@ -128,7 +129,7 @@ fobis test --explain     # the same for every failed test (LLM for the first one
 - `mcp`: `--root DIR`. Register in Claude Code with `claude mcp add fobis -- fobis mcp`. Tools (read-only): lint
   (+ `fix_diff`), review, list_rules, explain_rule, kb_search, kb_show, ask_context (retrieved sources, NO answer),
   introspect, check, tree, merge_conflicts, commit_facts, testgen_skeleton, ecosystem_status, ecosystem_impact,
-  case_list, provenance, query; writing: build, test, case_run, verify, matrix, assess, diff_run (`shadow` on build/test/case_run/verify),
+  case_list, provenance, query, agents_md; writing: build, test, case_run, verify, matrix, assess, diff_run (`shadow` on build/test/case_run/verify),
   clean (destructive), fetch (network). Annotations (readOnly/destructive/idempotent/
   openWorld), JSON as text + `structuredContent` (2025-06-18), a failed build/test is a result (status error), not
   a tool error; lint/review trimmed to `max_findings` (200). Resources `fobis://rules/{id}`, template
@@ -171,6 +172,12 @@ fobis test --explain     # the same for every failed test (LLM for the first one
   writers/readers with intents of actual arguments and use renames (`module::var`); region FILE:LINE; device VAR
   (named data clauses + implicit use in offload regions); mpi by kind; interface signature. Not resolved:
   argument types, dynamic types, aliasing, components.
+- `agents-md`: block between `<!-- fobis:begin agents-md -->`/`<!-- fobis:end agents-md -->` (rest of the file
+  kept; appended to a file without one): modes (compiler, builds, -O/debug/checks, parallel, defines), setup lines,
+  commands, cases (tolerance, reference present, assess budgets), code facts of the mode's sources (kinds as written
+  with origin/digits, units without implicit none, include files excluded, OpenMP/OpenACC/MPI, doctests). Only the
+  fobos + git-tracked files (no machine state, deps dir excluded): `--check` (exit 1 stale/no-block/missing, diff)
+  is CI-stable.
 - **Machine output** (`--json` / `--format json`): build (on failure + `diagnostics` parsed + `diagnoses` from
   facts), clean, fetch, check, tree (each dep with ITS version), test (per test status passed/failed/build-failed/
   timeout/error + `crash`/`notes` or `diagnostics`/`diagnoses`), introspect, lint/review, merge-assist, testgen,

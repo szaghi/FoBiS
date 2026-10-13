@@ -343,7 +343,9 @@ def optimisation(compiler: str, cflags: str) -> tuple[int, bool, bool]:
     """
     family = _FAMILY.get(compiler, compiler)
     flags = cflags.split()
-    debug = any(f == "-g" or re.fullmatch(r"-g[0-3]|-ggdb", f) for f in flags)
+    g_flag = any(f == "-g" or re.fullmatch(r"-g[0-3]|-ggdb", f) for f in flags)
+    # Intel -debug and IBM -qdbg also write debug information; only -g changes the default optimisation level
+    debug = g_flag or any(f == "-debug" or f.startswith(("-debug=", "-qdbg")) for f in flags)
     level: int | None = None
     for match in _O_FLAG.finditer(cflags):
         value = match.group("level")
@@ -356,8 +358,10 @@ def optimisation(compiler: str, cflags: str) -> tuple[int, bool, bool]:
         else:
             level = int(value)
     if level is None:
-        level = {"intel": 0 if debug else 2, "nvfortran": 0 if debug else 1}.get(family, 0)
-    checks = any(f.startswith(("-fcheck", "-fsanitize", "-Mbounds", "-check")) or f in ("-C", "-CB") for f in flags)
+        level = {"intel": 0 if g_flag else 2, "nvfortran": 0 if g_flag else 1}.get(family, 0)
+    checks = any(
+        f.startswith(("-fcheck", "-fsanitize", "-Mbounds", "-check", "-qcheck")) or f in ("-C", "-CB") for f in flags
+    )
     return level, debug, checks
 
 

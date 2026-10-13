@@ -138,6 +138,7 @@ export default defineConfig({
             { text: 'Assess',              link: '/advanced/assess' },
             { text: 'Diff-run',            link: '/advanced/diff-run' },
             { text: 'Query',               link: '/advanced/query' },
+            { text: 'Agents MD',           link: '/advanced/agents-md' },
             { text: 'Coverage',            link: '/reference/coverage' },
             { text: 'External Libraries',  link: '/advanced/externals' },
             { text: 'Build Profiles',      link: '/advanced/build-profiles' },
@@ -162,6 +163,7 @@ export default defineConfig({
             { text: 'assess',     link: '/reference/assess' },
             { text: 'diff-run',   link: '/reference/diff-run' },
             { text: 'query',      link: '/reference/query' },
+            { text: 'agents-md',  link: '/reference/agents-md' },
           ],
         },
         {
@@ -264,6 +266,7 @@ export default defineConfig({
             { text: 'Assessing Numerical Error', link: '/advanced/assess' },
             { text: 'Differential Execution',  link: '/advanced/diff-run' },
             { text: 'Querying the Code',       link: '/advanced/query' },
+            { text: 'Instructions for Agents', link: '/advanced/agents-md' },
             { text: 'Doctests',                link: '/advanced/doctests' },
             { text: 'PreForM Preprocessing',   link: '/advanced/preform' },
           ],

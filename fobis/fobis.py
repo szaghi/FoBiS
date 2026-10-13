@@ -130,6 +130,8 @@ def run_fobis(fake_args=None):
             run_fobis_diff_run(configuration)
         if configuration.cliargs.which == "query":
             run_fobis_query(configuration)
+        if configuration.cliargs.which == "agents_md":
+            run_fobis_agents_md(configuration)
         if configuration.cliargs.which == "test":
             run_fobis_test(configuration)
         if configuration.cliargs.which == "introspect":
@@ -2407,6 +2409,74 @@ def run_fobis_query(configuration):
         print(json.dumps(data, indent=2))
     else:
         configuration.print_b(render_text(result) + f"\n({len(analysed.units)} file(s) analysed)")
+
+
+def run_fobis_agents_md(configuration):
+    """
+    Run FoBiS in agents-md mode: write (or check, or print) the generated block of AGENTS.md.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import json
+
+    from .ai.agents_md import AgentsMdError, collect, project_files, render, status, write
+    from .lint import discover_files
+    from .verification import CaseError
+
+    cliargs = configuration.cliargs
+    fobos = configuration.fobos
+    deps_dir = fobos.get_deps_dir() if fobos is not None and fobos.fobos is not None else ""
+    files = discover_files(
+        cliargs.src,
+        extensions=cliargs.extensions,
+        exclude=cliargs.exclude,
+        exclude_dirs=cliargs.exclude_dirs,
+        recursive=not cliargs.disable_recursive_search,
+    )
+    try:
+        facts = collect(configuration, project_files(files, ".", deps_dir))
+    except CaseError as exc:
+        configuration.print_r(f"Error: {exc}")
+        sys.exit(2)
+    block = render(facts)
+    as_json = getattr(cliargs, "json_output", False)
+    if cliargs.agents_print:
+        if as_json:
+            print(json.dumps({"facts": facts.to_dict(), "block": block}, indent=2))
+        else:
+            print(block, end="")
+        return
+    reports, failed = [], False
+    try:
+        for path in cliargs.agents_outputs:
+            if cliargs.agents_check:
+                state, diff = status(path, block)
+                failed |= state != "current"
+                reports.append({"path": path, "status": state, "diff": diff})
+            else:
+                reports.append({"path": path, "status": write(path, block, facts.name or "Agent instructions")})
+    except (AgentsMdError, OSError) as exc:
+        configuration.print_r(f"Error: {exc}")
+        sys.exit(2)
+    if as_json:
+        print(json.dumps({"files": reports, "facts": facts.to_dict(), "block": block}, indent=2))
+    else:
+        for report in reports:
+            if report.get("diff"):
+                configuration.print_r(report["diff"].rstrip("\n"))
+            hint = (
+                ""
+                if report["status"] in ("current", "created", "updated", "appended", "unchanged")
+                else (
+                    ": run fobis agents-md" + ("" if report["path"] == "AGENTS.md" else f" --output {report['path']}")
+                )
+            )
+            printer = configuration.print_r if hint else configuration.print_b
+            printer(f"{report['path']}: {report['status']}{hint}")
+    if failed:
+        sys.exit(1)
 
 
 def _mode_environments(settings, fobos_args, deps_dir, root="."):

@@ -501,9 +501,24 @@ class Server:
                     required=("kind",),
                 ),
                 lambda a: self._json(
-                    ["query", a.get("kind", ""), *([a["argument"]] if a.get("argument") else []), "--json"]
-                    + self._mode(a)
+                    [
+                        "query",
+                        a.get("kind", ""),
+                        *([a["argument"]] if a.get("argument") else []),
+                        "--json",
+                        *self._mode(a),
+                    ]
                 ),
+            ),
+            Tool(
+                "agents_md",
+                "Project briefing for agents",
+                "The project's facts that AGENTS.md is generated from (fobis agents-md): modes (compiler, what each "
+                "builds, optimisation/debug/checks, parallel models, defines), environment setup, commands, test "
+                "programs, declared cases with tolerances/references/assessment budgets, kinds in use, units without "
+                "implicit none, OpenMP/OpenACC/MPI usage, dependencies; and the rendered Markdown block. Writes nothing.",
+                _schema({"mode": {**_MODE, "description": "mode whose sources are analysed (default: the first)"}}),
+                lambda a: self._json(["agents-md", "--print", "--json", *self._mode(a)]),
             ),
             Tool(
                 "introspect",

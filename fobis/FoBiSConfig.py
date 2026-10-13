@@ -448,6 +448,7 @@ class FoBiSConfig:
             bool(getattr(cliargs, "json_output", False))
             or "json" in formats
             or getattr(cliargs, "lint_format", "") in ("json", "sarif")
+            or bool(getattr(cliargs, "agents_print", False))
         )
 
     def print_b(self, string: str, end: str = "\n") -> None:

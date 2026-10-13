@@ -223,6 +223,18 @@ use with rename), `module`, `how` (assignment, read statement, allocate, actual 
 `path`, `line`. `interface`: `qualified`, `signature`; `generic` + `specifics`; `binding` + `types`. See
 [Querying the code](/advanced/query).
 
+### `fobis agents-md --json`
+
+`facts` and `block` (the rendered Markdown, markers included); `files` unless `--print`: per file `path`, `status`
+(`created`, `updated`, `appended`, `unchanged`; with `--check`: `current`, `stale`, `no-block`, `missing`) and
+`diff` (`--check`, stale). `facts`: `name`, `summary`, `default_mode`, `analysed_mode`, `modes` (per mode `name`,
+`compiler`, `builds`, `build_dir`, `optimisation`, `debug`, `checks`, `parallel`, `defines`), `sources`, `files`
+(per extension), `modules`, `programs`, `no_implicit_none`, `kinds` (per type `counts`, `origins`, `digits`),
+`openmp_files`, `openacc_files`, `device_variables`, `mpi` (binding -> files), `mpi_calls`, `test_dir`, `tests`,
+`doctest_modules`, `cases` (`name`, `description`, `runs`, `mode`, `ranks`, `threads`, `quantities`, `tolerance`,
+`reference`, `assess`, `budgets`), `references_dir`, `setup`, `lint`, `deps_dir`, `dependencies`, `rules`. See
+[Instructions for agents](/advanced/agents-md).
+
 ### `fobis diff-run --json`
 
 `ref`, `commit`, `status` (`equivalent` or `differs`), `changed` (per file: `path`, `status` (git letter, `?` for
