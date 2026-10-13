@@ -184,3 +184,45 @@ def cmd_matrix(
         verbose=False,
         json_output=json_output,
     )
+
+
+@app.command("assess")
+def cmd_assess(
+    ctx: typer.Context,
+    name: Annotated[str, typer.Argument(help="The case to assess")],
+    fobos: FobosOpt = None,
+    fobos_case_insensitive: FciOpt = False,
+    mode: ModeOpt = None,
+    families: Annotated[
+        str | None,
+        typer.Option(
+            "--families",
+            help="Comma-separated: precision, rounding, compiler, parallel, inputs, refinement "
+            "[default: the case's [assess:NAME] families, else rounding].",
+        ),
+    ] = None,
+    samples: Annotated[
+        int | None, typer.Option("--samples", min=2, help="Monte Carlo samples of the inputs family.")
+    ] = None,
+    jobs: Annotated[int, typer.Option("--jobs", "-j", min=1, help="Runs at a time (builds are sequential).")] = 1,
+    json_output: JsonOpt = False,
+):
+    """Assess the numerical error and uncertainty of a case's quantities from ensembles of its variants."""
+    ctx.ensure_object(dict)
+    ctx.obj["cliargs"] = _ns(
+        which="assess",
+        assess_name=name,
+        assess_mode=mode,
+        assess_families=_csv(families),
+        assess_samples=samples,
+        assess_jobs=jobs,
+        fobos=fobos,
+        fobos_case_insensitive=fobos_case_insensitive,
+        mode=None,
+        lmodes=False,
+        colors=False,
+        log=False,
+        quiet=False,
+        verbose=False,
+        json_output=json_output,
+    )

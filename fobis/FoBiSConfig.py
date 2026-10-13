@@ -137,6 +137,7 @@ class FoBiSConfig:
         Post-initialization update of config attributes, after CLI and fobos parsing.
         """
         self._apply_shadow()
+        self._apply_variant()
         self._update_extensions()
         self._sanitize_paths()
         self._auto_discover_src()
@@ -162,6 +163,16 @@ class FoBiSConfig:
         except ShadowError as exc:
             self.print_r(f"Error: {exc}")
             sys.exit(2)
+
+    def _apply_variant(self) -> None:
+        """``--variant NAME --variant-cflags F``: a build variant of ``fobis assess`` (flags appended, own objects)."""
+        name = getattr(self.cliargs, "variant", None)
+        if not name or self.cliargs.which not in ("build", "introspect"):
+            return
+        from .verification.shadow import apply_variant
+
+        mode = self.fobos.mode if self.fobos is not None else None
+        apply_variant(self.cliargs, name, self.cliargs.variant_cflags, self.cliargs.variant_lflags, mode)
 
     def _auto_discover_src(self) -> None:
         """

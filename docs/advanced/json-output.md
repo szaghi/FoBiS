@@ -211,6 +211,17 @@ list --json` gives the declared `cases`; `fobis provenance --json` the provenanc
 run directory, probe errors, stderr tail, build document when it failed), `repeat` (quantities that differed
 between repeated runs). See [Verifying results](/advanced/verify).
 
+### `fobis assess --json`
+
+`case`, `mode`, `status` (`ok`, `fail`: a budget failed, `error`: the base run failed, with `error`), `builds`,
+`runs`, `families` (per family: `family`, `members`, `failed` members with status and detail, `notes`, and
+`quantities`, per quantity: ensembles `digits`, `digits_low` (95%), `digits_median`/`worst` for arrays, `mean`,
+`std`, `min`, `max`, `outlier`; precision `against`, `digits`, `base`, `reference`; parallel `nondeterministic`
+(configuration, runs, max_rel) and `bitwise_identical`; inputs `elasticity` or `mean`/`std`/`correlation`, and
+`ranking`; refinement `levels` (h, value), `orders`, `order`, `convergence`, `extrapolated`, `error`, `gci`,
+`asymptotic`), `budgets` (`budget`, `actual`, `ok`, `note`), the `base` quantities and its `provenance`. Infinite
+digits (every member equal) are the string `"inf"`. See [Assessing numerical error](/advanced/assess).
+
 ### `fobis matrix --json`
 
 `status` (`ok` or `fail`), `counts` (cells per status) and `cells`, one per mode x shadow: `mode`, `shadow`,

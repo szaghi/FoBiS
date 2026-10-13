@@ -48,6 +48,16 @@ ModeOpt = Annotated[
     typer.Option("--mode", help="Select a mode defined into a fobos file", autocompletion=_complete_fobos_mode),
 ]
 LmodesOpt = Annotated[bool, typer.Option("--lmodes", help="List the modes defined into a fobos file")]
+VariantOpt = Annotated[
+    str | None,
+    typer.Option("--variant", hidden=True, help="Build variant name (fobis assess): objects in .fobis/variant/."),
+]
+VariantCflagsOpt = Annotated[
+    str | None, typer.Option("--variant-cflags", hidden=True, help="Compile flags appended for the variant.")
+]
+VariantLflagsOpt = Annotated[
+    str | None, typer.Option("--variant-lflags", hidden=True, help="Link flags appended for the variant.")
+]
 ShadowOpt = Annotated[
     str | None,
     typer.Option(

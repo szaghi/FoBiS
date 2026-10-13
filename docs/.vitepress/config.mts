@@ -135,6 +135,7 @@ export default defineConfig({
             { text: 'Cases',               link: '/advanced/cases' },
             { text: 'Verify',              link: '/advanced/verify' },
             { text: 'Shadow modes & Matrix', link: '/advanced/matrix' },
+            { text: 'Assess',              link: '/advanced/assess' },
             { text: 'Coverage',            link: '/reference/coverage' },
             { text: 'External Libraries',  link: '/advanced/externals' },
             { text: 'Build Profiles',      link: '/advanced/build-profiles' },
@@ -156,6 +157,7 @@ export default defineConfig({
             { text: 'provenance', link: '/reference/provenance' },
             { text: 'verify',     link: '/reference/verify' },
             { text: 'matrix',     link: '/reference/matrix' },
+            { text: 'assess',     link: '/reference/assess' },
           ],
         },
         {
@@ -255,6 +257,7 @@ export default defineConfig({
             { text: 'Cases & Provenance',      link: '/advanced/cases' },
             { text: 'Verifying Results',       link: '/advanced/verify' },
             { text: 'Shadow Modes & Matrix',   link: '/advanced/matrix' },
+            { text: 'Assessing Numerical Error', link: '/advanced/assess' },
             { text: 'Doctests',                link: '/advanced/doctests' },
             { text: 'PreForM Preprocessing',   link: '/advanced/preform' },
           ],

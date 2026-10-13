@@ -51,24 +51,25 @@ COMPILER_COMMANDS = {
 }
 
 
-def _run(args: list[str], cwd: str | None = None, timeout: float = 20) -> tuple[int, str]:
+def _run(args: list[str], cwd: str | None = None, timeout: float = 20, env: dict | None = None) -> tuple[int, str]:
     try:
-        done = subprocess.run(args, cwd=cwd, capture_output=True, text=True, timeout=timeout, errors="replace")
+        done = subprocess.run(args, cwd=cwd, capture_output=True, text=True, timeout=timeout, errors="replace", env=env)
     except (OSError, subprocess.TimeoutExpired):
         return -1, ""
     return done.returncode, done.stdout + done.stderr
 
 
-def compiler_version(command: str) -> str:
-    """The first line of ``COMMAND --version`` ('' when it cannot run)."""
-    return _first_line([command, "--version"])
+def compiler_version(command: str, env: dict | None = None) -> str:
+    """The first line of ``COMMAND --version`` in *env* ('' when it cannot run)."""
+    return _first_line([command, "--version"], env)
 
 
-def _first_line(args: list[str]) -> str:
-    """The first non-empty line printed by *args* ('' when the tool is missing or fails)."""
-    if not args or shutil.which(args[0]) is None:
+def _first_line(args: list[str], env: dict | None = None) -> str:
+    """The first non-empty line printed by *args* in *env* ('' when the tool is missing or fails)."""
+    path = (env if env is not None else os.environ).get("PATH")
+    if not args or shutil.which(args[0], path=path) is None:
         return ""
-    code, out = _run(args)
+    code, out = _run(args, env=env)
     lines = [line.strip() for line in out.splitlines() if line.strip()]
     return lines[0] if code == 0 and lines else ""
 
@@ -148,6 +149,7 @@ def collect(
     mode: str | None = None,
     deps_dir: str = ".fobis_deps",
     mpi: bool = False,
+    env: dict | None = None,
 ) -> dict:
     """The provenance of a result produced in the project at *root*.
 
@@ -163,13 +165,16 @@ def collect(
         Fetched dependencies directory (its ``fobos.lock`` gives the pins).
     mpi : bool
         Also record the MPI launcher's version.
+    env : dict or None
+        The environment the program is built and run in (default: FoBiS's own).
     """
+    environ = env if env is not None else os.environ
     compiler = dict(compiler or {})
     command = compiler.get("binary") or COMPILER_COMMANDS.get(compiler.get("name", ""), "")
     if command:
         compiler["command"] = command
-        compiler["version"] = compiler_version(command)
-        compiler["path"] = shutil.which(command) or command
+        compiler["version"] = compiler_version(command, env)
+        compiler["path"] = shutil.which(command, path=environ.get("PATH")) or command
     data = {
         "fobis": __version__,
         "date": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
@@ -178,8 +183,8 @@ def collect(
         "mode": mode or "",
         "compiler": compiler,
         "environment": {
-            "modules": [m for m in os.environ.get("LOADEDMODULES", "").split(":") if m],
-            "omp_num_threads": os.environ.get("OMP_NUM_THREADS", ""),
+            "modules": [m for m in environ.get("LOADEDMODULES", "").split(":") if m],
+            "omp_num_threads": environ.get("OMP_NUM_THREADS", ""),
         },
         "machine": {
             "host": platform.node(),
@@ -191,7 +196,7 @@ def collect(
         },
     }
     if mpi:
-        data["environment"]["mpi"] = _first_line(["mpirun", "--version"])
+        data["environment"]["mpi"] = _first_line(["mpirun", "--version"], env)
     return data
 
 

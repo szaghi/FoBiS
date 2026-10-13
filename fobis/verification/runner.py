@@ -37,6 +37,7 @@ import shutil
 import signal
 import subprocess
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from . import provenance as prov
@@ -98,6 +99,23 @@ class RunResult:
         return data
 
 
+@dataclass(frozen=True)
+class BuildVariant:
+    """Flags appended to the mode's for one variant of an ensemble; its objects in their own directory."""
+
+    name: str
+    cflags: str = ""
+    lflags: str = ""
+
+    def args(self) -> list[str]:
+        args = ["--variant", self.name]
+        if self.cflags:
+            args += ["--variant-cflags", self.cflags]
+        if self.lflags:
+            args += ["--variant-lflags", self.lflags]
+        return args
+
+
 def _tail(text: str) -> str:
     return "\n".join(text.splitlines()[-TAIL_LINES:])
 
@@ -132,6 +150,10 @@ class LocalRunner:
         ``subprocess.run`` (replaceable in tests) for the nested ``fobis`` commands.
     shadow : str or None
         Build the cases' programs as this shadow of their mode (``checks``, ``sanitize``, ``strict``).
+    env : dict or None
+        Environment of the builds and runs (default: FoBiS's own), e.g. after a ``module load``.
+    variant : BuildVariant or None
+        Flags appended to the mode's, objects in the variant's directory (``fobis assess``).
     """
 
     def __init__(
@@ -143,6 +165,8 @@ class LocalRunner:
         deps_dir: str = ".fobis_deps",
         run=subprocess.run,
         shadow: str | None = None,
+        env: dict | None = None,
+        variant: BuildVariant | None = None,
     ) -> None:
         self.root = os.path.abspath(root)
         self.fobos_args = list(fobos_args or [])
@@ -151,17 +175,25 @@ class LocalRunner:
         self.deps_dir = deps_dir
         self._run = run
         self.shadow = shadow
+        self.env = env
+        self.variant = variant
         self._compilers: dict[str, dict] = {}
 
     def _fobis(self, args: list[str], timeout: float = 3600) -> subprocess.CompletedProcess:
         from ..mcp_server import fobis_command
 
         return self._run(
-            [*fobis_command(), *args, *self.fobos_args], cwd=self.root, capture_output=True, text=True, timeout=timeout
+            [*fobis_command(), *args, *self.fobos_args],
+            cwd=self.root,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            env=self.env,
         )
 
     def _mode_args(self, mode: str | None) -> list[str]:
-        return (["--mode", mode] if mode else []) + (["--shadow", self.shadow] if self.shadow else [])
+        args = (["--mode", mode] if mode else []) + (["--shadow", self.shadow] if self.shadow else [])
+        return args + (self.variant.args() if self.variant else [])
 
     def introspect(self, mode: str | None) -> dict:
         """``fobis introspect --compiler --buildoptions`` of *mode* (memoised): the effective mode included."""
@@ -177,17 +209,22 @@ class LocalRunner:
     def provenance(self, case: Case, mode: str | None) -> dict:
         facts = self.introspect(mode) if case.target else {}
         effective = facts.get("buildoptions", {}).get("mode") or mode
-        data = prov.collect(self.root, facts.get("compiler", {}), effective, self.deps_dir, mpi=case.ranks > 0)
+        data = prov.collect(
+            self.root, facts.get("compiler", {}), effective, self.deps_dir, mpi=case.ranks > 0, env=self.env
+        )
         if self.shadow:
             data["shadow"] = self.shadow
+        if self.variant:
+            data["variant"] = {"name": self.variant.name, "cflags": self.variant.cflags, "lflags": self.variant.lflags}
         return data
 
     def signature(self, mode: str | None) -> dict:
         """What the objects of *mode* must have been built with: resolved compiler, its version, the flags."""
         compiler = dict(self.introspect(mode).get("compiler", {}))
         command = compiler.get("binary") or prov.COMPILER_COMMANDS.get(compiler.get("name", ""), "")
-        compiler["path"] = shutil.which(command) or command if command else ""
-        compiler["version"] = prov.compiler_version(command) if command else ""
+        path = (self.env if self.env is not None else os.environ).get("PATH")
+        compiler["path"] = shutil.which(command, path=path) or command if command else ""
+        compiler["version"] = prov.compiler_version(command, self.env) if command else ""
         return compiler
 
     def _objects_state(self, mode: str | None) -> str:
@@ -213,6 +250,7 @@ class LocalRunner:
         if not os.path.isfile(os.path.join(self.root, case.target)):
             return None, {"status": "error", "errors": [f"target {case.target} does not exist"]}
         name = f"{case.name}-{mode or 'default'}" + (f"-{self.shadow}" if self.shadow else "")
+        name += f"-{self.variant.name}" if self.variant else ""
         binary = os.path.join(self.runs_dir, "bin", _SAFE.sub("_", name))
         os.makedirs(os.path.dirname(binary), exist_ok=True)
         record_path = binary + ".signature.json"
@@ -277,11 +315,27 @@ class LocalRunner:
         launcher = shlex.split(self.launcher.replace("{ranks}", str(case.ranks))) if case.ranks else []
         return [*launcher, *program, *case.args]
 
-    def run(self, case: Case, variant: str = "default", mode: str | None = None) -> RunResult:
-        """Build (for a target) and run *case*; *mode* overrides the case's own mode."""
+    def run(
+        self,
+        case: Case,
+        variant: str = "default",
+        mode: str | None = None,
+        binary: str | None = None,
+        prepare: Callable[[str], None] | None = None,
+        provenance: dict | None = None,
+    ) -> RunResult:
+        """Build (for a target) and run *case*; *mode* overrides the case's own mode.
+
+        *binary*: a program already built for this case (no build); *prepare*: called with the run directory once
+        the inputs are copied (an ensemble edits them there); *provenance*: the provenance to record (collected
+        when None).
+        """
         mode = mode or case.mode
-        result = RunResult(case.name, variant, "error", provenance=self.provenance(case, mode))
-        if case.target:
+        recorded = dict(provenance) if provenance is not None else self.provenance(case, mode)
+        result = RunResult(case.name, variant, "error", provenance=recorded)
+        if binary:
+            program = [binary]
+        elif case.target:
             binary, report = self.build(case, mode)
             if binary is None:
                 result.status, result.build = "build-failed", report
@@ -295,11 +349,13 @@ class LocalRunner:
                 program[0] = os.path.join(self.root, program[0])  # a project script, relative to the root
         try:
             result.rundir = self._rundir(case, variant)
-        except OSError as exc:
+            if prepare is not None:
+                prepare(result.rundir)
+        except (OSError, ValueError) as exc:
             result.stderr = str(exc)
             return result
         result.command = self.command(case, program)
-        env = {**os.environ, **case.env}
+        env = {**(self.env if self.env is not None else os.environ), **case.env}
         if case.threads:
             env["OMP_NUM_THREADS"] = str(case.threads)
         output = self._execute(result, env, case.timeout)

@@ -340,6 +340,18 @@ class Server:
             args.append("--list")
         return self._json(args)
 
+    def _assess(self, arguments: dict) -> Reply:
+        case = str(arguments.get("case", "")).strip()
+        if not case:
+            raise ToolError("case is required")
+        args = ["assess", case, "--json", *self._mode(arguments)]
+        if arguments.get("families"):
+            args += ["--families", ",".join(arguments["families"])]
+        for key in ("samples", "jobs"):
+            if arguments.get(key):
+                args += [f"--{key}", str(int(arguments[key]))]
+        return self._json(args)
+
     def _matrix(self, arguments: dict) -> Reply:
         args = ["matrix", "--json"]
         for key in ("modes", "shadows", "compilers"):
@@ -635,6 +647,28 @@ class Server:
                     }
                 ),
                 self._matrix,
+                read_only=False,
+            ),
+            Tool(
+                "assess",
+                "Assess numerical error and uncertainty",
+                "Run ensembles of variants of a declared case and report what their spread says about each quantity: "
+                "precision (digits agreeing with a promoted-precision build), rounding (significant digits across "
+                "compiler-level perturbations: -O levels, FMA, fast math, vectorisation), compiler (other modes), "
+                "parallel (thread/rank counts and repeated runs: non-determinism), inputs (elasticities or Monte "
+                "Carlo correlations of perturbed inputs), refinement (observed order, Richardson extrapolation, "
+                "error estimate, GCI). Budgets of the case's [assess:NAME] are checked. Slow: one build per variant.",
+                _schema(
+                    {
+                        "case": {**_STR, "description": "the case to assess"},
+                        "families": {**_STR_LIST, "description": "families (default: the case's, else rounding)"},
+                        "mode": _MODE,
+                        "samples": {**_INT, "description": "Monte Carlo samples (inputs)"},
+                        "jobs": {**_INT, "description": "runs at a time"},
+                    },
+                    required=("case",),
+                ),
+                self._assess,
                 read_only=False,
             ),
             Tool(

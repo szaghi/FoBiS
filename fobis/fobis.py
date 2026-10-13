@@ -124,6 +124,8 @@ def run_fobis(fake_args=None):
             run_fobis_verify(configuration)
         if configuration.cliargs.which == "matrix":
             run_fobis_matrix(configuration)
+        if configuration.cliargs.which == "assess":
+            run_fobis_assess(configuration)
         if configuration.cliargs.which == "test":
             run_fobis_test(configuration)
         if configuration.cliargs.which == "introspect":
@@ -2358,6 +2360,88 @@ def run_fobis_matrix(configuration):
     else:
         (configuration.print_b if result.ok else configuration.print_r)(render_text(result, shadows))
     if not result.ok:
+        sys.exit(1)
+
+
+def run_fobis_assess(configuration):
+    """
+    Run FoBiS in assess mode: ensembles of variants of a case and what their spread says about its quantities.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import json
+
+    from .verification import CaseError, LocalRunner, load_cases, load_settings
+    from .verification.assess import FAMILIES, AssessError, assess, load_spec, render_text
+    from .verification.matrix import setup_environment
+    from .verification.shadow import family
+
+    cliargs = configuration.cliargs
+    fobos = configuration.fobos
+    try:
+        cases = load_cases(fobos)
+        settings = load_settings(fobos)
+        spec = load_spec(fobos, cliargs.assess_name)
+    except CaseError as exc:
+        configuration.print_r(f"Error: {exc}")
+        sys.exit(2)
+    case = cases.get(cliargs.assess_name)
+    families = cliargs.assess_families or spec.families
+    bad = [f for f in families if f not in FAMILIES]
+    if case is None or bad:
+        what = (
+            f"unknown case {cliargs.assess_name!r} (declared: {', '.join(cases) or 'none'})"
+            if case is None
+            else f"unknown family {', '.join(bad)} (known: {', '.join(FAMILIES)})"
+        )
+        configuration.print_r(f"Error: {what}")
+        sys.exit(2)
+    fobos_args = ["--fobos", cliargs.fobos] if cliargs.fobos else []
+    if cliargs.fobos_case_insensitive:
+        fobos_args.append("--fobos-case-insensitive")
+    deps_dir = fobos.get_deps_dir() if fobos.fobos else ".fobis_deps"
+    environments: dict[str, dict | None] = {}
+
+    def environment(mode):
+        """The environment of *mode*: its [verification] setup line (by mode, compiler or family)."""
+        if mode not in environments:
+            plain = LocalRunner(".", fobos_args, settings.runs_dir, settings.launcher, deps_dir)
+            compiler = plain.introspect(mode).get("compiler", {}).get("name", "") if mode else ""
+            command = next(
+                (settings.setup[k] for k in (mode, compiler, family(compiler) or "") if k and k in settings.setup), ""
+            )
+            environments[mode] = setup_environment(command) if command else None
+        return environments[mode]
+
+    def runner_for(build, mode):
+        return LocalRunner(
+            ".", fobos_args, settings.runs_dir, settings.launcher, deps_dir, env=environment(mode), variant=build
+        )
+
+    def progress(line):
+        print(f"assess: {line}", file=sys.stderr, flush=True)
+
+    try:
+        assessment = assess(
+            spec,
+            case,
+            families,
+            runner_for,
+            mode=cliargs.assess_mode,
+            samples=cliargs.assess_samples,
+            jobs=cliargs.assess_jobs,
+            progress=progress,
+        )
+    except (AssessError, RuntimeError) as exc:
+        configuration.print_r(f"Error: {exc}")
+        sys.exit(2)
+    if getattr(cliargs, "json_output", False):
+        print(json.dumps(assessment.to_dict(), indent=2))
+    else:
+        (configuration.print_b if assessment.ok else configuration.print_r)(render_text(assessment))
+    if not assessment.ok:
         sys.exit(1)
 
 

@@ -203,3 +203,17 @@ def apply(cliargs, shadow: str, mode: str | None) -> ShadowFlags | None:
     cliargs.lflags = transform(getattr(cliargs, "lflags", ""), flags.link, flags.drop)
     cliargs.build_dir = build_dir(mode, shadow)
     return flags
+
+
+VARIANT_ROOT = os.path.join(".fobis", "variant")
+
+
+def apply_variant(cliargs, name: str, cflags: str, lflags: str, mode: str | None) -> None:
+    """A build variant (``fobis assess``): *cflags*/*lflags* appended to the mode's (the last ``-O`` wins with
+    every supported compiler), objects in ``.fobis/variant/<mode>-<name>/``."""
+    joined = " ".join(f for f in (getattr(cliargs, "cflags", "") or "", cflags) if f)
+    cliargs.cflags = joined if re.search(r"(^|\s)-c(\s|$)", joined) else ("-c " + joined).strip()
+    cliargs.lflags = " ".join(f for f in (getattr(cliargs, "lflags", "") or "", lflags) if f)
+    base = os.path.basename(cliargs.build_dir.rstrip("/")) if getattr(cliargs, "shadow", None) else ""
+    safe = re.sub(r"[^A-Za-z0-9_.-]+", "_", f"{mode or 'default'}-{name}" + (f"-{base}" if base else ""))
+    cliargs.build_dir = os.path.join(VARIANT_ROOT, safe)

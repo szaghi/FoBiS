@@ -38,6 +38,7 @@ TOOLS = [
     "case_run",
     "verify",
     "matrix",
+    "assess",
     "clean",
     "fetch",
 ]
@@ -106,6 +107,7 @@ def test_tools_list_has_schemas_and_annotations(server):
         "case_run",
         "verify",
         "matrix",
+        "assess",
         "clean",
         "fetch",
     }
@@ -154,6 +156,7 @@ def test_command_lines(server, calls):
     _call(server, "verify", {"names": ["sod"], "repeat": 3, "shadow": "checks"})
     _call(server, "build", {"shadow": "strict"})
     _call(server, "matrix", {"modes": ["a", "b"], "shadows": ["none", "sanitize"], "verify": True, "recheck": True})
+    _call(server, "assess", {"case": "sod", "families": ["rounding", "parallel"], "samples": 8, "jobs": 2})
     assert calls == [
         [
             "lint",
@@ -203,12 +206,14 @@ def test_command_lines(server, calls):
         ["verify", "sod", "--json", "--shadow", "checks", "--repeat", "3"],
         ["build", "--json", "--shadow", "strict"],
         ["matrix", "--json", "--modes", "a,b", "--shadows", "none,sanitize", "--verify", "--recheck"],
+        ["assess", "sod", "--json", "--families", "rounding,parallel", "--samples", "8", "--jobs", "2"],
     ]
 
 
 def test_required_arguments(server, calls):
     assert _call(server, "ask_context", {"question": " "})[1]
     assert _call(server, "testgen_skeleton")[1]
+    assert _call(server, "assess", {"case": " "})[1]
     assert calls == []
 
 
