@@ -81,6 +81,17 @@ def test_run_no_build_skips_build(tmp_path):
     mock_exec.assert_called_once()
 
 
+def test_run_killed_by_a_signal_exits_like_a_shell(tmp_path):
+    """A binary killed by SIGSEGV (returncode -11) gives 139 = 128 + 11, as a shell reports it (was 245)."""
+    exe = tmp_path / "myprog"
+    exe.write_text("")
+    config = _make_config(output_path=str(exe), no_build=True)
+
+    with patch("subprocess.run", return_value=MagicMock(returncode=-11)), pytest.raises(SystemExit) as exc_info:
+        run_fobis_run(config)
+    assert exc_info.value.code == 139
+
+
 def test_run_forwards_exit_code(tmp_path):
     """Binary exit 42 must propagate as SystemExit(42)."""
     exe = tmp_path / "myprog"

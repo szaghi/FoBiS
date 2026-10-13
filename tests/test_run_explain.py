@@ -338,7 +338,7 @@ def test_run_explain_optimised_build_names_the_debug_mode(tmp_path, monkeypatch,
     with pytest.raises(SystemExit) as caught:
         run_fobis(fake_args=["run", "--explain"])
     out = capsys.readouterr().out
-    assert caught.value.code != 0
+    assert caught.value.code == 139  # SIGSEGV, as a shell reports it (128 + 11)
     assert "mode opt is optimised (-O3), without debug information (-g), without runtime checks" in out
     assert "fix: reproduce it in a debug build first: fobis run --mode debug --explain" in out
     assert model[1].calls == []

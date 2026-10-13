@@ -1843,9 +1843,15 @@ def run_fobis_run(configuration):
         returncode, errors = _run_tee([output_path, *extra_args])
         if returncode != 0:
             _explain_crash(configuration, errors, returncode, "run", mode=build_mode)
-        sys.exit(returncode)
+        sys.exit(_exit_status(returncode))
     result = subprocess.run([output_path, *extra_args])
-    sys.exit(result.returncode)
+    sys.exit(_exit_status(result.returncode))
+
+
+def _exit_status(returncode: int) -> int:
+    """The shell's exit status for a child's return code: a program killed by signal N (Python: -N) exits 128 + N,
+    as a shell reports it (139 for SIGSEGV); without the mapping ``sys.exit(-11)`` gave 245."""
+    return 128 - returncode if returncode < 0 else returncode
 
 
 def run_fobis_check(configuration):

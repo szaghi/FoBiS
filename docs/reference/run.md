@@ -52,8 +52,9 @@ fobis run --example demo
 
 ## Exit codes
 
-`fobis run` exits with the binary's own exit code. A non-zero exit from the
-build step causes an immediate abort before execution.
+`fobis run` exits with the binary's own exit code; a binary killed by a signal gives 128 + the signal number,
+as a shell reports it (139 for a segmentation fault, SIGSEGV). A non-zero exit from the build step causes an
+immediate abort before execution.
 
 ::: tip Quick iteration
 `fobis run` is equivalent to `fobis build && ./myapp`. Use it during
