@@ -362,6 +362,14 @@ class Server:
         ]
         return self._json(args + (["--assess"] if arguments.get("assess") else []))
 
+    def _bench(self, arguments: dict) -> Reply:
+        args = ["bench", *arguments.get("names", []), "--json", *self._mode(arguments)]
+        if arguments.get("compare"):
+            args += ["--compare", arguments["compare"]] + (["--feedback"] if arguments.get("feedback") else [])
+        if arguments.get("runs"):
+            args += ["--runs", str(int(arguments["runs"]))]
+        return self._json(args)
+
     def _matrix(self, arguments: dict) -> Reply:
         args = ["matrix", "--json"]
         for key in ("modes", "shadows", "compilers"):
@@ -750,6 +758,28 @@ class Server:
                     }
                 ),
                 self._diff_run,
+                read_only=False,
+            ),
+            Tool(
+                "bench",
+                "Measure run time",
+                "Run the declared benchmark cases ([bench:NAME], else every case) repeatedly after warm-up, until the "
+                "95% interval of the median time is within the target: median, interval, MAD, CPU/wall, throughput, "
+                "notes on trustworthiness (busy machine, too-short runs, GPU timing). Compared with the case's "
+                "recorded history, or with compare=REF against a revision measured interleaved in scratch copies: "
+                "faster/slower only when the intervals do not overlap. feedback adds the compiler's report diff "
+                "(loops that lost vectorisation, new implicit device copies, new sequential device loops). Never "
+                "records history.",
+                _schema(
+                    {
+                        "names": {**_STR_LIST, "description": "cases (default: the declared benchmarks)"},
+                        "mode": _MODE,
+                        "compare": {**_STR, "description": "revision to compare with"},
+                        "feedback": {**_BOOL, "description": "with compare: diff the compiler reports"},
+                        "runs": {**_INT, "description": "maximum runs per side"},
+                    }
+                ),
+                self._bench,
                 read_only=False,
             ),
             Tool(

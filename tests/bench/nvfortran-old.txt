@@ -1,0 +1,9 @@
+axpy:
+      9, Generating implicit firstprivate(n)
+         Generating NVIDIA GPU code
+         10, !$acc loop gang, vector(128) ! blockidx%x threadidx%x
+      9, Generating implicit copy(y(:n)) [if not already present]
+         Generating implicit copyin(x(:n)) [if not already present]
+     10, Generating implicit firstprivate(a)
+         Generated vector simd code for the loop
+         Vectorized loop was interleaved

@@ -291,6 +291,19 @@ class LocalRunner:
             json.dump({"signature": signature, "objects": self._objects_state(mode)}, handle, indent=1)
         return binary, report
 
+    def build_log(self, case: Case, mode: str | None) -> tuple[bool, str]:
+        """Build the case's target from scratch and return (built?, the build's whole output): the compiler's
+        reports (``-fopt-info``, ``-Minfo`` among the variant's flags) included."""
+        name = f"{case.name}-{mode or 'default'}-log" + (f"-{self.variant.name}" if self.variant else "")
+        binary = os.path.join(self.runs_dir, "bin", _SAFE.sub("_", name))
+        os.makedirs(os.path.dirname(binary), exist_ok=True)
+        args = ["build", "--target", case.target, "--output", binary, "--force-compile", *self._mode_args(mode)]
+        try:
+            done = self._fobis(args)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return False, str(exc)
+        return done.returncode == 0 and os.path.isfile(binary), done.stdout + done.stderr
+
     def _rundir(self, case: Case, variant: str) -> str:
         rundir = os.path.join(self.runs_dir, _SAFE.sub("_", case.name), _SAFE.sub("_", variant))
         if os.path.isdir(rundir):

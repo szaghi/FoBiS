@@ -115,6 +115,12 @@ def _substitute(text: str, variables: dict[str, str]) -> str:
     return " ".join(text.split())
 
 
+def parallel_models(cflags: str) -> list[str]:
+    """The parallel programming models that compile flags enable: OpenMP, OpenACC, CUDA Fortran, coarrays."""
+    flags = cflags.split()
+    return [model for model, pattern in _PARALLEL_FLAGS if any(pattern.match(f) for f in flags)]
+
+
 def mode_facts(fobos: Any) -> list[ModeFacts]:
     """Every mode of a parsed `Fobos` (templates applied by Fobos; ``$variables`` and build profiles here)."""
     from ..Profiles import get_profile_flags
@@ -140,8 +146,7 @@ def mode_facts(fobos: Any) -> list[ModeFacts]:
         cflags = value("cflags")
         if value("build_profile"):
             cflags = (get_profile_flags(compiler, value("build_profile"))["cflags"] + " " + cflags).strip()
-        flags = cflags.split()
-        parallel = [model for model, pattern in _PARALLEL_FLAGS if any(pattern.match(f) for f in flags)]
+        parallel = parallel_models(cflags)
         for key, model in (("openmp", "OpenMP"), ("openmp_offload", "OpenMP offload"), ("coarray", "coarrays")):
             if value(key).lower() == "true" and model not in parallel:
                 parallel.append(model)

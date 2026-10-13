@@ -1,0 +1,3 @@
+kern_new.f90:10:6: missed: couldn't vectorize loop
+kern_new.f90:11:43: missed: not vectorized: no vectype for stmt: _4 = (*y_17(D))[_3];
+ scalar_type: real(kind=8)

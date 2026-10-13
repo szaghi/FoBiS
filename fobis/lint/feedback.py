@@ -47,6 +47,7 @@ REPORT_FLAGS = {
     "opencoarrays-gnu": "-fopt-info-vec-missed",
 }
 
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")  # colours of a captured terminal log (FoBiS colours its output)
 _COMPILING_RE = re.compile(r"^Compiling\s+(.+?)\s+(?:serially|using \d+ concurrent processes)\s*$")
 _NV_PROCEDURE_RE = re.compile(r"^([A-Za-z_]\w*):\s*$")
 _NV_LINE_RE = re.compile(r"^\s+(\d+),\s+(.*?)\s*$")
@@ -94,7 +95,7 @@ def parse_log(text: str) -> list[FeedbackMessage]:
     procedure: str | None = None
     nv_line: int | None = None
     for raw in text.splitlines():
-        line = raw.rstrip()
+        line = _ANSI_RE.sub("", raw).rstrip()
         match = _COMPILING_RE.match(line)
         if match:
             compiling, procedure, nv_line = tuple(match.group(1).split()), None, None

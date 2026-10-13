@@ -1,0 +1,10 @@
+axpy:
+      9, Generating implicit copyout(y(2:n)) [if not already present]
+         Generating implicit copyin(x(2:n)) [if not already present]
+         Generating implicit copyin(y(:n)) [if not already present]
+     10, Loop carried dependence of y prevents parallelization
+         Loop carried backward dependence of y prevents vectorization
+         Accelerator serial kernel generated
+         Generating NVIDIA GPU code
+         10, !$acc loop seq
+     10, Loop carried backward dependence of y prevents vectorization

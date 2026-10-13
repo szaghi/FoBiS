@@ -264,3 +264,52 @@ def cmd_diff_run(
         verbose=False,
         json_output=json_output,
     )
+
+
+@app.command("bench")
+def cmd_bench(
+    ctx: typer.Context,
+    names: Annotated[
+        list[str] | None, typer.Argument(help="Cases to benchmark [default: those with a [bench:NAME], else all]")
+    ] = None,
+    fobos: FobosOpt = None,
+    fobos_case_insensitive: FciOpt = False,
+    mode: ModeOpt = None,
+    compare: Annotated[
+        str | None,
+        typer.Option("--compare", help="Measure a revision too (scratch copies, runs interleaved) and compare."),
+    ] = None,
+    feedback: Annotated[
+        bool,
+        typer.Option("--feedback", help="With --compare: diff the compiler's vectorisation and data-movement reports."),
+    ] = False,
+    record: Annotated[
+        bool, typer.Option("--record", help="Append the measurement to the case's history (verification/bench/).")
+    ] = False,
+    runs: Annotated[int | None, typer.Option("--runs", help="Maximum runs per side (overrides max_runs).")] = None,
+    keep: Annotated[bool, typer.Option("--keep", help="Keep the scratch copies of --compare (path printed).")] = False,
+    json_output: JsonOpt = False,
+):
+    """Measure the run time of cases: warm-up, then runs until the median's 95% interval is narrow enough; compared
+    with the case's recorded history or, with --compare, with a revision. Faster or slower only when the intervals
+    do not overlap."""
+    ctx.ensure_object(dict)
+    ctx.obj["cliargs"] = _ns(
+        which="bench",
+        bench_names=names or [],
+        bench_mode=mode,
+        bench_compare=compare,
+        bench_feedback=feedback,
+        bench_record=record,
+        bench_runs=runs,
+        bench_keep=keep,
+        fobos=fobos,
+        fobos_case_insensitive=fobos_case_insensitive,
+        mode=None,
+        lmodes=False,
+        colors=False,
+        log=False,
+        quiet=False,
+        verbose=False,
+        json_output=json_output,
+    )

@@ -64,6 +64,7 @@ _KEYS = {
     "tolerance",
 }
 DEFAULT_REFERENCES_DIR = "verification/references"
+DEFAULT_BENCH_DIR = "verification/bench"
 
 
 class CaseError(Exception):
@@ -113,6 +114,7 @@ class Settings:
     launcher: str = DEFAULT_LAUNCHER
     runs_dir: str = DEFAULT_RUNS_DIR
     references_dir: str = DEFAULT_REFERENCES_DIR
+    bench_dir: str = DEFAULT_BENCH_DIR
     setup: dict[str, str] = field(default_factory=dict)
 
 
@@ -230,6 +232,7 @@ def load_settings(fobos: Any) -> Settings:
         settings.launcher = parser.get("verification", "launcher", fallback=settings.launcher).strip()
         settings.runs_dir = parser.get("verification", "runs_dir", fallback=settings.runs_dir).strip()
         settings.references_dir = parser.get("verification", "references_dir", fallback=settings.references_dir).strip()
+        settings.bench_dir = parser.get("verification", "bench_dir", fallback=settings.bench_dir).strip()
         settings.setup = parse_setup(parser.get("verification", "setup", fallback=""))
     return settings
 

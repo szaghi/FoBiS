@@ -245,6 +245,17 @@ run failed, `spread` with `--assess` (per quantity `digits` shared by the workin
 for a differing one `within`), `provenance_changes` other than git. `scratch` with `--keep`. See
 [Differential execution](/advanced/diff-run).
 
+### `fobis bench --json`
+
+`status` (`ok`, or `fail`: a case failed or is measurably slower), `compare` (the revision, `""`), `commit`, and
+`cases`: per case `case`, `mode`, `time` (`wall` or the quantity), `status` (`ok`, `error` with `error`), `stats`
+per side (`new`; `old` with `--compare`): `n`, `median`, `mad`, `low`, `high` (95% interval of the median, null
+below 6 runs), `halfwidth` (relative), `min`, `max`, `cpu_ratio`, `load_max`, `throughput`, `unit`; `comparison`
+(`speedup`, `interval`, `verdict`: `faster`, `slower`, `indistinguishable`, `unknown`; `against`: the revision or
+`recorded COMMIT (DATE)`), `notes`, `feedback` (per change `procedure`, `category`, `detail`, `old`, `new`,
+`regression`, `scope`: `both`, `added`, `removed`, `lines`), `recorded` (history path with `--record`). `scratch`
+with `--keep`. See [Benchmarks](/advanced/bench).
+
 ### `fobis assess --json`
 
 `case`, `mode`, `status` (`ok`, `fail`: a budget failed, `error`: the base run failed, with `error`), `builds`,

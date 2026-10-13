@@ -128,6 +128,8 @@ def run_fobis(fake_args=None):
             run_fobis_assess(configuration)
         if configuration.cliargs.which == "diff_run":
             run_fobis_diff_run(configuration)
+        if configuration.cliargs.which == "bench":
+            run_fobis_bench(configuration)
         if configuration.cliargs.which == "query":
             run_fobis_query(configuration)
         if configuration.cliargs.which == "agents_md":
@@ -2499,6 +2501,207 @@ def _mode_environments(settings, fobos_args, deps_dir, root="."):
         return environments[mode]
 
     return environment
+
+
+def _side_sources(root, defines):
+    """The analysed Fortran sources under a scratch side (FoBiS's own directories skipped): units and index."""
+    from .cli._constants import __extensions_parsed__
+    from .lint import discover_files, lint_files
+
+    files = discover_files([root], extensions=__extensions_parsed__, exclude_dirs=[os.path.join(root, ".fobis")])
+    analysed = lint_files(files, [], defines=defines)
+    return analysed.units, analysed.project  # display paths (relative to the cwd): events() makes them root-relative
+
+
+def _bench_feedback(case, mode, roots, runner_for, defines, say):
+    """Compiler-feedback changes between the revision and the working tree (list of `Change`), or a note."""
+    from .verification import feedback_diff
+    from .verification.runner import BuildVariant
+
+    compiler = runner_for(roots["new"]).introspect(mode).get("compiler", {}).get("name", "")
+    flags = feedback_diff.REPORT_FLAGS.get(compiler)
+    if not flags:
+        return [], f"no compiler-report flags known for {compiler or 'this compiler'}: feedback not compared"
+    found, names = {}, {}
+    for side, root in roots.items():
+        say(f"case {case.name}: building the {side} side with {flags}")
+        ok, log = runner_for(root, BuildVariant("feedback", flags, "")).build_log(case, mode)
+        if not ok:
+            return [], f"the {side} side did not build with {flags}: feedback not compared"
+        units, project = _side_sources(root, defines)
+        found[side] = feedback_diff.events(log, units, project, os.path.abspath(root))
+        names[side] = {u.name for file_units in units.values() for u in file_units.walk() if u.name}
+    return feedback_diff.diff(found["old"], found["new"], names["old"], names["new"]), ""
+
+
+def run_fobis_bench(configuration):
+    """
+    Run FoBiS in bench mode: measure cases' run times (alone, against their history, or against a revision).
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import functools
+    import json
+    import tempfile
+
+    from .analysis import parse_defines
+    from .Ecosystem import copy_working_copy
+    from .verification import CaseError, LocalRunner, load_cases, load_settings
+    from .verification import bench as bm
+    from .verification.diffrun import DiffRunError, copy_dependencies, export_revision, resolve
+
+    cliargs = configuration.cliargs
+    fobos = configuration.fobos
+    as_json = getattr(cliargs, "json_output", False)
+    compare = cliargs.bench_compare
+    try:
+        cases = load_cases(fobos)
+        settings = load_settings(fobos)
+        commit = resolve(".", compare) if compare else ""
+        if cliargs.bench_feedback and not compare:
+            raise CaseError("--feedback needs --compare REF")
+        if cliargs.bench_record and compare:
+            raise CaseError("--record records the working tree alone: run it without --compare")
+        declared = [n for n in cases if fobos.fobos is not None and fobos.fobos.has_section(f"bench:{n}")]
+        wanted = cliargs.bench_names or declared or list(cases)
+        unknown = [n for n in wanted if n not in cases]
+        if unknown or not wanted:
+            what = f"unknown case(s) {', '.join(unknown)}" if unknown else "no case declared"
+            raise CaseError(f"{what} (declared: {', '.join(cases) or 'none'})")
+        specs = {name: bm.load_spec(fobos, name) for name in wanted}
+    except (CaseError, DiffRunError) as exc:
+        configuration.print_r(f"Error: {exc}")
+        sys.exit(2)
+    label = (commit[:12] if commit.startswith(compare) else compare) if compare else ""
+    fobos_args = ["--fobos", cliargs.fobos] if cliargs.fobos else []
+    if cliargs.fobos_case_insensitive:
+        fobos_args.append("--fobos-case-insensitive")
+    deps_dir = fobos.get_deps_dir() if fobos.fobos else ".fobis_deps"
+    environment = _mode_environments(settings, fobos_args, deps_dir)
+
+    def say(line):
+        print(f"bench: {line}", file=sys.stderr, flush=True)
+
+    scratch = ""
+    roots = {"new": "."}
+    results = []
+    try:
+        if compare:
+            scratch = tempfile.mkdtemp(prefix="fobis-bench-")
+            roots = {"old": os.path.join(scratch, "revision"), "new": os.path.join(scratch, "worktree")}
+            say(f"extracting {compare} ({commit[:12]}) and copying the working tree to {scratch}")
+            notes = []
+            export_revision(".", commit, roots["old"], notes)
+            copy_working_copy(".", roots["new"])
+            copy_dependencies(".", deps_dir, roots["old"])
+            copy_dependencies(".", deps_dir, roots["new"])
+        for name in wanted:
+            case, spec = cases[name], specs[name]
+            if cliargs.bench_runs:
+                spec.max_runs = cliargs.bench_runs
+                spec.min_runs = min(spec.min_runs, spec.max_runs)
+            mode = cliargs.bench_mode or case.mode
+            env = environment(mode)
+            result = bm.BenchResult(name, mode or "", spec.time)
+            results.append(result)
+
+            def runner_for(root, variant=None, env=env):
+                return LocalRunner(
+                    root, fobos_args, settings.runs_dir, settings.launcher, deps_dir, env=env, variant=variant
+                )
+
+            runs, provenances = {}, {}
+            for side, root in roots.items():
+                runner = runner_for(root)
+                provenances[side] = runner.provenance(case, mode)
+                binary = None
+                if case.target:
+                    say(f"case {name}: building {'the working tree' if side == 'new' else label}")
+                    binary, report = runner.build(case, mode)
+                    if binary is None:
+                        errors = report.get("errors") or [d.get("message", "") for d in report.get("diagnostics", [])]
+                        result.status = "error"
+                        result.error = f"{side} side: build failed" + (f": {errors[0]}" if errors else "")
+                        break
+                runs[side] = functools.partial(
+                    runner.run, case, variant=f"bench-{side}", mode=mode, binary=binary, provenance=provenances[side]
+                )
+            if result.status == "error":
+                continue
+            try:
+                samples = bm.measure(runs, spec, progress=lambda m, n=name: say(f"case {n}: {m}"))
+            except bm.RunFailedError as exc:
+                result.status, result.error = "error", str(exc)
+                continue
+            result.stats = {side: bm.summarise(samples[side], spec) for side in runs}
+            result.mode = provenances["new"].get("mode") or result.mode
+            new = result.stats["new"]
+            provenance = provenances["new"]
+            result.notes = bm.notes(spec, new, provenance.get("compiler", {}).get("cflags", ""), provenance)
+            if compare:
+                result.comparison = {**bm.verdict(result.stats["old"], new), "against": label}
+                if cliargs.bench_feedback and case.target:
+                    defines = parse_defines(_merged_preproc_flags(cliargs))
+                    changes, note = _bench_feedback(case, mode, roots, runner_for, defines, say)
+                    result.feedback = [c.to_dict() for c in changes]
+                    if note:
+                        result.notes.append(note)
+            else:
+                path = bm.history_path(settings.bench_dir, name)
+                previous = bm.latest_comparable(bm.read_history(path), bm.machine_key(provenance), mode or "")
+                if previous:
+                    against = f"recorded {previous.get('commit', '')[:12] or '?'} ({previous.get('date', '')})"
+                    result.comparison = {**bm.verdict(bm.stats_from(previous["stats"]), new), "against": against}
+                if cliargs.bench_record:
+                    bm.append_history(path, bm.record(name, mode or "", new, provenance))
+                    result.recorded = path
+    except (DiffRunError, RuntimeError, OSError) as exc:
+        configuration.print_r(f"Error: {exc}")
+        if scratch:
+            shutil.rmtree(scratch, ignore_errors=True)
+        sys.exit(2)
+    if scratch and not cliargs.bench_keep:
+        shutil.rmtree(scratch, ignore_errors=True)
+    failed = any(r.status != "ok" or (r.comparison or {}).get("verdict") == "slower" for r in results)
+    if as_json:
+        data = {"status": "fail" if failed else "ok", "compare": compare or "", "commit": commit}
+        data["cases"] = [r.to_dict() for r in results]
+        if scratch and cliargs.bench_keep:
+            data["scratch"] = scratch
+        print(json.dumps(data, indent=2))
+    else:
+        lines = []
+        for r in results:
+            lines.append(f"bench {r.case} (mode {r.mode or 'default'}, {r.time} time)")
+            if r.status != "ok":
+                lines.append(f"  ERROR: {r.error}")
+                continue
+            if "old" in r.stats:
+                lines.append(f"  {label}: {bm.describe(r.stats['old'])}")
+            lines.append(f"  {'working tree' if compare else 'measured'}: {bm.describe(r.stats['new'])}")
+            if r.comparison:
+                lines.append(f"  vs {r.comparison['against']}: {bm.describe_verdict(r.comparison)}")
+            from .verification.feedback_diff import Change
+
+            for change in r.feedback:
+                lines.append(
+                    "  "
+                    + Change(
+                        **{k: change[k] for k in ("procedure", "category", "detail", "old", "new", "lines", "scope")}
+                    ).text()
+                )
+            if compare and cliargs.bench_feedback and not r.feedback and not any("feedback" in n for n in r.notes):
+                lines.append("  compiler feedback: no change in vectorisation or data movement")
+            lines += [f"  note: {n}" for n in r.notes]
+            if r.recorded:
+                lines.append(f"  recorded in {r.recorded}")
+        if scratch and cliargs.bench_keep:
+            lines.append(f"scratch copies kept in {scratch}")
+        (configuration.print_r if failed else configuration.print_b)("\n".join(lines))
+    if failed:
+        sys.exit(1)
 
 
 def run_fobis_diff_run(configuration):
