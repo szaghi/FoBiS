@@ -43,6 +43,7 @@ TOOLS = [
     "assess",
     "diff_run",
     "bench",
+    "profile",
     "gate",
     "clean",
     "fetch",
@@ -115,6 +116,7 @@ def test_tools_list_has_schemas_and_annotations(server):
         "assess",
         "diff_run",
         "bench",
+        "profile",
         "gate",
         "clean",
         "fetch",
@@ -173,6 +175,7 @@ def test_command_lines(server, calls):
     _call(server, "bench", {"feedback": True})
     _call(server, "gate", {"stages": ["build", "test"], "advisory": ["test"], "base": "main", "fail_fast": True})
     _call(server, "case_run", {"names": ["sod"], "runner": "slurm"})
+    _call(server, "profile", {"case": "sod", "tool": "callgrind", "top": 5})
     assert calls == [
         [
             "lint",
@@ -243,6 +246,7 @@ def test_command_lines(server, calls):
             "--fail-fast",
         ],
         ["case", "run", "sod", "--json", "--runner", "slurm"],
+        ["profile", "sod", "--json", "--tool", "callgrind", "--top", "5"],
     ]
 
 
@@ -250,6 +254,7 @@ def test_required_arguments(server, calls):
     assert _call(server, "ask_context", {"question": " "})[1]
     assert _call(server, "testgen_skeleton")[1]
     assert _call(server, "assess", {"case": " "})[1]
+    assert _call(server, "profile", {"case": ""})[1]
     assert calls == []
 
 

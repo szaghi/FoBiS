@@ -1,0 +1,9 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+ no time accumulated
+
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  Ts/call  Ts/call  name    
+  0.00      0.00     0.00     1000     0.00     0.00  __tiny_m_MOD_twice
+  0.00      0.00     0.00        1     0.00     0.00  MAIN__

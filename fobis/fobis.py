@@ -132,6 +132,8 @@ def run_fobis(fake_args=None):
             run_fobis_bench(configuration)
         if configuration.cliargs.which == "gate":
             run_fobis_gate(configuration)
+        if configuration.cliargs.which == "profile":
+            run_fobis_profile(configuration)
         if configuration.cliargs.which == "query":
             run_fobis_query(configuration)
         if configuration.cliargs.which == "agents_md":
@@ -2913,6 +2915,130 @@ def run_fobis_gate(configuration):
         (configuration.print_b if status == "pass" else configuration.print_r)(render_text(results, total, label))
     if status != "pass":
         sys.exit(1)
+
+
+def run_fobis_profile(configuration):
+    """
+    Run FoBiS in profile mode: build a case's program for a profiler, run it, map the profile to the sources.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import glob
+    import json
+    import shutil as _shutil
+    import subprocess
+
+    from .analysis import parse_defines
+    from .lint import discover_files, lint_files
+    from .verification import CaseError, LocalRunner, load_cases, load_settings
+    from .verification import profile as pf
+    from .verification.runner import BuildVariant
+    from .verification.scheduler import guard_message, on_login_node
+    from .verification.shadow import family
+
+    cliargs = configuration.cliargs
+    as_json = getattr(cliargs, "json_output", False)
+    tool = cliargs.profile_tool
+    try:
+        cases = load_cases(configuration.fobos)
+        if cliargs.profile_case not in cases:
+            raise CaseError(f"unknown case {cliargs.profile_case!r} (declared: {', '.join(cases) or 'none'})")
+        if tool not in pf.TOOLS:
+            raise CaseError(f"unknown tool {tool!r} (available: {', '.join(pf.TOOLS)}; nsys/ncu are not supported yet)")
+        executable = "gprof" if tool == "gprof" else "valgrind"
+        if _shutil.which(executable) is None:
+            raise CaseError(f"{executable} is not on PATH (needed by --tool {tool})")
+        case = cases[cliargs.profile_case]
+        if tool == "gprof" and not case.target:
+            raise CaseError(
+                f"case {case.name} runs a command: gprof needs a program FoBiS builds (use --tool callgrind)"
+            )
+    except CaseError as exc:
+        configuration.print_r(f"Error: {exc}")
+        sys.exit(2)
+    settings = load_settings(configuration.fobos)
+    fobos_args = ["--fobos", cliargs.fobos] if cliargs.fobos else []
+    if cliargs.fobos_case_insensitive:
+        fobos_args.append("--fobos-case-insensitive")
+    deps_dir = configuration.fobos.get_deps_dir() if configuration.fobos.fobos else ".fobis_deps"
+    mode = cliargs.profile_mode or case.mode
+    environment = _mode_environments(settings, fobos_args, deps_dir)(mode)
+
+    class Runner(LocalRunner):
+        wrapper: list = []
+
+        def command(self, case_, program):
+            return pf.wrap(super().command(case_, program), program, case_.args, self.wrapper)
+
+    probe = LocalRunner(".", fobos_args, settings.runs_dir, settings.launcher, deps_dir, env=environment)
+    compiler = probe.introspect(mode).get("compiler", {}).get("name", "") if case.target else ""
+    if tool == "gprof":
+        flags = pf.GPROF_FLAGS.get(family(compiler) or "")
+        if not flags:
+            configuration.print_r(f"Error: no gprof flag known for the compiler {compiler!r} (use --tool callgrind)")
+            sys.exit(2)
+        variant = BuildVariant("profile-gprof", f"{flags} -g", flags)
+    else:
+        variant = BuildVariant("profile-callgrind", "-g", "") if case.target else None
+    runner = Runner(".", fobos_args, settings.runs_dir, settings.launcher, deps_dir, env=environment, variant=variant)
+    host = on_login_node(_scheduler_config(configuration))
+    if host:
+        runner.refuse = guard_message(host)
+    if tool == "callgrind":
+        runner.wrapper = ["valgrind", "--tool=callgrind", "--callgrind-out-file=callgrind.out.%p"]
+    else:
+        case.env = {**case.env, "GMON_OUT_PREFIX": "gmon.out"}  # one file per process (MPI ranks), summed by gprof
+    binary = None
+    print(f"profile: building {case.name} for {tool}", file=sys.stderr, flush=True)
+    if case.target:
+        binary, report = runner.build(case, mode)
+        if binary is None:
+            errors = report.get("errors") or [d.get("message", "") for d in report.get("diagnostics", [])]
+            configuration.print_r(f"Error: the build for {tool} failed" + (f": {errors[0]}" if errors else ""))
+            sys.exit(1)
+    print(f"profile: running {case.name} under {tool}", file=sys.stderr, flush=True)
+    result = runner.run(case, variant=f"profile-{tool}", mode=mode, binary=binary)
+    if result.status not in ("ok", "probe-error"):
+        tail = (result.stderr or "").strip().splitlines()[-1:] or [result.status]
+        configuration.print_r(f"Error: the run under {tool} {result.status}: {tail[0]}")
+        sys.exit(1)
+    files = discover_files(
+        cliargs.src,
+        extensions=cliargs.extensions,
+        exclude=cliargs.exclude,
+        exclude_dirs=cliargs.exclude_dirs,
+        recursive=not cliargs.disable_recursive_search,
+    )
+    analysed = lint_files(files, [], defines=parse_defines(_merged_preproc_flags(cliargs)))
+    source = pf.SourceMap(analysed.units)
+    try:
+        if tool == "gprof":
+            outputs = sorted(glob.glob(os.path.join(result.rundir, "gmon.out*")))
+            if not outputs:
+                raise pf.ProfileError("no gmon.out written (the program must end normally to write it)")
+            done = subprocess.run(["gprof", "-b", "-p", binary, *outputs], capture_output=True, text=True)
+            profile = pf.from_gprof(done.stdout, source, cliargs.profile_top)
+            if len(outputs) > 1:  # one file per process: each one's own total (load balance across MPI ranks)
+                for output in outputs:
+                    alone = subprocess.run(["gprof", "-b", "-p", binary, output], capture_output=True, text=True)
+                    profile.processes.append(round(sum(r.self_cost for r in pf.parse_gprof(alone.stdout)[0]), 6))
+        else:
+            data = pf.Callgrind()
+            for path in sorted(glob.glob(os.path.join(result.rundir, "callgrind.out.*"))):
+                with open(path, encoding="utf-8", errors="replace") as handle:
+                    pf.parse_callgrind(handle.read(), data)
+            profile = pf.from_callgrind(data, source, cliargs.profile_top)
+    except pf.ProfileError as exc:
+        configuration.print_r(f"Error: {exc}")
+        sys.exit(1)
+    if as_json:
+        data = {"case": case.name, "mode": result.provenance.get("mode") or mode or "", **profile.to_dict()}
+        data["run"] = {"status": result.status, "elapsed": round(result.elapsed, 3), "rundir": result.rundir}
+        print(json.dumps(data, indent=2))
+    else:
+        configuration.print_b(pf.render_text(case.name, profile))
 
 
 def run_fobis_diff_run(configuration):

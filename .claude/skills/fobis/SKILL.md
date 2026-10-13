@@ -111,6 +111,7 @@ fobis diff-run [REF] [CASE...] [--assess] [--keep]  # cases on a revision vs the
 fobis bench [CASE...] [--compare REF [--feedback]] [--record] [--runs N]  # run time with a 95% interval of the median
 fobis gate [--base REF] [--stage S] [--skip S] [--advisory S] [--fail-fast]  # one verdict: every check, first failing fact
 fobis verify|test|case run|assess|bench|diff-run --runner slurm  # runs as Slurm jobs ([scheduler]), builds stay local
+fobis profile CASE [--tool gprof|callgrind] [--top N]  # time/instructions mapped to procedures and source lines
 fobis query callers|callees|uses|writers|readers|defines|region|device|mpi|interface ARG  # code graph answers
 fobis agents-md [-o CLAUDE.md] [--check] [--print]  # AGENTS.md block of facts (modes, commands, cases, kinds)
 fobis ask "QUESTION"     # answer from the knowledge packs (+ project procedures with -p DIR), with citations
@@ -170,6 +171,10 @@ fobis test --explain     # the same for every failed test (LLM for the first one
   case tolerance (verify comparator: worst index); changed files + procedures listed; `--assess` judges a
   difference against the worktree's own digits (within-uncertainty). Never writes the tree or repo metadata.
   Exit 1 when a case differs or fails.
+- `profile`: gprof (case rebuilt with -pg as a variant; sampled self time + exact calls; MPI ranks -> per-process
+  totals + imbalance max/mean; sub-sample runs measure no time, said so) or callgrind (valgrind; instructions per
+  function AND source line: inlined procedures found through their lines; routines outside the sources (malloc,
+  runtime) listed with the project procedures calling them). GPU profilers not yet.
 - `--runner slurm`: `[scheduler]` (user config, then fobos): kind slurm, partition, account, qos, options (#SBATCH
   lines), launcher (default srun), setup (shell lines in the job), poll, login_nodes (patterns). Case ranks/threads/
   gpus/timeout -> --ntasks/--cpus-per-task/--gpus/--time. The job records its own exit status and time; provenance

@@ -1,0 +1,8 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  ms/call  ms/call  name    
+100.00      0.88     0.88        5   176.00   176.00  __work_MOD_heavy
+  0.00      0.88     0.00        1     0.00   880.00  MAIN__
+  0.00      0.88     0.00        1     0.00     0.00  __work_MOD_light

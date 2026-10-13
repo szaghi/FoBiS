@@ -372,3 +372,41 @@ def cmd_gate(
         verbose=False,
         json_output=json_output,
     )
+
+
+@app.command("profile")
+def cmd_profile(
+    ctx: typer.Context,
+    name: Annotated[str, typer.Argument(help="The case to profile")],
+    fobos: FobosOpt = None,
+    fobos_case_insensitive: FciOpt = False,
+    mode: ModeOpt = None,
+    tool: Annotated[
+        str,
+        typer.Option(
+            "--tool",
+            help="gprof (time, sampled; -pg build) or callgrind (instructions per function and source line, "
+            "inlined code included; much slower).",
+        ),
+    ] = "gprof",
+    top: Annotated[int, typer.Option("--top", min=1, help="Routines, procedures and lines shown.")] = 15,
+    json_output: JsonOpt = False,
+):
+    """Profile a case: where it spends its time (gprof) or its instructions (callgrind), mapped to the project's
+    procedures and source lines."""
+    from .lint import lint_namespace
+
+    ctx.ensure_object(dict)
+    ctx.obj["cliargs"] = lint_namespace(
+        which="profile",
+        profile_case=name,
+        profile_tool=tool,
+        profile_top=top,
+        profile_mode=mode,
+        fobos=fobos,
+        fobos_case_insensitive=fobos_case_insensitive,
+        mode=mode,
+        src=["./"],
+        varset="",
+        json_output=json_output,
+    )

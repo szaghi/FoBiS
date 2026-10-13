@@ -256,6 +256,15 @@ below 6 runs), `halfwidth` (relative), `min`, `max`, `cpu_ratio`, `load_max`, `t
 `regression`, `scope`: `both`, `added`, `removed`, `lines`), `recorded` (history path with `--record`). `scratch`
 with `--keep`. See [Benchmarks](/advanced/bench).
 
+### `fobis profile --json`
+
+`case`, `mode`, `tool` (`gprof`, `callgrind`), `unit` (`s` or `Ir`), `total`, `project_share` (percent of the
+total in the analysed sources; null when gprof measured no time), `routines` (`symbol`, `procedure`, `location`,
+`self`, `percent`, `calls`; for a callgrind routine outside the sources, `callers`: the project procedures calling it
+directly with `calls`, `inclusive` and `percent`), `procedures` and `lines` (callgrind: per project procedure and per source line:
+`location`, `procedure`, `self`, `percent`, `text`), `processes` and `imbalance` (gprof, several processes), `notes`,
+`run` (`status`, `elapsed`, `rundir`). See [Profiling](/advanced/profile).
+
 ### `fobis gate --json`
 
 `status` (`pass`, `fail`), `base` (the base and its merge base, `""` for the working tree against HEAD),

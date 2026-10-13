@@ -368,6 +368,17 @@ class Server:
         ]
         return self._json(args + (["--assess"] if arguments.get("assess") else []))
 
+    def _profile(self, arguments: dict) -> Reply:
+        case = str(arguments.get("case", "")).strip()
+        if not case:
+            raise ToolError("case is required")
+        args = ["profile", case, "--json", *self._mode(arguments)]
+        if arguments.get("tool"):
+            args += ["--tool", arguments["tool"]]
+        if arguments.get("top"):
+            args += ["--top", str(int(arguments["top"]))]
+        return self._json(args)
+
     def _gate(self, arguments: dict) -> Reply:
         args = ["gate", "--json", *self._mode(arguments)]
         for key in ("stages", "skip", "advisory"):
@@ -801,6 +812,26 @@ class Server:
                     }
                 ),
                 self._bench,
+                read_only=False,
+            ),
+            Tool(
+                "profile",
+                "Profile a case",
+                "Where a declared case spends its time (tool gprof: the case rebuilt with -pg, sampled self seconds and "
+                "call counts; per-process totals and the max/mean imbalance for MPI ranks) or its instructions "
+                "(tool callgrind: per function and per SOURCE LINE, so procedures the compiler inlined are still "
+                "found), mapped to the project's procedures (file:line) and hottest source lines. Writes run "
+                "directories only.",
+                _schema(
+                    {
+                        "case": _STR,
+                        "tool": {"type": "string", "enum": ["gprof", "callgrind"]},
+                        "top": {**_INT, "description": "routines, procedures and lines shown (default 15)"},
+                        "mode": _MODE,
+                    },
+                    ("case",),
+                ),
+                self._profile,
                 read_only=False,
             ),
             Tool(
