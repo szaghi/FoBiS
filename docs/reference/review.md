@@ -15,6 +15,7 @@ fobis review [PATHS...] [options]
 |--------|-------------|
 | `--staged` | Review the staged change (pre-commit hook) |
 | `--base REF` | Review the commits since the merge base with `REF` (pull request) |
+| `--worktree` | With `--base`: review from the merge base to the working tree, uncommitted changes included (what `fobis gate --base` reviews) |
 | `--context N` | Also report findings up to `N` lines away from a changed line (default 0) |
 | `--select IDS`, `--ignore IDS` | Rule selection, as for `fobis lint` (repeatable, comma-separated) |
 | `--format FMT` | `text` (default), `markdown`, `json`, `sarif`, `github` |

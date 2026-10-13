@@ -313,3 +313,52 @@ def cmd_bench(
         verbose=False,
         json_output=json_output,
     )
+
+
+@app.command("gate")
+def cmd_gate(
+    ctx: typer.Context,
+    fobos: FobosOpt = None,
+    fobos_case_insensitive: FciOpt = False,
+    mode: ModeOpt = None,
+    stage: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--stage",
+            help="Run only these stages (repeatable or comma-separated): build review test verify diff-run bench "
+            "assess matrix.",
+        ),
+    ] = None,
+    skip: Annotated[list[str] | None, typer.Option("--skip", help="Stages not to run (repeatable).")] = None,
+    advisory: Annotated[
+        list[str] | None, typer.Option("--advisory", help="Stages reported but not failing the gate (repeatable).")
+    ] = None,
+    base: Annotated[
+        str | None,
+        typer.Option("--base", help="Compare with the merge base of HEAD and this revision [default: HEAD]."),
+    ] = None,
+    fail_fast: Annotated[bool, typer.Option("--fail-fast", help="Stop at the first failing stage.")] = False,
+    json_output: JsonOpt = False,
+):
+    """One verdict for a change: build, review of the changed lines, tests, verify, diff-run and bench against the
+    base, assessment budgets and the declared matrix, each reduced to pass/fail/skipped with its first failing
+    fact. Exit 1 when a non-advisory stage fails."""
+    ctx.ensure_object(dict)
+    ctx.obj["cliargs"] = _ns(
+        which="gate",
+        gate_stages=[s for item in stage or [] for s in item.replace(",", " ").split()],
+        gate_skip=[s for item in skip or [] for s in item.replace(",", " ").split()],
+        gate_advisory=[s for item in advisory or [] for s in item.replace(",", " ").split()],
+        gate_base=base,
+        gate_mode=mode,
+        gate_fail_fast=fail_fast,
+        fobos=fobos,
+        fobos_case_insensitive=fobos_case_insensitive,
+        mode=None,
+        lmodes=False,
+        colors=False,
+        log=False,
+        quiet=False,
+        verbose=False,
+        json_output=json_output,
+    )

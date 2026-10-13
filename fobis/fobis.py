@@ -130,6 +130,8 @@ def run_fobis(fake_args=None):
             run_fobis_diff_run(configuration)
         if configuration.cliargs.which == "bench":
             run_fobis_bench(configuration)
+        if configuration.cliargs.which == "gate":
+            run_fobis_gate(configuration)
         if configuration.cliargs.which == "query":
             run_fobis_query(configuration)
         if configuration.cliargs.which == "agents_md":
@@ -2704,6 +2706,152 @@ def run_fobis_bench(configuration):
         sys.exit(1)
 
 
+def _gate_plan(configuration, config, mode, fobos_args):
+    """The gate's `Plan` for this project: each stage's commands, or why it does not apply; and the base label."""
+    import subprocess
+
+    from .TestRunner import discover_tests
+    from .verification import load_cases
+    from .verification.assess import load_spec
+    from .verification.gate import GateError, Plan
+
+    fobos = configuration.fobos
+    parser = fobos.fobos if fobos is not None else None
+    cases = load_cases(fobos)
+    plan = Plan()
+    mode_args = ["--mode", mode] if mode else []
+
+    def git(*args):
+        done = subprocess.run(["git", *args], capture_output=True, text=True)
+        return done.returncode, done.stdout.strip()
+
+    repository = git("rev-parse", "--is-inside-work-tree")[0] == 0
+    ref, label, changed = "HEAD", "", True
+    if config.base:
+        if not repository:
+            raise GateError("--base needs a git repository")
+        code, merge_base = git("merge-base", "HEAD", config.base)
+        if code != 0:
+            raise GateError(f"{config.base!r} is not a revision with a merge base with HEAD")
+        ref, label = merge_base, f"{config.base} (merge base {merge_base[:12]})"
+    elif repository:
+        changed = bool(git("status", "--porcelain", "--untracked-files=normal")[1])
+    unchanged = "the working tree has no change against HEAD (--base REF gates committed work)"
+
+    def add(stage, *commands):
+        plan.commands[stage] = [[*c, *fobos_args] for c in commands]
+
+    add("build", ["build", "--json", *mode_args])
+    if not repository:
+        plan.skipped["review"] = "not a git repository"
+    elif not changed:
+        plan.skipped["review"] = unchanged
+    else:
+        add(
+            "review",
+            [
+                "review",
+                "--format",
+                "json",
+                "--exit-zero",
+                *mode_args,
+                *(["--base", ref, "--worktree"] if label else []),
+            ],
+        )
+    test_dir = fobos.get_test_config()["test_dir"] if parser is not None else "test"
+    if discover_tests(test_dir):
+        add("test", ["test", "--json", *mode_args])
+    else:
+        plan.skipped["test"] = f"no test program in {test_dir}/"
+    no_case = "no case declared ([case:NAME])"
+    if cases:
+        add("verify", ["verify", "--json"])
+    else:
+        plan.skipped["verify"] = no_case
+    for stage, command in (("diff-run", ["diff-run", ref, "--json"]), ("bench", ["bench", "--compare", ref, "--json"])):
+        benches = [n for n in cases if parser is not None and parser.has_section(f"bench:{n}")]
+        if not cases:
+            plan.skipped[stage] = no_case
+        elif stage == "bench" and not benches:
+            plan.skipped[stage] = "no benchmark declared ([bench:NAME])"
+        elif not repository:
+            plan.skipped[stage] = "not a git repository"
+        elif not changed:
+            plan.skipped[stage] = unchanged
+        else:
+            add(stage, command)
+    budgeted = [
+        n for n in cases if parser is not None and parser.has_section(f"assess:{n}") and load_spec(fobos, n).budgets
+    ]
+    if budgeted:
+        add("assess", *(["assess", n, "--json"] for n in budgeted))
+    else:
+        plan.skipped["assess"] = "no assessment budget declared ([assess:NAME] budget)"
+    if config.matrix_modes:
+        command = ["matrix", "--json", "--modes", ",".join(config.matrix_modes)]
+        add("matrix", command + ["--shadows", ",".join(config.matrix_shadows)] + (["--verify"] if cases else []))
+    else:
+        plan.skipped["matrix"] = "no matrix declared ([gate] matrix_modes)"
+    return plan, label
+
+
+def run_fobis_gate(configuration):
+    """
+    Run FoBiS in gate mode: the declared checks as stages, one verdict with the first failing fact of each.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import json
+    import subprocess
+    import time
+
+    from .mcp_server import fobis_command
+    from .verification import CaseError
+    from .verification.gate import GateError, load_config, render_text, run_gate, verdict
+
+    cliargs = configuration.cliargs
+    try:
+        config = load_config(configuration.fobos)
+        if cliargs.gate_stages:
+            config.stages = list(cliargs.gate_stages)
+        config.stages = [s for s in config.stages if s not in set(cliargs.gate_skip)]
+        config.advisory |= set(cliargs.gate_advisory)
+        config.base = cliargs.gate_base or config.base
+        config.check()
+        mode = cliargs.gate_mode or config.mode
+        fobos_args = ["--fobos", cliargs.fobos] if cliargs.fobos else []
+        if cliargs.fobos_case_insensitive:
+            fobos_args.append("--fobos-case-insensitive")
+        plan, label = _gate_plan(configuration, config, mode, fobos_args)
+    except (GateError, CaseError) as exc:
+        configuration.print_r(f"Error: {exc}")
+        sys.exit(2)
+
+    def run(args):
+        done = subprocess.run([*fobis_command(), *args], capture_output=True, text=True)
+        return done.returncode, done.stdout, done.stderr
+
+    start = time.monotonic()
+    results = run_gate(
+        config,
+        plan,
+        run,
+        progress=lambda m: print(f"gate: {m}", file=sys.stderr, flush=True),
+        fail_fast=cliargs.gate_fail_fast,
+    )
+    total = time.monotonic() - start
+    status = verdict(results)
+    if getattr(cliargs, "json_output", False):
+        data = {"status": status, "base": label, "elapsed": round(total, 2), "stages": [r.to_dict() for r in results]}
+        print(json.dumps(data, indent=2))
+    else:
+        (configuration.print_b if status == "pass" else configuration.print_r)(render_text(results, total, label))
+    if status != "pass":
+        sys.exit(1)
+
+
 def run_fobis_diff_run(configuration):
     """
     Run FoBiS in diff-run mode: the cases on a revision and on the working tree, built and run in scratch copies,
@@ -3175,7 +3323,9 @@ def run_fobis_review(configuration):
         configuration.print_r(f"Error: unknown format '{cliargs.lint_format}': use one of {', '.join(REVIEW_FORMATS)}")
         sys.exit(1)
     try:
-        revision = review_revision(cliargs.review_base, cliargs.review_staged)
+        revision = review_revision(
+            cliargs.review_base, cliargs.review_staged, worktree=getattr(cliargs, "review_worktree", False)
+        )
     except ReviewError as exc:
         configuration.print_r(f"Error: {exc}")
         sys.exit(1)

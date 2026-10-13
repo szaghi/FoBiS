@@ -43,6 +43,7 @@ TOOLS = [
     "assess",
     "diff_run",
     "bench",
+    "gate",
     "clean",
     "fetch",
 ]
@@ -114,6 +115,7 @@ def test_tools_list_has_schemas_and_annotations(server):
         "assess",
         "diff_run",
         "bench",
+        "gate",
         "clean",
         "fetch",
     }
@@ -169,6 +171,7 @@ def test_command_lines(server, calls):
     _call(server, "diff_run")
     _call(server, "bench", {"names": ["sod"], "compare": "v1", "feedback": True, "runs": 9})
     _call(server, "bench", {"feedback": True})
+    _call(server, "gate", {"stages": ["build", "test"], "advisory": ["test"], "base": "main", "fail_fast": True})
     assert calls == [
         [
             "lint",
@@ -225,6 +228,19 @@ def test_command_lines(server, calls):
         ["diff-run", "HEAD", "--json"],
         ["bench", "sod", "--json", "--compare", "v1", "--feedback", "--runs", "9"],
         ["bench", "--json"],  # feedback alone needs compare: not passed
+        [
+            "gate",
+            "--json",
+            "--stage",
+            "build",
+            "--stage",
+            "test",
+            "--advisory",
+            "test",
+            "--base",
+            "main",
+            "--fail-fast",
+        ],
     ]
 
 

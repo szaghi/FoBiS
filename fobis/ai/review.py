@@ -54,8 +54,9 @@ class ReviewError(Exception):
     """The change to review cannot be determined (not a git repository, unknown base)."""
 
 
-def review_revision(base: str | None = None, staged: bool = False, git: Git = _git) -> Revision:
-    """The `Revision` to review: the index, ``merge-base(base, HEAD)..HEAD``, or HEAD against the worktree."""
+def review_revision(base: str | None = None, staged: bool = False, git: Git = _git, worktree: bool = False) -> Revision:
+    """The `Revision` to review: the index, ``merge-base(base, HEAD)..HEAD`` (with *worktree*: the merge base against
+    the working tree, uncommitted changes included), or HEAD against the worktree."""
     root = git("rev-parse", "--show-toplevel").strip()
     if not root:
         raise ReviewError("not inside a git repository")
@@ -65,6 +66,8 @@ def review_revision(base: str | None = None, staged: bool = False, git: Git = _g
         merge_base = git("merge-base", base, "HEAD").strip()
         if not merge_base:
             raise ReviewError(f"no merge base between {base!r} and HEAD (is {base!r} a known reference?)")
+        if worktree:
+            return Revision((merge_base,), merge_base, WORKTREE, root)
         return Revision((merge_base, "HEAD"), merge_base, "HEAD", root)
     return Revision(("HEAD",), "HEAD", WORKTREE, root)
 

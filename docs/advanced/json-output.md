@@ -256,6 +256,13 @@ below 6 runs), `halfwidth` (relative), `min`, `max`, `cpu_ratio`, `load_max`, `t
 `regression`, `scope`: `both`, `added`, `removed`, `lines`), `recorded` (history path with `--record`). `scratch`
 with `--keep`. See [Benchmarks](/advanced/bench).
 
+### `fobis gate --json`
+
+`status` (`pass`, `fail`), `base` (the base and its merge base, `""` for the working tree against HEAD),
+`elapsed`, and `stages`, in order: `stage`, `status` (`pass`, `fail`, `error`: the command gave no JSON,
+`skipped`), `advisory`, `fact` (the first failing fact, or why the stage was skipped), `details` (up to 4 more),
+`commands` (the nested `fobis` commands), `elapsed`. See [The gate](/advanced/gate).
+
 ### `fobis assess --json`
 
 `case`, `mode`, `status` (`ok`, `fail`: a budget failed, `error`: the base run failed, with `error`), `builds`,

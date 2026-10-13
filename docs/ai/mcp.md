@@ -70,6 +70,7 @@ Tools that write:
 | `assess` | [Numerical error and uncertainty](/advanced/assess) from ensembles: digits per family, non-determinism, elasticities or correlations, observed order and extrapolation, budgets. Slow: one build per variant | `case`, `families`, `mode`, `samples`, `jobs` |
 | `diff_run` | [The cases on a revision and on the working tree](/advanced/diff-run), in scratch copies: equivalent, or what differs and where, the procedures changed; `assess` judges a difference against the numerical spread | `ref`, `names`, `mode`, `assess` |
 | `bench` | [Run time](/advanced/bench) with a 95% interval of the median, vs history or a revision (`compare`), compiler-report diff (`feedback`); never records history | `names`, `mode`, `compare`, `feedback`, `runs` |
+| `gate` | [One verdict](/advanced/gate) for a change: build, review, test, verify, diff-run, bench, assess, matrix, each with its first failing fact | `stages`, `skip`, `advisory`, `base`, `mode`, `fail_fast` |
 | `clean` | The removed objects and module files | `mode` |
 | `fetch` | The dependencies cloned or updated (network) | `update` |
 

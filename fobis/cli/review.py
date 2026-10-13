@@ -32,6 +32,10 @@ def cmd_review(
         ),
     ] = None,
     staged: Annotated[bool, typer.Option("--staged", help="Review the staged change (pre-commit hook).")] = False,
+    worktree: Annotated[
+        bool,
+        typer.Option("--worktree", help="With --base: review up to the working tree (uncommitted changes included)."),
+    ] = False,
     context: Annotated[
         int, typer.Option("--context", help="Also report findings this many lines away from a changed line.")
     ] = 0,
@@ -74,6 +78,7 @@ def cmd_review(
         lint_exit_zero=exit_zero,
         review_base=base,
         review_staged=staged,
+        review_worktree=worktree,
         review_context=context,
         review_deep=deep or deep_context,
         review_deep_context=deep_context,

@@ -362,6 +362,14 @@ class Server:
         ]
         return self._json(args + (["--assess"] if arguments.get("assess") else []))
 
+    def _gate(self, arguments: dict) -> Reply:
+        args = ["gate", "--json", *self._mode(arguments)]
+        for key in ("stages", "skip", "advisory"):
+            args += self._repeat("--stage" if key == "stages" else f"--{key}", arguments.get(key))
+        if arguments.get("base"):
+            args += ["--base", arguments["base"]]
+        return self._json(args + (["--fail-fast"] if arguments.get("fail_fast") else []))
+
     def _bench(self, arguments: dict) -> Reply:
         args = ["bench", *arguments.get("names", []), "--json", *self._mode(arguments)]
         if arguments.get("compare"):
@@ -780,6 +788,27 @@ class Server:
                     }
                 ),
                 self._bench,
+                read_only=False,
+            ),
+            Tool(
+                "gate",
+                "One verdict for a change",
+                "The call to make after an edit: build, review of the changed lines, tests, verify (references), "
+                "diff-run and bench against the base, assessment budgets and the [gate] matrix, each as pass / fail "
+                "/ skipped (with why: no tests, no cases, nothing changed) and the FIRST failing fact (located). "
+                "Stages and advisory stages from fobos [gate] or the arguments; base = compare with the merge base "
+                "of HEAD and this revision (uncommitted changes included). status pass|fail.",
+                _schema(
+                    {
+                        "stages": {**_STR_LIST, "description": "only these stages"},
+                        "skip": _STR_LIST,
+                        "advisory": {**_STR_LIST, "description": "reported, not failing"},
+                        "base": {**_STR, "description": "revision whose merge base with HEAD is compared"},
+                        "mode": _MODE,
+                        "fail_fast": _BOOL,
+                    }
+                ),
+                self._gate,
                 read_only=False,
             ),
             Tool(

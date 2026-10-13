@@ -109,6 +109,8 @@ def test_review_revision(repo):
     head = _git(repo, "rev-parse", "HEAD").strip()
     base = review_revision(base="main")
     assert (base.diff, base.old, base.new) == ((head, "HEAD"), head, "HEAD")
+    up_to_worktree = review_revision(base="main", worktree=True)  # fobis gate --base: uncommitted changes included
+    assert (up_to_worktree.diff, up_to_worktree.old, up_to_worktree.new) == ((head,), head, WORKTREE)
     with pytest.raises(ReviewError, match="no merge base"):
         review_revision(base="no-such-branch")
 

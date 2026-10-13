@@ -109,6 +109,7 @@ fobis matrix [--modes] [--shadows] [--verify] [--recheck]  # every mode x shadow
 fobis assess CASE [--families precision,rounding,compiler,parallel,inputs,refinement] [--jobs N]  # error/uncertainty
 fobis diff-run [REF] [CASE...] [--assess] [--keep]  # cases on a revision vs the working tree (scratch copies)
 fobis bench [CASE...] [--compare REF [--feedback]] [--record] [--runs N]  # run time with a 95% interval of the median
+fobis gate [--base REF] [--stage S] [--skip S] [--advisory S] [--fail-fast]  # one verdict: every check, first failing fact
 fobis query callers|callees|uses|writers|readers|defines|region|device|mpi|interface ARG  # code graph answers
 fobis agents-md [-o CLAUDE.md] [--check] [--print]  # AGENTS.md block of facts (modes, commands, cases, kinds)
 fobis ask "QUESTION"     # answer from the knowledge packs (+ project procedures with -p DIR), with citations
@@ -130,7 +131,7 @@ fobis test --explain     # the same for every failed test (LLM for the first one
 - `mcp`: `--root DIR`. Register in Claude Code with `claude mcp add fobis -- fobis mcp`. Tools (read-only): lint
   (+ `fix_diff`), review, list_rules, explain_rule, kb_search, kb_show, ask_context (retrieved sources, NO answer),
   introspect, check, tree, merge_conflicts, commit_facts, testgen_skeleton, ecosystem_status, ecosystem_impact,
-  case_list, provenance, query, agents_md; writing: build, test, case_run, verify, matrix, assess, diff_run, bench (`shadow` on build/test/case_run/verify),
+  case_list, provenance, query, agents_md; writing: build, test, case_run, verify, matrix, assess, diff_run, bench, gate (`shadow` on build/test/case_run/verify),
   clean (destructive), fetch (network). Annotations (readOnly/destructive/idempotent/
   openWorld), JSON as text + `structuredContent` (2025-06-18), a failed build/test is a result (status error), not
   a tool error; lint/review trimmed to `max_findings` (200). Resources `fobis://rules/{id}`, template
@@ -168,6 +169,11 @@ fobis test --explain     # the same for every failed test (LLM for the first one
   case tolerance (verify comparator: worst index); changed files + procedures listed; `--assess` judges a
   difference against the worktree's own digits (within-uncertainty). Never writes the tree or repo metadata.
   Exit 1 when a case differs or fails.
+- `gate`: stages build, review, test, verify, diff-run, bench, assess, matrix (nested `fobis --json` commands), each
+  pass/fail/error/skipped with the FIRST failing fact; skipped with the reason when not applicable (no tests, no
+  cases, no change against HEAD, no `[bench:]`, no budget, no `[gate] matrix_modes`). Without `--base`: working tree
+  vs HEAD; `--base REF`: merge base vs working tree (review `--base MB --worktree`). `[gate]` stages/skip/advisory/
+  base/mode/matrix_modes/matrix_shadows. Build failure skips the stages that need it. Exit 1 on a blocking failure.
 - `bench`: `[bench:CASE]` warmup/min_runs/max_runs/target (relative half-width of the median's 95% interval,
   distribution-free)/max_time/time (wall or a quantity)/work. Runs interleaved across sides; faster/slower ONLY when
   the intervals do not overlap (else "no measurable difference"). History `verification/bench/<case>.jsonl` only
