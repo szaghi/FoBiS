@@ -37,6 +37,7 @@ from . import (  # noqa: F401
     doctests,
     ecosystem,
     fetch,
+    fpm,
     install,
     introspect,
     lint,

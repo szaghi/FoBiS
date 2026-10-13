@@ -1,0 +1,24 @@
+name = "StringiFor"
+version = "1.8.0"
+author = "Stefano Zaghi"
+copyright = "Copyright © 2016, Stefano Zaghi"
+license = "Multiple licenses"
+description = "Strings Fortran Manipulator with steroids"
+maintainer = "Stefano Zaghi"
+homepage = "https://github.com/szaghi/StringiFor"
+
+[library]
+source-dir = "src/lib"
+
+[install]
+library = true
+
+[dependencies]
+[dependencies.BeFoR64]
+git = "https://github.com/szaghi/BeFoR64"
+
+[dependencies.FACE]
+git = "https://github.com/szaghi/FACE"
+
+[dependencies.PENF]
+git = "https://github.com/szaghi/PENF"

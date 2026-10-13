@@ -1297,6 +1297,9 @@ class Fobos:
                             fobos_version = ver_file.read().strip()
                     else:
                         fobos_version = raw
+                elif os.path.isfile(os.path.join(here, raw)):  # not in a git repo: a file next to the fobos
+                    with open(os.path.join(here, raw)) as ver_file:
+                        fobos_version = ver_file.read().strip()
                 else:
                     fobos_version = raw  # not inside a git repo; treat as literal
                 if fobos_version and not fobos_version.startswith("v"):

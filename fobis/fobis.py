@@ -134,6 +134,8 @@ def run_fobis(fake_args=None):
             run_fobis_gate(configuration)
         if configuration.cliargs.which == "profile":
             run_fobis_profile(configuration)
+        if configuration.cliargs.which == "fpm":
+            run_fobis_fpm(configuration)
         if configuration.cliargs.which == "query":
             run_fobis_query(configuration)
         if configuration.cliargs.which == "agents_md":
@@ -3039,6 +3041,79 @@ def run_fobis_profile(configuration):
         print(json.dumps(data, indent=2))
     else:
         configuration.print_b(pf.render_text(case.name, profile))
+
+
+def run_fobis_fpm(configuration):
+    """
+    Run FoBiS in fpm mode: translate an fpm.toml into a fobos (import) or a fobos into an fpm.toml (export).
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import json
+    import re
+
+    from .fpm import FpmError, fobos_from_fpm, fpm_from_fobos, load_toml
+
+    cliargs = configuration.cliargs
+    try:
+        if cliargs.fpm_action == "import":
+            if not os.path.isfile(cliargs.fpm_manifest):
+                raise FpmError(f"{cliargs.fpm_manifest} not found")
+            with open(cliargs.fpm_manifest, encoding="utf-8") as handle:
+                manifest = load_toml(handle.read())
+            root = os.path.dirname(os.path.abspath(cliargs.fpm_manifest))
+            translation = fobos_from_fpm(manifest, root, cliargs.fpm_compiler)
+        else:
+            from .ai.agents_md import project_files
+            from .analysis import parse_defines
+            from .lint import discover_files, lint_files
+
+            fobos = configuration.fobos
+            if fobos is None or fobos.fobos is None:
+                raise FpmError("no fobos to export (fobis fpm export reads the fobos of the current directory)")
+            deps_dir = fobos.get_deps_dir()
+            files = discover_files(
+                cliargs.src,
+                extensions=cliargs.extensions,
+                exclude=cliargs.exclude,
+                exclude_dirs=cliargs.exclude_dirs,
+                recursive=not cliargs.disable_recursive_search,
+            )
+            defines = parse_defines(_merged_preproc_flags(cliargs))
+            analysed = lint_files(project_files(files, ".", deps_dir), [], defines=defines)
+            project = fobos.get_project_info()
+            version = fobos.get_version() or project.get("version", "")
+            project["version"] = version[1:] if re.fullmatch(r"v\d.*", version) else version  # fpm: 1.2.3
+            if fobos.fobos.has_option("project", "summary"):
+                project["summary"] = " ".join(fobos.fobos.get("project", "summary").split())
+            test_dir = fobos.get_test_config()["test_dir"] if fobos.fobos.has_section("test") else ""
+            mode_keys = {"mpi": bool(cliargs.mpi), "openmp": bool(cliargs.openmp)}
+            macros = [d for d in _merged_preproc_flags(cliargs).split() if d.startswith("-D")]
+            translation = fpm_from_fobos(
+                project, fobos.get_dependencies(), analysed.units, ".", test_dir, mode_keys, macros
+            )
+        output = cliargs.fpm_output
+        written = ""
+        if not cliargs.fpm_print:
+            if os.path.exists(output) and not cliargs.fpm_force:
+                raise FpmError(f"{output} exists: use --force to overwrite it, or --print")
+            with open(output, "w", encoding="utf-8") as handle:
+                handle.write(translation.text)
+            written = output
+    except (FpmError, OSError) as exc:
+        configuration.print_r(f"Error: {exc}")
+        sys.exit(2)
+    if getattr(cliargs, "json_output", False):
+        print(json.dumps({"written": written, "text": translation.text, "notes": translation.notes}, indent=2))
+        return
+    if cliargs.fpm_print:
+        print(translation.text, end="")
+    else:
+        configuration.print_b(f"{written} written")
+    for note in translation.notes:
+        configuration.print_r(f"note: {note}")
 
 
 def run_fobis_diff_run(configuration):

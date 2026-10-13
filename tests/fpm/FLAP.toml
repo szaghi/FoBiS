@@ -1,0 +1,373 @@
+name = "FLAP"
+version = "2.5.3"
+author = "Stefano Zaghi"
+copyright = "Copyright © 2016, Stefano Zaghi"
+license = "Multiple licenses"
+description = "Fortran command Line Arguments Parser for poor people"
+maintainer = "Stefano Zaghi"
+homepage = "https://github.com/szaghi/FLAP"
+
+[dependencies]
+FACE = { git="https://github.com/szaghi/FACE.git" }
+PENF = { git="https://github.com/szaghi/PENF.git" }
+
+[library]
+source-dir = "src/lib"
+
+[install]
+library = true
+
+[build]
+auto-executables = false
+auto-examples = false
+auto-tests = false
+
+[[test]]
+name = "flap_test_action_store"
+source-dir = "src/tests"
+main = "flap_test_action_store.f90"
+
+[[test]]
+name = "flap_test_ansi_color_style"
+source-dir = "src/tests"
+main = "flap_test_ansi_color_style.f90"
+
+[[test]]
+name = "flap_test_alternate"
+source-dir = "src/tests"
+main = "flap_test_alternate.f90"
+
+[[test]]
+name = "flap_test_append"
+source-dir = "src/tests"
+main = "flap_test_append.f90"
+
+[[test]]
+name = "flap_test_auto_envvar"
+source-dir = "src/tests"
+main = "flap_test_auto_envvar.f90"
+
+[[test]]
+name = "flap_test_basic"
+source-dir = "src/tests"
+main = "flap_test_basic.f90"
+
+[[test]]
+name = "flap_test_case_insensitive"
+source-dir = "src/tests"
+main = "flap_test_case_insensitive.f90"
+
+[[test]]
+name = "flap_test_choices_list"
+source-dir = "src/tests"
+main = "flap_test_choices_list.f90"
+
+[[test]]
+name = "flap_test_choices_logical"
+source-dir = "src/tests"
+main = "flap_test_choices_logical.f90"
+
+[[test]]
+name = "flap_test_command_repeated"
+source-dir = "src/tests"
+main = "flap_test_command_repeated.f90"
+
+[[test]]
+name = "flap_test_completion_options"
+source-dir = "src/tests"
+main = "flap_test_completion_options.f90"
+
+[[test]]
+name = "flap_test_config"
+source-dir = "src/tests"
+main = "flap_test_config.f90"
+
+[[test]]
+name = "flap_test_constants"
+source-dir = "src/tests"
+main = "flap_test_constants.f90"
+
+[[test]]
+name = "flap_test_copy"
+source-dir = "src/tests"
+main = "flap_test_copy.f90"
+
+[[test]]
+name = "flap_test_copy_options"
+source-dir = "src/tests"
+main = "flap_test_copy_options.f90"
+
+[[test]]
+name = "flap_test_count"
+source-dir = "src/tests"
+main = "flap_test_count.f90"
+
+[[test]]
+name = "flap_test_exclusive_set"
+source-dir = "src/tests"
+main = "flap_test_exclusive_set.f90"
+
+[[test]]
+name = "flap_test_csv_split"
+source-dir = "src/tests"
+main = "flap_test_csv_split.f90"
+
+[[test]]
+name = "flap_test_deprecated"
+source-dir = "src/tests"
+main = "flap_test_deprecated.f90"
+
+[[test]]
+name = "flap_test_duplicated_clas"
+source-dir = "src/tests"
+main = "flap_test_duplicated_clas.f90"
+
+[[test]]
+name = "flap_test_env_source"
+source-dir = "src/tests"
+main = "flap_test_env_source.f90"
+
+[[test]]
+name = "flap_test_envvar"
+source-dir = "src/tests"
+main = "flap_test_envvar.f90"
+
+[[test]]
+name = "flap_test_error_hint"
+source-dir = "src/tests"
+main = "flap_test_error_hint.f90"
+
+[[test]]
+name = "flap_test_flag_pair"
+source-dir = "src/tests"
+main = "flap_test_flag_pair.f90"
+
+[[test]]
+name = "flap_test_golden"
+source-dir = "src/tests"
+main = "flap_test_golden.f90"
+
+[[test]]
+name = "flap_test_group_examples"
+source-dir = "src/tests"
+main = "flap_test_group_examples.f90"
+
+[[test]]
+name = "flap_test_group_alias"
+source-dir = "src/tests"
+main = "flap_test_group_alias.f90"
+
+[[test]]
+name = "flap_test_group"
+source-dir = "src/tests"
+main = "flap_test_group.f90"
+
+[[test]]
+name = "flap_test_harness"
+source-dir = "src/tests"
+main = "flap_test_harness.f90"
+
+[[test]]
+name = "flap_test_hidden"
+source-dir = "src/tests"
+main = "flap_test_hidden.f90"
+
+[[test]]
+name = "flap_test_ignore_unknown_clas"
+source-dir = "src/tests"
+main = "flap_test_ignore_unknown_clas.f90"
+
+[[test]]
+name = "flap_test_ignore_env"
+source-dir = "src/tests"
+main = "flap_test_ignore_env.f90"
+
+[[test]]
+name = "flap_test_inline"
+source-dir = "src/tests"
+main = "flap_test_inline.f90"
+
+[[test]]
+name = "flap_test_list"
+source-dir = "src/tests"
+main = "flap_test_list.f90"
+
+[[test]]
+name = "flap_test_long_values"
+source-dir = "src/tests"
+main = "flap_test_long_values.f90"
+
+[[test]]
+name = "flap_test_menu"
+source-dir = "src/tests"
+main = "flap_test_menu.f90"
+
+[[test]]
+name = "flap_test_metavar"
+source-dir = "src/tests"
+main = "flap_test_metavar.f90"
+
+[[test]]
+name = "flap_test_minimal"
+source-dir = "src/tests"
+main = "flap_test_minimal.f90"
+
+[[test]]
+name = "flap_test_nargs_insufficient"
+source-dir = "src/tests"
+main = "flap_test_nargs_insufficient.f90"
+
+[[test]]
+name = "flap_test_nested"
+source-dir = "src/tests"
+main = "flap_test_nested.f90"
+
+[[test]]
+name = "flap_test_no_args_is_help"
+source-dir = "src/tests"
+main = "flap_test_no_args_is_help.f90"
+
+[[test]]
+name = "flap_test_object"
+source-dir = "src/tests"
+main = "flap_test_object.f90"
+
+[[test]]
+name = "flap_test_man_option"
+source-dir = "src/tests"
+main = "flap_test_man_option.f90"
+
+[[test]]
+name = "flap_test_map"
+source-dir = "src/tests"
+main = "flap_test_map.f90"
+
+[[test]]
+name = "flap_test_match_token"
+source-dir = "src/tests"
+main = "flap_test_match_token.f90"
+
+[[test]]
+name = "flap_test_path"
+source-dir = "src/tests"
+main = "flap_test_path.f90"
+
+[[test]]
+name = "flap_test_positional"
+source-dir = "src/tests"
+main = "flap_test_positional.f90"
+
+[[test]]
+name = "flap_test_range"
+source-dir = "src/tests"
+main = "flap_test_range.f90"
+
+[[test]]
+name = "flap_test_error_message"
+source-dir = "src/tests"
+main = "flap_test_error_message.f90"
+
+[[test]]
+name = "flap_test_raise_error"
+source-dir = "src/tests"
+main = "flap_test_raise_error.f90"
+
+[[test]]
+name = "flap_test_reparse"
+source-dir = "src/tests"
+main = "flap_test_reparse.f90"
+
+[[test]]
+name = "flap_test_resolve"
+source-dir = "src/tests"
+main = "flap_test_resolve.f90"
+
+[[test]]
+name = "flap_test_save_bash_completion"
+source-dir = "src/tests"
+main = "flap_test_save_bash_completion.f90"
+
+[[test]]
+name = "flap_test_save_man_page"
+source-dir = "src/tests"
+main = "flap_test_save_man_page.f90"
+
+[[test]]
+name = "flap_test_save_usage_to_markdown"
+source-dir = "src/tests"
+main = "flap_test_save_usage_to_markdown.f90"
+
+[[test]]
+name = "flap_test_shell_completion"
+source-dir = "src/tests"
+main = "flap_test_shell_completion.f90"
+
+[[test]]
+name = "flap_test_signature"
+source-dir = "src/tests"
+main = "flap_test_signature.f90"
+
+[[test]]
+name = "flap_test_source"
+source-dir = "src/tests"
+main = "flap_test_source.f90"
+
+[[test]]
+name = "flap_test_standalone"
+source-dir = "src/tests"
+main = "flap_test_standalone.f90"
+
+[[test]]
+name = "flap_test_string"
+source-dir = "src/tests"
+main = "flap_test_string.f90"
+
+[[test]]
+name = "flap_test_suggest"
+source-dir = "src/tests"
+main = "flap_test_suggest.f90"
+
+[[test]]
+name = "flap_test_unsupported_type"
+source-dir = "src/tests"
+main = "flap_test_unsupported_type.f90"
+
+[[test]]
+name = "flap_test_usage_on_error"
+source-dir = "src/tests"
+main = "flap_test_usage_on_error.f90"
+
+[[test]]
+name = "flap_test_utils_m"
+source-dir = "src/tests"
+main = "flap_test_utils_m.f90"
+
+[[test]]
+name = "flap_test_value_missing"
+source-dir = "src/tests"
+main = "flap_test_value_missing.f90"
+
+[[test]]
+name = "flap_test_choices_length"
+source-dir = "src/tests"
+main = "flap_test_choices_length.f90"
+
+[[test]]
+name = "flap_test_store_star"
+source-dir = "src/tests"
+main = "flap_test_store_star.f90"
+
+[[test]]
+name = "flap_test_casting"
+source-dir = "src/tests"
+main = "flap_test_casting.f90"
+
+[[test]]
+name = "flap_test_messages"
+source-dir = "src/tests"
+main = "flap_test_messages.f90"
+
+[[test]]
+name = "flap_test_help_layout"
+source-dir = "src/tests"
+main = "flap_test_help_layout.f90"

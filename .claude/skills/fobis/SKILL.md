@@ -112,6 +112,7 @@ fobis bench [CASE...] [--compare REF [--feedback]] [--record] [--runs N]  # run 
 fobis gate [--base REF] [--stage S] [--skip S] [--advisory S] [--fail-fast]  # one verdict: every check, first failing fact
 fobis verify|test|case run|assess|bench|diff-run --runner slurm  # runs as Slurm jobs ([scheduler]), builds stay local
 fobis profile CASE [--tool gprof|callgrind] [--top N]  # time/instructions mapped to procedures and source lines
+fobis fpm import|export [--print] [--force]  # fpm.toml <-> fobos (notes for what does not translate)
 fobis query callers|callees|uses|writers|readers|defines|region|device|mpi|interface ARG  # code graph answers
 fobis agents-md [-o CLAUDE.md] [--check] [--print]  # AGENTS.md block of facts (modes, commands, cases, kinds)
 fobis ask "QUESTION"     # answer from the knowledge packs (+ project procedures with -p DIR), with citations
@@ -171,6 +172,10 @@ fobis test --explain     # the same for every failed test (LLM for the first one
   case tolerance (verify comparator: worst index); changed files + procedures listed; `--assess` judges a
   difference against the worktree's own digits (within-uncertainty). Never writes the tree or repo metadata.
   Exit 1 when a case differs or fails.
+- `fpm import`: fpm.toml -> fobos (debug/release modes from FoBiS build profiles, lib mode when a module is named
+  after the package, git deps, path deps into src, mpi/openmp metapackages -> mode keys). `fpm export`: library
+  source-dir from where the modules are, [[test]]/[[executable]] from the programs, git deps, macros. No overwrite
+  without --force.
 - `profile`: gprof (case rebuilt with -pg as a variant; sampled self time + exact calls; MPI ranks -> per-process
   totals + imbalance max/mean; sub-sample runs measure no time, said so) or callgrind (valgrind; instructions per
   function AND source line: inlined procedures found through their lines; routines outside the sources (malloc,
