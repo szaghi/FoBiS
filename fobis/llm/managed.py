@@ -130,7 +130,9 @@ class ManagedProvider:
         if os.path.realpath(state.get("model_path", "")) != os.path.realpath(model_path):
             return None
         self.attached = state
-        self._client = OpenAICompatProvider(state["url"], self.model, api_key=state["api_key"], timeout=self.timeout)
+        self._client = OpenAICompatProvider(
+            state["url"], self.model, api_key=state["api_key"], timeout=self.timeout, length_bounds=True
+        )
         return state
 
     def start(self) -> LlamaServer | None:
@@ -157,7 +159,9 @@ class ManagedProvider:
             self.on_status(f"Starting llama-server with {os.path.basename(model_path)}...")
         server.start()
         self.server = server
-        self._client = OpenAICompatProvider(server.url, self.model, api_key=server.api_key, timeout=self.timeout)
+        self._client = OpenAICompatProvider(
+            server.url, self.model, api_key=server.api_key, timeout=self.timeout, length_bounds=True
+        )
         return server
 
     def chat(

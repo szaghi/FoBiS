@@ -22,7 +22,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from .http import DEFAULT_TIMEOUT, post_stream
-from .provider import Completion, Message
+from .provider import Completion, Message, without_length_bounds
 
 
 class OpenAICompatProvider:
@@ -38,15 +38,26 @@ class OpenAICompatProvider:
         Bearer token; None sends no credentials.
     timeout : float
         Socket timeout in seconds.
+    length_bounds : bool
+        Send the schema's ``maxLength``/``minLength``. Off by default: OpenAI's strict structured outputs may
+        reject them (``maxItems`` is kept); the managed llama-server turns them into its grammar.
     """
 
     name = "openai"
 
-    def __init__(self, url: str, model: str, api_key: str | None = None, timeout: float = DEFAULT_TIMEOUT) -> None:
+    def __init__(
+        self,
+        url: str,
+        model: str,
+        api_key: str | None = None,
+        timeout: float = DEFAULT_TIMEOUT,
+        length_bounds: bool = False,
+    ) -> None:
         self.url = url.rstrip("/")
         self.model = model
         self.api_key = api_key
         self.timeout = timeout
+        self.length_bounds = length_bounds  # send maxLength/minLength (llama-server: yes; unknown server: no)
 
     @property
     def endpoint(self) -> str:
@@ -67,7 +78,11 @@ class OpenAICompatProvider:
         if schema is not None:
             body["response_format"] = {
                 "type": "json_schema",
-                "json_schema": {"name": "response", "schema": schema, "strict": True},
+                "json_schema": {
+                    "name": "response",
+                    "schema": schema if self.length_bounds else without_length_bounds(schema),
+                    "strict": True,
+                },
             }
         if temperature is not None:
             body["temperature"] = temperature

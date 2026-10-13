@@ -39,7 +39,7 @@ from .errors import (
 from .fake import FakeProvider
 from .ollama import OllamaProvider
 from .openai import OpenAICompatProvider
-from .provider import Completion, Message, Provider, messages
+from .provider import Completion, Message, Provider, bounded, messages
 
 __all__ = [
     "PROVIDERS",
@@ -60,6 +60,7 @@ __all__ = [
     "ProviderUnavailableError",
     "RuntimeMissingError",
     "ServerStartError",
+    "bounded",
     "get_provider",
     "messages",
     "resolve_api_key",

@@ -62,7 +62,7 @@ from .explain import (
     _show,
     _specification,
 )
-from .grounding import ContextBundle, Grounded, Source, check_claims, claims_schema, load_prompt
+from .grounding import ANSWER_TOKENS, ContextBundle, Grounded, Source, check_claims, claims_schema, load_prompt
 
 if TYPE_CHECKING:
     from ..kb import KnowledgeBase
@@ -712,6 +712,7 @@ def explain_crash(bundle: ContextBundle, provider: Provider, seed: int = 0) -> G
         schema=claims_schema(bundle.labels, kinds=KINDS),
         temperature=0.0,
         seed=seed,
+        max_tokens=ANSWER_TOKENS,
     )
     return check_claims(completion.text, bundle)
 

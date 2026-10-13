@@ -34,7 +34,7 @@ from ..analysis.regions import call_name, parse_directive
 from ..kb import Chunk, KnowledgeBase, Pack
 from ..lint.engine import display_path
 from ..llm.provider import messages
-from .grounding import ContextBundle, Grounded, Source, check_claims, claims_schema, load_prompt
+from .grounding import ANSWER_TOKENS, ContextBundle, Grounded, Source, check_claims, claims_schema, load_prompt
 
 if TYPE_CHECKING:
     from ..llm.provider import Provider
@@ -132,5 +132,6 @@ def ask(question_bundle: ContextBundle, provider: Provider, seed: int = 0) -> Gr
         schema=claims_schema(question_bundle.labels),
         temperature=0.0,
         seed=seed,
+        max_tokens=ANSWER_TOKENS,
     )
     return check_claims(completion.text, question_bundle)

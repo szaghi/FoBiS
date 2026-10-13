@@ -374,7 +374,8 @@ def test_generate_sends_commit_system_prompt_then_user_prompt(staged):
     sent = provider.calls[0].messages
     assert [m["role"] for m in sent] == ["system", "user"]
     assert sent[0]["content"] == Commit._SYSTEM_PROMPT + Commit._STRUCTURED_NOTE
-    assert provider.calls[0].schema == Commit.COMMIT_SCHEMA
+    assert provider.calls[0].schema == Commit.commit_schema(None)
+    assert provider.calls[0].options["max_tokens"] == Commit.COMMIT_TOKENS
     Commit.generate(provider := FakeProvider(["feat: x"]), 1000, structured=False)
     assert provider.calls[0].messages[0]["content"] == Commit._SYSTEM_PROMPT and provider.calls[0].schema is None
 

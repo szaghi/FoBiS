@@ -28,7 +28,7 @@ import textwrap
 from typing import TYPE_CHECKING
 
 from .llm.errors import ProviderResponseError
-from .llm.provider import messages
+from .llm.provider import bounded, messages
 
 if TYPE_CHECKING:
     from .llm.provider import Provider
@@ -548,6 +548,7 @@ def wrap_message(message: str, width: int = 90, print_w=None) -> str:
 # ── Structured output ──────────────────────────────────────────────────────────
 
 COMMIT_TYPES = ("feat", "fix", "perf", "refactor", "docs", "style", "test", "chore", "ci", "build", "revert")
+COMMIT_TOKENS = 1024  # cap of a structured answer (the schema bounds its fields; a looping model stops here)
 COMMIT_SCHEMA = {
     "type": "object",
     "properties": {
@@ -578,11 +579,13 @@ _STATUS_UNSUPPORTED = (400, 422)  # the provider rejected response_format
 
 
 def commit_schema(scopes: list[str] | None = None) -> dict:
-    """`COMMIT_SCHEMA`, with the scope restricted to *scopes* (plus "" for a cross-cutting change) when given."""
-    if not scopes:
-        return COMMIT_SCHEMA
-    properties = {**COMMIT_SCHEMA["properties"], "scope": {"type": "string", "enum": [*scopes, ""]}}
-    return {**COMMIT_SCHEMA, "properties": properties}
+    """`COMMIT_SCHEMA` with its fields bounded (`fobis.llm.provider.bounded`), the scope restricted to *scopes*
+    (plus "" for a cross-cutting change) when given."""
+    schema = COMMIT_SCHEMA
+    if scopes:
+        properties = {**COMMIT_SCHEMA["properties"], "scope": {"type": "string", "enum": [*scopes, ""]}}
+        schema = {**COMMIT_SCHEMA, "properties": properties}
+    return bounded(schema, limits={"scope": 40, "description": 100, "body": 1500, "footers": 4})
 
 
 def render_message(data: dict, scopes: list[str] | None = None) -> str:
@@ -715,7 +718,10 @@ def generate(
         if use_schema:
             try:
                 raw = provider.chat(
-                    messages(prompt, system=_SYSTEM_PROMPT + _STRUCTURED_NOTE), schema=schema, temperature=0.0
+                    messages(prompt, system=_SYSTEM_PROMPT + _STRUCTURED_NOTE),
+                    schema=schema,
+                    temperature=0.0,
+                    max_tokens=COMMIT_TOKENS,
                 ).text
             except ProviderResponseError as exc:
                 if exc.status not in _STATUS_UNSUPPORTED:

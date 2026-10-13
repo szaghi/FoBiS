@@ -20,6 +20,7 @@ from fobis.llm import (
     OpenAICompatProvider,
     ProviderResponseError,
     ProviderUnavailableError,
+    bounded,
     get_provider,
     messages,
     resolve_api_key,
@@ -159,6 +160,37 @@ def test_openai_provider_payload_options_and_schema():
         "json_schema": {"name": "response", "schema": schema, "strict": True},
     }
     assert (body["temperature"], body["seed"], body["max_tokens"]) == (0.0, 7, 64)
+
+
+def test_bounded_schema():
+    schema = {
+        "type": "object",
+        "properties": {
+            "kind": {"type": "string", "enum": ["a", "b"]},
+            "text": {"type": "string"},
+            "code": {"type": "string"},
+            "tags": {"type": "array", "items": {"type": "string"}},
+            "claims": {"type": "array", "items": {"type": "object", "properties": {"why": {"type": "string"}}}},
+        },
+    }
+    out = bounded(schema, text=50, items=3, free=("code",), limits={"tags": 2})
+    props = out["properties"]
+    assert props["kind"] == {"type": "string", "enum": ["a", "b"]}  # enums untouched
+    assert props["text"]["maxLength"] == 50 and "maxLength" not in props["code"]  # code left free
+    assert props["tags"]["maxItems"] == 2 and props["tags"]["items"]["maxLength"] == 2  # the limit names the field
+    assert props["claims"]["maxItems"] == 3 and props["claims"]["items"]["properties"]["why"]["maxLength"] == 50
+    assert "maxLength" not in schema["properties"]["text"]  # the input is not modified
+
+
+def test_openai_provider_strips_length_bounds_unless_told():
+    schema = bounded({"type": "object", "properties": {"t": {"type": "string"}, "a": {"type": "array"}}})
+    sent = OpenAICompatProvider("http://x", "m").payload(messages("p"), schema=schema)["response_format"]
+    assert sent["json_schema"]["schema"]["properties"] == {
+        "t": {"type": "string"},
+        "a": {"type": "array", "maxItems": 12},
+    }
+    kept = OpenAICompatProvider("http://x", "m", length_bounds=True).payload(messages("p"), schema=schema)
+    assert kept["response_format"]["json_schema"]["schema"] == schema  # llama-server: its grammar enforces them
 
 
 def test_ollama_provider_endpoint_and_minimal_payload():

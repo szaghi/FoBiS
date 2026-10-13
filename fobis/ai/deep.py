@@ -44,8 +44,8 @@ from typing import TYPE_CHECKING
 
 from ..analysis import FileUnits, Unit
 from ..analysis.regions import Region, call_name, regions
-from ..llm.provider import messages
-from .grounding import ContextBundle, Grounded, Source, _parse, check_claims, claims_schema, load_prompt
+from ..llm.provider import bounded, messages
+from .grounding import ANSWER_TOKENS, ContextBundle, Grounded, Source, _parse, check_claims, claims_schema, load_prompt
 
 if TYPE_CHECKING:
     from ..analysis.project import ProjectIndex
@@ -330,7 +330,7 @@ def review_schema(finding_labels: list[str], source_labels: list[str]) -> dict:
             },
         }
 
-    return {
+    schema = {
         "type": "object",
         "properties": {
             "verdicts": array(
@@ -352,6 +352,8 @@ def review_schema(finding_labels: list[str], source_labels: list[str]) -> dict:
         "required": ["verdicts", "concerns"],
         "additionalProperties": False,
     }
+    limits = {"verdicts": max(1, len(finding_labels)), "concerns": 8, "citations": 6}
+    return bounded(schema, limits=limits)
 
 
 @dataclass(frozen=True)
@@ -431,6 +433,7 @@ def review(group: Group, bundle: ContextBundle, provider: Provider, seed: int = 
         schema=review_schema(group.labels, bundle.labels),
         temperature=0.0,
         seed=seed,
+        max_tokens=ANSWER_TOKENS,
     )
     return check_review(completion.text, group, bundle)
 
@@ -442,6 +445,7 @@ def ask_region(bundle: ContextBundle, provider: Provider, seed: int = 0) -> Grou
         schema=claims_schema(bundle.labels),
         temperature=0.0,
         seed=seed,
+        max_tokens=ANSWER_TOKENS,
     )
     return check_claims(completion.text, bundle)
 

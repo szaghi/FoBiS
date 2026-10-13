@@ -82,9 +82,17 @@ When a command needs the model, FoBiS:
    nothing is downloaded implicitly);
 2. starts `llama-server` on `127.0.0.1`, on a free port, with a random API key generated for that process;
 3. waits until the model is loaded (`startup_timeout`);
-4. sends the requests, with JSON-Schema-constrained output where the feature needs structure;
+4. sends the requests, with JSON-Schema-constrained output where the feature needs structure (see below);
 5. stops the server when the command ends, also on Ctrl-C or `kill` (unless it is the persistent server of
    `fobis llm serve`, see below).
+
+**Bounded answers.** Every schema bounds its free text (`maxLength`, e.g. 600 characters for a claim) and its
+lists (`maxItems`), and every request caps the answer's tokens. Without bounds a small model can loop inside one
+string or list until the context is full: measured with `coder-0.5b` on a merge proposal, `"ours", "ours", ...`
+for 2000 tokens and 30 s, then an answer that is not JSON; bounded, the grammar closes the value and the answer is
+valid JSON in 3 s. Code fields (a merged text, a test program) are bounded by the token cap only. With
+`provider = openai`, `maxLength` is not sent (OpenAI's strict structured outputs may reject it); `maxItems` and the
+token cap still apply.
 
 The server log is `~/.fobis/llm/logs/llama-server.log`; when the server fails to start, the error shows its
 last lines.

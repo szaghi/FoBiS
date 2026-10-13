@@ -294,16 +294,17 @@ def test_coverage():
 
 
 def test_parse_program():
-    answer = json.dumps({"program": "program p\nend program p", "notes": "n"})
+    answer = json.dumps({"fortran_source_code": "program p\nend program p", "notes": "n"})
     assert parse_program(answer) == ("program p\nend program p\n", "n")
-    fenced = json.dumps({"program": "```fortran\nprogram p\nend program p\n```", "notes": ""})
+    assert parse_program(json.dumps({"program": "program p\nend program p"}))[0] == "program p\nend program p\n"
+    fenced = json.dumps({"fortran_source_code": "```fortran\nprogram p\nend program p\n```", "notes": ""})
     assert parse_program(fenced)[0] == "program p\nend program p\n"
     assert parse_program("Here:\n```fortran\nprogram q\nend program q\n```")[0] == "program q\nend program q\n"
     assert parse_program("no program") == (None, "")
 
 
 def _answer(program: str) -> str:
-    return json.dumps({"program": program, "notes": "area(2) = 3 * 2**2"})
+    return json.dumps({"fortran_source_code": program, "notes": "area(2) = 3 * 2**2"})
 
 
 def test_generate_sends_errors_and_failures_back(project):
@@ -326,7 +327,7 @@ def test_generate_sends_errors_and_failures_back(project):
     assert feedback[1].startswith("The program stopped with exit status 1.") and "area" in feedback[1]
     assert feedback[2].startswith("The program builds and runs but is not a test yet:\n- the program checks nothing")
     assert [m["role"] for m in provider.calls[3].messages] == ["system", "user", *["assistant", "user"] * 3]
-    assert provider.calls[0].schema["required"] == ["program", "notes"]
+    assert provider.calls[0].schema["required"] == ["fortran_source_code", "notes"]
 
 
 def test_generate_gives_up(project):
@@ -337,6 +338,25 @@ def test_generate_gives_up(project):
         result = generate(target, skel, sandbox, provider, build_bundle(target, skel), retries=1)
     assert result.program is None and result.attempts == 2
     assert result.reason == "it stopped with exit status 1" and "13.0" in result.last
+
+
+def test_generate_rejects_an_answer_that_is_not_a_program(project):
+    """Found with coder-0.5b: the `program` field held only the program's name. FoBiS builds such a file as a
+    library and hides its errors, so it is refused before any build, with a precise instruction."""
+    target = _target()
+    good = GOOD_AREA.format(expected="12.0_rk")
+    provider = FakeProvider([_answer("test_shapes"), _answer(good)])
+    with Sandbox(".", "src") as sandbox:
+        skel, _ = checked_skeleton(target, plan_cases(target, ["area"]), sandbox)
+        result = generate(target, skel, sandbox, provider, build_bundle(target, skel), retries=1)
+    assert result.program == good and result.attempts == 2
+    assert (
+        provider.calls[1]
+        .messages[-1]["content"]
+        .startswith(
+            "The `fortran_source_code` field must hold the WHOLE Fortran program, from `program test_shapes` to `end program"
+        )
+    )
 
 
 def test_bundle(project):

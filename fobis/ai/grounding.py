@@ -34,7 +34,12 @@ import re
 from dataclasses import dataclass, field
 from importlib import resources
 
+from ..llm.provider import bounded
+
 PROMPTS = "prompts"
+ANSWER_TOKENS = 2048
+"""Cap of a cited answer's tokens: with the schema's bounds a valid answer is far shorter; a model that loops
+anyway stops here instead of filling the context."""
 
 
 def load_prompt(name: str) -> str:
@@ -100,7 +105,7 @@ def claims_schema(labels: list[str], kinds: list[str] | None = None) -> dict:
     if kinds:
         claim["properties"] = {"kind": {"type": "string", "enum": list(kinds)}, **claim["properties"]}
         claim["required"] = ["kind", "text", "citations"]
-    return {
+    schema = {
         "type": "object",
         "properties": {
             "insufficient": {"type": "boolean"},
@@ -109,6 +114,7 @@ def claims_schema(labels: list[str], kinds: list[str] | None = None) -> dict:
         "required": ["insufficient", "claims"],
         "additionalProperties": False,
     }
+    return bounded(schema, limits={"citations": 6})
 
 
 @dataclass(frozen=True)

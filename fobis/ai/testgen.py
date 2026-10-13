@@ -47,7 +47,7 @@ from typing import TYPE_CHECKING
 from ..analysis import FileUnits, Unit, read_source
 from ..analysis.units import Decl
 from ..lint.engine import analyse
-from ..llm.provider import messages
+from ..llm.provider import bounded, messages
 from .diagnostics import parse_diagnostics
 from .grounding import ContextBundle, Source, load_prompt
 from .impact import Entity, module_api
@@ -65,6 +65,12 @@ _KEEP_ATTRS = ("allocatable", "pointer", "target")
 _CHECK_RE = re.compile(r"^(?:if\s*\(.*\)\s*)?(?:error\s+stop\b|stop\s+[1-9]|(\w*(?:fail|err)\w*)\s*=\s*\1\s*\+)")
 _FENCE_RE = re.compile(r"```(?:fortran|f90)?\s*\n(.*?)```", re.S | re.I)
 _ERROR_LINE = re.compile(r"line (\d+): (.*)")
+_PROGRAM_RE = re.compile(r"^\s*program\s+\w+", re.I | re.M)
+_BUILD_LINE = re.compile(r"^\W*Building ")
+NOT_A_PROGRAM = (
+    "The `fortran_source_code` field must hold the WHOLE Fortran program, from `program {name}` to `end program {name}`: start "
+    "from the skeleton and complete it. Return the JSON object again."
+)
 _PREFIX_WORDS = ("pure", "impure", "elemental", "recursive", "non_recursive", "module", "simple")
 
 
@@ -565,8 +571,10 @@ class Sandbox:
                         errors.append(error)
                 elif d.tool != "linker":
                     elsewhere = True
-            if not errors and not elsewhere:  # nothing parsed: give the tail
-                errors = output.strip().splitlines()[-TAIL_LINES:]
+            if not errors and not elsewhere:  # nothing parsed: give the tail of the build, not FoBiS's banner
+                lines = output.strip().splitlines()
+                start = next((i for i, line in enumerate(lines) if _BUILD_LINE.match(line)), 0)
+                errors = lines[start:][-TAIL_LINES:]
             return Attempt("build", output, errors, project_errors=elsewhere and not errors)
         if not run:
             return Attempt("ok", output)
@@ -644,15 +652,21 @@ def coverage(program: str, module: str, public: set[str]) -> Coverage:
 # ── the model ──────────────────────────────────────────────────────────────────
 
 
-TESTGEN_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "program": {"type": "string"},
-        "notes": {"type": "string"},
+TESTGEN_SCHEMA = bounded(
+    {
+        "type": "object",
+        "properties": {
+            "fortran_source_code": {"type": "string"},
+            "notes": {"type": "string"},
+        },
+        "required": ["fortran_source_code", "notes"],
+        "additionalProperties": False,
     },
-    "required": ["program", "notes"],
-    "additionalProperties": False,
-}
+    free=("fortran_source_code",),
+)
+"""The field is not called ``program``: measured with coder-0.5b on the same bundle, ``program`` and ``source``
+got the program's NAME back, ``fortran_source_code`` the program."""
+PROGRAM_TOKENS = 6144  # cap of an answer: the program is code, unbounded by the schema
 
 
 def _body(target: Target, unit: Unit) -> str:
@@ -713,8 +727,9 @@ def parse_program(raw: str) -> tuple[str | None, str]:
         data = json.loads(raw)
     except (TypeError, ValueError):
         data = None
-    if isinstance(data, dict) and isinstance(data.get("program"), str):
-        program, notes = data["program"], str(data.get("notes", ""))
+    code = data.get("fortran_source_code", data.get("program")) if isinstance(data, dict) else None
+    if isinstance(code, str):
+        program, notes = code, str(data.get("notes", ""))
     else:
         match = _FENCE_RE.search(raw or "")
         if not match:
@@ -783,7 +798,7 @@ def generate(
     for number in range(retries + 1):
         if on_status:
             on_status(f"[llm] {target.name}: attempt {number + 1}/{retries + 1}")
-        answer = provider.chat(list(chat), schema=TESTGEN_SCHEMA, temperature=0.0, seed=seed)
+        answer = provider.chat(list(chat), schema=TESTGEN_SCHEMA, temperature=0.0, seed=seed, max_tokens=PROGRAM_TOKENS)
         result.attempts = number + 1
         chat.append({"role": "assistant", "content": answer.text})
         program, notes = parse_program(answer.text)
@@ -792,6 +807,10 @@ def generate(
             chat.append({"role": "user", "content": "Answer with the JSON object holding the whole program."})
             continue
         result.last, result.notes = program, notes
+        if not _PROGRAM_RE.search(program):  # FoBiS treats such a file as a library and hides its errors
+            result.reason = "the answer is not a program (no program statement)"
+            chat.append({"role": "user", "content": NOT_A_PROGRAM.format(name=skel.program)})
+            continue
         attempt = sandbox.attempt(skel.program, program)
         result.output = attempt.output
         if attempt.project_errors:

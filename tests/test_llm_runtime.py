@@ -432,6 +432,7 @@ def test_managed_provider_reuses_one_server_and_closes_it(tmp_path, stub):
         pid = provider.server.process.pid
         second = provider.chat(messages("two"), schema={"type": "object"})
         assert provider.server.process.pid == pid
+        assert provider._client.length_bounds  # llama-server's grammar enforces maxLength: keep it
     assert (first.text, first.provider) == ("ready one", "managed")
     assert json.loads(second.text)["description"] == "close the unit"
     assert status == ["Starting llama-server with local.gguf..."]

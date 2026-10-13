@@ -5,7 +5,7 @@ tested procedures and, sometimes, an existing test of the project.
 
 Answer with one JSON object:
 
-- `program`: the whole test program, starting from the skeleton.
+- `fortran_source_code`: the whole test program, from `program` to `end program`, starting from the skeleton.
 - `notes`: one or two sentences: what the checks verify and how the expected values were obtained.
 
 How to complete the skeleton:

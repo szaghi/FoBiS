@@ -19,12 +19,63 @@
 
 from __future__ import annotations
 
+import copy
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Protocol
 
 Message = dict[str, str]
 """A chat message: ``{"role": "system" | "user" | "assistant", "content": str}``."""
+
+MAX_TEXT = 600
+"""Default ``maxLength`` of a free-text field of an answer (a claim, a reason, a rationale)."""
+MAX_ITEMS = 12
+"""Default ``maxItems`` of an array of an answer."""
+LENGTH_KEYWORDS = ("maxLength", "minLength")
+
+
+def bounded(
+    schema: dict,
+    text: int = MAX_TEXT,
+    items: int = MAX_ITEMS,
+    free: tuple[str, ...] = (),
+    limits: dict[str, int] | None = None,
+) -> dict:
+    """*schema* with every free-text string bounded by ``maxLength`` *text* and every array by ``maxItems`` *items*.
+
+    A grammar-constrained server (llama-server, Ollama) otherwise lets a small model loop inside an unbounded
+    string or array until the context is full (measured: coder-0.5b repeating ``"ours", "ours", ...``): a bound
+    makes the grammar close the value, so the answer stays valid JSON. Enum strings are left alone; *free* names
+    properties left unbounded (code: a merged text, a test program); *limits* overrides the bound of a property
+    by name (``maxLength`` for a string, ``maxItems`` for an array).
+    """
+    limits = limits or {}
+    result = copy.deepcopy(schema)
+
+    def walk(node: dict, name: str = "") -> None:
+        if not isinstance(node, dict):
+            return
+        if name not in free:
+            if node.get("type") == "string" and "enum" not in node:
+                node["maxLength"] = limits.get(name, text)
+            elif node.get("type") == "array":
+                node["maxItems"] = limits.get(name, items)
+        for key, child in node.get("properties", {}).items():
+            walk(child, key)
+        if isinstance(node.get("items"), dict):
+            walk(node["items"], name)
+
+    walk(result)
+    return result
+
+
+def without_length_bounds(schema: dict) -> dict:
+    """*schema* without ``maxLength``/``minLength``: OpenAI's strict structured outputs may reject them."""
+    if isinstance(schema, dict):
+        return {k: without_length_bounds(v) for k, v in schema.items() if k not in LENGTH_KEYWORDS}
+    if isinstance(schema, list):
+        return [without_length_bounds(v) for v in schema]
+    return schema
 
 
 def messages(prompt: str, system: str | None = None) -> list[Message]:

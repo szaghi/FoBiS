@@ -52,11 +52,11 @@ import tempfile
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from ..llm.provider import messages
+from ..llm.provider import bounded, messages
 from .change import FORTRAN_EXTENSIONS, Git, _git
 from .diagnostics import Diagnostic, parse_diagnostics
 from .explain import missing_module_name
-from .grounding import ContextBundle, Source, _parse, load_prompt
+from .grounding import ANSWER_TOKENS, ContextBundle, Source, _parse, load_prompt
 
 if TYPE_CHECKING:
     from ..llm.provider import Provider
@@ -553,7 +553,7 @@ def pre_pass(cf: ConflictFile, hunk: Hunk) -> Resolution | None:
 def merge_schema(labels: list[str]) -> dict:
     """JSON Schema of a proposal; citations are an enum of the bundle's labels."""
     citation = {"type": "string", "enum": labels} if labels else {"type": "string"}
-    return {
+    schema = {
         "type": "object",
         "properties": {
             "strategy": {"type": "string", "enum": STRATEGIES},
@@ -566,6 +566,7 @@ def merge_schema(labels: list[str]) -> dict:
         "required": ["strategy", "merged_text", "rationale", "confidence", "risks", "citations"],
         "additionalProperties": False,
     }
+    return bounded(schema, free=("merged_text",), limits={"risks": 6, "citations": 6})
 
 
 def procedures_touched(cf: ConflictFile, hunk: Hunk) -> list[str]:
@@ -670,6 +671,7 @@ def propose(
         schema=merge_schema(bundle.labels),
         temperature=0.0,
         seed=0,
+        max_tokens=ANSWER_TOKENS * 2,  # merged_text is code, unbounded by the schema
     )
     return check_proposal(completion.text, hunk, bundle)
 

@@ -43,7 +43,7 @@ from ..analysis import FileUnits, Unit, read_source
 from ..lint.engine import analyse
 from ..llm.provider import messages
 from .change import FORTRAN_EXTENSIONS, WORKTREE, Git, Revision, staged_changes
-from .grounding import ContextBundle, Grounded, Source, check_claims, claims_schema, load_prompt
+from .grounding import ANSWER_TOKENS, ContextBundle, Grounded, Source, check_claims, claims_schema, load_prompt
 
 if TYPE_CHECKING:
     from ..analysis.lexer import Statement
@@ -533,5 +533,6 @@ def impact_summary(bundle: ContextBundle, provider: Provider, seed: int = 0) -> 
         schema=claims_schema(bundle.labels, kinds=KINDS),
         temperature=0.0,
         seed=seed,
+        max_tokens=ANSWER_TOKENS,
     )
     return check_claims(completion.text, bundle)

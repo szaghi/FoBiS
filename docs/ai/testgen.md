@@ -124,7 +124,9 @@ See the [`testgen` reference](/reference/testgen).
 
 - **Small models are weak at Fortran.** The loop guarantees that what is kept builds, runs and checks; it does not
   guarantee that the checks are meaningful. Use the largest model you can (see [Local models](/ai/models)) and
-  read the result.
+  read the result. Measured with `coder-0.5b` on CPU, two procedures of a small module: four attempts in 24 s,
+  nothing accepted. The model returned the skeleton with a broken string literal and could not fix it from the
+  compiler's message.
 - The build must work in the scratch copy: when the project does not build with the mode's compiler (missing
   compiler or MPI wrapper, a dependency not fetched), `testgen` says so and stops.
 - Procedures defined in submodules, operators and assignments, `class(*)` and assumed-rank arguments, and

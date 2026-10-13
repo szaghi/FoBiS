@@ -180,7 +180,9 @@ def test_only_docs(repo):
 def test_commit_schema_and_render_keep_candidate_scopes():
     schema = Commit.commit_schema(["lib/fnl", "acc"])
     assert schema["properties"]["scope"]["enum"] == ["lib/fnl", "acc", ""]
-    assert Commit.commit_schema([]) is Commit.COMMIT_SCHEMA
+    plain = Commit.commit_schema([])
+    assert plain["properties"]["scope"] == {"type": "string", "maxLength": 40}  # no candidates: any scope, bounded
+    assert (plain["properties"]["body"]["maxLength"], plain["properties"]["footers"]["maxItems"]) == (1500, 4)
     data = {"type": "perf", "scope": "lib/fnl", "breaking": False, "description": "x", "body": "", "footers": []}
     assert Commit.render_message(data, ["lib/fnl"]).startswith("perf(lib/fnl): x")
     assert Commit.render_message(data).startswith("perf(fnl): x")  # not a candidate: normalised as before
@@ -205,7 +207,9 @@ def test_generate_sends_the_facts_and_the_scope_enum(repo):
     assert "\x1b[" not in prompt  # color.ui=always must not leak escape codes into the stat and diff
     plain = FakeProvider([json.dumps(answer)])
     Commit.generate(plain, 10000, facts=False)
-    assert plain.calls[0].schema is Commit.COMMIT_SCHEMA and "## Facts" not in plain.calls[0].messages[1]["content"]
+    assert (
+        plain.calls[0].schema == Commit.commit_schema(None) and "## Facts" not in plain.calls[0].messages[1]["content"]
+    )
 
 
 def test_cli_show_facts(repo, capsys):
