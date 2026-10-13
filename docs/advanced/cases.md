@@ -66,7 +66,7 @@ reminds you when git does not ignore it.
 | `regex` | `SOURCE PATTERN [first\|last\|all]` | The first group of a Python regular expression in `stdout`, `stderr` or a file; `all` by default |
 | `column` | `PATH N [first\|last\|all\|ROW]` | Column N (from 1) of a text file; lines without a number there are skipped |
 | `json` | `PATH KEYPATH` | A value or an array of a JSON file: `$.solver.res[1]` |
-| `hdf5` | `PATH DATASET` | An HDF5 dataset, through h5py when importable, else the `h5dump` tool |
+| `hdf5` | `PATH DATASET` | An HDF5 dataset, through h5py when importable, else the `h5dump` tool; the shape is HDF5's (C order: a Fortran `rho(3,2)` is `[2, 3]`), the values in memory order |
 | `binary` | `PATH KIND [SHAPE] [record N\|stream]` | `real32`, `real64`, `int32`, `int64` values of a Fortran unformatted sequential file (record N, default 1) or a stream file; `[nx,ny]` records the shape |
 | `exit` | | The exit status |
 
@@ -111,7 +111,9 @@ Every result carries what produced it:
 | `environment` | Loaded environment modules (`$LOADEDMODULES`), `OMP_NUM_THREADS`, the MPI launcher's version for cases with ranks. |
 | `machine` | Host, OS, CPU model and cores, GPUs (`nvidia-smi -L`), Python. |
 
-`fobis provenance [--mode M] [--json]` prints it for the current state. Comparing two provenances explains a
+`fobis provenance [--mode M] [--json]` prints it for the current state. Toolchains loaded with environment modules
+(`module load openmpi/...`) are recorded, and the compiler is the mode's (`fc = mpif90` gives the wrapped
+compiler's version): run FoBiS in the same environment as your builds. Comparing two provenances explains a
 changed result: a different compiler version accounts for a last-digit drift, a dirty tree for anything.
 
 ## For agents

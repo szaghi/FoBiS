@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import shutil
 import subprocess
 
 import pytest
@@ -183,17 +184,31 @@ def test_binary_probes_on_a_file_written_by_gfortran(tmp_path):
     assert errors["not_whole"] == "not_whole: 4 bytes is not a whole number of real64 values"
 
 
-def test_hdf5_probe(tmp_path, monkeypatch):
-    # SYNTHETIC text in the documented layout of `h5dump -d DATASET -y -w 0` (no HDF5 tool on the test machine)
-    text = 'HDF5 "sol.h5" {\nDATASET "/fields/rho" {\n   DATATYPE  H5T_IEEE_F64LE\n'
-    text += "   DATASPACE  SIMPLE { ( 2, 3 ) / ( 2, 3 ) }\n   DATA {\n   1, 2.5, 3,\n   4, 5, 6e-1\n   }\n}\n}\n"
-    quantity = parse_h5dump("rho", text)
+FIXTURES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "verification")
+
+
+def test_hdf5_probe_parses_genuine_h5dump_output(tmp_path, monkeypatch):
+    """`h5dump-rho.txt` is GENUINE output of `h5dump -d /fields/rho -y -w 0 -m %.17g sol.h5` (h5dump 2.0.0 from the
+    openmpi/5.0.7-gnu14.2.0 module, HDF5 install 1.14.6); `sol.h5` was written by `write_sol_h5.f90` (rho(3,2)):
+    HDF5 reports the C-order shape (2, 3), the values in memory (Fortran column-major) order."""
+    with open(os.path.join(FIXTURES, "h5dump-rho.txt")) as handle:
+        quantity = parse_h5dump("rho", handle.read())
     assert (quantity.values, quantity.shape) == ([1.0, 2.5, 3.0, 4.0, 5.0, 0.6], [2, 3])
     (tmp_path / "sol.h5").write_bytes(b"\x89HDF")
     monkeypatch.setitem(__import__("sys").modules, "h5py", None)  # import h5py fails
     monkeypatch.setattr("shutil.which", lambda name: None)
     _, errors = extract(parse_probes("rho : hdf5 sol.h5 /fields/rho"), RunOutput(str(tmp_path)))
     assert errors == {"rho": "rho: reading HDF5 needs h5py or the h5dump tool"}
+
+
+@pytest.mark.skipif(shutil.which("h5dump") is None, reason="h5dump not on PATH (e.g. module load an HDF5 toolchain)")
+def test_hdf5_probe_through_h5dump(monkeypatch):
+    monkeypatch.setitem(__import__("sys").modules, "h5py", None)
+    quantities, errors = extract(
+        parse_probes("rho : hdf5 sol.h5 /fields/rho\nnope : hdf5 sol.h5 /nope"), RunOutput(FIXTURES)
+    )
+    assert [(q.values, q.shape) for q in quantities] == [([1.0, 2.5, 3.0, 4.0, 5.0, 0.6], [2, 3])]
+    assert errors["nope"].startswith("nope: h5dump:")
 
 
 # ── cases ──────────────────────────────────────────────────────────────────────
@@ -256,6 +271,39 @@ def test_runner_on_real_programs(project):
     assert script.quantity("answer").values == [42.0]
     data = json.loads(json.dumps(result.to_dict()))
     assert data["quantities"]["x"] == {"values": [1.0, 0.5, 1 / 3, 0.25], "shape": [4]}
+
+
+MPI_PROGRAM = """\
+program ranks
+use mpi_f08
+implicit none
+integer :: rank, size, total
+call mpi_init()
+call mpi_comm_rank(mpi_comm_world, rank)
+call mpi_comm_size(mpi_comm_world, size)
+call mpi_reduce(rank + 1, total, 1, mpi_integer, mpi_sum, 0, mpi_comm_world)
+if (rank == 0) print '(a,i0)', 'sum = ', total
+call mpi_finalize()
+end program ranks
+"""
+
+
+@pytest.mark.skipif(
+    shutil.which("mpirun") is None or shutil.which("mpif90") is None,
+    reason="MPI not on PATH (e.g. module load an openmpi or nvhpc toolchain)",
+)
+def test_runner_with_a_real_mpi_launcher(tmp_path, monkeypatch):
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "ranks.f90").write_text(MPI_PROGRAM)
+    (tmp_path / "fobos").write_text(
+        "[modes]\nmodes = mpi\n\n[mpi]\ncompiler = gnu\nfc = mpif90\nsrc = ./src/\nbuild_dir = ./build/\n\n"
+        "[case:ranks]\ntarget = src/ranks.f90\nranks = 3\ntimeout = 120\nquantities = stdout\n"
+    )
+    monkeypatch.chdir(tmp_path)
+    result = LocalRunner(".").run(_cases(tmp_path)["ranks"])
+    assert result.status == "ok", result.to_dict()
+    assert result.command[:3] == ["mpirun", "-np", "3"] and result.quantity("sum").values == [6.0]
+    assert result.provenance["environment"]["mpi"].startswith("mpirun")
 
 
 # ── provenance ─────────────────────────────────────────────────────────────────

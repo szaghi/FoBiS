@@ -1,0 +1,14 @@
+HDF5 "sol.h5" {
+DATASET "/fields/rho" {
+   DATATYPE  H5T_IEEE_F64LE
+   DATASPACE  SIMPLE { ( 2, 3 ) / ( 2, 3 ) }
+   DATA {
+      1,
+      2.5,
+      3,
+      4,
+      5,
+      0.59999999999999998
+   }
+}
+}
