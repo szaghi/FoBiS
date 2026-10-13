@@ -39,6 +39,7 @@ TOOLS = [
     "verify",
     "matrix",
     "assess",
+    "diff_run",
     "clean",
     "fetch",
 ]
@@ -108,6 +109,7 @@ def test_tools_list_has_schemas_and_annotations(server):
         "verify",
         "matrix",
         "assess",
+        "diff_run",
         "clean",
         "fetch",
     }
@@ -157,6 +159,8 @@ def test_command_lines(server, calls):
     _call(server, "build", {"shadow": "strict"})
     _call(server, "matrix", {"modes": ["a", "b"], "shadows": ["none", "sanitize"], "verify": True, "recheck": True})
     _call(server, "assess", {"case": "sod", "families": ["rounding", "parallel"], "samples": 8, "jobs": 2})
+    _call(server, "diff_run", {"ref": "v1.0", "names": ["sod"], "assess": True})
+    _call(server, "diff_run")
     assert calls == [
         [
             "lint",
@@ -207,6 +211,8 @@ def test_command_lines(server, calls):
         ["build", "--json", "--shadow", "strict"],
         ["matrix", "--json", "--modes", "a,b", "--shadows", "none,sanitize", "--verify", "--recheck"],
         ["assess", "sod", "--json", "--families", "rounding,parallel", "--samples", "8", "--jobs", "2"],
+        ["diff-run", "v1.0", "sod", "--json", "--assess"],
+        ["diff-run", "HEAD", "--json"],
     ]
 
 

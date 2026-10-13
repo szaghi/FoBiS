@@ -126,6 +126,8 @@ def run_fobis(fake_args=None):
             run_fobis_matrix(configuration)
         if configuration.cliargs.which == "assess":
             run_fobis_assess(configuration)
+        if configuration.cliargs.which == "diff_run":
+            run_fobis_diff_run(configuration)
         if configuration.cliargs.which == "test":
             run_fobis_test(configuration)
         if configuration.cliargs.which == "introspect":
@@ -2363,6 +2365,183 @@ def run_fobis_matrix(configuration):
         sys.exit(1)
 
 
+def _mode_environments(settings, fobos_args, deps_dir, root="."):
+    """mode -> the environment of its ``[verification] setup`` line (by mode, compiler or family; None without
+    one), memoised; a failing setup raises RuntimeError."""
+    from .verification import LocalRunner
+    from .verification.matrix import setup_environment
+    from .verification.shadow import family
+
+    environments: dict = {}
+
+    def environment(mode):
+        if mode not in environments:
+            plain = LocalRunner(root, fobos_args, settings.runs_dir, settings.launcher, deps_dir)
+            compiler = plain.introspect(mode).get("compiler", {}).get("name", "") if mode else ""
+            command = next(
+                (settings.setup[k] for k in (mode, compiler, family(compiler) or "") if k and k in settings.setup), ""
+            )
+            environments[mode] = setup_environment(command) if command else None
+        return environments[mode]
+
+    return environment
+
+
+def run_fobis_diff_run(configuration):
+    """
+    Run FoBiS in diff-run mode: the cases on a revision and on the working tree, built and run in scratch copies,
+    their quantities compared.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import json
+    import tempfile
+
+    from .Ecosystem import copy_working_copy
+    from .verification import CaseError, LocalRunner, load_cases, load_settings
+    from .verification.assess import AssessError, assess, load_spec
+    from .verification.diffrun import (
+        DiffRunError,
+        changed_files,
+        compare,
+        copy_dependencies,
+        export_revision,
+        judge,
+        resolve,
+    )
+    from .verification.provenance import git_state
+    from .verification.verify import render_text
+
+    cliargs = configuration.cliargs
+    fobos = configuration.fobos
+    as_json = getattr(cliargs, "json_output", False)
+    ref = cliargs.diff_ref or "HEAD"
+    try:
+        cases = load_cases(fobos)
+        settings = load_settings(fobos)
+        commit = resolve(".", ref)
+    except (CaseError, DiffRunError) as exc:
+        configuration.print_r(f"Error: {exc}")
+        sys.exit(2)
+    label = commit[:12] if commit.startswith(ref) else ref  # a full hash given: its short form
+    wanted = cliargs.diff_names or list(cases)
+    unknown = [n for n in wanted if n not in cases]
+    if unknown or not wanted:
+        what = f"unknown case(s) {', '.join(unknown)}" if unknown else "no case declared"
+        configuration.print_r(f"Error: {what} (declared: {', '.join(cases) or 'none'})")
+        sys.exit(2)
+    fobos_args = ["--fobos", cliargs.fobos] if cliargs.fobos else []
+    if cliargs.fobos_case_insensitive:
+        fobos_args.append("--fobos-case-insensitive")
+    deps_dir = fobos.get_deps_dir() if fobos.fobos else ".fobis_deps"
+    environment = _mode_environments(settings, fobos_args, deps_dir)
+    scratch = tempfile.mkdtemp(prefix="fobis-diff-run-")
+    old_root, new_root = os.path.join(scratch, "revision"), os.path.join(scratch, "worktree")
+    notes: list[str] = []
+
+    def say(line):
+        print(f"diff-run: {line}", file=sys.stderr, flush=True)
+
+    try:
+        say(f"extracting {ref} ({commit[:12]}) and copying the working tree to {scratch}")
+        export_revision(".", commit, old_root, notes)
+        copy_working_copy(".", new_root)
+        if copy_dependencies(".", deps_dir, old_root) and copy_dependencies(".", deps_dir, new_root):
+            notes.append(f"both sides use the working copy's fetched dependencies ({deps_dir})")
+        changed = changed_files(".", commit)
+        repository = git_state(".")
+        diffs = []
+        for name in wanted:
+            case = cases[name]
+            mode = cliargs.diff_mode or case.mode
+            env = environment(mode)
+            sides = {}
+            for side, root in (("old", old_root), ("new", new_root)):
+                say(f"case {name}: build and run on the {'revision' if side == 'old' else 'working tree'}")
+                runner = LocalRunner(root, fobos_args, settings.runs_dir, settings.launcher, deps_dir, env=env)
+                sides[side] = runner.run(case, variant=f"diff-run-{side}", mode=mode)
+            sides["old"].provenance["git"] = {"commit": commit, "ref": ref}
+            sides["new"].provenance["git"] = repository
+            case_diff = compare(sides["new"], sides["old"], case.tolerance)
+            changes = case_diff.verification.provenance_changes  # the code change is listed above, file by file
+            case_diff.verification.provenance_changes = [c for c in changes if not c.startswith("git.")]
+            if cliargs.diff_assess and case_diff.verification.status == "fail":
+                say(f"case {name}: assessing the working tree's own spread")
+                spec = load_spec(fobos, name)
+                families = [f for f in spec.families if f not in ("inputs", "refinement")] or ["rounding"]
+
+                def runner_for(build, mode_, root=new_root):
+                    return LocalRunner(
+                        root,
+                        fobos_args,
+                        settings.runs_dir,
+                        settings.launcher,
+                        deps_dir,
+                        env=environment(mode_),
+                        variant=build,
+                    )
+
+                assessment = assess(spec, case, families, runner_for, root=new_root, mode=mode)
+                digits = {}
+                for family in assessment.families:
+                    for quantity, data in family.quantities.items():
+                        if data.get("digits") is not None:
+                            digits[quantity] = min(digits.get(quantity, float("inf")), float(data["digits"]))
+                judge(case_diff, digits)
+            diffs.append(case_diff)
+    except (DiffRunError, AssessError, RuntimeError, OSError) as exc:
+        configuration.print_r(f"Error: {exc}")
+        shutil.rmtree(scratch, ignore_errors=True)
+        sys.exit(2)
+    if not cliargs.diff_keep:
+        shutil.rmtree(scratch, ignore_errors=True)
+    ok = all(d.ok for d in diffs)
+    if as_json:
+        data = {
+            "ref": ref,
+            "commit": commit,
+            "status": "equivalent" if ok else "differs",
+            "changed": [c.to_dict() for c in changed],
+            "notes": notes,
+            "cases": [d.to_dict() for d in diffs],
+        }
+        if cliargs.diff_keep:
+            data["scratch"] = scratch
+        print(json.dumps(data, indent=2))
+    else:
+        shown = label if label == commit[:12] else f"{label} ({commit[:12]})"
+        lines = [f"diff-run: {shown} vs the working tree, {len(changed)} file(s) changed"]
+        for item in changed[:20]:
+            procedures = f": {', '.join(item.procedures[:6])}" if item.procedures else ""
+            lines.append(f"  {item.status} {item.path}{procedures}")
+        if len(changed) > 20:
+            lines.append(f"  ... {len(changed) - 20} more")
+        lines += [f"note: {note}" for note in notes]
+        for d in diffs:
+            for name, item in d.spread.items():
+                if "within" in item:
+                    verdict = "within" if item["within"] else "beyond"
+                    digits = item["digits"]
+                    shared = "every digit" if digits == "inf" else f"{digits:.1f} digit(s)"
+                    d.verification.note = (d.verification.note + "; " if d.verification.note else "") + (
+                        f"{name}: {verdict} the working tree's own spread ({shared} shared by its variants)"
+                    )
+        statuses = {"pass": "equivalent", "fail": "differs", "run-failed": "new-failed"}
+        for d in diffs:
+            if d.status == "within-uncertainty":
+                d.verification.status = "within-uncertainty"
+        report = render_text([d.verification for d in diffs], reference=label, statuses=statuses).splitlines()
+        report[-1] = f"{sum(d.ok for d in diffs)} of {len(diffs)} case(s) equivalent."
+        lines += ["", *report]
+        if cliargs.diff_keep:
+            lines.append(f"scratch copies kept in {scratch}")
+        (configuration.print_b if ok else configuration.print_r)("\n".join(lines))
+    if not ok:
+        sys.exit(1)
+
+
 def run_fobis_assess(configuration):
     """
     Run FoBiS in assess mode: ensembles of variants of a case and what their spread says about its quantities.
@@ -2375,8 +2554,6 @@ def run_fobis_assess(configuration):
 
     from .verification import CaseError, LocalRunner, load_cases, load_settings
     from .verification.assess import FAMILIES, AssessError, assess, load_spec, render_text
-    from .verification.matrix import setup_environment
-    from .verification.shadow import family
 
     cliargs = configuration.cliargs
     fobos = configuration.fobos
@@ -2402,18 +2579,7 @@ def run_fobis_assess(configuration):
     if cliargs.fobos_case_insensitive:
         fobos_args.append("--fobos-case-insensitive")
     deps_dir = fobos.get_deps_dir() if fobos.fobos else ".fobis_deps"
-    environments: dict[str, dict | None] = {}
-
-    def environment(mode):
-        """The environment of *mode*: its [verification] setup line (by mode, compiler or family)."""
-        if mode not in environments:
-            plain = LocalRunner(".", fobos_args, settings.runs_dir, settings.launcher, deps_dir)
-            compiler = plain.introspect(mode).get("compiler", {}).get("name", "") if mode else ""
-            command = next(
-                (settings.setup[k] for k in (mode, compiler, family(compiler) or "") if k and k in settings.setup), ""
-            )
-            environments[mode] = setup_environment(command) if command else None
-        return environments[mode]
+    environment = _mode_environments(settings, fobos_args, deps_dir)
 
     def runner_for(build, mode):
         return LocalRunner(

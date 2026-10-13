@@ -352,6 +352,16 @@ class Server:
                 args += [f"--{key}", str(int(arguments[key]))]
         return self._json(args)
 
+    def _diff_run(self, arguments: dict) -> Reply:
+        args = [
+            "diff-run",
+            arguments.get("ref") or "HEAD",
+            *arguments.get("names", []),
+            "--json",
+            *self._mode(arguments),
+        ]
+        return self._json(args + (["--assess"] if arguments.get("assess") else []))
+
     def _matrix(self, arguments: dict) -> Reply:
         args = ["matrix", "--json"]
         for key in ("modes", "shadows", "compilers"):
@@ -669,6 +679,25 @@ class Server:
                     required=("case",),
                 ),
                 self._assess,
+                read_only=False,
+            ),
+            Tool(
+                "diff_run",
+                "Compare results with a revision",
+                "Build and run the declared cases on a git revision (default HEAD) and on the working tree, both in "
+                "scratch copies (the project and its repository are not written), and compare every quantity with "
+                "the case's tolerance: equivalent, or what differs, by how much and where, plus the files and "
+                "procedures changed. With assess, a difference is judged against the working tree's own numerical "
+                "spread. The oracle of a refactoring: equivalence shown by results.",
+                _schema(
+                    {
+                        "ref": {**_STR, "description": "revision to compare with (default HEAD)"},
+                        "names": {**_STR_LIST, "description": "cases (default: all)"},
+                        "mode": _MODE,
+                        "assess": {**_BOOL, "description": "judge differences against the numerical spread"},
+                    }
+                ),
+                self._diff_run,
                 read_only=False,
             ),
             Tool(

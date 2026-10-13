@@ -385,11 +385,18 @@ def _number(value: float) -> str:
     return f"{value:.6g}" if math.isfinite(value) else str(json_number(value))
 
 
-def render_text(outcomes: list[Verification]) -> str:
-    """The human report."""
+def render_text(
+    outcomes: list[Verification],
+    reference: str = "reference",
+    statuses: dict[str, str] | None = None,
+    summary: str = "verified",
+) -> str:
+    """The human report; *reference* names the other side (``diff-run``: the revision), *statuses* renames the
+    statuses (``pass`` -> ``equivalent``)."""
     lines = []
     for outcome in outcomes:
-        lines.append(f"{outcome.case}: {outcome.status.upper()}" + (f" ({outcome.note})" if outcome.note else ""))
+        status = (statuses or {}).get(outcome.status, outcome.status)
+        lines.append(f"{outcome.case}: {status.upper()}" + (f" ({outcome.note})" if outcome.note else ""))
         for c in outcome.comparisons:
             if c.status == "pass" and c.max_abs == 0.0 and not c.out_of_tolerance:
                 lines.append(f"  {c.name}: equal ({c.count} value(s), {c.tolerance.text()})")
@@ -400,10 +407,10 @@ def render_text(outcomes: list[Verification]) -> str:
                     f"max rel {_number(c.max_rel)}, L2 {_number(c.l2)}"
                 )
                 if c.worst and c.count == 1:
-                    lines.append(f"    got {c.worst['value']!r}, reference {c.worst['reference']!r}")
+                    lines.append(f"    got {c.worst['value']!r}, {reference} {c.worst['reference']!r}")
                 elif c.worst:
                     lines.append(
-                        f"    worst at {c.worst['index']}: {c.worst['value']!r} vs reference {c.worst['reference']!r}"
+                        f"    worst at {c.worst['index']}: {c.worst['value']!r} vs {reference} {c.worst['reference']!r}"
                     )
                 lines += [f"    non-finite: {item}" for item in c.nonfinite[:5]]
             else:
@@ -412,7 +419,8 @@ def render_text(outcomes: list[Verification]) -> str:
             detail = f"max abs {_number(c.max_abs)}" if c.status == "fail" else c.status
             lines.append(f"  {c.name}: differs between repeated runs ({detail})")
         if outcome.provenance_changes:
-            lines.append("  changed since the reference" + (" (results unaffected):" if outcome.ok else ":"))
+            since = "the reference" if reference == "reference" else reference
+            lines.append(f"  changed since {since}" + (" (results unaffected):" if outcome.ok else ":"))
             lines += [f"    {change}" for change in outcome.provenance_changes[:12]]
         if outcome.status == "run-failed" and outcome.run is not None:
             run = outcome.run
@@ -422,5 +430,5 @@ def render_text(outcomes: list[Verification]) -> str:
                     lines += [f"    build: {e}" for e in run.build.get("errors", [])[:3]]
             lines += [f"    {line}" for line in run.stderr.strip().splitlines()[-8:]]
     passed = sum(o.ok for o in outcomes)
-    lines.append(f"\n{passed} of {len(outcomes)} case(s) verified.")
+    lines.append(f"\n{passed} of {len(outcomes)} case(s) {summary}.")
     return "\n".join(lines)

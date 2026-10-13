@@ -66,11 +66,12 @@ Tools that write:
 | `verify` | [Cases compared with their references](/advanced/verify): per quantity pass/fail, errors, worst point, provenance changes; `repeat` checks non-determinism; never writes references | `names`, `mode`, `shadow`, `repeat` |
 | `matrix` | [Every mode x shadow](/advanced/matrix) built, tested and verified: per cell status, compiler version, first problem, failed tests with crash facts, rechecks; quantities that disagree between cells. Slow: one full build per cell | `modes`, `shadows`, `compilers`, `verify`, `recheck` |
 | `assess` | [Numerical error and uncertainty](/advanced/assess) from ensembles: digits per family, non-determinism, elasticities or correlations, observed order and extrapolation, budgets. Slow: one build per variant | `case`, `families`, `mode`, `samples`, `jobs` |
+| `diff_run` | [The cases on a revision and on the working tree](/advanced/diff-run), in scratch copies: equivalent, or what differs and where, the procedures changed; `assess` judges a difference against the numerical spread | `ref`, `names`, `mode`, `assess` |
 | `clean` | The removed objects and module files | `mode` |
 | `fetch` | The dependencies cloned or updated (network) | `update` |
 
 Every tool declares the protocol's behaviour **annotations**: `readOnlyHint` (false only for `build`, `test`,
-`case_run`, `verify`, `matrix`, `assess`, `clean`, `fetch`), `destructiveHint` (`clean`), `idempotentHint` (false for `fetch`) and `openWorldHint`
+`case_run`, `verify`, `matrix`, `assess`, `diff_run`, `clean`, `fetch`), `destructiveHint` (`clean`), `idempotentHint` (false for `fetch`) and `openWorldHint`
 (`fetch` and `ecosystem_status`, which reach the network). Clients use them to decide what to ask the user before
 a call; with Claude Code you approve each call unless you allow the tool.
 

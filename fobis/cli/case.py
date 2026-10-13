@@ -226,3 +226,41 @@ def cmd_assess(
         verbose=False,
         json_output=json_output,
     )
+
+
+@app.command("diff-run")
+def cmd_diff_run(
+    ctx: typer.Context,
+    ref: Annotated[str, typer.Argument(help="The revision to compare with (commit, tag, branch)")] = "HEAD",
+    names: Annotated[list[str] | None, typer.Argument(help="Cases to compare [default: all]")] = None,
+    fobos: FobosOpt = None,
+    fobos_case_insensitive: FciOpt = False,
+    mode: ModeOpt = None,
+    assess: Annotated[
+        bool,
+        typer.Option(
+            "--assess", help="Judge a difference against the working tree's own spread (fobis assess families)."
+        ),
+    ] = False,
+    keep: Annotated[bool, typer.Option("--keep", help="Keep the scratch copies (path printed).")] = False,
+    json_output: JsonOpt = False,
+):
+    """Run the cases on a revision and on the working tree, in scratch copies, and compare their quantities."""
+    ctx.ensure_object(dict)
+    ctx.obj["cliargs"] = _ns(
+        which="diff_run",
+        diff_ref=ref,
+        diff_names=names or [],
+        diff_mode=mode,
+        diff_assess=assess,
+        diff_keep=keep,
+        fobos=fobos,
+        fobos_case_insensitive=fobos_case_insensitive,
+        mode=None,
+        lmodes=False,
+        colors=False,
+        log=False,
+        quiet=False,
+        verbose=False,
+        json_output=json_output,
+    )

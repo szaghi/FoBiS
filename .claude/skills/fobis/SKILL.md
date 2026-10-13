@@ -96,7 +96,7 @@ fobis commit             # generate a Conventional-Commits message via a local L
 ```bash
 fobis lint [PATHS]       # rule-based checks: correctness, obsolescent, OpenMP/OpenACC/MPI defects
 fobis kb search "QUERY"  # search the knowledge packs (Fortran/OpenMP/OpenACC/MPI standards, HPC practice)
-fobis mcp                # MCP server (stdio): 25 annotated tools (lint, review, kb, build/test with diagnoses, merge, ecosystem ...)
+fobis mcp                # MCP server (stdio): 26 annotated tools (lint, review, kb, build/test with diagnoses, merge, ecosystem ...)
 fobis llm <...>          # local LLM harness: runtime install, pull models, serve, ask, doctor
 fobis review [--staged | --base REF]  # lint findings on the changed lines only (pre-commit, PR); --deep risk summary
 fobis merge-assist [--apply [--yes]]  # proposals for merge/rebase/cherry-pick conflicts, compiled; never stages
@@ -107,6 +107,7 @@ fobis verify [NAME] [--update] [--repeat N]  # case quantities vs stored referen
 fobis build|test|run|verify --shadow checks  # the mode rebuilt with runtime checks (or sanitize, strict) in .fobis/shadow/
 fobis matrix [--modes] [--shadows] [--verify] [--recheck]  # every mode x shadow built/tested; cross-cell disagreements
 fobis assess CASE [--families precision,rounding,compiler,parallel,inputs,refinement] [--jobs N]  # error/uncertainty
+fobis diff-run [REF] [CASE...] [--assess] [--keep]  # cases on a revision vs the working tree (scratch copies)
 fobis ask "QUESTION"     # answer from the knowledge packs (+ project procedures with -p DIR), with citations
 fobis build --explain    # on failure: explain from facts (missing module, unlinked object ...), then LLM
 fobis run --explain      # runtime crash: located facts, debug mode to use, known compiler bugs, then LLM
@@ -126,7 +127,7 @@ fobis test --explain     # the same for every failed test (LLM for the first one
 - `mcp`: `--root DIR`. Register in Claude Code with `claude mcp add fobis -- fobis mcp`. Tools (read-only): lint
   (+ `fix_diff`), review, list_rules, explain_rule, kb_search, kb_show, ask_context (retrieved sources, NO answer),
   introspect, check, tree, merge_conflicts, commit_facts, testgen_skeleton, ecosystem_status, ecosystem_impact,
-  case_list, provenance; writing: build, test, case_run, verify, matrix, assess (`shadow` on build/test/case_run/verify),
+  case_list, provenance; writing: build, test, case_run, verify, matrix, assess, diff_run (`shadow` on build/test/case_run/verify),
   clean (destructive), fetch (network). Annotations (readOnly/destructive/idempotent/
   openWorld), JSON as text + `structuredContent` (2025-06-18), a failed build/test is a result (status error), not
   a tool error; lint/review trimmed to `max_findings` (200). Resources `fobis://rules/{id}`, template
@@ -159,6 +160,11 @@ fobis test --explain     # the same for every failed test (LLM for the first one
   rounding/compiler variants (95% bound), non-determinism at repeated thread counts, elasticities / MC correlations,
   observed order + Richardson + GCI + asymptotic range. Variant objects in `.fobis/variant/`; inputs edited in run
   dirs only. Exit 1 on a failed budget.
+- `diff-run`: REF (default HEAD) extracted with `git archive` (+ submodules at recorded commits), working tree
+  copied, working deps copied into both; cases from the working fobos run on both; quantities compared with the
+  case tolerance (verify comparator: worst index); changed files + procedures listed; `--assess` judges a
+  difference against the worktree's own digits (within-uncertainty). Never writes the tree or repo metadata.
+  Exit 1 when a case differs or fails.
 - **Machine output** (`--json` / `--format json`): build (on failure + `diagnostics` parsed + `diagnoses` from
   facts), clean, fetch, check, tree (each dep with ITS version), test (per test status passed/failed/build-failed/
   timeout/error + `crash`/`notes` or `diagnostics`/`diagnoses`), introspect, lint/review, merge-assist, testgen,

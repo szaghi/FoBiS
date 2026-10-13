@@ -211,6 +211,16 @@ list --json` gives the declared `cases`; `fobis provenance --json` the provenanc
 run directory, probe errors, stderr tail, build document when it failed), `repeat` (quantities that differed
 between repeated runs). See [Verifying results](/advanced/verify).
 
+### `fobis diff-run --json`
+
+`ref`, `commit`, `status` (`equivalent` or `differs`), `changed` (per file: `path`, `status` (git letter, `?` for
+untracked), the `procedures` whose code changed), `notes`, and `cases`: per case the `verify --json` fields
+(`quantities` compared with the revision's run: status, tolerance, errors, `worst` with its index, `nonfinite`),
+`status` (`equivalent`, `within-uncertainty`, `differs`, `new-failed`, `old-failed`), `old_run` when the revision's
+run failed, `spread` with `--assess` (per quantity `digits` shared by the working tree's variants, `max_rel`, and
+for a differing one `within`), `provenance_changes` other than git. `scratch` with `--keep`. See
+[Differential execution](/advanced/diff-run).
+
 ### `fobis assess --json`
 
 `case`, `mode`, `status` (`ok`, `fail`: a budget failed, `error`: the base run failed, with `error`), `builds`,
