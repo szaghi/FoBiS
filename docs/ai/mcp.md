@@ -55,6 +55,7 @@ Read-only tools (the project is not written):
 | `ecosystem_impact` | Which dependent projects a change of public interfaces breaks, and where | `project`, `base`, `config` |
 | `query` | [Code-graph answers](/advanced/query): callers, callees, uses, writers, readers, defines, region, device, mpi, interface | `kind`, `argument`, `mode` |
 | `agents_md` | [Project briefing](/advanced/agents-md): modes, commands, cases, kinds, parallelism, dependencies, and the AGENTS.md block | `mode` |
+| `bindings` | [Which procedures can be bound](/advanced/bindings) for C and Python, and why the others cannot (read-only) | `modules`, `mode` |
 | `case_list` | The [cases](/advanced/cases) declared in the fobos and the quantities each produces | |
 | `provenance` | What a result produced now depends on: commit, pins, compiler and flags, machine | `mode` |
 

@@ -554,6 +554,15 @@ class Server:
                 lambda a: self._json(["agents-md", "--print", "--json", *self._mode(a)]),
             ),
             Tool(
+                "bindings",
+                "Plan C and Python bindings",
+                "Which public procedures of the modules can be called from C and Python through generated bind(c) "
+                "shims (fobis bindings), and why the others cannot (character, derived types, optional/allocatable "
+                "arguments, unresolvable kinds, ...). Writes nothing.",
+                _schema({"modules": {**_STR_LIST, "description": "modules (default: all)"}, "mode": _MODE}),
+                lambda a: self._json(["bindings", *a.get("modules", []), "--print", "--json", *self._mode(a)]),
+            ),
+            Tool(
                 "introspect",
                 "Project build facts",
                 "Return the project's build facts as JSON: sources, compiler, dependencies, targets, include dirs, "

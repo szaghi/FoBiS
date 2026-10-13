@@ -136,6 +136,8 @@ def run_fobis(fake_args=None):
             run_fobis_profile(configuration)
         if configuration.cliargs.which == "fpm":
             run_fobis_fpm(configuration)
+        if configuration.cliargs.which == "bindings":
+            run_fobis_bindings(configuration)
         if configuration.cliargs.which == "query":
             run_fobis_query(configuration)
         if configuration.cliargs.which == "agents_md":
@@ -3041,6 +3043,87 @@ def run_fobis_profile(configuration):
         print(json.dumps(data, indent=2))
     else:
         configuration.print_b(pf.render_text(case.name, profile))
+
+
+def _generic_specifics(module):
+    """specific -> generic, for the specific procedures of a module's public generic interfaces."""
+    import re
+
+    from .ai.impact import _is_public
+
+    found = {}
+    for unit in module.children:
+        if unit.kind == "interface" and unit.name and _is_public(module, unit.name):
+            for statement in unit.statements:
+                match = re.match(r"^(?:module\s+)?procedure\s*(?:::)?\s*(.*)$", statement.masked.strip())
+                if match:
+                    found.update((n.strip(), unit.name) for n in match.group(1).split(",") if n.strip())
+    return found
+
+
+def run_fobis_bindings(configuration):
+    """
+    Run FoBiS in bindings mode: bind(c) shims, a C header and a Python wrapper for the modules' public procedures.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import json
+
+    from . import bindings as bd
+    from .ai.agents_md import project_files
+    from .ai.impact import _is_public
+    from .analysis import parse_defines
+    from .lint import discover_files, lint_files
+
+    cliargs = configuration.cliargs
+    fobos = configuration.fobos
+    deps_dir = fobos.get_deps_dir() if fobos is not None and fobos.fobos is not None else ""
+    files = discover_files(
+        cliargs.src,
+        extensions=cliargs.extensions,
+        exclude=cliargs.exclude,
+        exclude_dirs=cliargs.exclude_dirs,
+        recursive=not cliargs.disable_recursive_search,
+    )
+    analysed = lint_files(
+        project_files(files, ".", deps_dir), [], defines=parse_defines(_merged_preproc_flags(cliargs))
+    )
+    modules = [u for f in analysed.units.values() for u in f.units if u.kind == "module"]
+    wanted = cliargs.bindings_modules
+    unknown = sorted(set(wanted) - {m.name for m in modules})
+    if unknown or not modules:
+        what = f"unknown module(s) {', '.join(unknown)}" if unknown else "no module in the sources"
+        configuration.print_r(f"Error: {what}")
+        sys.exit(2)
+    bindings = []
+    for module in sorted(modules, key=lambda m: m.name):
+        if not wanted or module.name in wanted:
+            bindings += bd.plan(module, analysed.project, _is_public, _generic_specifics(module))
+    project = fobos.get_project_info().get("name", "") if fobos is not None and fobos.fobos is not None else ""
+    name = (cliargs.bindings_name or project or os.path.basename(os.getcwd())).lower().replace("-", "_")
+    outputs = {
+        f"{name}_c.f90": bd.shim(bindings, name),
+        f"{name}.h": bd.header(bindings, name),
+        f"{name}.py": bd.python(bindings, name),
+    }
+    written = []
+    if not cliargs.bindings_print and any(not b.skipped for b in bindings):
+        targets = {os.path.join(cliargs.bindings_output_dir, f): text for f, text in outputs.items()}
+        existing = [p for p in targets if os.path.exists(p)]
+        if existing and not cliargs.bindings_force:
+            configuration.print_r(f"Error: {', '.join(existing)} exist(s): use --force to overwrite, or --print")
+            sys.exit(2)
+        os.makedirs(cliargs.bindings_output_dir, exist_ok=True)
+        for path, text in targets.items():
+            with open(path, "w", encoding="utf-8") as handle:
+                handle.write(text)
+            written.append(path)
+    if getattr(cliargs, "json_output", False):
+        print(json.dumps({"bindings": [b.to_dict() for b in bindings], "files": written}, indent=2))
+        return
+    configuration.print_b(bd.report(bindings) + ("\nwritten: " + ", ".join(written) if written else ""))
 
 
 def run_fobis_fpm(configuration):

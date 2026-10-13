@@ -1,0 +1,20 @@
+# `bindings` command
+
+Generate `bind(c)` shims, a C header and a Python `ctypes` wrapper for the public procedures of the modules. Guide:
+[C and Python bindings](/advanced/bindings).
+
+```bash
+fobis bindings [MODULE...] [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `MODULE...` | Modules to bind [default: every module of the mode's sources] |
+| `--name NAME` | Base name of the files (`NAME_c.f90`, `NAME.h`, `NAME.py`) [default: the fobos project name] |
+| `-o/--output-dir DIR` | Where the files are written [default: `bindings`] |
+| `--mode M` | The mode whose sources and defines are analysed |
+| `--force` | Overwrite existing files |
+| `--print` | Report only; write nothing |
+| `--json` | `bindings` (per procedure: `module`, `procedure`, `c_name`, `kind`, `skipped` reason) and `files` written |
+
+Exit code 0; 2 for an unknown module, no module, or existing files without `--force`.

@@ -27,6 +27,7 @@ FoBiS.py (and user code) previously imported from ``fobis.cli_parser``.
 from . import (  # noqa: F401
     agents_md,
     ask,
+    bindings,
     build,
     cache_cmd,
     case,
