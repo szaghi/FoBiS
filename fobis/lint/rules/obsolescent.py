@@ -26,7 +26,8 @@ from collections.abc import Iterator
 from ...analysis import Statement, Unit
 from ...analysis.regions import strip_if
 from ...analysis.units import balanced_end
-from ..rule import Hit, LintContext, rule
+from ..rule import Edit, Hit, LintContext, rule
+from ._common import physical_code, replacements
 
 # Specific names of intrinsic functions that are not also generic names (obsolescent since Fortran 2018).
 SPECIFIC_INTRINSICS = frozenset(
@@ -80,6 +81,27 @@ SPECIFIC_INTRINSICS = frozenset(
         "sngl",
     ]
 )
+# specific name -> generic name, when the generic gives the same result for the arguments the specific accepts
+# (amax0, amin0, max1, min1 also convert the result's type: no mechanical fix)
+GENERIC_OF = {
+    **{name: name[1:] for name in ("dabs", "dacos", "dasin", "datan", "datan2", "dcos", "dcosh", "ddim", "dexp")},
+    **{name: name[1:] for name in ("dlog", "dlog10", "dmod", "dsign", "dsin", "dsinh", "dsqrt", "dtan", "dtanh")},
+    **{name: name[1:] for name in ("cabs", "ccos", "cexp", "clog", "csin", "csqrt", "iabs", "idim", "isign")},
+    "alog": "log",
+    "alog10": "log10",
+    "amax1": "max",
+    "amin1": "min",
+    "amod": "mod",
+    "dmax1": "max",
+    "dmin1": "min",
+    "dint": "aint",
+    "dnint": "anint",
+    "float": "real",
+    "sngl": "real",
+    "idint": "int",
+    "ifix": "int",
+    "idnint": "nint",
+}
 _SPECIFIC_RE = re.compile(r"\b(" + "|".join(sorted(SPECIFIC_INTRINSICS)) + r")\s*\(")
 _NOT_ASSIGNMENT = r"(?!\s*(?:\(.*\))?\s*=(?!=))"
 
@@ -194,7 +216,21 @@ def check_specific_intrinsic(ctx: LintContext) -> Iterator[Hit]:
             names -= set(scope.decls)  # an array or user function with that name is not the intrinsic
             scope = scope.parent
         for name in sorted(names):
-            yield ctx.hit(stmt, f"specific intrinsic name '{name}' (obsolescent): use the generic name")
+            fixes = ()
+            if name in GENERIC_OF:
+                pattern = re.compile(rf"\b{name}(?=\s*\()", re.I)
+                fixes = replacements(ctx, stmt, pattern, lambda _m, generic=GENERIC_OF[name]: generic)
+                raw_lines = ctx.source.lines
+                fixes = tuple(  # keep the case of the code (DSQRT -> SQRT)
+                    type(e)(
+                        e.line,
+                        e.start,
+                        e.end,
+                        e.text.upper() if raw_lines[e.line - 1][e.start : e.end].isupper() else e.text,
+                    )
+                    for e in fixes
+                )
+            yield ctx.hit(stmt, f"specific intrinsic name '{name}' (obsolescent): use the generic name", fixes)
 
 
 rule(
@@ -225,7 +261,8 @@ rule(
     equivalent="OB051",
 )(_statement_rule(rf"^pause\b{_NOT_ASSIGNMENT}", "pause statement (deleted in Fortran 95)"))
 
-rule(
+
+@rule(
     "OBS008",
     "deprecated-character-syntax",
     summary="Old-style character length `character*n` / `character*(*)`.",
@@ -236,7 +273,31 @@ rule(
     bad="character*20 :: name",
     good="character(len=20) :: name",
     equivalent="OB061",
-)(_statement_rule(r"^character\s*\*", "character*n length syntax (obsolescent): use character(len=n)"))
+)
+def check_character_star(ctx: LintContext) -> Iterator[Hit]:
+    for _, stmt in _code(ctx):
+        if not re.match(r"^character\s*\*", stmt.masked):
+            continue
+        fixes = ()
+        for lineno, masked in physical_code(ctx, stmt):
+            match = re.search(r"\bcharacter\s*\*\s*", masked, re.I)
+            if not match:
+                continue
+            rest = masked[match.end() :]
+            if rest[:1] == "(":
+                end = balanced_end(rest, 0)
+                length, stop = rest[1 : end - 1].strip(), match.end() + end
+            else:
+                number = re.match(r"\d+", rest)
+                length, stop = (number.group(0), match.end() + number.end()) if number else ("", 0)
+            if length:
+                raw = ctx.source.lines[lineno - 1]
+                word = raw[match.start() : match.start() + len("character")]
+                key = "LEN" if word.isupper() else "len"  # keep the case of the code
+                fixes = (Edit(lineno, match.start(), stop, f"{word}({key}={length})"),)
+            break
+        yield ctx.hit(stmt, "character*n length syntax (obsolescent): use character(len=n)", fixes)
+
 
 rule(
     "OBS009",
@@ -298,7 +359,7 @@ def _labelled_dos(unit: Unit) -> Iterator[tuple[Statement, str]]:
                 yield stmt, match.group(1).lstrip("0") or "0"
 
 
-rule(
+@rule(
     "OBS011",
     "labelled-do-loop",
     summary="A labelled `do 10 i = ...` loop.",
@@ -317,7 +378,57 @@ rule(
         end do
         """,
     equivalent="OB091",
-)(_statement_rule(_LABELLED_DO, "labelled do loop (obsolescent): use do ... end do"))
+)
+def check_labelled_do(ctx: LintContext) -> Iterator[Hit]:
+    for unit in ctx.units.walk():
+        loops = list(_labelled_dos(unit))
+        counts: dict[str, int] = {}
+        for _, label in loops:
+            counts[label] = counts.get(label, 0) + 1
+        for stmt, label in loops:
+            fixes = _labelled_do_fix(ctx, unit, stmt, label) if counts[label] == 1 else ()
+            yield ctx.hit(stmt, "labelled do loop (obsolescent): use do ... end do", fixes)
+
+
+_LABEL_USE = (
+    r"\bgo\s*to\s*(?:\([^)]*\b{label}\b[^)]*\)|{label}\b)",  # go to L, computed go to (..., L, ...)
+    r"\b(?:err|end|eor)\s*=\s*{label}\b",  # I/O branches
+    r"\bassign\s+{label}\b",
+    r"\*\s*{label}\b",  # alternate return
+    r"^if\s*\(.*\)\s*\d+\s*,\s*\d+\s*,\s*\d+\s*$",  # arithmetic if (labels checked below)
+)
+
+
+def _refers_to(stmt: Statement, label: str) -> bool:
+    masked = stmt.masked.strip()
+    for pattern in _LABEL_USE:
+        match = re.search(pattern.format(label=label), masked)
+        if match and (not pattern.startswith("^if") or label in re.findall(r"\d+", masked.rsplit(")", 1)[-1])):
+            return True
+    return False
+
+
+def _labelled_do_fix(ctx: LintContext, unit: Unit, stmt: Statement, label: str) -> tuple[Edit, ...]:
+    """``do 10 i = ...`` -> ``do i = ...`` and ``10 continue`` -> ``end do``, when the loop alone ends on that
+    ``continue`` and nothing else in the unit refers to the label; () otherwise."""
+    terminal = next((s for s in unit.statements if s.label is not None and (s.label.lstrip("0") or "0") == label), None)
+    if terminal is None or terminal.masked.strip() != "continue" or terminal.line <= stmt.line:
+        return ()
+    if any(s is not stmt and s is not terminal and _refers_to(s, label) for s in unit.statements):
+        return ()
+    head = re.compile(r"\bdo\s*,?\s*\d+\b\s*,?\s*", re.I)
+    first = replacements(ctx, stmt, head, lambda _m: "do ")[:1]
+    if first and ctx.source.lines[first[0].line - 1][first[0].start : first[0].start + 2].isupper():
+        first = (Edit(first[0].line, first[0].start, first[0].end, "DO "),)  # keep the case of the code
+    raw = ctx.source.lines[terminal.line - 1]
+    match = re.match(r"^(\s*)(\d+)(\s+)(continue)\b", raw[:72] if ctx.source.fixed_form else raw, re.I)
+    if not first or not match or terminal.end_line != terminal.line:
+        return ()
+    # at the column of the `do` keyword: a label before it (`  103 DO 104 I=1,N`) must not move `end do` into the
+    # label field or, in fixed form, onto column 6 (a continuation mark)
+    indent = " " * first[0].start
+    end = Edit(terminal.line, 0, match.end(), f"{indent}{'END DO' if match.group(4).isupper() else 'end do'}")
+    return (*first, end)
 
 
 @rule(

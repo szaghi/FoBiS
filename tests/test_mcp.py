@@ -45,6 +45,7 @@ TOOLS = [
     "diff_run",
     "bench",
     "profile",
+    "modernize",
     "gate",
     "clean",
     "fetch",
@@ -118,6 +119,7 @@ def test_tools_list_has_schemas_and_annotations(server):
         "diff_run",
         "bench",
         "profile",
+        "modernize",
         "gate",
         "clean",
         "fetch",
@@ -178,6 +180,7 @@ def test_command_lines(server, calls):
     _call(server, "gate", {"stages": ["build", "test"], "advisory": ["test"], "base": "main", "fail_fast": True})
     _call(server, "case_run", {"names": ["sod"], "runner": "slurm"})
     _call(server, "profile", {"case": "sod", "tool": "callgrind", "top": 5})
+    _call(server, "modernize", {"select": ["OBS011"]})
     assert calls == [
         [
             "lint",
@@ -250,6 +253,7 @@ def test_command_lines(server, calls):
         ],
         ["case", "run", "sod", "--json", "--runner", "slurm"],
         ["profile", "sod", "--json", "--tool", "callgrind", "--top", "5"],
+        ["modernize", "--json", "--select", "OBS011"],
     ]
 
 

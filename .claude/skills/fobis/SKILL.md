@@ -114,6 +114,7 @@ fobis verify|test|case run|assess|bench|diff-run --runner slurm  # runs as Slurm
 fobis profile CASE [--tool gprof|callgrind] [--top N]  # time/instructions mapped to procedures and source lines
 fobis fpm import|export [--print] [--force]  # fpm.toml <-> fobos (notes for what does not translate)
 fobis bindings [MODULE...] [-o DIR] [--print]  # bind(c) shims + C header + Python ctypes wrapper
+fobis modernize [--select RULES] [--apply] [--unverified]  # lint fixes kept only if build, tests, cases agree
 fobis query callers|callees|uses|writers|readers|defines|region|device|mpi|interface ARG  # code graph answers
 fobis agents-md [-o CLAUDE.md] [--check] [--print]  # AGENTS.md block of facts (modes, commands, cases, kinds)
 fobis ask "QUESTION"     # answer from the knowledge packs (+ project procedures with -p DIR), with citations
@@ -173,6 +174,9 @@ fobis test --explain     # the same for every failed test (LLM for the first one
   case tolerance (verify comparator: worst index); changed files + procedures listed; `--assess` judges a
   difference against the worktree's own digits (within-uncertainty). Never writes the tree or repo metadata.
   Exit 1 when a case differs or fails.
+- `modernize`: fixes MDN011/MDN021/OBS005/OBS008/OBS011 applied in a scratch copy, compared with an untouched copy
+  (build when the base builds, tests passing before, cases equivalent); each rule alone when the set fails;
+  `--apply` writes verified rules into unchanged files; build-only evidence needs `--unverified`.
 - `bindings`: shims convert explicitly (int/real/logical(x, K)) into temporaries of the procedure's own types, C types
   from what kinds resolve to (selected_int_kind/selected_real_kind/iso_* names); assumed-shape arrays get extent
   args; private generic specifics are called through the generic. Not bound (reason reported): character, complex,

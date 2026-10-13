@@ -138,6 +138,8 @@ def run_fobis(fake_args=None):
             run_fobis_fpm(configuration)
         if configuration.cliargs.which == "bindings":
             run_fobis_bindings(configuration)
+        if configuration.cliargs.which == "modernize":
+            run_fobis_modernize(configuration)
         if configuration.cliargs.which == "query":
             run_fobis_query(configuration)
         if configuration.cliargs.which == "agents_md":
@@ -3043,6 +3045,165 @@ def run_fobis_profile(configuration):
         print(json.dumps(data, indent=2))
     else:
         configuration.print_b(pf.render_text(case.name, profile))
+
+
+def run_fobis_modernize(configuration):
+    """
+    Run FoBiS in modernize mode: lint fixes applied to a scratch copy, kept when build, tests and cases agree.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import json
+    import subprocess
+    import tempfile
+
+    from .ai.agents_md import project_files
+    from .analysis import parse_defines, read_source
+    from .Ecosystem import copy_working_copy
+    from .lint import discover_files, lint_files, select_rules
+    from .mcp_server import fobis_command
+    from .TestRunner import discover_tests
+    from .verification import CaseError, LocalRunner, load_cases, load_settings
+    from .verification import modernize as mz
+    from .verification.diffrun import compare, copy_dependencies
+    from .verification.gate import build_facts, parse_json
+
+    cliargs = configuration.cliargs
+    fobos = configuration.fobos
+    try:
+        rules = select_rules(cliargs.modernize_select or list(mz.FIXABLE_RULES), [])
+        cases = load_cases(fobos)
+    except (ValueError, CaseError) as exc:
+        configuration.print_r(f"Error: {exc}")
+        sys.exit(2)
+    deps_dir = fobos.get_deps_dir() if fobos is not None and fobos.fobos is not None else ".fobis_deps"
+    files = discover_files(
+        cliargs.src,
+        extensions=cliargs.extensions,
+        exclude=cliargs.exclude,
+        exclude_dirs=cliargs.exclude_dirs,
+        recursive=not cliargs.disable_recursive_search,
+    )
+    result = lint_files(
+        project_files(files, ".", deps_dir), rules, defines=parse_defines(_merged_preproc_flags(cliargs))
+    )
+    plan = mz.make_plan(result.findings, read_source)
+    as_json = getattr(cliargs, "json_output", False)
+    if not plan.by_rule:
+        message = "nothing to modernise: no automatic fix applies"
+        print(json.dumps({"status": "nothing", "fixes": {}}) if as_json else message)
+        return
+    settings = load_settings(fobos)
+    fobos_args = ["--fobos", cliargs.fobos] if cliargs.fobos else []
+    mode_args = ["--mode", cliargs.mode] if cliargs.mode else []
+    test_dir = fobos.get_test_config()["test_dir"] if fobos is not None and fobos.fobos is not None else "test"
+    has_tests = bool(discover_tests(test_dir))
+    scratch = tempfile.mkdtemp(prefix="fobis-modernize-")
+    notes: list[str] = []
+
+    def say(line):
+        print(f"modernize: {line}", file=sys.stderr, flush=True)
+
+    def fobis_in(root, args):
+        done = subprocess.run([*fobis_command(), *args, *fobos_args], cwd=root, capture_output=True, text=True)
+        return parse_json(done.stdout) or {}
+
+    def copy(name):
+        root = os.path.join(scratch, name)
+        copy_working_copy(".", root)
+        copy_dependencies(".", deps_dir, root)
+        return root
+
+    def test_statuses(root):
+        return {r["name"]: r["status"] for r in fobis_in(root, ["test", "--json", *mode_args]).get("results", [])}
+
+    def run_cases(root):
+        runner = LocalRunner(root, fobos_args, settings.runs_dir, settings.launcher, deps_dir)
+        return {name: runner.run(case, variant="modernize") for name, case in cases.items()}
+
+    try:
+        say(f"base copy in {scratch}")
+        base = copy("base")
+        base_build = fobis_in(base, ["build", "--json", *mode_args])
+        base_builds = base_build.get("status") == "ok"
+        base_tests = test_statuses(base) if has_tests else None
+        base_runs = run_cases(base) if cases else {}
+        for name, run in list(base_runs.items()):
+            if not run.ok:  # a case failing on the untouched copy shows nothing about the fixes
+                notes.append(f"case {name} is {run.status} on the untouched copy: not used as evidence")
+                del base_runs[name]
+
+        def check(subset):
+            say(f"checking {', '.join(subset)}")
+            root = copy("fixed-" + "-".join(subset))
+            mz.write_texts(root, mz.fixed_texts(plan, subset, read_source))
+            verdict = mz.Check(list(subset))
+            build = fobis_in(root, ["build", "--json", *mode_args])
+            if build.get("status") == "ok":
+                verdict.build = "ok"
+            elif base_builds:
+                verdict.status, verdict.build = "fail", (build_facts(build) or ["the build failed"])[0]
+                return verdict
+            else:  # the untouched copy does not build either: no evidence; tests and cases decide
+                verdict.build = "fails as in the untouched copy: " + (build_facts(base_build) or ["?"])[0]
+            fixed_tests = test_statuses(root) if has_tests else None
+            diffs = []
+            if base_runs:
+                new_runs = run_cases(root)
+                diffs = [compare(new_runs[n], base_runs[n], cases[n].tolerance) for n in base_runs]
+            return mz.judge(verdict, base_tests, fixed_tests, diffs)
+
+        checks = [check(plan.rules)]
+        if checks[0].status == "pass":
+            verified = plan.rules
+        else:
+            verified = []
+            if len(plan.rules) > 1:
+                for rule in plan.rules:
+                    checks.append(check([rule]))
+                    if checks[-1].status == "pass":
+                        verified.append(rule)
+    except (OSError, RuntimeError) as exc:
+        configuration.print_r(f"Error: {exc}")
+        shutil.rmtree(scratch, ignore_errors=True)
+        sys.exit(2)
+    applied = []
+    evidence = checks[0].evidence
+    if cliargs.modernize_apply and verified:
+        if evidence == "build" and not cliargs.modernize_unverified:
+            notes.append("no tests and no cases: a build alone does not show unchanged behaviour (--unverified)")
+        else:
+            for path, text in mz.fixed_texts(plan, verified, read_source).items():
+                if mz.digest(read_source(path)) != plan.digests[path]:
+                    notes.append(f"{path} changed since the analysis: not written")
+                    continue
+                with open(path, "w", encoding="utf-8") as handle:
+                    handle.write(text)
+                applied.append(path)
+    if not cliargs.modernize_keep:
+        shutil.rmtree(scratch, ignore_errors=True)
+    failed = [r for r in plan.rules if r not in verified]
+    if as_json:
+        data = {
+            "status": "verified" if not failed else ("partial" if verified else "failed"),
+            "fixes": plan.counts(),
+            "checks": [c.to_dict() for c in checks],
+            "verified": verified,
+            "applied": applied,
+            "notes": notes,
+        }
+        if cliargs.modernize_keep:
+            data["scratch"] = scratch
+        print(json.dumps(data, indent=2))
+    else:
+        text = mz.render_text(plan, checks, applied, verified)
+        text += "".join(f"\nnote: {n}" for n in notes)
+        text += f"\nscratch copies kept in {scratch}" if cliargs.modernize_keep else ""
+        (configuration.print_b if not failed else configuration.print_r)(text)
+    if failed:
+        sys.exit(1)
 
 
 def _generic_specifics(module):

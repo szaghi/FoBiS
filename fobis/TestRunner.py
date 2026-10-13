@@ -152,6 +152,22 @@ def discover_tests(
                 }
             )
 
+    # a test is named after its program; programs sharing a name (every FORTRAN 77 test called `tester`) would share
+    # one binary and one report: those are named after their file (its path below test_dir when stems repeat too)
+    counts: dict[str, int] = {}
+    for test in tests:
+        counts[test["name"].lower()] = counts.get(test["name"].lower(), 0) + 1
+    stems: dict[str, int] = {}
+    for test in tests:
+        if counts[test["name"].lower()] > 1:
+            stem = os.path.splitext(os.path.basename(test["source"]))[0]
+            stems[stem] = stems.get(stem, 0) + 1
+    for test in tests:
+        if counts[test["name"].lower()] > 1:
+            stem = os.path.splitext(os.path.basename(test["source"]))[0]
+            if stems[stem] > 1:
+                stem = os.path.splitext(os.path.relpath(test["source"], test_dir))[0].replace(os.sep, "_")
+            test["name"] = stem
     return tests
 
 

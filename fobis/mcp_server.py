@@ -844,6 +844,19 @@ class Server:
                 read_only=False,
             ),
             Tool(
+                "modernize",
+                "Verify mechanical modernisation",
+                "Apply the automatic lint fixes (array constructors, relational operators, generic intrinsics, "
+                "character length, labelled DO loops) to a scratch copy and check them: build, tests still passing, "
+                "declared cases equivalent; each rule alone when the set fails. Reports what is verified and on "
+                "what evidence; never writes the project (the CLI's --apply does).",
+                _schema({"select": {**_STR_LIST, "description": "rules (default: all fixable)"}, "mode": _MODE}),
+                lambda a: self._json(
+                    ["modernize", "--json", *self._repeat("--select", a.get("select")), *self._mode(a)]
+                ),
+                read_only=False,
+            ),
+            Tool(
                 "gate",
                 "One verdict for a change",
                 "The call to make after an edit: build, review of the changed lines, tests, verify (references), "

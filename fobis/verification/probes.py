@@ -373,7 +373,10 @@ def extract(probes: list[Probe], output: RunOutput) -> tuple[list[Quantity], dic
     for probe in probes:
         try:
             if probe.kind == "stdout":
-                quantities += _stdout_lines(output)
+                found = _stdout_lines(output)
+                if not found:  # a case reading nothing would compare as vacuously equal
+                    raise ProbeError("stdout: no `name = number` line in the output (one number per line)")
+                quantities += found
             elif probe.kind == "exit":
                 if output.exit_code is None:
                     raise ProbeError(f"{probe.name}: the program did not finish")

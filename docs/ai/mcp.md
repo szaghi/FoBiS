@@ -73,6 +73,7 @@ Tools that write:
 | `bench` | [Run time](/advanced/bench) with a 95% interval of the median, vs history or a revision (`compare`), compiler-report diff (`feedback`); never records history | `names`, `mode`, `compare`, `feedback`, `runs` |
 | `gate` | [One verdict](/advanced/gate) for a change: build, review, test, verify, diff-run, bench, assess, matrix, each with its first failing fact | `stages`, `skip`, `advisory`, `base`, `mode`, `fail_fast` |
 | `profile` | [Where a case spends](/advanced/profile) its time (gprof) or instructions (callgrind), mapped to procedures and source lines | `case`, `tool`, `top`, `mode` |
+| `modernize` | [Verify the mechanical lint fixes](/advanced/modernize) in scratch copies: build, tests, cases; per rule when the set fails; never writes the project | `select`, `mode` |
 | `clean` | The removed objects and module files | `mode` |
 | `fetch` | The dependencies cloned or updated (network) | `update` |
 

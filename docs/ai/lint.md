@@ -186,15 +186,19 @@ narrow the review with paths and `--select`, and raise `--deep-max` deliberately
 
 ## Automatic fixes
 
-Some rules carry a mechanical fix (`MDN011` array constructors, `MDN021` relational operators). Review
-the fixes as a diff, then apply them:
+Some rules carry a mechanical fix: `MDN011` array constructors, `MDN021` relational operators, `OBS005`
+specific intrinsics (`dsqrt` -> `sqrt`, `float` -> `real`; not `amax0`/`amin0`/`max1`/`min1`, which convert the
+result's type), `OBS008` `character*n` -> `character(len=n)`, `OBS011` labelled DO -> `do ... end do` (only when the
+loop alone ends on a `continue` and nothing else refers to its label). Review the fixes as a diff, then apply them:
 
 ```bash
 fobis lint --select MDN011,MDN021 --diff   # print a unified diff, change nothing
 fobis lint --select MDN011,MDN021 --fix    # rewrite the files, then report what remains
 ```
 
-Fixes touch code only: comments and character literals are left alone.
+Fixes touch code only (comments and character literals are left alone) and keep the case of the code (`DSQRT` ->
+`SQRT`, `END DO`). To apply them only when the build, the tests and the declared cases show they changed nothing, use
+[`fobis modernize`](/advanced/modernize).
 
 ## Choosing rules
 
