@@ -59,6 +59,11 @@ def _run(args: list[str], cwd: str | None = None, timeout: float = 20) -> tuple[
     return done.returncode, done.stdout + done.stderr
 
 
+def compiler_version(command: str) -> str:
+    """The first line of ``COMMAND --version`` ('' when it cannot run)."""
+    return _first_line([command, "--version"])
+
+
 def _first_line(args: list[str]) -> str:
     """The first non-empty line printed by *args* ('' when the tool is missing or fails)."""
     if not args or shutil.which(args[0]) is None:
@@ -163,7 +168,8 @@ def collect(
     command = compiler.get("binary") or COMPILER_COMMANDS.get(compiler.get("name", ""), "")
     if command:
         compiler["command"] = command
-        compiler["version"] = _first_line([command, "--version"])
+        compiler["version"] = compiler_version(command)
+        compiler["path"] = shutil.which(command) or command
     data = {
         "fobis": __version__,
         "date": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
@@ -191,7 +197,7 @@ def collect(
 
 def differences(old: dict, new: dict, prefix: str = "") -> list[str]:
     """What changed between two provenances that can change results (dates and hosts aside): ``key: old -> new``."""
-    ignored = {"date", "machine.host", "git.branch", "fobis"}
+    ignored = {"date", "machine.host", "git.branch", "fobis", "rebuilt_because"}
     found = []
     for key in sorted(set(old) | set(new)):
         path = f"{prefix}{key}"

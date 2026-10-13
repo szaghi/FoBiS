@@ -27,6 +27,8 @@ same ``run(case, variant)``.
 
 from __future__ import annotations
 
+import contextlib
+import hashlib
 import json
 import os
 import re
@@ -174,23 +176,74 @@ class LocalRunner:
         effective = facts.get("buildoptions", {}).get("mode") or mode
         return prov.collect(self.root, facts.get("compiler", {}), effective, self.deps_dir, mpi=case.ranks > 0)
 
+    def signature(self, mode: str | None) -> dict:
+        """What the objects of *mode* must have been built with: resolved compiler, its version, the flags."""
+        compiler = dict(self.introspect(mode).get("compiler", {}))
+        command = compiler.get("binary") or prov.COMPILER_COMMANDS.get(compiler.get("name", ""), "")
+        compiler["path"] = shutil.which(command) or command if command else ""
+        compiler["version"] = prov.compiler_version(command) if command else ""
+        return compiler
+
+    def _objects_state(self, mode: str | None) -> str:
+        """A digest of the mode's object files (names, sizes, times): another build in between changes it."""
+        options = self.introspect(mode).get("buildoptions", {})
+        obj_dir = os.path.join(self.root, options.get("build_dir", "./"), options.get("obj_dir", "./obj/"))
+        digest = hashlib.sha256()
+        for folder, _, files in sorted(os.walk(obj_dir)):
+            for name in sorted(files):
+                with contextlib.suppress(OSError):
+                    info = os.stat(os.path.join(folder, name))
+                    digest.update(f"{folder}/{name}:{info.st_size}:{info.st_mtime_ns}\n".encode())
+        return digest.hexdigest()
+
     def build(self, case: Case, mode: str | None) -> tuple[str | None, dict]:
-        """Build the case's target: (path of the program or None, the ``build --json`` document)."""
+        """Build the case's target: (path of the program or None, the ``build --json`` document).
+
+        The objects are recompiled from scratch (``--force-compile``) when the runner has no record of how they were
+        built, when the compiler or the flags changed since (a ``module load`` of another compiler with the same
+        command name included: FoBiS's timestamps would keep the old objects), or when another build touched the
+        object directory in between. The reason is in the document's ``rebuilt_because``.
+        """
         if not os.path.isfile(os.path.join(self.root, case.target)):
             return None, {"status": "error", "errors": [f"target {case.target} does not exist"]}
         binary = os.path.join(self.runs_dir, "bin", _SAFE.sub("_", f"{case.name}-{mode or 'default'}"))
         os.makedirs(os.path.dirname(binary), exist_ok=True)
+        record_path = binary + ".signature.json"
+        signature = self.signature(mode)
+        record = {}
+        with contextlib.suppress(OSError, ValueError), open(record_path, encoding="utf-8") as handle:
+            record = json.load(handle)
+        reason = ""
+        if not record:
+            reason = "no record of how the objects were built"
+        elif record.get("signature") != signature:
+            changed = sorted(
+                k
+                for k in set(signature) | set(record.get("signature", {}))
+                if signature.get(k) != record.get("signature", {}).get(k)
+            )
+            reason = "the compiler or its flags changed (" + ", ".join(changed) + ")"
+        elif record.get("objects") != self._objects_state(mode):
+            reason = "another build changed the objects since"
         args = ["build", "--json", "--target", case.target, "--output", binary, *self._mode_args(mode)]
+        if reason:
+            args.append("--force-compile")
         try:
             done = self._fobis(args)
         except (OSError, subprocess.TimeoutExpired) as exc:
             return None, {"status": "error", "errors": [str(exc)]}
         report = _parse_json(done.stdout) or {"status": "error", "errors": (done.stdout + done.stderr).splitlines()}
+        if reason:
+            report["rebuilt_because"] = reason
         if done.returncode != 0 or not os.path.isfile(binary):
             report["status"] = "error"
             if not report.get("errors") and not report.get("diagnostics"):
                 report["errors"] = [f"{case.target} was not built (is it among the mode's sources?)"]
+            with contextlib.suppress(OSError):
+                os.remove(record_path)  # the objects are in an unknown state
             return None, report
+        with open(record_path, "w", encoding="utf-8") as handle:
+            json.dump({"signature": signature, "objects": self._objects_state(mode)}, handle, indent=1)
         return binary, report
 
     def _rundir(self, case: Case, variant: str) -> str:
@@ -227,6 +280,8 @@ class LocalRunner:
                 result.status, result.build = "build-failed", report
                 return result
             program = [binary]
+            if report.get("rebuilt_because"):
+                result.provenance["rebuilt_because"] = report["rebuilt_because"]
         else:
             program = list(case.command)
             if program and os.sep in program[0] and not os.path.isabs(program[0]):

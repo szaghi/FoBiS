@@ -61,7 +61,9 @@ _KEYS = {
     "env",
     "quantities",
     "description",
+    "tolerance",
 }
+DEFAULT_REFERENCES_DIR = "verification/references"
 
 
 class CaseError(Exception):
@@ -84,6 +86,7 @@ class Case:
     env: dict[str, str] = field(default_factory=dict)
     probes: list[Probe] = field(default_factory=list)
     description: str = ""
+    tolerance: dict[str, str] = field(default_factory=dict)  # quantity (or "*") -> "abs X rel Y ulp N | exact"
 
     def to_dict(self) -> dict:
         return {
@@ -99,6 +102,7 @@ class Case:
             "timeout": self.timeout,
             "env": self.env,
             "quantities": [p.text for p in self.probes],
+            "tolerance": self.tolerance,
         }
 
 
@@ -108,6 +112,7 @@ class Settings:
 
     launcher: str = DEFAULT_LAUNCHER
     runs_dir: str = DEFAULT_RUNS_DIR
+    references_dir: str = DEFAULT_REFERENCES_DIR
 
 
 def _substitute(value: str, variables: dict[str, str]) -> str:
@@ -134,6 +139,26 @@ def _number(text: str, name: str, key: str, kind=int):
     if value < 0:
         raise CaseError(f"case {name}: {key} must not be negative")
     return value
+
+
+def parse_tolerances(text: str, name: str = "") -> dict[str, str]:
+    """``quantity: spec`` entries separated by ``;`` or new lines (``*`` for every other quantity); each spec is
+    checked here (`fobis.verification.verify.Tolerance.parse`) so that a typo fails at declaration time."""
+    from .verify import Tolerance, VerifyError
+
+    found = {}
+    for entry in re.split(r"[;\n]", text):
+        if not entry.strip():
+            continue
+        quantity, sep, spec = entry.partition(":")
+        if not sep or not quantity.strip():
+            raise CaseError(f"case {name}: tolerance entry '{entry.strip()}' is not 'quantity: spec'")
+        try:
+            Tolerance.parse(spec)
+        except VerifyError as exc:
+            raise CaseError(f"case {name}: tolerance of {quantity.strip()}: {exc}") from exc
+        found[quantity.strip()] = " ".join(spec.split())
+    return found
 
 
 def parse_case(name: str, options: dict[str, str], variables: dict[str, str] | None = None) -> Case:
@@ -172,6 +197,7 @@ def parse_case(name: str, options: dict[str, str], variables: dict[str, str] | N
         env=_env(options.get("env", ""), name),
         probes=probes,
         description=" ".join(options.get("description", "").split()),
+        tolerance=parse_tolerances(options.get("tolerance", ""), name),
     )
 
 
@@ -202,4 +228,5 @@ def load_settings(fobos: Any) -> Settings:
     if parser is not None and parser.has_section("verification"):
         settings.launcher = parser.get("verification", "launcher", fallback=settings.launcher).strip()
         settings.runs_dir = parser.get("verification", "runs_dir", fallback=settings.runs_dir).strip()
+        settings.references_dir = parser.get("verification", "references_dir", fallback=settings.references_dir).strip()
     return settings

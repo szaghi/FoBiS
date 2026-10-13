@@ -270,7 +270,7 @@ def test_runner_on_real_programs(project):
     assert script.command[:2] == ["env", "MPI_RANKS=3"] and script.quantity("ranks").values == [3.0]
     assert script.quantity("answer").values == [42.0]
     data = json.loads(json.dumps(result.to_dict()))
-    assert data["quantities"]["x"] == {"values": [1.0, 0.5, 1 / 3, 0.25], "shape": [4]}
+    assert data["quantities"]["x"] == {"values": [1.0, 0.5, 1 / 3, 0.25], "shape": [4], "order": "F"}
 
 
 MPI_PROGRAM = """\

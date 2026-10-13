@@ -63,11 +63,12 @@ Tools that write:
 | `build` | `build --json`: on failure the parsed compiler messages and FoBiS's diagnoses (missing module, not linked, wrong runtime, duplicate symbol) | `mode`, `target` |
 | `test` | `test --json`: each result with its status; a failed build with its diagnoses, a crash with its location, kind and FoBiS's notes (trusted location, debug mode, known compiler bugs) | `mode`, `suite`, `filter`, `list` |
 | `case_run` | Build and run [cases](/advanced/cases): per run its status, quantities, output tails and provenance | `names`, `mode` |
+| `verify` | [Cases compared with their references](/advanced/verify): per quantity pass/fail, errors, worst point, provenance changes; `repeat` checks non-determinism; never writes references | `names`, `mode`, `repeat` |
 | `clean` | The removed objects and module files | `mode` |
 | `fetch` | The dependencies cloned or updated (network) | `update` |
 
 Every tool declares the protocol's behaviour **annotations**: `readOnlyHint` (false only for `build`, `test`,
-`case_run`, `clean`, `fetch`), `destructiveHint` (`clean`), `idempotentHint` (false for `fetch`) and `openWorldHint`
+`case_run`, `verify`, `clean`, `fetch`), `destructiveHint` (`clean`), `idempotentHint` (false for `fetch`) and `openWorldHint`
 (`fetch` and `ecosystem_status`, which reach the network). Clients use them to decide what to ask the user before
 a call; with Claude Code you approve each call unless you allow the tool.
 

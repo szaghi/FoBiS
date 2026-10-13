@@ -133,6 +133,7 @@ export default defineConfig({
             { text: 'Lock File & Semver',  link: '/advanced/lock-file' },
             { text: 'Test Runner',         link: '/advanced/testing' },
             { text: 'Cases',               link: '/advanced/cases' },
+            { text: 'Verify',              link: '/advanced/verify' },
             { text: 'Coverage',            link: '/reference/coverage' },
             { text: 'External Libraries',  link: '/advanced/externals' },
             { text: 'Build Profiles',      link: '/advanced/build-profiles' },
@@ -152,6 +153,7 @@ export default defineConfig({
             { text: 'check',      link: '/reference/check' },
             { text: 'case',       link: '/reference/case' },
             { text: 'provenance', link: '/reference/provenance' },
+            { text: 'verify',     link: '/reference/verify' },
           ],
         },
         {
@@ -249,6 +251,7 @@ export default defineConfig({
           items: [
             { text: 'Test Runner',             link: '/advanced/testing' },
             { text: 'Cases & Provenance',      link: '/advanced/cases' },
+            { text: 'Verifying Results',       link: '/advanced/verify' },
             { text: 'Doctests',                link: '/advanced/doctests' },
             { text: 'PreForM Preprocessing',   link: '/advanced/preform' },
           ],

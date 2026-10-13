@@ -80,12 +80,19 @@ class Quantity:
     name: str
     values: list[float]
     shape: list[int] | None = None
+    order: str = "C"  # storage order of the values: "F" (Fortran, column-major) or "C" (row-major)
 
     def to_dict(self) -> dict:
         data: dict = {"values": [json_number(v) for v in self.values]}
         if self.shape:
             data["shape"] = self.shape
+            data["order"] = self.order
         return data
+
+    @classmethod
+    def from_dict(cls, name: str, data: dict) -> Quantity:
+        values = [from_json_number(v) for v in data.get("values", [])]
+        return cls(name, values, data.get("shape"), data.get("order", "C"))
 
 
 def json_number(value: float) -> float | str:
@@ -333,7 +340,7 @@ def _binary(probe: Probe, output: RunOutput) -> Quantity:
     values = [float(v) for v in struct.unpack(f"<{len(payload) // size}{code}", payload)]
     if shape and math.prod(shape) != len(values):
         raise ProbeError(f"{probe.name}: shape {shape} holds {math.prod(shape)} values, the data {len(values)}")
-    return Quantity(probe.name, values, shape)
+    return Quantity(probe.name, values, shape, "F")
 
 
 def _record(raw: bytes, number: int, name: str) -> bytes:

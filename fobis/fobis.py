@@ -120,6 +120,8 @@ def run_fobis(fake_args=None):
             run_fobis_case(configuration)
         if configuration.cliargs.which == "provenance":
             run_fobis_provenance(configuration)
+        if configuration.cliargs.which == "verify":
+            run_fobis_verify(configuration)
         if configuration.cliargs.which == "test":
             run_fobis_test(configuration)
         if configuration.cliargs.which == "introspect":
@@ -2193,6 +2195,82 @@ def run_fobis_case(configuration):
     if as_json:
         print(json.dumps({"results": [r.to_dict() for r in results]}, indent=2))
     if any(not r.ok for r in results):
+        sys.exit(1)
+
+
+def run_fobis_verify(configuration):
+    """
+    Run FoBiS in verify mode: run cases and compare their quantities with the stored references.
+
+    With ``--update`` the runs become the references (never implicitly); with ``--repeat N`` each case runs N times
+    and the runs are compared with each other (non-determinism).
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import json
+
+    from .verification import CaseError, load_cases, load_settings
+    from .verification.verify import (
+        Verification,
+        VerifyError,
+        load_reference,
+        reference_path,
+        render_text,
+        save_reference,
+        verify,
+    )
+
+    cliargs = configuration.cliargs
+    as_json = getattr(cliargs, "json_output", False)
+    try:
+        cases = load_cases(configuration.fobos)
+    except CaseError as exc:
+        configuration.print_r(f"Error: {exc}")
+        sys.exit(2)
+    wanted = cliargs.verify_names or list(cases)
+    unknown = [n for n in wanted if n not in cases]
+    if unknown or not wanted:
+        what = f"unknown case(s) {', '.join(unknown)}" if unknown else "no case declared"
+        configuration.print_r(f"Error: {what} (declared: {', '.join(cases) or 'none'})")
+        sys.exit(2)
+    settings = load_settings(configuration.fobos)
+    runner = _verification_runner(configuration)
+    outcomes: list[Verification] = []
+    for name in wanted:
+        case = cases[name]
+        configuration.print_b(f"Verifying case {name}...")
+        results = [runner.run(case, mode=cliargs.verify_mode)]
+        for number in range(2, cliargs.verify_repeat + 1):
+            results.append(runner.run(case, variant=f"repeat-{number}", mode=cliargs.verify_mode))
+        path = reference_path(settings.references_dir, name)
+        try:
+            reference = None if cliargs.verify_update else load_reference(path)
+        except VerifyError as exc:
+            configuration.print_r(f"Error: {exc}")
+            sys.exit(2)
+        outcome = verify(results, reference, case.tolerance, path)
+        if cliargs.verify_update and outcome.status == "no-reference":
+            run = results[0]
+            if outcome.repeat:
+                outcome.status = "nondeterministic"
+                outcome.note = "not updated: the repeated runs differ"
+            elif run.probe_errors:
+                outcome.status = "fail"
+                outcome.note = "not updated: quantities not read: " + ", ".join(run.probe_errors)
+            else:
+                save_reference(path, run)
+                outcome.status, outcome.note = "updated", f"reference written to {path}"
+                if run.provenance.get("git", {}).get("dirty"):
+                    outcome.note += " (from uncommitted code)"
+        outcomes.append(outcome)
+    if as_json:
+        print(json.dumps({"cases": [o.to_dict() for o in outcomes]}, indent=2))
+    else:
+        text = render_text(outcomes)
+        (configuration.print_b if all(o.ok for o in outcomes) else configuration.print_r)(text)
+    if not all(o.ok for o in outcomes):
         sys.exit(1)
 
 

@@ -568,6 +568,26 @@ class Server:
                 read_only=False,
             ),
             Tool(
+                "verify",
+                "Verify results against references",
+                "Run declared cases and compare their quantities with the stored references within each quantity's "
+                "tolerance: per quantity pass/fail, max absolute and relative error, worst point, L2, NaN that "
+                "appeared, and what changed in the provenance (compiler, flags, code). With repeat, runs each case "
+                "N times and reports non-determinism. References are never written by this tool.",
+                _schema(
+                    {
+                        "names": {**_STR_LIST, "description": "cases to verify (default: all)"},
+                        "mode": _MODE,
+                        "repeat": {**_INT, "description": "runs per case (non-determinism check)"},
+                    }
+                ),
+                lambda a: self._json(
+                    ["verify", *a.get("names", []), "--json", *self._mode(a)]
+                    + (["--repeat", str(int(a["repeat"]))] if a.get("repeat") else [])
+                ),
+                read_only=False,
+            ),
+            Tool(
                 "clean",
                 "Clean build products",
                 "Remove the compiled objects and module files of the mode (returns the removed paths).",

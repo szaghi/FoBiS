@@ -89,3 +89,40 @@ def cmd_provenance(
         verbose=False,
         json_output=json_output,
     )
+
+
+@app.command("verify")
+def cmd_verify(
+    ctx: typer.Context,
+    names: Annotated[list[str] | None, typer.Argument(help="Cases to verify [default: all]")] = None,
+    fobos: FobosOpt = None,
+    fobos_case_insensitive: FciOpt = False,
+    mode: ModeOpt = None,
+    update: Annotated[
+        bool,
+        typer.Option("--update", help="Accept the runs as the new references (written to the references directory)."),
+    ] = False,
+    repeat: Annotated[
+        int,
+        typer.Option("--repeat", min=1, help="Run each case N times; any difference between the runs is reported."),
+    ] = 1,
+    json_output: JsonOpt = False,
+):
+    """Run cases and compare their quantities with the stored references, within each quantity's tolerance."""
+    ctx.ensure_object(dict)
+    ctx.obj["cliargs"] = _ns(
+        which="verify",
+        verify_names=names or [],
+        verify_mode=mode,
+        verify_update=update,
+        verify_repeat=repeat,
+        fobos=fobos,
+        fobos_case_insensitive=fobos_case_insensitive,
+        mode=None,
+        lmodes=False,
+        colors=False,
+        log=False,
+        quiet=False,
+        verbose=False,
+        json_output=json_output,
+    )

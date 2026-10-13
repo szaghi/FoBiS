@@ -103,6 +103,7 @@ fobis merge-assist [--apply [--yes]]  # proposals for merge/rebase/cherry-pick c
 fobis testgen MODULE [--skeleton] [--apply]  # test program for a module's public API, kept only if it builds+runs+checks
 fobis case list|run [NAME] [--json]  # run fobos [case:NAME] programs, extract their quantities (+ provenance)
 fobis provenance [--json]            # commit/dirty, dep pins, compiler+version+flags, modules, machine
+fobis verify [NAME] [--update] [--repeat N]  # case quantities vs stored references, per-quantity tolerance
 fobis ask "QUESTION"     # answer from the knowledge packs (+ project procedures with -p DIR), with citations
 fobis build --explain    # on failure: explain from facts (missing module, unlinked object ...), then LLM
 fobis run --explain      # runtime crash: located facts, debug mode to use, known compiler bugs, then LLM
@@ -132,6 +133,11 @@ fobis test --explain     # the same for every failed test (LLM for the first one
   FILE /ds` | `binary FILE real64 [n] record 2|stream` | `exit`, or `stdout` alone). Status ok/probe-error/
   failed/timeout/build-failed/error; exit 1 when a run is not ok, 2 on a bad declaration. Base of the coming
   `verify`/`assess`/`diff-run`/`bench` (PLAN-verification.md).
+- `verify`: references `verification/references/<case>.json` written ONLY by `--update` (commit them); case key
+  `tolerance = q: abs A rel R | ulp N | exact; *: ...` (default exact); report per quantity: out-of-tolerance count,
+  max abs/rel, L2, worst point `(i,j)` (Fortran binary) or `[i][j]`, NaN appeared, provenance changes (also on
+  pass: "results unaffected"). `--repeat N`: runs must agree exactly (non-determinism). Case builds force a full
+  recompile when the compiler/version/flags changed or another build touched the objects (`rebuilt_because`).
 - **Machine output** (`--json` / `--format json`): build (on failure + `diagnostics` parsed + `diagnoses` from
   facts), clean, fetch, check, tree (each dep with ITS version), test (per test status passed/failed/build-failed/
   timeout/error + `crash`/`notes` or `diagnostics`/`diagnoses`), introspect, lint/review, merge-assist, testgen,

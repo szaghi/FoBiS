@@ -1,7 +1,7 @@
 # Cases, quantities and provenance
 
 A **case** tells FoBiS how to run something your project produces and which **quantities** to read from what it
-writes. It is the base of FoBiS's verification features: a case's quantities are what regression checks compare,
+writes. It is the base of FoBiS's verification features: a case's quantities are what [`fobis verify`](/advanced/verify) compares,
 what error assessments perturb and what benchmarks time. Every result also records its **provenance**: what
 produced it.
 

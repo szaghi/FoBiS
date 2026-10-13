@@ -17,6 +17,7 @@ programmatically; the [MCP server](/ai/mcp) returns the same documents to agents
 | `fobis commit --show-facts --json` | the facts of the staged change (below) |
 | `fobis ask --show-context --json` | the retrieved, citable sections of a question (below) |
 | `fobis case list --json`, `fobis case run --json`, `fobis provenance --json` | cases, runs with their quantities, provenance (below) |
+| `fobis verify --json` | each case compared with its reference (below) |
 | `fobis testgen --format json`, `fobis ecosystem impact --format json`, `fobis ecosystem dashboard --json` | see [testgen](/reference/testgen), [ecosystem](/reference/ecosystem) |
 
 With machine output on, FoBiS's own messages and warnings go to **stderr**: stdout holds the JSON document only.
@@ -200,6 +201,15 @@ known; NaN and infinities as the strings `"nan"`, `"inf"`, `"-inf"`), `probe_err
 `stdout` and `stderr`, `provenance`, and `build` (the `build --json` document) when the build failed. `fobis case
 list --json` gives the declared `cases`; `fobis provenance --json` the provenance alone (see
 [Cases](/advanced/cases#provenance)).
+
+### `fobis verify --json`
+
+`cases`, each with `case`, `status` (`pass`, `fail`, `no-reference`, `nondeterministic`, `run-failed`, `updated`),
+`reference` (path), `quantities` (per quantity: `name`, `status` (`pass`, `fail`, `missing`, `new`, `shape`),
+`tolerance`, `count`, `out_of_tolerance`, `max_abs`, `max_rel`, `l2`, `linf`, `worst` {`index`, `value`,
+`reference`}, `nonfinite`, `note`), `provenance_changes` (`key: old -> new`), `run` (status, exit code, elapsed,
+run directory, probe errors, stderr tail, build document when it failed), `repeat` (quantities that differed
+between repeated runs). See [Verifying results](/advanced/verify).
 
 ## Exit codes
 
