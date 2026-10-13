@@ -202,10 +202,22 @@ def test_optimised_build_is_not_explained_from_frames(facts):
     assert not ask and [n.kind for n in notes] == ["segv", "optimised-build"]
     note = notes[1]
     assert note.summary == "mode gnu-opt is optimised (-O3), without debug information (-g), without runtime checks"
-    assert note.advice == ["reproduce it in a debug build first: fobis run --mode gnu-debug --explain"]
+    assert note.advice == [
+        "reproduce it in a debug build first: fobis run --mode gnu-debug --explain",
+        "or rebuild this mode with runtime checks and run it again: fobis run --mode gnu-opt --shadow checks --explain",
+    ]
     assert note.refs == [BACKTRACES_LIE] and "located message" in note.facts[1]
     notes, ask = classify_crash(_crash("intel-opt-segv"), _ctx(facts, "intel-opt", [MODES["intel-opt"]]))
-    assert not ask and "-O0 -g -traceback -check all -fpe0" in notes[1].advice[0]  # no debug mode in fobos
+    assert not ask and notes[1].advice == [  # no debug mode in the fobos: the checks shadow
+        "rebuild this mode with runtime checks and run it again: fobis run --mode intel-opt --shadow checks --explain"
+    ]
+    lfortran = ModeInfo("lf", "lfortran", "-O2")  # no shadow for LFortran: the flags of a debug mode
+    notes, _ = classify_crash(_crash("intel-opt-segv"), RunContext(lfortran, [lfortran], facts))
+    assert "add one (`build_profile = debug`" in notes[1].advice[0]
+    shadowed = MODES["gnu-opt"].as_shadow("checks")  # a crash in the checks shadow: already the advice's build
+    assert shadowed.shadow == "checks" and "-fcheck=all" in shadowed.cflags and "-O3" not in shadowed.cflags
+    notes, _ = classify_crash(_crash("gnu-opt-segv"), RunContext(shadowed, [shadowed], facts))
+    assert all("--shadow" not in a for n in notes for a in n.advice)
 
 
 def test_optimised_build_with_a_located_runtime_message(facts):

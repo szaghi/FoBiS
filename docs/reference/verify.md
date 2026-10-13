@@ -12,6 +12,7 @@ fobis verify [NAME...] [options]
 | `--update` | Accept the runs as the new references (`verification/references/<case>.json`) |
 | `--repeat N` | Run each case N times; differences between the runs are reported, and `--update` refuses them |
 | `--mode M` | Build with this mode instead of each case's own |
+| `--shadow NAME` | Rebuild the mode as a [shadow](/advanced/matrix#shadow-modes): `checks`, `sanitize`, `strict` (or `none`), in `.fobis/shadow/<mode>-<shadow>/` |
 | `--json` | One JSON object: `cases`, each with status, quantity comparisons, provenance changes, run summary |
 | `-f/--fobos`, `--fci` | The fobos file |
 

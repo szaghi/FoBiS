@@ -10,7 +10,7 @@ from typing import Annotated
 import typer
 
 from ._app import _ns, app
-from ._options import FciOpt, FobosOpt, ModeOpt
+from ._options import FciOpt, FobosOpt, ModeOpt, ShadowOpt
 
 
 @app.command("run", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
@@ -19,6 +19,7 @@ def cmd_run(
     fobos: FobosOpt = None,
     fobos_case_insensitive: FciOpt = False,
     mode: ModeOpt = None,
+    shadow: ShadowOpt = None,
     target_name: Annotated[
         str | None,
         typer.Argument(help="Name or path of the executable to run (defaults to the mode's output)"),
@@ -57,6 +58,7 @@ def cmd_run(
         fobos=fobos,
         fobos_case_insensitive=fobos_case_insensitive,
         mode=mode,
+        shadow=shadow,
         lmodes=False,
         run_target=target_name,
         run_no_build=no_build,

@@ -26,6 +26,7 @@ fobis test [options] [-- EXTRA_ARGS...]
 |---|---|
 | `-f`, `--fobos` | Specify a fobos file with a different name or path |
 | `--mode` | Select a fobos mode |
+| `--shadow NAME` | Rebuild the mode as a [shadow](/advanced/matrix#shadow-modes): `checks`, `sanitize`, `strict` (or `none`), in `.fobis/shadow/<mode>-<shadow>/` |
 
 ## Test discovery
 

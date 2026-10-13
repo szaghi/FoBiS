@@ -10,7 +10,7 @@ from typing import Annotated
 import typer
 
 from ._app import _ns, app
-from ._options import CompilerOpt, FciOpt, FobosOpt, JsonOpt, ModeOpt
+from ._options import CompilerOpt, FciOpt, FobosOpt, JsonOpt, ModeOpt, ShadowOpt
 
 
 @app.command("test", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
@@ -19,6 +19,7 @@ def cmd_test(
     fobos: FobosOpt = None,
     fobos_case_insensitive: FciOpt = False,
     mode: ModeOpt = None,
+    shadow: ShadowOpt = None,
     compiler: CompilerOpt = "gnu",
     suite: Annotated[
         str | None,
@@ -66,6 +67,7 @@ def cmd_test(
         fobos=fobos,
         fobos_case_insensitive=fobos_case_insensitive,
         mode=mode,
+        shadow=shadow,
         lmodes=False,
         compiler=compiler.lower(),
         test_suite=suite,

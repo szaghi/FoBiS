@@ -24,6 +24,7 @@ def cmd_build(
     fobos_case_insensitive: FciOpt = False,
     mode: ModeOpt = None,
     lmodes: LmodesOpt = False,
+    shadow: ShadowOpt = None,
     # compiler group
     compiler: CompilerOpt = "gnu",
     fc: FcOpt = None,
@@ -199,6 +200,7 @@ def cmd_build(
         fobos_case_insensitive=fobos_case_insensitive,
         mode=mode,
         lmodes=lmodes,
+        shadow=shadow,
         compiler=compiler.lower(),
         fc=fc,
         cflags=cflags,

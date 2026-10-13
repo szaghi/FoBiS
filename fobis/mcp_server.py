@@ -122,6 +122,12 @@ _BOOL = {"type": "boolean"}
 _INT = {"type": "integer"}
 _STR_LIST = {"type": "array", "items": {"type": "string"}}
 _MODE = {"type": "string", "description": "fobos mode (default: the fobos default mode)"}
+_SHADOW = {
+    "type": "string",
+    "enum": ["checks", "sanitize", "strict", "none"],
+    "description": "rebuild the mode as this shadow in its own build directory: checks (runtime checks, FP traps, "
+    "-O0 -g), sanitize (AddressSanitizer), strict (standard conformance, warnings as errors)",
+}
 _MAX = {"type": "integer", "description": f"at most this many findings (default {MAX_FINDINGS})"}
 _CONFIG = {"type": "string", "description": "user config holding the ecosystem registry (default: the user's)"}
 
@@ -185,7 +191,9 @@ class Server:
 
     @staticmethod
     def _mode(arguments: dict) -> list[str]:
-        return ["--mode", arguments["mode"]] if arguments.get("mode") else []
+        """``--mode`` (and ``--shadow`` for the tools that take one) from the arguments."""
+        args = ["--mode", arguments["mode"]] if arguments.get("mode") else []
+        return args + (["--shadow", arguments["shadow"]] if arguments.get("shadow") else [])
 
     @staticmethod
     def _repeat(option: str, values: list[str] | None) -> list[str]:
@@ -330,6 +338,14 @@ class Server:
                 args += [f"--{key}", arguments[key]]
         if arguments.get("list"):
             args.append("--list")
+        return self._json(args)
+
+    def _matrix(self, arguments: dict) -> Reply:
+        args = ["matrix", "--json"]
+        for key in ("modes", "shadows", "compilers"):
+            if arguments.get(key):
+                args += [f"--{key}", ",".join(arguments[key])]
+        args += [f"--{key}" for key in ("verify", "recheck") if arguments.get(key)]
         return self._json(args)
 
     # ── the catalogue ─────────────────────────────────────────────────────────
@@ -543,7 +559,13 @@ class Server:
                 "Build the project with FoBiS (writes objects and targets in the mode's build directory). On failure "
                 "the result holds the compiler's messages parsed (diagnostics) and FoBiS's diagnoses from facts "
                 "(missing or unreachable module, object not linked, wrong compiler runtime, duplicate symbol).",
-                _schema({"mode": _MODE, "target": {**_STR, "description": "build only this program or library"}}),
+                _schema(
+                    {
+                        "mode": _MODE,
+                        "shadow": _SHADOW,
+                        "target": {**_STR, "description": "build only this program or library"},
+                    }
+                ),
                 self._build,
                 read_only=False,
             ),
@@ -553,7 +575,7 @@ class Server:
                 "Discover, build and run the project's Fortran test programs (or only list them). Each failure holds "
                 "its facts: the parsed build errors and diagnoses, or the parsed crash (kind, message, location, "
                 "frames) and FoBiS's notes on it (trusted location, debug mode to rebuild with, known compiler bugs).",
-                _schema({"mode": _MODE, "suite": _STR, "filter": _STR, "list": _BOOL}),
+                _schema({"mode": _MODE, "shadow": _SHADOW, "suite": _STR, "filter": _STR, "list": _BOOL}),
                 self._test,
                 read_only=False,
             ),
@@ -563,7 +585,13 @@ class Server:
                 "Build and run declared cases (all by default) in fresh run directories and return, per run, its "
                 "status (ok, failed, timeout, build-failed with diagnoses, probe-error), its quantities, the tails of "
                 "its output and its provenance.",
-                _schema({"names": {**_STR_LIST, "description": "cases to run (default: all)"}, "mode": _MODE}),
+                _schema(
+                    {
+                        "names": {**_STR_LIST, "description": "cases to run (default: all)"},
+                        "mode": _MODE,
+                        "shadow": _SHADOW,
+                    }
+                ),
                 lambda a: self._json(["case", "run", *a.get("names", []), "--json", *self._mode(a)]),
                 read_only=False,
             ),
@@ -578,6 +606,7 @@ class Server:
                     {
                         "names": {**_STR_LIST, "description": "cases to verify (default: all)"},
                         "mode": _MODE,
+                        "shadow": _SHADOW,
                         "repeat": {**_INT, "description": "runs per case (non-determinism check)"},
                     }
                 ),
@@ -585,6 +614,27 @@ class Server:
                     ["verify", *a.get("names", []), "--json", *self._mode(a)]
                     + (["--repeat", str(int(a["repeat"]))] if a.get("repeat") else [])
                 ),
+                read_only=False,
+            ),
+            Tool(
+                "matrix",
+                "Build and test every mode x shadow",
+                "Build, test and (with verify) run the cases of every fobos mode rebuilt as each shadow (none = the "
+                "mode's own flags, checks, sanitize, strict), each in its own build directory and in the environment "
+                "of its [verification] setup line. Per cell: status, compiler version, first build problem, failed "
+                "tests with their crash facts, cases vs references; across cells, the quantities that disagree "
+                "beyond tolerance. Missing compilers are skipped, shadows a compiler lacks are n/a. Slow: one full "
+                "build per cell.",
+                _schema(
+                    {
+                        "modes": {**_STR_LIST, "description": "modes (default: all)"},
+                        "shadows": {**_STR_LIST, "description": "shadows (default: none, checks)"},
+                        "compilers": {**_STR_LIST, "description": "keep modes of these compilers or families"},
+                        "verify": {**_BOOL, "description": "run the declared cases too"},
+                        "recheck": {**_BOOL, "description": "run failures again under the checks shadow"},
+                    }
+                ),
+                self._matrix,
                 read_only=False,
             ),
             Tool(

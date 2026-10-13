@@ -113,6 +113,7 @@ class Settings:
     launcher: str = DEFAULT_LAUNCHER
     runs_dir: str = DEFAULT_RUNS_DIR
     references_dir: str = DEFAULT_REFERENCES_DIR
+    setup: dict[str, str] = field(default_factory=dict)
 
 
 def _substitute(value: str, variables: dict[str, str]) -> str:
@@ -229,4 +230,19 @@ def load_settings(fobos: Any) -> Settings:
         settings.launcher = parser.get("verification", "launcher", fallback=settings.launcher).strip()
         settings.runs_dir = parser.get("verification", "runs_dir", fallback=settings.runs_dir).strip()
         settings.references_dir = parser.get("verification", "references_dir", fallback=settings.references_dir).strip()
+        settings.setup = parse_setup(parser.get("verification", "setup", fallback=""))
     return settings
+
+
+def parse_setup(text: str) -> dict[str, str]:
+    """``setup`` lines ``NAME: shell commands``: what to run before building a mode (NAME: the mode, its compiler
+    or its compiler family), e.g. ``nvfortran: module load nvhpc/26``."""
+    setup = {}
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        name, sep, command = line.partition(":")
+        if not sep or not name.strip() or " " in name.strip() or not command.strip():
+            raise CaseError(f"[verification] setup line {line.strip()!r} is not 'mode-or-compiler: commands'")
+        setup[name.strip()] = command.strip()
+    return setup

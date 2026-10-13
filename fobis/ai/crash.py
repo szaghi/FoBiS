@@ -318,10 +318,21 @@ class ModeInfo:
     name: str
     compiler: str
     cflags: str
+    shadow: str = ""
 
     @property
     def family(self) -> str:
         return _FAMILY.get(self.compiler, self.compiler)
+
+    def as_shadow(self, shadow: str) -> ModeInfo:
+        """This mode rebuilt as *shadow* (``--shadow``): its flags transformed; unchanged when unavailable."""
+        from ..verification.shadow import ShadowError, flags_for, transform
+
+        try:
+            flags = flags_for(shadow, self.compiler)
+        except ShadowError:
+            return self
+        return ModeInfo(self.name, self.compiler, transform(self.cflags, flags.compile, flags.drop), shadow)
 
 
 def optimisation(compiler: str, cflags: str) -> tuple[int, bool, bool]:
@@ -528,6 +539,8 @@ def _optimised_note(crash: Crash, ctx: RunContext, message_located: bool) -> Not
     if not checks:
         reasons.append("without runtime checks")
     name = f"mode {ctx.mode.name}" if ctx.mode.name else "this build"
+    if ctx.mode.shadow:
+        name += f" (shadow {ctx.mode.shadow})"
     note = Note("optimised-build", f"{name} is " + ", ".join(reasons), refs=[BACKTRACES_LIE])
     if message_located:
         note.facts.append(
@@ -549,7 +562,13 @@ def _optimised_note(crash: Crash, ctx: RunContext, message_located: bool) -> Not
         note.advice.append(
             f"reproduce it in a debug build first: fobis {ctx.command} --mode {debug_mode.name} --explain"
         )
-    else:
+    if ctx.mode.shadow != "checks" and ctx.mode.as_shadow("checks").shadow:
+        mode_arg = f" --mode {ctx.mode.name}" if ctx.mode.name else ""
+        note.advice.append(
+            f"{'or ' if debug_mode is not None else ''}rebuild this mode with runtime checks and run it again: "
+            f"fobis {ctx.command}{mode_arg} --shadow checks --explain"
+        )
+    elif debug_mode is None:
         flags = DEBUG_FLAGS.get(ctx.mode.family, DEBUG_FLAGS["gnu"])
         note.advice.append(
             f"the fobos file has no debug mode: add one (`build_profile = debug`, or `cflags = {flags}`) and "
@@ -742,14 +761,17 @@ def explain_crash(bundle: ContextBundle, provider: Provider, seed: int = 0) -> G
     return check_claims(completion.text, bundle)
 
 
-def scan_context(fobos: Any, mode: str | None, command: str = "run") -> RunContext:
-    """The `RunContext` of the project in the cwd: modes from *fobos*, the selected *mode*, the sources."""
+def scan_context(fobos: Any, mode: str | None, command: str = "run", shadow: str | None = None) -> RunContext:
+    """The `RunContext` of the project in the cwd: modes from *fobos*, the selected *mode* (rebuilt as *shadow*
+    when given), the sources."""
     from ..cli._constants import __extensions_parsed__
     from ..lint import discover_files
 
     modes = mode_infos(fobos)
     wanted = mode or getattr(fobos, "mode", None)
     chosen = next((m for m in modes if m.name == wanted), None) or (modes[0] if modes else ModeInfo("", "gnu", ""))
+    if shadow:
+        chosen = chosen.as_shadow(shadow)
     files = discover_files(["."], extensions=__extensions_parsed__)
     return RunContext(
         mode=chosen,

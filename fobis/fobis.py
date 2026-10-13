@@ -122,6 +122,8 @@ def run_fobis(fake_args=None):
             run_fobis_provenance(configuration)
         if configuration.cliargs.which == "verify":
             run_fobis_verify(configuration)
+        if configuration.cliargs.which == "matrix":
+            run_fobis_matrix(configuration)
         if configuration.cliargs.which == "test":
             run_fobis_test(configuration)
         if configuration.cliargs.which == "introspect":
@@ -1213,7 +1215,9 @@ def _explain_crash(configuration, output, exit_code, command, mode=None, ask_mod
     if crash is None:
         return False
     say = configuration.print_b
-    ctx = scan_context(configuration.fobos, mode, command=command)
+    ctx = scan_context(
+        configuration.fobos, mode, command=command, shadow=getattr(configuration.cliargs, "shadow", None)
+    )
     notes, wanted = classify_crash(crash, ctx)
     say("")
     say(title or f"Explanation (fobis {command} --explain)")
@@ -1777,12 +1781,18 @@ def run_fobis_run(configuration):
         build_mode = mode
 
     explain = getattr(cliargs, "explain", False)
+    shadow = getattr(cliargs, "shadow", None)
+    if shadow and output_path and not target_name:  # the shadow's program is in the shadow's build directory
+        mode_build_dir = fobos.get(option="build_dir", mode=mode, toprint=False) or "./"
+        output_path = os.path.join(cliargs.build_dir, os.path.relpath(output_path, os.path.normpath(mode_build_dir)))
 
     # Build step
     if not no_build:
         build_args = ["build"]
         if build_mode:
             build_args += ["-mode", build_mode]
+        if shadow:
+            build_args += ["--shadow", shadow]
         if explain:
             build_args += ["--explain-context" if cliargs.explain_context else "--explain"]
         if dry_run:
@@ -2108,7 +2118,7 @@ def subprocess_ok(args: list[str]) -> bool:
         return False
 
 
-def _verification_runner(configuration):
+def _verification_runner(configuration, shadow=None):
     """The `LocalRunner` of the project in the cwd, with the fobos's ``[verification]`` settings."""
     from .verification import LocalRunner, load_settings
 
@@ -2118,7 +2128,7 @@ def _verification_runner(configuration):
         fobos_args.append("--fobos-case-insensitive")
     settings = load_settings(configuration.fobos)
     deps_dir = configuration.fobos.get_deps_dir() if configuration.fobos.fobos else ".fobis_deps"
-    return LocalRunner(".", fobos_args, settings.runs_dir, settings.launcher, deps_dir)
+    return LocalRunner(".", fobos_args, settings.runs_dir, settings.launcher, deps_dir, shadow=shadow)
 
 
 def _format_values(values: list, limit: int = 6) -> str:
@@ -2161,7 +2171,7 @@ def run_fobis_case(configuration):
     if unknown:
         configuration.print_r(f"Error: unknown case(s) {', '.join(unknown)} (declared: {', '.join(cases) or 'none'})")
         sys.exit(2)
-    runner = _verification_runner(configuration)
+    runner = _verification_runner(configuration, getattr(cliargs, "case_shadow", None))
     if not as_json and os.path.isdir(".git"):
         ignored = subprocess_ok(["git", "check-ignore", "-q", os.path.join(runner.runs_dir, "x")])
         if not ignored:
@@ -2236,7 +2246,7 @@ def run_fobis_verify(configuration):
         configuration.print_r(f"Error: {what} (declared: {', '.join(cases) or 'none'})")
         sys.exit(2)
     settings = load_settings(configuration.fobos)
-    runner = _verification_runner(configuration)
+    runner = _verification_runner(configuration, getattr(cliargs, "verify_shadow", None))
     outcomes: list[Verification] = []
     for name in wanted:
         case = cases[name]
@@ -2271,6 +2281,83 @@ def run_fobis_verify(configuration):
         text = render_text(outcomes)
         (configuration.print_b if all(o.ok for o in outcomes) else configuration.print_r)(text)
     if not all(o.ok for o in outcomes):
+        sys.exit(1)
+
+
+def run_fobis_matrix(configuration):
+    """
+    Run FoBiS in matrix mode: build, test and (with ``--verify``) verify every mode x shadow combination.
+
+    Each cell is a nested ``fobis`` command in the environment of the mode's ``[verification] setup`` line, with
+    the mode rebuilt in its own shadow build directory: the user's build tree is never touched.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import json
+    import subprocess
+
+    from .mcp_server import fobis_command
+    from .TestRunner import discover_tests
+    from .verification import CaseError, load_cases, load_settings
+    from .verification.matrix import Matrix, render_text
+    from .verification.shadow import SHADOWS
+
+    cliargs = configuration.cliargs
+    fobos = configuration.fobos
+    if not fobos.fobos:
+        configuration.print_r("Error: fobis matrix needs a fobos file (its modes are the rows of the matrix)")
+        sys.exit(2)
+    declared = fobos.fobos.get("modes", "modes").split() if fobos.fobos.has_option("modes", "modes") else []
+    if not declared and fobos.fobos.has_section("default"):
+        declared = ["default"]
+    modes = cliargs.matrix_modes or declared
+    shadows = cliargs.matrix_shadows or ["none"]
+    problems = [f"unknown mode {m!r}" for m in modes if m not in declared]
+    problems += [f"unknown shadow {s!r} (available: {', '.join(SHADOWS)})" for s in shadows if s not in SHADOWS]
+    try:
+        cases = load_cases(fobos) if cliargs.matrix_verify else {}
+        settings = load_settings(fobos)
+    except CaseError as exc:
+        problems.append(str(exc))
+    if cliargs.matrix_verify and not problems and not cases:
+        problems.append("--verify: no case declared ([case:NAME] sections)")
+    if problems:
+        configuration.print_r("Error: " + "; ".join(problems))
+        sys.exit(2)
+    test_dir = (fobos.get_test_config() or {}).get("test_dir", "test")
+    has_tests = not cliargs.matrix_no_tests and os.path.isdir(test_dir) and bool(discover_tests(test_dir))
+    fobos_args = ["--fobos", cliargs.fobos] if cliargs.fobos else []
+    if cliargs.fobos_case_insensitive:
+        fobos_args.append("--fobos-case-insensitive")
+
+    def run(args, env):
+        done = subprocess.run([*fobis_command(), *args, *fobos_args], capture_output=True, text=True, env=env)
+        return done.returncode, done.stdout, done.stderr
+
+    def progress(line):
+        print(f"matrix: {line}", file=sys.stderr, flush=True)
+
+    matrix = Matrix(
+        modes,
+        shadows,
+        run,
+        setup=settings.setup,
+        cases=cases,
+        references_dir=settings.references_dir,
+        has_tests=has_tests,
+        compilers=cliargs.matrix_compilers,
+        verify=cliargs.matrix_verify,
+        recheck=cliargs.matrix_recheck,
+        progress=progress,
+    )
+    result = matrix.run()
+    if getattr(cliargs, "json_output", False):
+        print(json.dumps(result.to_dict(), indent=2))
+    else:
+        (configuration.print_b if result.ok else configuration.print_r)(render_text(result, shadows))
+    if not result.ok:
         sys.exit(1)
 
 
@@ -2933,11 +3020,15 @@ def run_fobis_test(configuration):
         out_dir = os.path.join(build_dir, "test")
         os.makedirs(out_dir, exist_ok=True)
         binary = os.path.join(out_dir, test["name"])
+        with contextlib.suppress(FileNotFoundError):
+            os.remove(binary)  # a build that produces nothing must not leave an older program to run
         # absolute: the builder joins -output to the mode's build_dir, which would prefix it twice
         build_args = ["build", "-target", src, "-output", os.path.abspath(binary)]
         mode_val = getattr(cliargs, "mode", None)
         if mode_val:
             build_args += ["-mode", mode_val]
+        if getattr(cliargs, "shadow", None):
+            build_args += ["--shadow", cliargs.shadow]
         if getattr(cliargs, "explain", False):
             build_args += ["--explain-context" if cliargs.explain_context else "--explain"]
         try:
@@ -3002,16 +3093,28 @@ def _run_fobis_test_json(configuration, tests, test_dir):
     def build_test(test):
         binary = os.path.join(build_dir, "test", test["name"])
         os.makedirs(os.path.dirname(binary), exist_ok=True)
+        with contextlib.suppress(FileNotFoundError):
+            os.remove(binary)  # a build that produces nothing must not leave an older program to run
         args = ["build", "-target", test["source"], "-output", os.path.abspath(binary), "--json"]
         if mode:
             args += ["-mode", mode]
+        if getattr(cliargs, "shadow", None):
+            args += ["--shadow", cliargs.shadow]
         captured = io.StringIO()
         with contextlib.redirect_stdout(captured), contextlib.suppress(SystemExit):
             run_fobis(fake_args=args)
         text = captured.getvalue()
         with contextlib.suppress(ValueError):
             builds[test["name"]] = json.loads(text[text.index("{") :])
-        return binary if os.path.isfile(binary) else None
+        if not os.path.isfile(binary):
+            report = builds.setdefault(test["name"], {})
+            if report.get("status") != "error":
+                report["status"] = "error"
+                report.setdefault("errors", []).append(
+                    f"{test['source']} was not built: is it among the mode's sources (src)?"
+                )
+            return None
+        return binary
 
     quiet = io.StringIO()
     runner = TestRunner(build_dir=build_dir, print_n=lambda *a, **k: None, print_w=lambda *a, **k: None)
@@ -3043,6 +3146,8 @@ def _run_fobis_test_json(configuration, tests, test_dir):
             item["status"] = "build-failed"
             item["diagnostics"] = report.get("diagnostics", [])
             item["diagnoses"] = report.get("diagnoses", [])
+            if report.get("errors"):
+                item["errors"] = report["errors"]
         elif result.exit_code == -1 and result.stderr.startswith("TIMEOUT"):
             item["status"] = "timeout"
         elif result.exit_code in (-2, -3):
@@ -3054,7 +3159,9 @@ def _run_fobis_test_json(configuration, tests, test_dir):
             crash = parse_crash(result.stderr, result.exit_code)
             if crash is not None:
                 with contextlib.redirect_stdout(quiet):
-                    context = context or scan_context(configuration.fobos, mode, command="test")
+                    context = context or scan_context(
+                        configuration.fobos, mode, command="test", shadow=getattr(cliargs, "shadow", None)
+                    )
                     notes, _ = classify_crash(crash, context)
                 item["crash"] = crash.to_dict()
                 item["notes"] = [n.to_dict() for n in notes]
@@ -3175,6 +3282,8 @@ def run_fobis_introspect(configuration):
             "mklib": getattr(cliargs, "mklib", "") or "",
             "jobs": getattr(cliargs, "jobs", 1),
         }
+        if getattr(cliargs, "shadow", None):
+            data["buildoptions"]["shadow"] = cliargs.shadow
 
     # Include dirs
     if getattr(cliargs, "introspect_include_dirs", False):

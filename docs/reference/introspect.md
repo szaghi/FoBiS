@@ -40,6 +40,7 @@ a single JSON object.
 |---|---|
 | `-f`, `--fobos` | Specify a fobos file with a different name or path |
 | `--mode` | Select a fobos mode |
+| `--shadow NAME` | Rebuild the mode as a [shadow](/advanced/matrix#shadow-modes): `checks`, `sanitize`, `strict` (or `none`), in `.fobis/shadow/<mode>-<shadow>/` |
 | `--varset NAMES` | Apply one or more `[varset:NAME]` sections' `$variable` bindings before resolving introspection data. Comma- or space-separated; last write wins. See [Varsets](/advanced/varsets). |
 
 ## Examples

@@ -211,6 +211,18 @@ list --json` gives the declared `cases`; `fobis provenance --json` the provenanc
 run directory, probe errors, stderr tail, build document when it failed), `repeat` (quantities that differed
 between repeated runs). See [Verifying results](/advanced/verify).
 
+### `fobis matrix --json`
+
+`status` (`ok` or `fail`), `counts` (cells per status) and `cells`, one per mode x shadow: `mode`, `shadow`,
+`compiler`, `version` (first line of the compiler's `--version` in the cell's environment), `status` (`ok`,
+`fail`, `skipped`: compiler missing or setup failed, `unsupported`: no such shadow for the compiler), `reason`,
+`setup`, `build` (`status`, the first `problem`), `tests` (`passed`, `failed`, `failures`: name, status,
+problem), `cases` (`case`, `status`, `problem`, `verify` {`status`, `failed` quantities}), `recheck` (the
+failures run again under the `checks` shadow: `test` or `case`, `status`, `problem`, `crash`). Then
+`disagreements`: `case`, `quantity`, `cell`, `baseline` (the first cell that produced it), `status`, `tolerance`,
+`max_abs`, `max_rel`, `worst`, `nonfinite`, `note`. Progress lines go to stderr. See
+[Shadow modes and the matrix](/advanced/matrix).
+
 ## Exit codes
 
 `--json` does not change the exit code behaviour:

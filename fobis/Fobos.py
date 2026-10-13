@@ -1024,8 +1024,11 @@ class Fobos:
         cliargs_dict : argparse object attributes dictionary
         """
         if self.mode:
+            # an explicit --target builds that program, not the mode's: its output is the CLI's too (fobis test,
+            # case and testgen build their programs with --target/--output in modes that declare a target)
+            explicit = {"target", "output"} if cliargs_dict.get("target") else set()
             for item in self.fobos.items(self.mode):
-                if item[0] in self._SKIP_AUTO_ATTRS:
+                if item[0] in self._SKIP_AUTO_ATTRS or item[0] in explicit:
                     continue
                 if item[0] in cliargs_dict:
                     if isinstance(cliargs_dict[item[0]], bool):

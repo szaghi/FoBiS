@@ -136,6 +136,7 @@ class FoBiSConfig:
         """
         Post-initialization update of config attributes, after CLI and fobos parsing.
         """
+        self._apply_shadow()
         self._update_extensions()
         self._sanitize_paths()
         self._auto_discover_src()
@@ -147,6 +148,20 @@ class FoBiSConfig:
                 self._check_ext_vlibs_md5sum()
         self._load_fetched_deps()
         self._check_interdependent_fobos()
+
+    def _apply_shadow(self) -> None:
+        """``--shadow NAME``: the mode's flags turned into the shadow's, objects in the shadow's build directory."""
+        shadow = getattr(self.cliargs, "shadow", None)
+        if not shadow or self.cliargs.which not in ("build", "introspect", "test", "run"):
+            return
+        from .verification.shadow import ShadowError, apply
+
+        mode = self.fobos.mode if self.fobos is not None else None
+        try:
+            apply(self.cliargs, shadow, mode)
+        except ShadowError as exc:
+            self.print_r(f"Error: {exc}")
+            sys.exit(2)
 
     def _auto_discover_src(self) -> None:
         """

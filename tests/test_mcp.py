@@ -37,6 +37,7 @@ TOOLS = [
     "test",
     "case_run",
     "verify",
+    "matrix",
     "clean",
     "fetch",
 ]
@@ -99,7 +100,15 @@ def test_tools_list_has_schemas_and_annotations(server):
     assert all(t["inputSchema"]["type"] == "object" and t["description"] and t["title"] for t in tools.values())
     assert tools["kb_search"]["inputSchema"]["required"] == ["query"]
     hints = {n: t["annotations"] for n, t in tools.items()}
-    assert {n for n, a in hints.items() if not a["readOnlyHint"]} == {"build", "test", "case_run", "verify", "clean", "fetch"}
+    assert {n for n, a in hints.items() if not a["readOnlyHint"]} == {
+        "build",
+        "test",
+        "case_run",
+        "verify",
+        "matrix",
+        "clean",
+        "fetch",
+    }
     assert {n for n, a in hints.items() if a["destructiveHint"]} == {"clean"}
     assert {n for n, a in hints.items() if a["openWorldHint"]} == {"ecosystem_status", "fetch"}
     assert not hints["fetch"]["idempotentHint"] and hints["build"]["idempotentHint"]
@@ -142,7 +151,9 @@ def test_command_lines(server, calls):
     _call(server, "case_list")
     _call(server, "provenance", {"mode": "gnu"})
     _call(server, "case_run", {"names": ["sod"], "mode": "gnu"})
-    _call(server, "verify", {"names": ["sod"], "repeat": 3})
+    _call(server, "verify", {"names": ["sod"], "repeat": 3, "shadow": "checks"})
+    _call(server, "build", {"shadow": "strict"})
+    _call(server, "matrix", {"modes": ["a", "b"], "shadows": ["none", "sanitize"], "verify": True, "recheck": True})
     assert calls == [
         [
             "lint",
@@ -189,7 +200,9 @@ def test_command_lines(server, calls):
         ["case", "list", "--json"],
         ["provenance", "--json", "--mode", "gnu"],
         ["case", "run", "sod", "--json", "--mode", "gnu"],
-        ["verify", "sod", "--json", "--repeat", "3"],
+        ["verify", "sod", "--json", "--shadow", "checks", "--repeat", "3"],
+        ["build", "--json", "--shadow", "strict"],
+        ["matrix", "--json", "--modes", "a,b", "--shadows", "none,sanitize", "--verify", "--recheck"],
     ]
 
 

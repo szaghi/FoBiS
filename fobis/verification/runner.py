@@ -130,6 +130,8 @@ class LocalRunner:
         Fetched dependencies directory (provenance pins).
     run : callable
         ``subprocess.run`` (replaceable in tests) for the nested ``fobis`` commands.
+    shadow : str or None
+        Build the cases' programs as this shadow of their mode (``checks``, ``sanitize``, ``strict``).
     """
 
     def __init__(
@@ -140,6 +142,7 @@ class LocalRunner:
         launcher: str = DEFAULT_LAUNCHER,
         deps_dir: str = ".fobis_deps",
         run=subprocess.run,
+        shadow: str | None = None,
     ) -> None:
         self.root = os.path.abspath(root)
         self.fobos_args = list(fobos_args or [])
@@ -147,6 +150,7 @@ class LocalRunner:
         self.launcher = launcher
         self.deps_dir = deps_dir
         self._run = run
+        self.shadow = shadow
         self._compilers: dict[str, dict] = {}
 
     def _fobis(self, args: list[str], timeout: float = 3600) -> subprocess.CompletedProcess:
@@ -156,9 +160,8 @@ class LocalRunner:
             [*fobis_command(), *args, *self.fobos_args], cwd=self.root, capture_output=True, text=True, timeout=timeout
         )
 
-    @staticmethod
-    def _mode_args(mode: str | None) -> list[str]:
-        return ["--mode", mode] if mode else []
+    def _mode_args(self, mode: str | None) -> list[str]:
+        return (["--mode", mode] if mode else []) + (["--shadow", self.shadow] if self.shadow else [])
 
     def introspect(self, mode: str | None) -> dict:
         """``fobis introspect --compiler --buildoptions`` of *mode* (memoised): the effective mode included."""
@@ -174,7 +177,10 @@ class LocalRunner:
     def provenance(self, case: Case, mode: str | None) -> dict:
         facts = self.introspect(mode) if case.target else {}
         effective = facts.get("buildoptions", {}).get("mode") or mode
-        return prov.collect(self.root, facts.get("compiler", {}), effective, self.deps_dir, mpi=case.ranks > 0)
+        data = prov.collect(self.root, facts.get("compiler", {}), effective, self.deps_dir, mpi=case.ranks > 0)
+        if self.shadow:
+            data["shadow"] = self.shadow
+        return data
 
     def signature(self, mode: str | None) -> dict:
         """What the objects of *mode* must have been built with: resolved compiler, its version, the flags."""
@@ -206,7 +212,8 @@ class LocalRunner:
         """
         if not os.path.isfile(os.path.join(self.root, case.target)):
             return None, {"status": "error", "errors": [f"target {case.target} does not exist"]}
-        binary = os.path.join(self.runs_dir, "bin", _SAFE.sub("_", f"{case.name}-{mode or 'default'}"))
+        name = f"{case.name}-{mode or 'default'}" + (f"-{self.shadow}" if self.shadow else "")
+        binary = os.path.join(self.runs_dir, "bin", _SAFE.sub("_", name))
         os.makedirs(os.path.dirname(binary), exist_ok=True)
         record_path = binary + ".signature.json"
         signature = self.signature(mode)

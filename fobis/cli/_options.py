@@ -48,6 +48,14 @@ ModeOpt = Annotated[
     typer.Option("--mode", help="Select a mode defined into a fobos file", autocompletion=_complete_fobos_mode),
 ]
 LmodesOpt = Annotated[bool, typer.Option("--lmodes", help="List the modes defined into a fobos file")]
+ShadowOpt = Annotated[
+    str | None,
+    typer.Option(
+        "--shadow",
+        help="Rebuild the mode as a shadow (checks, sanitize or strict): the mode's settings with checking flags, "
+        "in its own build directory (.fobis/shadow/<mode>-<shadow>/).",
+    ),
+]
 
 # ---------------------------------------------------------------------------
 # Compiler group  (build, clean, rule, doctests)

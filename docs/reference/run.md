@@ -26,6 +26,7 @@ Arguments after `--` are forwarded verbatim to the binary.
 |---|---|
 | `-f`, `--fobos` | Specify a fobos file with a different name or path |
 | `--mode` | Select a fobos mode — tab-completable from the active fobos file |
+| `--shadow NAME` | Rebuild the mode as a [shadow](/advanced/matrix#shadow-modes): `checks`, `sanitize`, `strict` (or `none`), in `.fobis/shadow/<mode>-<shadow>/` |
 
 ## Examples
 

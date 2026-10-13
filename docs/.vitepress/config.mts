@@ -134,6 +134,7 @@ export default defineConfig({
             { text: 'Test Runner',         link: '/advanced/testing' },
             { text: 'Cases',               link: '/advanced/cases' },
             { text: 'Verify',              link: '/advanced/verify' },
+            { text: 'Shadow modes & Matrix', link: '/advanced/matrix' },
             { text: 'Coverage',            link: '/reference/coverage' },
             { text: 'External Libraries',  link: '/advanced/externals' },
             { text: 'Build Profiles',      link: '/advanced/build-profiles' },
@@ -154,6 +155,7 @@ export default defineConfig({
             { text: 'case',       link: '/reference/case' },
             { text: 'provenance', link: '/reference/provenance' },
             { text: 'verify',     link: '/reference/verify' },
+            { text: 'matrix',     link: '/reference/matrix' },
           ],
         },
         {
@@ -252,6 +254,7 @@ export default defineConfig({
             { text: 'Test Runner',             link: '/advanced/testing' },
             { text: 'Cases & Provenance',      link: '/advanced/cases' },
             { text: 'Verifying Results',       link: '/advanced/verify' },
+            { text: 'Shadow Modes & Matrix',   link: '/advanced/matrix' },
             { text: 'Doctests',                link: '/advanced/doctests' },
             { text: 'PreForM Preprocessing',   link: '/advanced/preform' },
           ],

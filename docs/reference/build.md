@@ -64,6 +64,7 @@ fobis build [options]
 | `-f`, `--fobos` | Specify a fobos file with a different name or path |
 | `--fci`, `--fobos-case-insensitive` | Case-insensitive fobos option parsing |
 | `--mode` | Select a fobos mode — tab-completable from the active fobos file |
+| `--shadow NAME` | Rebuild the mode as a [shadow](/advanced/matrix#shadow-modes): `checks`, `sanitize`, `strict` (or `none`), in `.fobis/shadow/<mode>-<shadow>/` |
 | `--lmodes` | List available modes and exit |
 
 ## Preprocessor options

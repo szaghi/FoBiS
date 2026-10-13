@@ -1,0 +1,54 @@
+bounds.f90:8:19: runtime error: load of address 0x73aa04ef0044 with insufficient space for an object of type 'real(kind=4)'
+0x73aa04ef0044: note: pointer points here
+  00 00 00 40 00 00 00 00  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+              ^ 
+=================================================================
+==1383340==ERROR: AddressSanitizer: stack-buffer-overflow on address 0x73aa04ef0044 at pc 0x59b3d409e4df bp 0x7ffd4217e310 sp 0x7ffd4217e300
+READ of size 4 at 0x73aa04ef0044 thread T0
+    #0 0x59b3d409e4de in bounds bounds.f90:8
+    #1 0x59b3d409e74f in main bounds.f90:11
+    #2 0x77aa0722a1c9 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:58
+    #3 0x77aa0722a28a in __libc_start_main_impl ../csu/libc-start.c:360
+    #4 0x59b3d409e164 in _start (s_bounds+0x2164) (BuildId: 308ccb125cdf1bf4ee865cf77996245e08168a74)
+
+Address 0x73aa04ef0044 is located in stack of thread T0 at offset 68 in frame
+    #0 0x59b3d409e238 in bounds bounds.f90:1
+
+  This frame has 2 object(s):
+    [48, 68) 'a' (line 3) <== Memory access at offset 68 overflows this variable
+    [112, 640) 'dt_parm.1' (line 10)
+HINT: this may be a false positive if your program uses some custom stack unwind mechanism, swapcontext or vfork
+      (longjmp and C++ exceptions *are* supported)
+SUMMARY: AddressSanitizer: stack-buffer-overflow bounds.f90:8 in bounds
+Shadow bytes around the buggy address:
+  0x73aa04eefd80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x73aa04eefe00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x73aa04eefe80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x73aa04eeff00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x73aa04eeff80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+=>0x73aa04ef0000: f1 f1 f1 f1 f1 f1 00 00[04]f2 f2 f2 f2 f2 00 00
+  0x73aa04ef0080: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x73aa04ef0100: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x73aa04ef0180: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x73aa04ef0200: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x73aa04ef0280: f3 f3 f3 f3 f3 f3 f3 f3 f3 f3 f3 f3 f3 f3 f3 f3
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==1383340==ABORTING

@@ -13,7 +13,7 @@ import typer
 from ._app import _ns, app
 from ._completions import _complete_fobos_varset
 from ._constants import __extensions_inc__, __extensions_parsed__
-from ._options import FciOpt, FobosOpt, ModeOpt
+from ._options import FciOpt, FobosOpt, ModeOpt, ShadowOpt
 
 
 @app.command("introspect")
@@ -22,6 +22,7 @@ def cmd_introspect(
     fobos: FobosOpt = None,
     fobos_case_insensitive: FciOpt = False,
     mode: ModeOpt = None,
+    shadow: ShadowOpt = None,
     sources: Annotated[bool, typer.Option("--sources", help="Show source files")] = False,
     compiler_info: Annotated[bool, typer.Option("--compiler", help="Show compiler info")] = False,
     dependencies: Annotated[bool, typer.Option("--dependencies", help="Show declared dependencies")] = False,
@@ -62,6 +63,7 @@ def cmd_introspect(
         fobos=fobos,
         fobos_case_insensitive=fobos_case_insensitive,
         mode=mode,
+        shadow=shadow,
         lmodes=False,
         introspect_sources=sources or all_info,
         introspect_compiler=compiler_info or all_info,

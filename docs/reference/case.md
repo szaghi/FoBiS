@@ -22,6 +22,7 @@ Build (for a `target`) and run each case (all by default) in a fresh run directo
 | Option | Description |
 |--------|-------------|
 | `--mode M` | Build with this mode instead of the case's own |
+| `--shadow NAME` | Rebuild the mode as a [shadow](/advanced/matrix#shadow-modes): `checks`, `sanitize`, `strict` (or `none`), in `.fobis/shadow/<mode>-<shadow>/` |
 | `--json` | One JSON object: `results`, each with status, exit code, elapsed time, command, run directory, quantities, probe errors, output tails, provenance and, when the build failed, the build's diagnoses |
 | `-f/--fobos`, `--fci` | The fobos file |
 
