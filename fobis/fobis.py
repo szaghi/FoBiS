@@ -128,6 +128,8 @@ def run_fobis(fake_args=None):
             run_fobis_assess(configuration)
         if configuration.cliargs.which == "diff_run":
             run_fobis_diff_run(configuration)
+        if configuration.cliargs.which == "query":
+            run_fobis_query(configuration)
         if configuration.cliargs.which == "test":
             run_fobis_test(configuration)
         if configuration.cliargs.which == "introspect":
@@ -2363,6 +2365,48 @@ def run_fobis_matrix(configuration):
         (configuration.print_b if result.ok else configuration.print_r)(render_text(result, shadows))
     if not result.ok:
         sys.exit(1)
+
+
+def run_fobis_query(configuration):
+    """
+    Run FoBiS in query mode: one deterministic question about the code of the mode's sources.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import json
+
+    from .analysis import parse_defines
+    from .analysis.query import CodeGraph, QueryError, query, render_text
+    from .lint import discover_files, lint_files
+
+    cliargs = configuration.cliargs
+    files = discover_files(
+        cliargs.src,
+        extensions=cliargs.extensions,
+        exclude=cliargs.exclude,
+        exclude_dirs=cliargs.exclude_dirs,
+        recursive=not cliargs.disable_recursive_search,
+    )
+    analysed = lint_files(
+        files,
+        [],
+        defines=parse_defines(_merged_preproc_flags(cliargs)),
+        openmp=bool(getattr(cliargs, "openmp", False)),
+    )
+    graph = CodeGraph(analysed.units, analysed.project)
+    try:
+        result = query(graph, cliargs.query_kind, cliargs.query_argument)
+    except QueryError as exc:
+        configuration.print_r(f"Error: {exc}")
+        sys.exit(2)
+    if getattr(cliargs, "json_output", False):
+        data = result.to_dict()
+        data["files"] = len(analysed.units)
+        print(json.dumps(data, indent=2))
+    else:
+        configuration.print_b(render_text(result) + f"\n({len(analysed.units)} file(s) analysed)")
 
 
 def _mode_environments(settings, fobos_args, deps_dir, root="."):

@@ -137,6 +137,7 @@ export default defineConfig({
             { text: 'Shadow modes & Matrix', link: '/advanced/matrix' },
             { text: 'Assess',              link: '/advanced/assess' },
             { text: 'Diff-run',            link: '/advanced/diff-run' },
+            { text: 'Query',               link: '/advanced/query' },
             { text: 'Coverage',            link: '/reference/coverage' },
             { text: 'External Libraries',  link: '/advanced/externals' },
             { text: 'Build Profiles',      link: '/advanced/build-profiles' },
@@ -160,6 +161,7 @@ export default defineConfig({
             { text: 'matrix',     link: '/reference/matrix' },
             { text: 'assess',     link: '/reference/assess' },
             { text: 'diff-run',   link: '/reference/diff-run' },
+            { text: 'query',      link: '/reference/query' },
           ],
         },
         {
@@ -261,6 +263,7 @@ export default defineConfig({
             { text: 'Shadow Modes & Matrix',   link: '/advanced/matrix' },
             { text: 'Assessing Numerical Error', link: '/advanced/assess' },
             { text: 'Differential Execution',  link: '/advanced/diff-run' },
+            { text: 'Querying the Code',       link: '/advanced/query' },
             { text: 'Doctests',                link: '/advanced/doctests' },
             { text: 'PreForM Preprocessing',   link: '/advanced/preform' },
           ],

@@ -469,6 +469,43 @@ class Server:
                 self._ask_context,
             ),
             Tool(
+                "query",
+                "Query the code graph",
+                "Deterministic answers from the static analysis of the mode's sources (more precise than text search): "
+                "callers/callees of a procedure (calls, function references, type-bound calls; generics and bindings "
+                "give candidates; unresolved external calls listed), uses of a module, writers/readers of a variable "
+                "(assignment, read, allocate, intent(out/inout) actuals; NAME or module::NAME, renames followed), "
+                "defines NAME, region FILE:LINE (OpenMP/OpenACC regions and clauses), device VAR (declare, enter/exit "
+                "data, data regions, update, present, implicit use in compute constructs), mpi [ROUTINE|KIND], "
+                "interface NAME (header and dummy declarations, generic specifics, bindings).",
+                _schema(
+                    {
+                        "kind": {
+                            "type": "string",
+                            "enum": [
+                                "callers",
+                                "callees",
+                                "uses",
+                                "writers",
+                                "readers",
+                                "defines",
+                                "region",
+                                "device",
+                                "mpi",
+                                "interface",
+                            ],
+                        },
+                        "argument": {**_STR, "description": "NAME, module::NAME, MODULE, FILE:LINE, or ROUTINE|KIND"},
+                        "mode": _MODE,
+                    },
+                    required=("kind",),
+                ),
+                lambda a: self._json(
+                    ["query", a.get("kind", ""), *([a["argument"]] if a.get("argument") else []), "--json"]
+                    + self._mode(a)
+                ),
+            ),
+            Tool(
                 "introspect",
                 "Project build facts",
                 "Return the project's build facts as JSON: sources, compiler, dependencies, targets, include dirs, "

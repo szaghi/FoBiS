@@ -53,6 +53,7 @@ Read-only tools (the project is not written):
 | `testgen_skeleton` | A [test skeleton](/ai/testgen) for a module that compiles, built in a scratch copy | `module`, `procedures`, `max`, `mode` |
 | `ecosystem_status` | The [ecosystem](/advanced/ecosystem) dashboard: git, releases, CI, drift, pins (runs `git fetch`, queries GitHub) | `config` |
 | `ecosystem_impact` | Which dependent projects a change of public interfaces breaks, and where | `project`, `base`, `config` |
+| `query` | [Code-graph answers](/advanced/query): callers, callees, uses, writers, readers, defines, region, device, mpi, interface | `kind`, `argument`, `mode` |
 | `case_list` | The [cases](/advanced/cases) declared in the fobos and the quantities each produces | |
 | `provenance` | What a result produced now depends on: commit, pins, compiler and flags, machine | `mode` |
 

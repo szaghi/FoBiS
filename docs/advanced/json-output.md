@@ -211,6 +211,18 @@ list --json` gives the declared `cases`; `fobis provenance --json` the provenanc
 run directory, probe errors, stderr tail, build document when it failed), `repeat` (quantities that differed
 between repeated runs). See [Verifying results](/advanced/verify).
 
+### `fobis query --json`
+
+`kind`, `argument`, `files` (analysed), `notes`, and `items`. Calls (`callers`, `callees`): `caller`, `path`,
+`line`, `name` (as written), `kind` (`call`, `function`, `binding`), `resolved` (qualified procedures), `how`
+(`contained`, `unique`, `generic`, `binding`, `ambiguous`, `unresolved`), `candidate` (one of several), `text`.
+Accesses (`writers`, `readers`): `unit`, `path`, `line`, `is` (local, dummy with intent, host, module variable,
+use with rename), `module`, `how` (assignment, read statement, allocate, actual argument with intent). `defines`:
+`name`, `kind`, `qualified`, `path`, `line`, `detail`. `uses`: `unit`, `path`, `line`, `only`. `region`/`device`:
+`unit`, `path`, `line`, `end_line`, `sentinel`, `construct`, `clauses`, `implicit`. `mpi`: `routine`, `kind`, `unit`,
+`path`, `line`. `interface`: `qualified`, `signature`; `generic` + `specifics`; `binding` + `types`. See
+[Querying the code](/advanced/query).
+
 ### `fobis diff-run --json`
 
 `ref`, `commit`, `status` (`equivalent` or `differs`), `changed` (per file: `path`, `status` (git letter, `?` for

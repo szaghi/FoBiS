@@ -41,6 +41,7 @@ from . import (  # noqa: F401
     lint,
     mcp,
     merge_assist,
+    query,
     review,
     rule,
     run,

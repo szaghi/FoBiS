@@ -23,6 +23,7 @@ TOOLS = [
     "kb_search",
     "kb_show",
     "ask_context",
+    "query",
     "introspect",
     "check",
     "tree",
@@ -140,6 +141,7 @@ def test_command_lines(server, calls):
     _call(server, "lint", {"compiler_feedback": "b.log", "fix_diff": True})
     _call(server, "review", {"staged": True, "base": "origin/master", "context": 2, "select": ["OMP"]})
     _call(server, "ask_context", {"question": "why?", "project": ["src"], "packs": ["openmp"], "k": 3})
+    _call(server, "query", {"kind": "callers", "argument": "m::s", "mode": "gnu"})
     _call(server, "introspect", {"sections": ["sources", "compiler"]})
     _call(server, "check", {"mode": "gnu"})
     _call(server, "tree", {"depth": 2})
@@ -192,6 +194,7 @@ def test_command_lines(server, calls):
             "OMP",
         ],
         ["ask", "why?", "--show-context", "--json", "-k", "3", "--project", "src", "--pack", "openmp"],
+        ["query", "callers", "m::s", "--json", "--mode", "gnu"],
         ["introspect", "--sources", "--compiler"],
         ["check", "--json", "--mode", "gnu"],
         ["tree", "--json", "--depth", "2"],
