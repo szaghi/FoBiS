@@ -1,0 +1,719 @@
+{
+"version": 1,
+"chunks": [
+{
+"id": "compilers:comparison#comparing-gfortran-ifx-and-nvfortran",
+"doc": "comparison",
+"heading": "Comparing gfortran, ifx and nvfortran",
+"text": "The defaults that make the same source give different numbers, or fail differently, under each compiler. Every\nrow was measured on small programs (gfortran 16, ifx 2025.3, nvfortran 26.1, x86-64 Linux with FMA); the\ncompiler documents of this pack give the details.",
+"symbols": []
+},
+{
+"id": "compilers:comparison#defaults-that-change-results",
+"doc": "comparison",
+"heading": "Comparing gfortran, ifx and nvfortran > Defaults that change results",
+"text": "| | gfortran | ifx | nvfortran |\n|---|---|---|---|\n| optimisation without `-O` | 0 | 2 (0 with `-g`) | 1 (0 with `-g`) |\n| FMA contraction by default | only when the target has FMA (`-march=...`), not at `-O0` | only with an FMA target (`-xHost`, `-march=...`) | yes, at every level (host target) |\n| turn contraction off | `-ffp-contract=off` | `-no-fma` or `-fp-model precise` | `-Mnofma` |\n| value-unsafe optimisation by default | no | yes (`-fp-model fast=1`) | no |\n| Kahan sum kept at `-O2` | yes | no (needs `-fp-model precise`) | yes |\n| NaN tests broken by | `-ffast-math`, `-ffinite-math-only` | `-fp-model fast=2` | not observed (`-fast` kept them) |\n\nConsequence: a result that differs between compilers in the last digits is not, by itself, a bug. To find\nwhere the difference comes from, rebuild with contraction off and value-safe models on every compiler\n(`-ffp-contract=off`; `-fp-model precise`; `-Mnofma`): if the results then agree within rounding, the\ndifference was FMA or reassociation. `fobis assess` measures this spread for a declared case with its\n`compiler` and `rounding` families.",
+"symbols": [
+"assess",
+"compiler",
+"contract",
+"fast",
+"ffast",
+"ffinite",
+"ffp",
+"fma",
+"fobis",
+"march",
+"math",
+"mnofma",
+"model",
+"off",
+"only",
+"precise",
+"rounding",
+"xhost"
+]
+},
+{
+"id": "compilers:comparison#defaults-that-change-failures",
+"doc": "comparison",
+"heading": "Comparing gfortran, ifx and nvfortran > Defaults that change failures",
+"text": "| | gfortran | ifx | nvfortran |\n|---|---|---|---|\n| automatic arrays and temporaries | heap (stack with `-fstack-arrays`, part of `-Ofast`) | stack (`-heap-arrays` moves them) | heap in the measured cases |\n| uninitialised real with checks | SIGFPE (`-finit-real=snan -ffpe-trap=invalid`) | located (`-init=snan,arrays -fpe0`) | quiet NaN, no trap (`-Minit-real=snan`) |\n| bounds error message | `At line N of file F` | `forrtl: severe (408)` + traceback table | `Subscript out of range for array a (F: N)` |\n| sanitizer | `-fsanitize=address,undefined` | `-fsanitize=address` (ifort: ignored) | none |\n\n`fobis build --shadow checks` and `--shadow sanitize` apply the right flags per compiler; `fobis matrix` runs a\nproject's tests and cases under several compilers and shadows.",
+"symbols": [
+"address",
+"array",
+"arrays",
+"build",
+"checks",
+"ffpe",
+"file",
+"finit",
+"fobis",
+"for",
+"forrtl",
+"fpe0",
+"fsanitize",
+"fstack",
+"heap",
+"init",
+"invalid",
+"line",
+"matrix",
+"minit",
+"ofast",
+"out",
+"range",
+"real",
+"sanitize",
+"severe",
+"shadow",
+"snan",
+"subscript",
+"trap",
+"undefined"
+]
+},
+{
+"id": "compilers:comparison#promotion-flags-promote-different-declarations",
+"doc": "comparison",
+"heading": "Comparing gfortran, ifx and nvfortran > Promotion flags promote different declarations",
+"text": "| Flags | real | double precision | real(real32) | real(real64) |\n|-------|------|------------------|--------------|--------------|\n| gfortran `-fdefault-real-8` | 8 | 16 | 4 | 8 |\n| gfortran `-freal-4-real-8` | 8 | 8 | 8 | 8 |\n| ifx `-real-size 64` | 8 | 8 | 4 | 8 |\n| nvfortran `-r8` | 8 | 8 | 4 | 8 |\n\nOnly gfortran's `-freal-4-real-8` promotes explicit kinds. A code with a kind module (`R8P`, `real64`) is promoted\nportably by changing the kind parameter, not by flags.",
+"symbols": [
+"fdefault",
+"freal",
+"r8p",
+"real",
+"real64",
+"size"
+]
+},
+{
+"id": "compilers:comparison#module-files-and-libraries",
+"doc": "comparison",
+"heading": "Comparing gfortran, ifx and nvfortran > Module files and libraries",
+"text": "`.mod` files are compiler-specific: ifx (`error #7013`) and nvfortran (`NVFORTRAN-F-0004-Corrupt or Old\nModule file`) refuse gfortran's, and old gfortran releases refuse the format of new ones. Every library used\nthrough modules (MPI, HDF5, NetCDF, a fetched FoBiS dependency built as a library) must be built by the same\ncompiler, in a module format it reads. With `use=sources` dependencies FoBiS compiles them with the project's\ncompiler, which avoids the problem.",
+"symbols": [
+"error",
+"mod",
+"sources",
+"use"
+]
+},
+{
+"id": "compilers:comparison#symbol-names-in-linker-errors",
+"doc": "comparison",
+"heading": "Comparing gfortran, ifx and nvfortran > Symbol names in linker errors",
+"text": "Module procedures get different link names: `__m_MOD_p` (gfortran), `m_mp_p_` (ifx, ifort), `m_p_` (nvfortran)\nfor procedure `p` of module `m`. An undefined reference to a name of another compiler's form means objects or\nlibraries built by a different compiler are being linked: rebuild everything with one compiler\n(`fobis build --force-compile`). `fobis build --explain` recognises these names and reports the procedure and\nmodule.",
+"symbols": [
+"__m_mod_p",
+"build",
+"compile",
+"explain",
+"fobis",
+"force",
+"m_mp_p_",
+"m_p_"
+]
+},
+{
+"id": "compilers:gfortran#gnu-fortran-gfortran",
+"doc": "gfortran",
+"heading": "GNU Fortran (gfortran)",
+"text": "Facts about gfortran that change what a program computes, how it fails, or whether it builds. Each behaviour\nmarked \"measured\" was observed on small programs (gfortran 11 to 16 on x86-64 Linux, an AVX2/FMA processor);\nflags are those of the GCC manual. FoBiS uses this family for `compiler = gnu` and `compiler = opencoarrays-gnu`.",
+"symbols": [
+"compiler",
+"gnu",
+"opencoarrays"
+]
+},
+{
+"id": "compilers:gfortran#default-optimisation-and-debug-information",
+"doc": "gfortran",
+"heading": "GNU Fortran (gfortran) > Default optimisation and debug information",
+"text": "Without an `-O` flag gfortran compiles at `-O0`; `-O` alone means `-O1`; the last `-O` on the command line wins.\n`-g` adds debug information and does not change the optimisation level. An optimised build with `-g` still\nreorders and inlines code: its backtraces and line numbers can point at the wrong statement. Locate a crash with\nan unoptimised build (`-O0 -g`), which is what `fobis build --shadow checks` builds.",
+"symbols": [
+"build",
+"checks",
+"fobis",
+"shadow"
+]
+},
+{
+"id": "compilers:gfortran#runtime-checks",
+"doc": "gfortran",
+"heading": "GNU Fortran (gfortran) > Runtime checks",
+"text": "`-fcheck=all` enables every runtime check: `bounds` (array subscripts, and character lengths of dummy\narguments), `pointer` (pointers and allocatables),\n`mem` (allocation failures), `do` (changes to a DO variable inside the loop), `recursion`, `bits` and\n`array-temps` (a run-time warning when an array temporary is created). A bounds error is reported with its\nlocation (measured, gfortran 16, `-O0 -g -fcheck=all`):\n\n```\nAt line 18 of file kernels.f90\nFortran runtime error: Index '11' of dimension 1 of array 'a' above upper bound of 10\n```\n\n`-fbacktrace` (on by default) prints a backtrace on runtime errors; frames show `???` without debug information.\nBounds checks cannot check the last dimension of an assumed-size dummy (`a(*)`): it has no upper bound. The\naddress sanitizer (below) catches an overflow through it.",
+"symbols": [
+"all",
+"array",
+"bits",
+"bounds",
+"fbacktrace",
+"fcheck",
+"mem",
+"pointer",
+"recursion",
+"temps"
+]
+},
+{
+"id": "compilers:gfortran#floating-point-traps-and-uninitialised-reals",
+"doc": "gfortran",
+"heading": "GNU Fortran (gfortran) > Floating-point traps and uninitialised reals",
+"text": "`-ffpe-trap=invalid,zero,overflow` turns invalid operations, division by zero and overflow into `SIGFPE`; the\nprogram stops at the offending operation instead of carrying NaN or Inf. `-finit-real=snan` initialises local\nreals to a signalling NaN, so with the `invalid` trap the first arithmetic use of an uninitialised real stops\nthe program (measured: SIGFPE). Other initialisers: `-finit-integer=N`, `-finit-logical=true`,\n`-finit-derived` (components of derived types).\n\nThe SIGFPE report is a backtrace; with `-g` it names the line (measured):\n\n```\nProgram received signal SIGFPE: Floating-point exception - erroneous arithmetic operation.\n...\n#3  0x6061c8416278 in fpe\n\tat fpe.f90:5\n```\n\nThe traps are set for the whole process when the main program starts: code from other libraries running in the\nsame process traps too, including code that produces an Inf or NaN on purpose.",
+"symbols": [
+"derived",
+"ffpe",
+"finit",
+"integer",
+"invalid",
+"logical",
+"overflow",
+"real",
+"sigfpe",
+"snan",
+"trap",
+"true",
+"zero"
+]
+},
+{
+"id": "compilers:gfortran#sanitizers",
+"doc": "gfortran",
+"heading": "GNU Fortran (gfortran) > Sanitizers",
+"text": "`-fsanitize=address` (AddressSanitizer) finds stack and heap buffer overflows, including a heap overflow\nthrough an assumed-size dummy that `-fcheck=bounds` cannot see (measured), and use after free. LeakSanitizer,\npart of it on Linux, reports allocations never freed at exit. `-fsanitize=undefined` adds undefined-behaviour\nchecks. Both flags must be given to the link as well; keep `-fno-omit-frame-pointer` and `-g` for readable\nreports. `fobis build --shadow sanitize` builds with `-O1 -g -fno-omit-frame-pointer\n-fsanitize=address,undefined`.",
+"symbols": [
+"address",
+"bounds",
+"build",
+"fcheck",
+"fno",
+"fobis",
+"frame",
+"fsanitize",
+"omit",
+"pointer",
+"sanitize",
+"shadow",
+"undefined"
+]
+},
+{
+"id": "compilers:gfortran#floating-point-contraction-fma",
+"doc": "gfortran",
+"heading": "GNU Fortran (gfortran) > Floating-point contraction (FMA)",
+"text": "gfortran contracts `a*b + c` into a fused multiply-add when the target instruction set has FMA: the default is\n`-ffp-contract=fast`. The plain x86-64 target has no FMA, so `-O2` alone gives no contraction; `-march=native`\non an FMA processor, `-march=x86-64-v3` or `-mfma` do. Measured: `a*b + c` with `a*b = 1 - 2**-60` and\n`c = -1` gives 0 without FMA and `-2**-60` with it at `-O2`; no contraction at `-O0`; `-ffp-contract=off`\ndisables it. A change of the `-march=` target alone can therefore change results in the last bits: compare runs built for\nthe same target, or declare a tolerance.",
+"symbols": [
+"contract",
+"fast",
+"ffp",
+"march",
+"mfma",
+"native",
+"off",
+"x86"
+]
+},
+{
+"id": "compilers:gfortran#fast-math",
+"doc": "gfortran",
+"heading": "GNU Fortran (gfortran) > Fast math",
+"text": "`-ffast-math` (also part of `-Ofast`) lets the compiler reassociate, assume no NaN or Inf\n(`-ffinite-math-only`) and ignore signed zeros. Measured consequences:\n\n- Compensated (Kahan) summation is simplified away: a single-precision Kahan sum of 10^7 terms 0.1 had a relative\n  error of 1.5e-8 at `-O2` and 8.8e-2 with `-O2 -ffast-math` (2.4e-2 with `-Ofast`).\n- `ieee_is_nan(x)` and `x /= x` return false for a NaN `x` with `-ffast-math` or `-ffinite-math-only`: NaN\n  guards silently stop working.\n\n`-O3 -march=native` alone kept IEEE semantics in the same measurement (Kahan sum unchanged).",
+"symbols": [
+"ffast",
+"ffinite",
+"ieee_is_nan",
+"march",
+"math",
+"native",
+"ofast",
+"only"
+]
+},
+{
+"id": "compilers:gfortran#precision-promotion-flags",
+"doc": "gfortran",
+"heading": "GNU Fortran (gfortran) > Precision promotion flags",
+"text": "Measured `kind()` of each declaration:\n\n| Flags | real | double precision | real(real32) | real(real64) | real(8) |\n|-------|------|------------------|--------------|--------------|---------|\n| none | 4 | 8 | 4 | 8 | 8 |\n| `-fdefault-real-8` | 8 | 16 | 4 | 8 | 8 |\n| `-fdefault-real-8 -fdefault-double-8` | 8 | 8 | 4 | 8 | 8 |\n| `-freal-4-real-8` | 8 | 8 | 8 | 8 | 8 |\n| `-freal-4-real-8 -freal-8-real-16` | 8 | 16 | 8 | 16 | 16 |\n\n`-fdefault-real-8` promotes only declarations without a kind (and `double precision` to 16 unless\n`-fdefault-double-8`); `-freal-4-real-8` promotes every kind-4 real, explicit kinds included. Promotion changes\nrecord lengths of unformatted files, `storage_size` results and C interoperability: code that stores a real\ninto an integer of fixed size, or reads binary files written by an unpromoted build, breaks.\n`-fdefault-integer-8` makes default integers 8 bytes (measured), which breaks calls into libraries compiled with\n4-byte integers (MPI, BLAS) unless they were built the same way. `fobis assess` uses\n`-freal-4-real-8 -freal-8-real-16` for its `precision` family with gfortran.",
+"symbols": [
+"assess",
+"double",
+"fdefault",
+"fobis",
+"freal",
+"integer",
+"kind",
+"precision",
+"real",
+"storage_size"
+]
+},
+{
+"id": "compilers:gfortran#automatic-arrays-and-the-stack",
+"doc": "gfortran",
+"heading": "GNU Fortran (gfortran) > Automatic arrays and the stack",
+"text": "gfortran allocates large automatic arrays and array temporaries on the heap unless `-fstack-arrays` is given;\n`-Ofast` enables `-fstack-arrays`. Measured: an automatic array of 4 million double-precision values (32 MB)\nin a subroutine runs at `-O2` and dies with SIGSEGV at `-Ofast` or `-O2 -fstack-arrays` under an 8 MB stack\nlimit (`ulimit -s 8192`). Raise the limit, or keep large work arrays allocatable. With OpenMP each thread other\nthan the initial one has a stack sized by `OMP_STACKSIZE`.",
+"symbols": [
+"arrays",
+"fstack",
+"ofast",
+"omp_stacksize",
+"ulimit"
+]
+},
+{
+"id": "compilers:gfortran#module-files",
+"doc": "gfortran",
+"heading": "GNU Fortran (gfortran) > Module files",
+"text": "`.mod` files carry a format version: gfortran 11 to 14 write version 15, gfortran 15 and 16 write version 16\n(measured). gfortran 15 and 16 read both versions; gfortran 14 and older refuse version 16 with:\n\n```\nFatal Error: Cannot read module file 'm.mod' opened at (1), because it was created by a different version of GNU Fortran\n```\n\nThe same rule applies to the `.mod` files of installed libraries (`mpi`, `mpi_f08`, `hdf5`): they must come\nfrom a gfortran that writes a format the compiler reads. After changing compiler, rebuild the project from\nscratch (`fobis build --force-compile`): FoBiS's timestamp check does not notice a new compiler with the same\ncommand name. The verification commands (`case`, `verify`, `assess`, `diff-run`, `bench`) rebuild\nautomatically when the compiler's path or `--version` changes.",
+"symbols": [
+"assess",
+"bench",
+"build",
+"case",
+"compile",
+"diff",
+"fobis",
+"force",
+"hdf5",
+"mod",
+"mpi",
+"mpi_f08",
+"run",
+"verify",
+"version"
+]
+},
+{
+"id": "compilers:gfortran#optimisation-reports",
+"doc": "gfortran",
+"heading": "GNU Fortran (gfortran) > Optimisation reports",
+"text": "`-fopt-info-vec-optimized` and `-fopt-info-vec-missed` report which loops were vectorised and why others were\nnot, as `file:line:column: optimized: ...` and `missed: ...` lines. `fobis bench --feedback` compares these\nreports between two revisions; `fobis lint --compiler-feedback LOG` attributes them to procedures.",
+"symbols": [
+"bench",
+"column",
+"compiler",
+"feedback",
+"file",
+"fobis",
+"fopt",
+"info",
+"line",
+"lint",
+"log",
+"missed",
+"optimized",
+"vec"
+]
+},
+{
+"id": "compilers:gfortran#profiling",
+"doc": "gfortran",
+"heading": "GNU Fortran (gfortran) > Profiling",
+"text": "`-pg` instruments for gprof: the program writes `gmon.out` at exit (one file per process with\n`GMON_OUT_PREFIX`). Compile and link with `-pg`. `fobis profile --tool gprof` builds this variant and maps the\nflat profile to the project's procedures.",
+"symbols": [
+"fobis",
+"gmon",
+"gmon_out_prefix",
+"gprof",
+"out",
+"profile",
+"tool"
+]
+},
+{
+"id": "compilers:gfortran#standard-conformance",
+"doc": "gfortran",
+"heading": "GNU Fortran (gfortran) > Standard conformance",
+"text": "`-std=f2018` (or `f2008`, `f2023`) rejects extensions such as `real*8`; `-pedantic` reports more; `-Werror`\nturns warnings into errors. `-Wall -Wextra` warn about unused variables, character truncation and more;\n`-Wconversion` about implicit conversions. `fobis build --shadow strict` builds with\n`-std=f2018 -pedantic -Werror`.",
+"symbols": [
+"build",
+"f2008",
+"f2018",
+"f2023",
+"fobis",
+"pedantic",
+"real",
+"shadow",
+"std",
+"strict",
+"wall",
+"wconversion",
+"werror",
+"wextra"
+]
+},
+{
+"id": "compilers:gfortran#parallel-models",
+"doc": "gfortran",
+"heading": "GNU Fortran (gfortran) > Parallel models",
+"text": "`-fopenmp` enables OpenMP (and links its runtime); `-fopenacc` enables OpenACC, which offloads only with a\ngfortran built with an offload target (otherwise the regions run on the host). `-fcoarray=single` compiles\ncoarray code for one image; `-fcoarray=lib` with the OpenCoarrays library runs several images\n(`compiler = opencoarrays-gnu` in a fobos mode uses the `caf` wrapper).",
+"symbols": [
+"caf",
+"compiler",
+"fcoarray",
+"fopenacc",
+"fopenmp",
+"gnu",
+"lib",
+"opencoarrays",
+"single"
+]
+},
+{
+"id": "compilers:gfortran#known-bug-efault-with-pointer-sections-at-o2",
+"doc": "gfortran",
+"heading": "GNU Fortran (gfortran) > Known bug: EFAULT with pointer sections at -O2",
+"text": "A pointer array section passed to a dummy declared with an explicit lower bound has produced wrong addresses\n(EFAULT, \"Bad address\") in gfortran at `-O2` and above; documented with a reproducer in the hpc-practice pack,\nwhich `fobis run --explain` cites when it recognises the error.",
+"symbols": [
+"explain",
+"fobis",
+"run"
+]
+},
+{
+"id": "compilers:ifx#intel-fortran-ifx-ifort",
+"doc": "ifx",
+"heading": "Intel Fortran (ifx, ifort)",
+"text": "Facts about the Intel Fortran compilers that change what a program computes, how it fails, or whether it\nbuilds. \"Measured\" means observed on small programs with ifx 2025.3 (and ifort 2024.2 where named) on x86-64\nLinux with an AVX2/FMA processor. FoBiS uses this family for `compiler = intel_nextgen` (ifx) and\n`compiler = intel` (ifort).",
+"symbols": [
+"compiler",
+"intel",
+"intel_nextgen"
+]
+},
+{
+"id": "compilers:ifx#ifx-and-ifort",
+"doc": "ifx",
+"heading": "Intel Fortran (ifx, ifort) > ifx and ifort",
+"text": "ifx is the LLVM-based compiler; ifort is the classic one. On the measured installation ifort exists only in the\n2024.2 release directory and the 2025.3 release ships ifx alone. New builds should use ifx; the two accept\nmostly the same flags but differ in sanitizer support (below) and in some defaults.",
+"symbols": []
+},
+{
+"id": "compilers:ifx#default-optimisation-and-debug-information",
+"doc": "ifx",
+"heading": "Intel Fortran (ifx, ifort) > Default optimisation and debug information",
+"text": "Without an `-O` flag ifx optimises at `-O2`; with `-g` and no `-O` it compiles at `-O0` (measured from the\ndriver's `-###` output). An `-O2` build is the default, so a crash in a build without explicit flags comes from\noptimised code: its traceback can name the wrong line. Locate it with `-O0 -g -traceback`, which is what\n`fobis build --shadow checks` builds.",
+"symbols": [
+"build",
+"checks",
+"fobis",
+"shadow",
+"traceback"
+]
+},
+{
+"id": "compilers:ifx#runtime-checks",
+"doc": "ifx",
+"heading": "Intel Fortran (ifx, ifort) > Runtime checks",
+"text": "`-check all` enables bounds, pointer, shape and other runtime checks; `-traceback` prints the call stack with\nroutine, line and file. A bounds error (measured, `-O0 -g -check all -traceback`):\n\n```\nforrtl: severe (408): fort: (2): Subscript #1 of the array A has value 11 which is greater than the upper bound of 10\n\nImage              PC                Routine            Line        Source\nbounds             000000000040594F  smooth                     18  kernels.f90\nbounds             00000000004052F4  bounds                      6  bounds.f90\n```\n\n`-fpe0` traps invalid operations, division by zero and overflow (`forrtl: error (73): floating divide by zero`\nwith the traceback row of the operation, measured). `-init=snan,arrays` initialises local reals, including\narrays, to a signalling NaN: with `-fpe0` the first use of an uninitialised real stops the program at its line\n(measured).",
+"symbols": [
+"all",
+"arrays",
+"check",
+"divide",
+"error",
+"floating",
+"forrtl",
+"fpe0",
+"init",
+"snan",
+"traceback",
+"zero"
+]
+},
+{
+"id": "compilers:ifx#floating-point-model-fast-by-default",
+"doc": "ifx",
+"heading": "Intel Fortran (ifx, ifort) > Floating-point model: fast by default",
+"text": "ifx's default floating-point model is `-fp-model fast=1`: the compiler may reassociate and simplify\nexpressions. Measured consequences at `-O2` without other flags:\n\n- Compensated (Kahan) summation is simplified away: a single-precision Kahan sum of 10^7 terms 0.1 had a relative\n  error of 1.1e-2 at `-O2` (the same with `-fp-model fast=2`) and 1.5e-8 with `-O2 -fp-model precise` or at\n  `-O0`.\n- `ieee_is_nan(x)` and `x /= x` were still true for a NaN at the default model and with `-fp-model precise`;\n  with `-fp-model fast=2` both were false.\n\nUse `-fp-model precise` (or `strict`, which also gives access to the floating-point environment) for code whose\naccuracy depends on the order of operations: compensated sums, error-free transformations, interval\narithmetic, reproducibility tests. `fobis assess` uses `-fp-model precise` and `-fp-model fast=2` among its\n`rounding` variants for this family.",
+"symbols": [
+"assess",
+"fast",
+"fobis",
+"ieee_is_nan",
+"model",
+"precise",
+"rounding",
+"strict"
+]
+},
+{
+"id": "compilers:ifx#floating-point-contraction-fma",
+"doc": "ifx",
+"heading": "Intel Fortran (ifx, ifort) > Floating-point contraction (FMA)",
+"text": "The default target of ifx has no FMA instructions: `a*b + c` was not contracted at `-O2` (measured).\n`-xHost` on an FMA processor, or `-march=x86-64-v3`, contracted it (`a*b = 1 - 2**-60`, `c = -1` gave\n`-2**-60` instead of 0); `-no-fma` and `-fp-model precise` prevented the contraction in the same measurement.",
+"symbols": [
+"fma",
+"march",
+"model",
+"precise",
+"x86",
+"xhost"
+]
+},
+{
+"id": "compilers:ifx#automatic-arrays-temporaries-and-the-stack",
+"doc": "ifx",
+"heading": "Intel Fortran (ifx, ifort) > Automatic arrays, temporaries and the stack",
+"text": "ifx places automatic arrays and the temporary copies of array expressions on the stack. Measured, with an\n8 MB stack limit: an automatic array of 4 million double-precision values and an overlapping section assignment\n`a(2:n) = a(1:n-1) + a(2:n)` with n = 4 million both died at `-O2` with\n\n```\nforrtl: severe (174): SIGSEGV, segmentation fault occurred\n```\n\nand ran with `-heap-arrays`, which puts them on the heap. gfortran and nvfortran ran both programs without\nflags (measured), so this crash typically appears when a code that works with other compilers is first built\nwith ifx. With OpenMP the stacks of the other threads are sized by `OMP_STACKSIZE`.",
+"symbols": [
+"arrays",
+"heap",
+"omp_stacksize"
+]
+},
+{
+"id": "compilers:ifx#precision-promotion-flags",
+"doc": "ifx",
+"heading": "Intel Fortran (ifx, ifort) > Precision promotion flags",
+"text": "Measured `kind()` of each declaration:\n\n| Flags | real | double precision | real(real32) | real(real64) | real(8) |\n|-------|------|------------------|--------------|--------------|---------|\n| none | 4 | 8 | 4 | 8 | 8 |\n| `-real-size 64` | 8 | 8 | 4 | 8 | 8 |\n| `-real-size 64 -double-size 128` | 8 | 16 | 4 | 8 | 8 |\n\nOnly declarations without an explicit kind are promoted: a code that declares its kinds through a kind module\n(`real(R8P)`, `real(real64)`) is not changed by these flags; promote it by changing the kind parameter.\n`-integer-size 64` makes default integers 8 bytes (measured).",
+"symbols": [
+"double",
+"integer",
+"kind",
+"r8p",
+"real",
+"real64",
+"size"
+]
+},
+{
+"id": "compilers:ifx#sanitizers",
+"doc": "ifx",
+"heading": "Intel Fortran (ifx, ifort) > Sanitizers",
+"text": "ifx accepts `-fsanitize=address` (compile and link). Measured: it catches stack and global buffer overflows;\na heap overflow through an assumed-size dummy was missed. ifort does not support it: it prints\n`warning #10006: ignoring unknown option '-fsanitize=address'` and builds without it, so a sanitized ifort\nbuild runs unchecked. `fobis build --shadow sanitize` refuses ifort for this reason.",
+"symbols": [
+"address",
+"build",
+"fobis",
+"fsanitize",
+"ignoring",
+"option",
+"sanitize",
+"shadow",
+"unknown",
+"warning"
+]
+},
+{
+"id": "compilers:ifx#module-files",
+"doc": "ifx",
+"heading": "Intel Fortran (ifx, ifort) > Module files",
+"text": "ifx refuses `.mod` files written by another compiler:\n\n```\nerror #7013: This module file was not generated by any release of this compiler.   [MPI_F08]\n```\n\n(measured with the `mpi_f08` module of an Open MPI built with gfortran). Libraries used through modules (MPI,\nHDF5, NetCDF) need a build made with the Intel compiler; Intel MPI ships its own `mpi` and `mpi_f08` modules\n(`include/mpi/` of the installation).",
+"symbols": [
+"include",
+"mod",
+"mpi",
+"mpi_f08"
+]
+},
+{
+"id": "compilers:ifx#standard-conformance",
+"doc": "ifx",
+"heading": "Intel Fortran (ifx, ifort) > Standard conformance",
+"text": "`-stand f18` warns about non-standard code; `-warn stderrors` makes those warnings errors and `-warn errors`\nall warnings. `fobis build --shadow strict` builds with `-stand f18 -warn stderrors -warn errors`.",
+"symbols": [
+"build",
+"errors",
+"f18",
+"fobis",
+"shadow",
+"stand",
+"stderrors",
+"strict",
+"warn"
+]
+},
+{
+"id": "compilers:ifx#optimisation-reports-and-profiling",
+"doc": "ifx",
+"heading": "Intel Fortran (ifx, ifort) > Optimisation reports and profiling",
+"text": "`-qopt-report=3` writes the optimisation report to `.optrpt` files (FoBiS does not parse them). `-p`\ninstruments for gprof (`fobis profile --tool gprof`). `-qopenmp` enables OpenMP.",
+"symbols": [
+"fobis",
+"gprof",
+"optrpt",
+"profile",
+"qopenmp",
+"qopt",
+"report",
+"tool"
+]
+},
+{
+"id": "compilers:nvfortran#nvidia-fortran-nvfortran",
+"doc": "nvfortran",
+"heading": "NVIDIA Fortran (nvfortran)",
+"text": "Facts about nvfortran (the NVIDIA HPC SDK compiler, formerly PGI) that change what a program computes, how it\nfails, or whether it builds. \"Measured\" means observed on small programs with nvfortran 26.1 on x86-64 Linux\n(an Alder Lake class processor with FMA); option texts are those printed by `nvfortran -help`. FoBiS uses this\nfamily for `compiler = nvfortran` and `compiler = pgi`.",
+"symbols": [
+"compiler",
+"help",
+"nvfortran",
+"pgi"
+]
+},
+{
+"id": "compilers:nvfortran#default-optimisation-and-target",
+"doc": "nvfortran",
+"heading": "NVIDIA Fortran (nvfortran) > Default optimisation and target",
+"text": "Without an `-O` flag nvfortran optimises at level 1; with `-g` and no `-O` at level 0; `-O` alone means level 2\n(measured from `nvfortran -dryrun`, which shows `-opt N` in the back-end command).\n\nnvfortran compiles for the processor it runs on: `nvfortran --version` names the target (`-tp alderlake` on\nthe measured machine). Binaries built on a newer processor may not run on an older one: set the target with `-tp=` explicitly\n(`-tp=px` for a generic x86-64 target) when the build and the compute nodes differ.",
+"symbols": [
+"alderlake",
+"dryrun",
+"nvfortran",
+"opt",
+"version"
+]
+},
+{
+"id": "compilers:nvfortran#fma-is-on-even-at-o0",
+"doc": "nvfortran",
+"heading": "NVIDIA Fortran (nvfortran) > FMA is on, even at -O0",
+"text": "Because the default target has FMA, nvfortran contracts `a*b + c` into a fused multiply-add at every\noptimisation level. Measured: `a*b = 1 - 2**-60`, `c = -1` gave `-2**-60` (contracted) at `-O0`, at the default\nlevel, at `-O2`, with `-fast` and with `-Kieee`; it gave 0 with `-Mnofma` or `-tp=px`. `-Kieee` does not\ndisable contraction. When nvfortran results differ from another compiler's in the last bits, build both with\ncontraction off (`-Mnofma` here, `-ffp-contract=off` for gfortran) to see whether FMA explains it.",
+"symbols": [
+"contract",
+"fast",
+"ffp",
+"kieee",
+"mnofma",
+"off"
+]
+},
+{
+"id": "compilers:nvfortran#fast",
+"doc": "nvfortran",
+"heading": "NVIDIA Fortran (nvfortran) > -fast",
+"text": "`nvfortran -help -fast`: \"Common optimizations; includes -O2 -Munroll=c:1 -Mlre -Mautoinline. Implies\n-Mvect=simd -Mflushz -Mcache_align\". `-Mflushz` flushes subnormal results to zero. Measured: a single-precision\nKahan sum kept its accuracy with `-fast` (relative error 1.5e-8, as at `-O2`), and `ieee_is_nan` still detected a\nNaN.",
+"symbols": [
+"fast",
+"help",
+"ieee_is_nan",
+"mflushz",
+"nvfortran"
+]
+},
+{
+"id": "compilers:nvfortran#runtime-checks",
+"doc": "nvfortran",
+"heading": "NVIDIA Fortran (nvfortran) > Runtime checks",
+"text": "`-Mbounds` checks array subscripts (measured, `-O0 -g -Mbounds -traceback`):\n\n```\n0: Subscript out of range for array a (kernels.f90: 18)\n    subscript=11, lower bound=1, upper bound=10, dimension=1\n```\n\n`-Mchkptr` checks for null pointers; `-traceback` adds a call stack to runtime errors. `-Ktrap=fp` traps\ninvalid operations, division by zero and overflow: the measured division by zero ended with SIGFPE and no\nmessage on stderr, so the location must come from a debugger.\n\n`-Minit-real=snan` does not give a trap on uninitialised reals: measured, it writes the quiet NaN `7FC00000`,\nso the program runs on with NaN instead of stopping at the first use. Compare its results with a gfortran or\nifx build under their checks to locate an uninitialised real.",
+"symbols": [
+"fc00000",
+"ktrap",
+"mbounds",
+"mchkptr",
+"minit",
+"real",
+"snan",
+"traceback"
+]
+},
+{
+"id": "compilers:nvfortran#no-sanitizer",
+"doc": "nvfortran",
+"heading": "NVIDIA Fortran (nvfortran) > No sanitizer",
+"text": "nvfortran 26.1 rejects `-fsanitize=address` with `nvfortran-Error-Unknown switch: -fsanitize=address`.\nMemory errors in host code are found with a gfortran or ifx sanitized build of the same sources, or with\nValgrind; device memory errors with NVIDIA's `compute-sanitizer`.",
+"symbols": [
+"address",
+"compute",
+"error",
+"fsanitize",
+"nvfortran",
+"sanitizer",
+"switch",
+"unknown"
+]
+},
+{
+"id": "compilers:nvfortran#precision-promotion-flags",
+"doc": "nvfortran",
+"heading": "NVIDIA Fortran (nvfortran) > Precision promotion flags",
+"text": "Measured `kind()` of each declaration:\n\n| Flags | real | double precision | real(real32) | real(real64) | real(8) |\n|-------|------|------------------|--------------|--------------|---------|\n| none | 4 | 8 | 4 | 8 | 8 |\n| `-r8` | 8 | 8 | 4 | 8 | 8 |\n\n`-r8` promotes only default `real`; explicit kinds are unchanged. `-i8` makes default integers 8 bytes\n(measured).",
+"symbols": [
+"kind",
+"real"
+]
+},
+{
+"id": "compilers:nvfortran#module-files",
+"doc": "nvfortran",
+"heading": "NVIDIA Fortran (nvfortran) > Module files",
+"text": "nvfortran refuses `.mod` files written by another compiler:\n\n```\nNVFORTRAN-F-0004-Corrupt or Old Module file /opt/openmpi/.../lib/mpi_f08.mod (pm.f90: 3)\n```\n\n(measured with an Open MPI built with gfortran). The HPC SDK ships an Open MPI (HPC-X) built for nvfortran under\n`comm_libs/`; use its `mpifort` or its modules.",
+"symbols": [
+"comm_libs",
+"mod",
+"mpifort"
+]
+},
+{
+"id": "compilers:nvfortran#compiler-messages",
+"doc": "nvfortran",
+"heading": "NVIDIA Fortran (nvfortran) > Compiler messages",
+"text": "Errors are reported as `NVFORTRAN-S-NNNN-message (file: line)` (severity letters: I information, W warning,\nS severe, F fatal). `-Minfo=accel,mp,vect` reports what the compiler did with OpenACC and OpenMP regions and\nloops, procedure by procedure (implicit data copies, loops run sequentially on the device, vectorised loops);\n`fobis lint --compiler-feedback LOG` and `fobis bench --feedback` read these messages.",
+"symbols": [
+"accel",
+"bench",
+"compiler",
+"feedback",
+"file",
+"fobis",
+"line",
+"lint",
+"log",
+"message",
+"minfo",
+"nnnn",
+"nvfortran",
+"vect"
+]
+},
+{
+"id": "compilers:nvfortran#gpu-options",
+"doc": "nvfortran",
+"heading": "NVIDIA Fortran (nvfortran) > GPU options",
+"text": "`-acc` enables OpenACC, `-mp=gpu` OpenMP target offload, `-cuda` CUDA Fortran. `-gpu=cc80` selects the compute\ncapability (8.0 here; `ccnative`: the visible GPUs). `-gpu=mem:managed` puts allocatable data in CUDA managed memory,\nwhich hides missing data clauses: a code that is correct only with managed memory can fail with\n`-gpu=mem:separate`. Device code uses FMA unless `-gpu=nofma`.",
+"symbols": [
+"acc",
+"cc80",
+"ccnative",
+"cuda",
+"gpu",
+"managed",
+"mem",
+"nofma",
+"separate"
+]
+},
+{
+"id": "compilers:nvfortran#standard-conformance-and-profiling",
+"doc": "nvfortran",
+"heading": "NVIDIA Fortran (nvfortran) > Standard conformance and profiling",
+"text": "`-Mstandard` warns about non-standard code; with `-Werror` the warnings are errors\n(`fobis build --shadow strict`). `-pg` instruments for gprof (`fobis profile --tool gprof`).",
+"symbols": [
+"build",
+"fobis",
+"gprof",
+"mstandard",
+"profile",
+"shadow",
+"strict",
+"tool",
+"werror"
+]
+},
+{
+"id": "compilers:nvfortran#known-bug-cuda-error-719-on-a-reduction-into-a-declare-creat",
+"doc": "nvfortran",
+"heading": "NVIDIA Fortran (nvfortran) > Known bug: CUDA error 719 on a reduction into a declare-create variable",
+"text": "An OpenACC `reduction` into a module variable declared with `!$acc declare create` has failed at run time with\nCUDA error 719 (launch failure); documented with a reproducer in the hpc-practice pack, which\n`fobis run --explain` cites when it recognises the error.",
+"symbols": [
+"!$acc declare create",
+"explain",
+"fobis",
+"reduction",
+"run"
+]
+}
+]
+}

@@ -29,7 +29,9 @@ Read a cited section in full with `fobis kb show <id>`.
 1. **Retrieval, no model.** The question is matched against the packs as by `fobis kb search`. A question
    that names a programming model (`omp`, `!$acc`, `MPI_Isend` ...) is matched against that standard's pack
    and the general ones (Fortran standard, HPC practice, the project), so OpenMP and OpenACC sections do not
-   compete on words they share. With `--project DIR`, each module and procedure of the sources in `DIR`
+   compete on words they share. A question naming a compiler (`ifx`, `nvfortran` ...), a library or launcher
+   (`hdf5`, `mpirun` ...) or a numerical-assessment topic (significant digits, Richardson, tolerance,
+   benchmark ...) is routed the same way to the `compilers`, `libraries` or `numerics` pack. With `--project DIR`, each module and procedure of the sources in `DIR`
    becomes an entry: its header, arguments, used modules, calls, MPI calls, OpenMP/OpenACC directives and
    location.
 2. **The model sees only those sections**, numbered, and must answer with claims that cite them. With the

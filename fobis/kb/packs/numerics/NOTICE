@@ -1,0 +1,7 @@
+NOTICE - numerics pack
+
+Numerical error assessment, floating-point behaviour and run-time measurement, with references.
+
+Copyright (C) Stefano Zaghi. Licensed CC-BY-4.0
+(https://creativecommons.org/licenses/by/4.0/). Written for FoBiS from measurements on real compilers
+and libraries and from the cited literature. Source: https://github.com/szaghi/FoBiS, kb-sources/numerics (digest 023c3a69abfd).

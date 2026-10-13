@@ -1,0 +1,288 @@
+{
+"version": 1,
+"chunks": [
+{
+"id": "numerics:assessment#assessing-the-numerical-error-of-a-result",
+"doc": "assessment",
+"heading": "Assessing the numerical error of a result",
+"text": "How many digits of a computed result can be trusted, and where the error comes from. The methods below are those\n`fobis assess` applies to a declared case, one per family of variants; each section names the method, its\nassumptions and its references (full entries in the references document of this pack).",
+"symbols": [
+"assess",
+"fobis"
+]
+},
+{
+"id": "numerics:assessment#significant-digits-of-an-ensemble",
+"doc": "assessment",
+"heading": "Assessing the numerical error of a result > Significant digits of an ensemble",
+"text": "Run the same computation several times with a perturbation that should not matter (another rounding, compiler,\nthread count, input within its uncertainty) and look at the spread of a result `x` over the `n` members. With\nmean `mu` and sample standard deviation `sigma`, the number of significant digits the members share is\n\n```\ns = -log10(sigma / |mu|)\n```\n\nthe estimator of Monte Carlo arithmetic (Parker, Pierce and Eggert 2000), also used by Verificarlo. All members\nequal means every digit is reproduced (`s` infinite); `mu = 0` makes `s` meaningless (0 reported): assess such a\nquantity through a quantity that does not vanish, or by absolute difference.\n\n`sigma` from a few members is itself uncertain. A one-sided 95% lower bound on `s` follows from the chi-square\nupper bound of `sigma`, `sigma_up = sigma * sqrt(k / chi2(0.05, k))` with `k = n - 1` degrees of freedom\n(exact quantiles for k = 1 and 2, the Wilson and Hilferty 1931 approximation above). With 3 members the bound is\nfar below the estimate; it tightens as members are added. The bound assumes independent random samples (Sohier\net al. 2021 discuss confidence intervals for stochastic arithmetic): for deterministic variants, such as\ncompiler flags, it is indicative only.",
+"symbols": [
+"chi2",
+"sigma",
+"sigma_up",
+"sqrt"
+]
+},
+{
+"id": "numerics:assessment#precision-family",
+"doc": "assessment",
+"heading": "Assessing the numerical error of a result > Precision family",
+"text": "Rebuild with every real promoted to a wider kind and compare: the digits on which the normal build agrees with the\npromoted one estimate the rounding error of the normal build (the promoted build serves as the more accurate\nreference, `-log10(|x - x_ref| / |x_ref|)` per point). Measured: a single-precision sum agreed with its promoted\nbuild to 2.0 digits.\n\nAssumptions and limits: the promoted build must be much more accurate (its own rounding negligible), and\npromotion must not change the program's logic. Promotion flags cover different declarations per compiler\n(compilers pack): a code with a kind module is promoted by changing the kind parameter. Promotion changes binary\nrecord lengths and integer storage tricks: measured, blanket 128-bit promotion broke PENF (`storage_size` stored\ninto an `integer(1)` parameter).",
+"symbols": [
+"integer",
+"log10",
+"storage_size",
+"x_ref"
+]
+},
+{
+"id": "numerics:assessment#rounding-family",
+"doc": "assessment",
+"heading": "Assessing the numerical error of a result > Rounding family",
+"text": "Rebuild with flags that change rounding without changing the algorithm: optimisation levels, FMA contraction on\nand off, value-unsafe math, vectorisation off. The spread over these members is a cheap, deterministic stand-in\nfor stochastic arithmetic: it shows how sensitive the result is to the order and fusion of operations, but it\nsamples a few rounding patterns, not a distribution. Monte Carlo arithmetic (Verificarlo: Denis, de Oliveira\nCastro and Petit 2016) and discrete stochastic arithmetic (CADNA: Jézéquel and Chesneaux 2008) perturb every\noperation randomly and give a statistically founded estimate; use them when the result matters and they are\navailable.\n\nMeasured: a compensated (Kahan) sum kept every printed digit in every member except `-ffast-math`, which removes\nthe compensation (Kahan 1965; compilers pack); in FOODIE an exact floating-point equality test\n(`final_time - int(final_time/Dt)*Dt == 0`) failed under FMA contraction.",
+"symbols": [
+"ffast",
+"final_time",
+"int",
+"math"
+]
+},
+{
+"id": "numerics:assessment#compiler-family",
+"doc": "assessment",
+"heading": "Assessing the numerical error of a result > Compiler family",
+"text": "Build and run the case with the project's other modes (other compilers). Differences in the last digits come\nfrom contraction, reassociation and intrinsic implementations; differences in leading digits from bugs: a\ncompiler-dependent behaviour (uninitialised variables, aliasing violations, argument mismatches) or a compiler\nbug. Rebuild with value-safe flags on every compiler to separate the two (compilers pack, comparison).",
+"symbols": []
+},
+{
+"id": "numerics:assessment#parallel-family",
+"doc": "assessment",
+"heading": "Assessing the numerical error of a result > Parallel family",
+"text": "Run with several thread and rank counts, and repeat each. Results that differ between repeats at the same count\nare non-deterministic: an unordered floating-point reduction (OpenMP `atomic` or `reduction`, `MPI_Allreduce`\nwith a varying algorithm) sums in a different order each run. Measured: an OpenMP `atomic` reduction gave\nrepeats differing by about 3e-5 relative at 4 threads and identical results at 1 thread. Results that differ\nbetween counts but repeat exactly come from a count-dependent order of operations (decomposition-dependent\nsums), or from a race that a different count exposes. Bitwise reproducibility needs a fixed reduction order or a\nreproducible summation algorithm (Demmel and Nguyen 2015).",
+"symbols": [
+"atomic",
+"mpi_allreduce",
+"reduction"
+]
+},
+{
+"id": "numerics:assessment#inputs-family",
+"doc": "assessment",
+"heading": "Assessing the numerical error of a result > Inputs family",
+"text": "Perturb declared inputs and measure the response. One at a time (each parameter low and high around its\nnominal value, the others fixed) gives the elasticity\n\n```\nE = ((q_high - q_low) / q0) / ((p_high - p_low) / p0)\n```\n\nthe relative change of the output per relative change of the input: |E| > 1 amplifies the input's uncertainty.\nMeasured: for `k^2 exp(-dt)` the elasticities were 2 for `k` and -0.5 for `dt`, the analytic values (`2` and\n`-dt` at the nominal `dt = 0.5`). One-at-a-time analysis misses interactions between parameters (Saltelli et al.\n2008). Sampling all inputs from their distributions (Monte Carlo) gives the output's spread, with a standard\nerror decreasing as 1/sqrt(N), and correlations between each input and the output. Measured: a Monte Carlo\nstandard deviation of 6.1 % matched first-order propagation of the input uncertainty.",
+"symbols": [
+"exp"
+]
+},
+{
+"id": "numerics:assessment#refinement-family",
+"doc": "assessment",
+"heading": "Assessing the numerical error of a result > Refinement family",
+"text": "Run the case at three or more levels of a resolution parameter `h` (grid spacing, time step, tolerance) and\nmeasure how a scalar result converges. With levels 3 (coarse), 2, 1 (fine), refinement ratios `r21 = h2/h1`,\n`r32 = h3/h2` and differences `e21 = f2 - f1`, `e32 = f3 - f2`:\n\n- ratio `R = e21/e32`: `0 < R < 1` monotonic convergence, `-1 < R < 0` oscillatory, `|R| >= 1` divergent\n  (Stern et al. 2001);\n- observed order `p` by fixed-point iteration on `p = |ln|e32/e21| + q(p)| / ln r21`,\n  `q(p) = ln((r21^p - s)/(r32^p - s))`, `s = sign(e32/e21)` (Celik et al. 2008; with a constant ratio `q = 0`);\n- Richardson extrapolation `f_ext = (r21^p f1 - f2) / (r21^p - 1)` (Richardson 1911) and the error estimate\n  `|f_ext - f1|`;\n- Grid Convergence Index of the fine level `GCI = 1.25 |e21/f1| / (r21^p - 1)` (Roache 1994; factor 1.25 for\n  three or more levels).\n\nThese hold only in the asymptotic range, where the leading error term dominates. With four or more levels FoBiS\ncompares the orders of the last two triples and calls the study asymptotic when they agree within 10% (a FoBiS\ncriterion, not a standard one); otherwise the order is reported as not converged rather than as a property of\nthe method. Measured: trapezoid rule for the integral of `exp(x)` on [0, 1], order 2.000, the extrapolated value\nequal to the exact `e - 1` to 9 digits and the error estimate equal to the true error; RK4 4.06; FOODIE's schemes 1.012 (explicit Euler), 2.016, 3.016 (SSP Runge-Kutta 2 and 3), 4.012 (SSP-RK(5,4)).\nOberkampf and Roy (2010) treat code and solution verification at length.",
+"symbols": [
+"e21",
+"e32",
+"exp",
+"f_ext",
+"gci",
+"r21",
+"r32",
+"sign"
+]
+},
+{
+"id": "numerics:assessment#budgets",
+"doc": "assessment",
+"heading": "Assessing the numerical error of a result > Budgets",
+"text": "A budget states what a result must achieve: `digits >= 6`, `order >= 1.9`, `error <= 1e-4`. Choosing it from the\nassessment, not before it, keeps it honest: the measured digits of the normal build bound what any tolerance\non the result can promise. A `fobis verify` tolerance tighter than the assessed digits fails on harmless\nchanges (another compiler, thread count); a looser one hides real changes.",
+"symbols": [
+"digits",
+"error",
+"fobis",
+"order",
+"verify"
+]
+},
+{
+"id": "numerics:floating-point#floating-point-facts-behind-result-differences",
+"doc": "floating-point",
+"heading": "Floating-point facts behind result differences",
+"text": "Why the same algorithm gives different numbers, and how to compare numbers that are allowed to differ.\nReferences are listed in full in the references document of this pack.",
+"symbols": []
+},
+{
+"id": "numerics:floating-point#rounding-and-the-order-of-operations",
+"doc": "floating-point",
+"heading": "Floating-point facts behind result differences > Rounding and the order of operations",
+"text": "Every floating-point operation rounds its exact result to the nearest representable number (IEEE 754 default\nrounding); the relative error of one operation is at most the unit roundoff `u` (2^-24 for 32-bit reals, 2^-53\nfor 64-bit reals). Addition is therefore not associative: `(a + b) + c` and `a + (b + c)` can differ. Any change\nof the order of a sum (vectorisation, a parallel reduction, another compiler's reassociation, a loop\nreordering) changes the result within the error bound of the sum, not exactly (Goldberg 1991).\n\nFor recursive summation of `n` terms the error bound grows with `n`: `|computed - exact| <= gamma(n-1) * sum|x_i|`\nwith `gamma(k) = k u / (1 - k u)` (Higham 2002, chapter 4). The bound depends on `sum|x_i|`, not on the sum:\nwhen terms cancel, the relative error of the result can be large.",
+"symbols": [
+"computed",
+"exact",
+"gamma",
+"sum",
+"x_i"
+]
+},
+{
+"id": "numerics:floating-point#compensated-summation",
+"doc": "floating-point",
+"heading": "Floating-point facts behind result differences > Compensated summation",
+"text": "Kahan's compensated summation (Kahan 1965) carries the rounding error of each addition in a correction term and\nreduces the bound to about `2u sum|x_i|`, independent of `n` to first order (Higham 2002). It relies on the exact\norder of operations: `c = (t - s) - y` is zero in exact arithmetic, so a compiler allowed to reassociate removes\nit. Measured: gfortran `-ffast-math`, ifx at its default `-fp-model fast=1`, and ifx `-fp-model fast=2` removed\nthe compensation; gfortran `-O2`/`-O3`, ifx `-fp-model precise` and nvfortran `-O2`/`-fast` kept it (compilers\npack). Every error-free transformation (TwoSum, TwoProduct, double-double arithmetic) has the same requirement.",
+"symbols": [
+"fast",
+"ffast",
+"math",
+"model",
+"precise",
+"sum",
+"x_i"
+]
+},
+{
+"id": "numerics:floating-point#fused-multiply-add",
+"doc": "floating-point",
+"heading": "Floating-point facts behind result differences > Fused multiply-add",
+"text": "An FMA computes `a*b + c` with one rounding instead of two. It is usually more accurate, but it changes results,\nand it breaks code that relies on two roundings: `a*b - a*b` contracted on one side is not 0 (it is the rounding\nerror of the product), and an expression symmetric in exact arithmetic can become asymmetric. Whether a compiler\ncontracts depends on its defaults and the target instruction set (compilers pack, comparison): a new `-march`\nor a new compiler can change the last digits without any source change.",
+"symbols": [
+"march"
+]
+},
+{
+"id": "numerics:floating-point#nan-inf-and-value-unsafe-modes",
+"doc": "floating-point",
+"heading": "Floating-point facts behind result differences > NaN, Inf and value-unsafe modes",
+"text": "Under \"finite math\" assumptions (gfortran `-ffast-math`/`-ffinite-math-only`, ifx `-fp-model fast=2`) the\ncompiler may delete tests for NaN: measured, `ieee_is_nan(x)` and `x /= x` returned false for a NaN. A code that\nchecks its results for NaN must be built without these modes, or keep the check in a file compiled without\nthem. Flush-to-zero modes (nvfortran `-Mflushz`, part of `-fast`) replace subnormal results by zero, which\nchanges results that pass through very small values.",
+"symbols": [
+"fast",
+"ffast",
+"ffinite",
+"ieee_is_nan",
+"math",
+"mflushz",
+"model",
+"only"
+]
+},
+{
+"id": "numerics:floating-point#comparing-results-with-a-tolerance",
+"doc": "floating-point",
+"heading": "Floating-point facts behind result differences > Comparing results with a tolerance",
+"text": "Bitwise equality is the right test only for results that must be reproducible exactly (same build, same\ninputs, deterministic code). Otherwise compare with a tolerance stated for each quantity:\n\n- absolute `|a - b| <= A`: for quantities that are near zero or have a natural scale;\n- relative `|a - b| <= R |ref|`: for quantities far from zero; meaningless where `ref` vanishes;\n- in units in the last place (ulp): the number of representable values between `a` and `b`, independent of\n  magnitude; a few ulp absorb the reordering of a short computation, not of a long one.\n\n`fobis verify` accepts `abs A rel R ulp N` per quantity (`|a - b| <= A + R |ref|`, or within N ulp); NaN equals\nNaN and infinities compare by equality. Derive the tolerance from an assessment of the result (assessment\ndocument) rather than guessing it: the digits that survive harmless perturbations are what a tolerance can\ncheck.",
+"symbols": [
+"abs",
+"fobis",
+"ref",
+"rel",
+"ulp",
+"verify"
+]
+},
+{
+"id": "numerics:floating-point#reproducibility-across-runs",
+"doc": "floating-point",
+"heading": "Floating-point facts behind result differences > Reproducibility across runs",
+"text": "A deterministic serial program, built once, gives bitwise-identical results on the same machine unless a\nlibrary it calls chooses its code path at run time. Parallel programs do so only when every reduction has a\nfixed order: OpenMP `reduction` and `atomic` updates, MPI reductions and GPU atomics do not guarantee one.\nMeasured: an OpenMP `atomic` sum differed between repeats at 4 threads. `fobis verify --repeat N` checks that N\nruns agree exactly before a reference is written; reproducible reduction algorithms exist (Demmel and Nguyen\n2015) at extra cost.",
+"symbols": [
+"atomic",
+"fobis",
+"reduction",
+"repeat",
+"verify"
+]
+},
+{
+"id": "numerics:measurement#measuring-run-time",
+"doc": "measurement",
+"heading": "Measuring run time",
+"text": "How to decide whether a change made a program faster, slower, or neither. These are the statistics `fobis bench`\napplies; references are listed in full in the references document of this pack.",
+"symbols": [
+"bench",
+"fobis"
+]
+},
+{
+"id": "numerics:measurement#use-the-median-and-its-interval",
+"doc": "measurement",
+"heading": "Measuring run time > Use the median and its interval",
+"text": "Run times are skewed: most runs cluster near a minimum, and interference (other processes, frequency changes,\npage cache) adds a long tail of slow runs. The mean and a normal confidence interval assume a symmetric\ndistribution; the median does not. A distribution-free confidence interval of the median comes from order\nstatistics: with the `n` times sorted, the interval `[t(k), t(n+1-k)]` covers the median with probability at\nleast 95% for the largest `k` with `P(Binomial(n, 1/2) < k) <= 0.025` (Conover 1999). Below 6 runs no such\ninterval exists at 95%: the minimum number of runs is a property of the statistics, not a choice.\n\nReport the median with its interval and the spread (median absolute deviation), not the best run: the best run\nis the least representative one (Hoefler and Belli 2015 give twelve rules for reporting performance).",
+"symbols": [
+"binomial"
+]
+},
+{
+"id": "numerics:measurement#compare-interleaved-decide-by-the-intervals",
+"doc": "measurement",
+"heading": "Measuring run time > Compare interleaved, decide by the intervals",
+"text": "Run the two versions alternately (A, B, A, B, ...) rather than all of A then all of B: slow drifts of the\nmachine (thermal throttling, a job starting elsewhere) then affect both. Call a version faster only when the two\nmedian intervals do not overlap; the speedup `old/new` then lies in `[old.low/new.high, old.high/new.low]`.\nOverlapping intervals mean \"no measurable difference with these runs\": more runs narrow the intervals, and\n`fobis bench` keeps running until the relative half-width of each interval is below the declared target (default\n2%) or a run or time limit is reached.\n\nMeasured: a memory-bound loop with one more statement gave medians of 0.131 s and 0.141 s and a speedup interval\nof [0.827, 1.121], which contains 1: no measurable difference, although the medians differ by 8%.",
+"symbols": [
+"bench",
+"fobis",
+"high",
+"low",
+"new",
+"old"
+]
+},
+{
+"id": "numerics:measurement#conditions-that-invalidate-a-measurement",
+"doc": "measurement",
+"heading": "Measuring run time > Conditions that invalidate a measurement",
+"text": "- Very short runs: below about 10 ms the program's start-up (loader, runtime initialisation, MPI start) is a\n  large part of the time; measure a larger problem or time the kernel inside the program.\n- A loaded machine: a load average above half the cores means the runs compete for processors and memory\n  bandwidth; the intervals widen and the medians move. Note the load with the result.\n- Warm-up: the first run pays for page faults, file cache misses and, on GPUs, context creation and code\n  loading; discard it.\n- GPU timing: device work is asynchronous. A host timer around a kernel launch measures the launch, not the\n  kernel, unless the code waits for the device before reading the timer (hpc-practice pack, GPU benchmark\n  timing). Consumer GPUs run 64-bit arithmetic at a small fraction of their 32-bit rate (hpc-practice pack).\n- Different machines, compilers or modes: comparing against history is meaningful only for the same CPU, core\n  count, GPU models, compiler and version, and mode.",
+"symbols": []
+},
+{
+"id": "numerics:measurement#cpu-time-versus-wall-time",
+"doc": "measurement",
+"heading": "Measuring run time > CPU time versus wall time",
+"text": "The CPU time of the child processes (`getrusage`) divided by the wall time shows how parallel a run was: about 1\nfor a serial program, about the thread count for a well-parallelised OpenMP run, much less when threads wait.\nMeasured on WSL2: serial programs showed a ratio of about 1.04, from accounting granularity (confirmed with\n`/usr/bin/time`), not from parallelism.",
+"symbols": [
+"bin",
+"getrusage",
+"time",
+"usr"
+]
+},
+{
+"id": "numerics:references#references",
+"doc": "references",
+"heading": "References",
+"text": "The publications cited by the documents of this pack, by topic.",
+"symbols": []
+},
+{
+"id": "numerics:references#rounding-error-and-floating-point-arithmetic",
+"doc": "references",
+"heading": "References > Rounding error and floating-point arithmetic",
+"text": "- Goldberg, D. (1991). What every computer scientist should know about floating-point arithmetic. ACM Computing\n  Surveys 23(1), 5-48.\n- Higham, N. J. (2002). Accuracy and Stability of Numerical Algorithms, 2nd edition. SIAM. Chapter 4: summation.\n- Kahan, W. (1965). Further remarks on reducing truncation errors. Communications of the ACM 8(1), 40.\n- Demmel, J., Nguyen, H. D. (2015). Parallel reproducible summation. IEEE Transactions on Computers 64(7),\n  2060-2070.",
+"symbols": []
+},
+{
+"id": "numerics:references#stochastic-arithmetic-and-significant-digits",
+"doc": "references",
+"heading": "References > Stochastic arithmetic and significant digits",
+"text": "- Parker, D. S., Pierce, B., Eggert, P. R. (2000). Monte Carlo arithmetic: how to gamble with floating point and\n  win. Computing in Science and Engineering 2(4), 58-68.\n- Denis, C., de Oliveira Castro, P., Petit, E. (2016). Verificarlo: checking floating point accuracy through\n  Monte Carlo arithmetic. Proceedings of the 23rd IEEE Symposium on Computer Arithmetic (ARITH 23), 55-62.\n- Jézéquel, F., Chesneaux, J.-M. (2008). CADNA: a library for estimating round-off error propagation. Computer\n  Physics Communications 178(12), 933-955.\n- Sohier, D., de Oliveira Castro, P., Févotte, F., Lathuilière, B., Petit, E., Jamond, O. (2021). Confidence\n  intervals for stochastic arithmetic. ACM Transactions on Mathematical Software 47(2), article 10.\n- Wilson, E. B., Hilferty, M. M. (1931). The distribution of chi-square. Proceedings of the National Academy of\n  Sciences 17(12), 684-688.",
+"symbols": []
+},
+{
+"id": "numerics:references#discretisation-error-and-solution-verification",
+"doc": "references",
+"heading": "References > Discretisation error and solution verification",
+"text": "- Richardson, L. F. (1911). The approximate arithmetical solution by finite differences of physical problems\n  involving differential equations, with an application to the stresses in a masonry dam. Philosophical\n  Transactions of the Royal Society A 210, 307-357.\n- Roache, P. J. (1994). Perspective: a method for uniform reporting of grid refinement studies. Journal of Fluids\n  Engineering 116(3), 405-413.\n- Stern, F., Wilson, R. V., Coleman, H. W., Paterson, E. G. (2001). Comprehensive approach to verification and\n  validation of CFD simulations, part 1: methodology and procedures. Journal of Fluids Engineering 123(4),\n  793-802.\n- Celik, I. B., Ghia, U., Roache, P. J., Freitas, C. J., Coleman, H., Raad, P. E. (2008). Procedure for estimation\n  and reporting of uncertainty due to discretization in CFD applications. Journal of Fluids Engineering 130(7),\n  078001.\n- Oberkampf, W. L., Roy, C. J. (2010). Verification and Validation in Scientific Computing. Cambridge University\n  Press.",
+"symbols": []
+},
+{
+"id": "numerics:references#sensitivity-and-uncertainty",
+"doc": "references",
+"heading": "References > Sensitivity and uncertainty",
+"text": "- Saltelli, A., Ratto, M., Andres, T., Campolongo, F., Cariboni, J., Gatelli, D., Saisana, M., Tarantola, S.\n  (2008). Global Sensitivity Analysis: The Primer. Wiley.",
+"symbols": []
+},
+{
+"id": "numerics:references#measurement",
+"doc": "references",
+"heading": "References > Measurement",
+"text": "- Conover, W. J. (1999). Practical Nonparametric Statistics, 3rd edition. Wiley.\n- Hoefler, T., Belli, R. (2015). Scientific benchmarking of parallel computing systems: twelve ways to tell the\n  masses when reporting performance results. Proceedings of the International Conference for High Performance\n  Computing, Networking, Storage and Analysis (SC '15), article 73.",
+"symbols": []
+}
+]
+}

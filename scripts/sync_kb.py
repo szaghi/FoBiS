@@ -1,16 +1,23 @@
 """Rebuild the knowledge packs shipped with FoBiS from their sources (maintainer tool).
 
-The sources are Claude skills and notes kept in the maintainer's dotfiles repository
-(https://github.com/szaghi/dotfiles); the packs record the dotfiles commit they were built from.
+Two kinds of sources:
+
+- the standards and practice packs come from Claude skills and notes kept in the maintainer's dotfiles repository
+  (https://github.com/szaghi/dotfiles); they record the dotfiles commit they were built from;
+- the compilers, libraries and numerics packs come from ``kb-sources/<pack>/*.md`` in this repository; they record
+  a digest of their sources, and ``tests/test_kb.py`` fails when a shipped pack differs from a fresh build.
 
 Usage::
 
-    python scripts/sync_kb.py ~/dotfiles          # rebuild every shipped pack
+    python scripts/sync_kb.py ~/dotfiles          # rebuild every pack built from the dotfiles
     python scripts/sync_kb.py ~/dotfiles openmp   # rebuild one pack
+    python scripts/sync_kb.py --local             # rebuild the packs of kb-sources/
+    python scripts/sync_kb.py --local numerics    # rebuild one of them
 """
 
 from __future__ import annotations
 
+import hashlib
 import os
 import subprocess
 import sys
@@ -63,6 +70,52 @@ PACKS = {
 }
 
 
+# packs written in this repository: name -> title (sources: kb-sources/<name>/*.md)
+LOCAL_DIR = os.path.join(ROOT, "kb-sources")
+LOCAL_SOURCE = "https://github.com/szaghi/FoBiS"
+LOCAL_ATTRIBUTION = "Stefano Zaghi, https://github.com/szaghi/FoBiS"
+LOCAL_PACKS = {
+    "compilers": "Fortran compilers in practice: gfortran, ifx, nvfortran defaults, checks, floating point, modules",
+    "libraries": "MPI implementations and HDF5 in practice: launchers, wrappers, modules, pitfalls",
+    "numerics": "Numerical error assessment, floating-point behaviour and run-time measurement, with references",
+}
+
+
+def local_digest(sources: list[Source]) -> str:
+    """A digest of the sources of a local pack (names and contents): its ``source_rev``."""
+    digest = hashlib.sha256()
+    for source in sorted(sources, key=lambda s: s.doc):
+        digest.update(source.doc.encode())
+        with open(source.path, "rb") as handle:
+            digest.update(handle.read())
+    return digest.hexdigest()[:12]
+
+
+def build_local(name: str, out: str) -> int:
+    """Build the local pack *name* from ``kb-sources/<name>`` into *out*; return the number of chunks."""
+    sources = skill_sources(os.path.join(LOCAL_DIR, name))
+    rev = local_digest(sources)
+    title = LOCAL_PACKS[name]
+    os.makedirs(out, exist_ok=True)
+    with open(os.path.join(out, "NOTICE"), "w", encoding="utf-8") as handle:
+        handle.write(
+            f"NOTICE - {name} pack\n\n{title}.\n\nCopyright (C) Stefano Zaghi. Licensed CC-BY-4.0\n"
+            "(https://creativecommons.org/licenses/by/4.0/). Written for FoBiS from measurements on real compilers\n"
+            f"and libraries and from the cited literature. Source: {LOCAL_SOURCE}, kb-sources/{name} (digest {rev}).\n"
+        )
+    meta = {
+        "name": name,
+        "version": VERSION,
+        "title": title,
+        "license": "CC-BY-4.0",
+        "attribution": LOCAL_ATTRIBUTION,
+        "source": LOCAL_SOURCE,
+        "source_rev": rev,
+        "notice": "NOTICE",
+    }
+    return build_pack(sources, out, meta)
+
+
 def _sources(dotfiles: str, paths: list[str]) -> list[Source]:
     sources = []
     for rel in paths:
@@ -79,6 +132,11 @@ def main(argv: list[str]) -> int:
     if not argv:
         print(__doc__)
         return 2
+    if argv[0] == "--local":
+        for name in argv[1:] or list(LOCAL_PACKS):
+            count = build_local(name, os.path.join(SHIPPED_DIR, name))
+            print(f"{name}: {count} chunks (kb-sources)")
+        return 0
     dotfiles, names = os.path.abspath(os.path.expanduser(argv[0])), argv[1:] or list(PACKS)
     rev = subprocess.run(
         ["git", "-C", dotfiles, "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=True

@@ -95,7 +95,7 @@ fobis commit             # generate a Conventional-Commits message via a local L
 
 ```bash
 fobis lint [PATHS]       # rule-based checks: correctness, obsolescent, OpenMP/OpenACC/MPI defects
-fobis kb search "QUERY"  # search the knowledge packs (Fortran/OpenMP/OpenACC/MPI standards, HPC practice)
+fobis kb search "QUERY"  # search the knowledge packs (Fortran/OpenMP/OpenACC/MPI standards, HPC practice, compilers, MPI/HDF5, numerical assessment)
 fobis mcp                # MCP server (stdio): 27 annotated tools (lint, review, kb, build/test with diagnoses, merge, ecosystem ...)
 fobis llm <...>          # local LLM harness: runtime install, pull models, serve, ask, doctor
 fobis review [--staged | --base REF]  # lint findings on the changed lines only (pre-commit, PR); --deep risk summary

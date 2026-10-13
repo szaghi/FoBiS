@@ -1,0 +1,7 @@
+NOTICE - libraries pack
+
+MPI implementations and HDF5 in practice: launchers, wrappers, modules, pitfalls.
+
+Copyright (C) Stefano Zaghi. Licensed CC-BY-4.0
+(https://creativecommons.org/licenses/by/4.0/). Written for FoBiS from measurements on real compilers
+and libraries and from the cited literature. Source: https://github.com/szaghi/FoBiS, kb-sources/libraries (digest 137428730135).

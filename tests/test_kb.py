@@ -1,9 +1,17 @@
-"""Tests for fobis.kb — pack building, retrieval, shipped packs (quality gates), fobis kb CLI."""
+"""Tests for fobis.kb — pack building, retrieval, shipped packs (quality gates), fobis kb CLI; the packs written in
+this repository (``kb-sources/``: compilers, libraries, numerics) match a fresh build of their sources, and every
+compiler flag the compilers pack names is accepted by that compiler (flags of other compilers named on purpose are
+rejected), for each compiler on PATH."""
 
 from __future__ import annotations
 
+import importlib.util
 import json
+import os
 import re
+import shlex
+import shutil
+import subprocess
 
 import pytest
 from typer.testing import CliRunner
@@ -140,7 +148,9 @@ def test_search_ranks_and_filters(tmp_path):
 
 # ── shipped packs: quality gates ───────────────────────────────────────────────
 
-_SHIPPED = ("fortran-std", "hpc-practice", "mpi", "openacc", "openmp")
+_LOCAL = ("compilers", "libraries", "numerics")  # built from kb-sources/ by scripts/sync_kb.py --local
+_SHIPPED = ("fortran-std", "hpc-practice", "mpi", "openacc", "openmp", *_LOCAL)
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 @pytest.fixture(scope="module")
@@ -153,7 +163,7 @@ def test_shipped_packs_carry_license_attribution_notice(shipped):
         assert pack.license == "CC-BY-4.0", pack.name
         assert pack.meta.get("attribution") and pack.meta.get("source_rev")
         assert pack.notice().strip(), pack.name
-        assert len(pack.chunks) > 20
+        assert len(pack.chunks) > 10
 
 
 def test_shipped_packs_have_no_assistant_directed_text(shipped):
@@ -170,6 +180,22 @@ def test_shipped_chunk_ids_are_unique(shipped):
 def test_rule_references_resolve(shipped):
     missing = {rid: ref for rid, rule in RULES.items() for ref in rule.refs if ref not in shipped.by_id}
     assert not missing, f"stale rule references (packs rebuilt?): {missing}"
+
+
+def test_code_references_resolve(shipped):
+    """Pack sections named by the code (assess methods, crash and bench notes) exist."""
+    from fobis.ai import crash
+    from fobis.verification import assess, bench
+
+    named = [
+        *assess.METHODS.values(),
+        crash.BACKTRACES_LIE,
+        crash.GFORTRAN_EFAULT,
+        crash.NVFORTRAN_719,
+        bench.TIMING_SECTION,
+        bench.FP64_SECTION,
+    ]
+    assert [ref for ref in named if ref not in shipped.by_id] == []
 
 
 # Retrieval evaluation (phase B exit criterion): the expected section is among the first 5 results.
@@ -195,12 +221,70 @@ RETRIEVAL_EVAL = [
         "fortran-std:ch21-annex-b-deleted-obsolescent#obsolescent-features-b-3-still-legal-avoid-in-new-code",
     ),
     ("forall do concurrent loop choice", "fortran-std:cheatsheet#loop-choice"),
+    ("ifx segfault large automatic array heap-arrays", "compilers:ifx#automatic-arrays-temporaries-and-the-stack"),
+    ("nvfortran fused multiply add Kieee", "compilers:nvfortran#fma-is-on-even-at-o0"),
+    ("cannot read module file created by a different version", "compilers:gfortran#module-files"),
+    ("mpirun not enough slots oversubscribe", "libraries:mpi-implementations#more-ranks-than-processors"),
+    ("hdf5 dataset dimensions transposed", "libraries:hdf5#dimensions-appear-reversed"),
+    ("grid convergence index observed order", "numerics:assessment#refinement-family"),
+    ("benchmark confidence interval median", "numerics:measurement#use-the-median-and-its-interval"),
+    ("kahan compensated summation reassociation", "numerics:floating-point#compensated-summation"),
 ]
 
 
 @pytest.mark.parametrize(("query", "expected"), RETRIEVAL_EVAL)
 def test_retrieval_eval_top5(shipped, query, expected):
     assert expected in [r.chunk.id for r in shipped.search(query, k=5)]
+
+
+# ── packs written in this repository ───────────────────────────────────────────
+
+
+def _sync_kb():
+    spec = importlib.util.spec_from_file_location("sync_kb", os.path.join(_ROOT, "scripts", "sync_kb.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.parametrize("name", _LOCAL)
+def test_local_packs_match_their_sources(name, tmp_path):
+    """The shipped pack is a build of kb-sources/<name>: edit the sources, then run sync_kb.py --local."""
+    _sync_kb().build_local(name, str(tmp_path))
+    for item in ("pack.ini", "NOTICE", "index.json"):
+        with open(os.path.join(SHIPPED_DIR, name, item), encoding="utf-8") as shipped_file:
+            assert (tmp_path / item).read_text(encoding="utf-8") == shipped_file.read(), f"{name}/{item} stale"
+
+
+# flags a compiler document names on purpose although that compiler rejects them (other compilers' flags)
+_FOREIGN = {("nvfortran", "-ffp-contract=off"), ("nvfortran", "-fsanitize=address")}
+_REJECTED = re.compile(r"unknown|ignoring|unrecogni|invalid|Unknown switch", re.IGNORECASE)
+
+
+def _document_flags(doc: str) -> list[str]:
+    """The compiler flags in the code spans of a compilers-pack document (a span may hold several flags)."""
+    with open(os.path.join(_ROOT, "kb-sources", "compilers", f"{doc}.md"), encoding="utf-8") as handle:
+        spans = re.findall(r"`([^`\n]+)`", handle.read())
+    return sorted(
+        {s for s in spans if re.match(r"-[A-Za-z]", s) and not s.endswith("=") and s not in ("-###", "-dryrun")}
+    )
+
+
+@pytest.mark.parametrize(("doc", "compiler"), [("gfortran", "gfortran"), ("ifx", "ifx"), ("nvfortran", "nvfortran")])
+def test_compiler_flags_of_the_pack_are_accepted(doc, compiler, tmp_path):
+    """Run for each compiler on PATH (load the toolchains first to check them all)."""
+    if shutil.which(compiler) is None:
+        pytest.skip(f"{compiler} not on PATH")
+    (tmp_path / "p.f90").write_text("program p\nend program p\n")
+    wrong = []
+    for span in _document_flags(doc):
+        run = subprocess.run(
+            [compiler, *shlex.split(span), "-c", "p.f90", "-o", "p.o"], capture_output=True, text=True, cwd=tmp_path
+        )
+        rejected = run.returncode != 0 or bool(_REJECTED.search(run.stdout + run.stderr))
+        if rejected != ((compiler, span) in _FOREIGN):
+            wrong.append(f"{span}: {'rejected' if rejected else 'accepted'}")
+    assert not wrong, f"{compiler}: {wrong}"
 
 
 # ── CLI ────────────────────────────────────────────────────────────────────────

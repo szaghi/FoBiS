@@ -41,12 +41,21 @@ if TYPE_CHECKING:
 
 PROJECT_PACK = "project"
 GENERAL_PACKS = ("fortran-std", "hpc-practice", PROJECT_PACK)
-# Words naming a programming model: a question that names one is answered from that standard's pack (plus the
-# general ones). Without routing, OpenACC and OpenMP sections compete on "parallel", "loop", "private".
+# Words naming a programming model, a compiler, a library or a numerical-assessment topic: a question that names
+# one is answered from that pack (plus the general ones). Without routing, OpenACC and OpenMP sections compete on
+# "parallel", "loop", "private".
 _PACK_HINTS = {
     "openmp": re.compile(r"\b(omp|openmp|omp_\w+)\b|!\$omp"),
     "openacc": re.compile(r"\b(acc|openacc|acc_\w+)\b|!\$acc"),
     "mpi": re.compile(r"\b(mpi|mpi_\w+)\b"),
+    "compilers": re.compile(r"\b(gfortran|ifx|ifort|nvfortran|pgfortran|compiler flags?|fma)\b"),
+    "libraries": re.compile(
+        r"\b(hdf5|h5\w+_f|h5dump|h5fc|h5pfc|open ?mpi|intel mpi|mpich|mpirun|mpiexec|mpif90|mpifort|mpiifx)\b"
+    ),
+    "numerics": re.compile(
+        r"\b(significant digits?|round-?off|rounding errors?|richardson|gci|grid convergence|order of accuracy"
+        r"|observed order|uncertainty|kahan|reproducib\w*|tolerances?|benchmark\w*|speedup)\b"
+    ),
 }
 
 

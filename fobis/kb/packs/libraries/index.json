@@ -1,0 +1,222 @@
+{
+"version": 1,
+"chunks": [
+{
+"id": "libraries:hdf5#hdf5-from-fortran",
+"doc": "hdf5",
+"heading": "HDF5 from Fortran",
+"text": "Facts about using HDF5 from Fortran that cause wrong data, unreadable files or failed builds. \"Measured\" means\nobserved with HDF5 2.0.0 (a parallel build with the Fortran interface, built with gfortran 14.2) on Linux.",
+"symbols": []
+},
+{
+"id": "libraries:hdf5#call-h5open-f-before-anything-else",
+"doc": "hdf5",
+"heading": "HDF5 from Fortran > Call h5open_f before anything else",
+"text": "The Fortran predefined type identifiers (`H5T_NATIVE_DOUBLE`, `H5T_NATIVE_INTEGER`, ...) are variables of the\n`hdf5` module set by `h5open_f`. Before it they hold 0 (measured: `H5T_NATIVE_DOUBLE` printed 0 before\n`h5open_f` and a large identifier after), so a call made earlier passes an invalid identifier to the library.\nCall `h5open_f` once at start-up and `h5close_f` at the end.",
+"symbols": [
+"h5close_f",
+"h5open_f",
+"h5t_native_double",
+"h5t_native_integer",
+"hdf5"
+]
+},
+{
+"id": "libraries:hdf5#dimensions-appear-reversed",
+"doc": "hdf5",
+"heading": "HDF5 from Fortran > Dimensions appear reversed",
+"text": "HDF5 stores dataspaces in C (row-major) order. A Fortran array `rho(3, 2)` written with dimensions `[3, 2]`\nappears as `( 2, 3 )` in `h5dump` (measured); the values are in the file in Fortran memory order, so element\n`rho(i, j)` is `[j-1][i-1]` on the C side. Tools written in C or Python (h5py) see the transpose. FoBiS's\n`hdf5` probe reports the stored (C-order) shape, and `fobis verify` labels the worst element of such a\nquantity with 0-based C indices.",
+"symbols": [
+"fobis",
+"h5dump",
+"hdf5",
+"rho",
+"verify"
+]
+},
+{
+"id": "libraries:hdf5#the-fortran-module-belongs-to-one-compiler",
+"doc": "hdf5",
+"heading": "HDF5 from Fortran > The Fortran module belongs to one compiler",
+"text": "`use hdf5` reads the `hdf5.mod` of the installation, which only the compiler that built HDF5 can read (module\nformats differ between compilers and between gfortran releases: compilers pack). Keep one HDF5 build per\ncompiler, and select it together with the compiler (a module system, or `ext_libs`/`include` per fobos mode).\nThe `h5fc` wrapper (`h5pfc` for parallel HDF5) prints the flags it adds with `h5fc -show`; the build settings\nare in `lib/libhdf5.settings` of the installation (`Fortran: ON`, `Parallel HDF5: ON`).",
+"symbols": [
+"ext_libs",
+"fortran",
+"h5fc",
+"h5pfc",
+"hdf5",
+"include",
+"lib",
+"libhdf5",
+"mod",
+"parallel",
+"settings",
+"show",
+"use"
+]
+},
+{
+"id": "libraries:hdf5#parallel-hdf5",
+"doc": "hdf5",
+"heading": "HDF5 from Fortran > Parallel HDF5",
+"text": "A parallel build (`Parallel HDF5: ON` in `libhdf5.settings`) needs MPI at compile and link time: use the\n`h5pfc` wrapper or the MPI wrapper with the HDF5 flags, and open files with an MPI-IO file access property list\n(`h5pset_fapl_mpio_f`). Collective operations, and transfers set to collective with `h5pset_dxpl_mpio_f`, must be\ncalled by every rank of the communicator, including ranks that write no data (with an empty selection); a rank\nthat skips the call makes the others wait.",
+"symbols": [
+"h5pfc",
+"h5pset_dxpl_mpio_f",
+"h5pset_fapl_mpio_f",
+"hdf5",
+"libhdf5",
+"parallel",
+"settings"
+]
+},
+{
+"id": "libraries:hdf5#file-locking",
+"doc": "hdf5",
+"heading": "HDF5 from Fortran > File locking",
+"text": "HDF5 locks every file it opens (since release 1.10). On file systems where the lock fails, the open fails or a\nreader gets nothing; the maintainer observed Windows ParaView reading an XDMF/HDF5 dataset from a WSL share\n(`\\\\wsl$\\...`) as empty, without an error. Setting `HDF5_USE_FILE_LOCKING=FALSE` in the reader's environment\ndisables locking: safe for read-only viewing, unsafe when several processes write the same file. The measured\nbuild reports `Use file locking: best-effort` in its settings (lock failures ignored where the file system does\nnot support locks).",
+"symbols": [
+"best",
+"effort",
+"false",
+"file",
+"hdf5_use_file_locking",
+"locking",
+"use",
+"wsl"
+]
+},
+{
+"id": "libraries:hdf5#reading-hdf5-in-fobis-cases",
+"doc": "hdf5",
+"heading": "HDF5 from Fortran > Reading HDF5 in FoBiS cases",
+"text": "A case quantity `name : hdf5 FILE /group/dataset` is read with h5py when it is importable, else with the\n`h5dump` command; when neither is available the quantity is reported as not read, with the reason, instead of\nfailing silently. Load the HDF5 tools (for example with the module that provides them) before\n`fobis case run` or `fobis verify`.",
+"symbols": [
+"case",
+"dataset",
+"file",
+"fobis",
+"group",
+"h5dump",
+"hdf5",
+"name",
+"run",
+"verify"
+]
+},
+{
+"id": "libraries:mpi-implementations#mpi-implementations-open-mpi-intel-mpi-mpich-family",
+"doc": "mpi-implementations",
+"heading": "MPI implementations: Open MPI, Intel MPI, MPICH family",
+"text": "What differs between MPI implementations in practice: launchers, environment, compiler wrappers, Fortran\nmodules. The semantics of MPI itself are in the mpi pack. \"Measured\" means observed with Open MPI 5.0.7 (built\nwith gfortran 14.2) and Intel MPI 2021.18 on one Linux machine with 16 processors.",
+"symbols": []
+},
+{
+"id": "libraries:mpi-implementations#identify-the-implementation",
+"doc": "mpi-implementations",
+"heading": "MPI implementations: Open MPI, Intel MPI, MPICH family > Identify the implementation",
+"text": "`mpirun --version` prints `mpirun (Open MPI) 5.0.7` or `Intel(R) MPI Library for Linux* OS, Version 2021.18.1\n...` (measured); MPICH prints a `HYDRA build details` block. `fobis case run` and `fobis verify` record this line\nin the provenance of every case run with ranks.",
+"symbols": [
+"and",
+"block",
+"measured",
+"mpi",
+"mpich",
+"mpirun",
+"open",
+"prints",
+"version"
+]
+},
+{
+"id": "libraries:mpi-implementations#more-ranks-than-processors",
+"doc": "mpi-implementations",
+"heading": "MPI implementations: Open MPI, Intel MPI, MPICH family > More ranks than processors",
+"text": "Open MPI refuses to start more processes than there are slots (processors detected, without a hostfile or a\nbatch allocation). Measured, `mpirun -np 17` on 16 processors:\n\n```\nThere are not enough slots available in the system to satisfy the 17\nslots that were requested by the application:\n```\n\n`mpirun --oversubscribe -np 17` runs them. Intel MPI started 17 processes on the same machine without a flag\n(measured). Oversubscribed ranks share cores, so their timings say nothing about the code. For FoBiS cases set\nthe launcher in the fobos, for example `[verification] launcher = mpirun --oversubscribe -np {ranks}`.",
+"symbols": [
+"launcher",
+"mpirun",
+"oversubscribe",
+"ranks",
+"verification"
+]
+},
+{
+"id": "libraries:mpi-implementations#rank-and-size-in-the-environment",
+"doc": "mpi-implementations",
+"heading": "MPI implementations: Open MPI, Intel MPI, MPICH family > Rank and size in the environment",
+"text": "Each launcher tells the processes who they are through environment variables, readable before `MPI_Init`\n(for example to choose a GPU per rank). Measured:\n\n| Implementation | rank | size | rank on the node |\n|---|---|---|---|\n| Open MPI 5 | `OMPI_COMM_WORLD_RANK` (also `PMIX_RANK`) | `OMPI_COMM_WORLD_SIZE` | `OMPI_COMM_WORLD_LOCAL_RANK` |\n| Intel MPI | `PMI_RANK` | `PMI_SIZE` | `MPI_LOCALRANKID` |\n\nUnder Slurm's `srun` the variables are `SLURM_PROCID`, `SLURM_NTASKS` and `SLURM_LOCALID` (Slurm\ndocumentation). Code that reads one implementation's variables silently gets nothing under another: read them\nwith a fallback, or use `MPI_Comm_split_type` with `MPI_COMM_TYPE_SHARED` after `MPI_Init` for the node-local\nrank.",
+"symbols": [
+"mpi_comm_split_type",
+"mpi_comm_type_shared",
+"mpi_init",
+"mpi_localrankid",
+"ompi_comm_world_local_rank",
+"ompi_comm_world_rank",
+"ompi_comm_world_size",
+"pmi_rank",
+"pmi_size",
+"pmix_rank",
+"slurm_localid",
+"slurm_ntasks",
+"slurm_procid",
+"srun"
+]
+},
+{
+"id": "libraries:mpi-implementations#compiler-wrappers",
+"doc": "mpi-implementations",
+"heading": "MPI implementations: Open MPI, Intel MPI, MPICH family > Compiler wrappers",
+"text": "`mpif90`/`mpifort` call a Fortran compiler with the MPI include and library flags. Which compiler is not fixed\nby the name:\n\n- Open MPI: the compiler it was built with; `mpif90 --showme` prints the command (measured:\n  `gfortran -I... -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi`).\n- Intel MPI: `mpif90 -show` printed a gfortran command (with modules for gfortran 15.1 under\n  `include/mpi/gfortran/15.1.0`), while `mpiifx -show` printed an ifx command (measured).\n\nFoBiS modes with `mpi = True` compile with `mpif90` for gnu and nvfortran, `mpiifort` for `intel` and\n`mpiifort -fc=ifx` for `intel_nextgen`; `fobis introspect --compiler` shows the command a mode runs. With Intel\nMPI's `mpif90` a gnu mode gets gfortran, as intended; check the wrapper whenever several MPI installations are\non the PATH.",
+"symbols": [
+"compiler",
+"fobis",
+"gfortran",
+"ifx",
+"include",
+"intel",
+"intel_nextgen",
+"introspect",
+"lmpi",
+"lmpi_mpifh",
+"lmpi_usempi_ignore_tkr",
+"lmpi_usempif08",
+"mpi",
+"mpif90",
+"mpifort",
+"mpiifort",
+"mpiifx",
+"show",
+"showme",
+"true"
+]
+},
+{
+"id": "libraries:mpi-implementations#fortran-modules-belong-to-one-compiler",
+"doc": "mpi-implementations",
+"heading": "MPI implementations: Open MPI, Intel MPI, MPICH family > Fortran modules belong to one compiler",
+"text": "The `mpi` and `mpi_f08` modules are compiled `.mod` files: they work only with the compiler (and module format)\nthat built them. Measured with an Open MPI built by gfortran 14.2: ifx stops with `error #7013: This module file\nwas not generated by any release of this compiler`, nvfortran with `NVFORTRAN-F-0004-Corrupt or Old Module\nfile`. Each compiler needs its own MPI build (or, for Intel MPI, its own module directory). The legacy\n`include 'mpif.h'` avoids the module but loses argument checking, and is deprecated (mpi pack).",
+"symbols": [
+"include",
+"mod",
+"mpi",
+"mpi_f08",
+"mpif",
+"nvfortran",
+"with"
+]
+},
+{
+"id": "libraries:mpi-implementations#gpu-aware-mpi",
+"doc": "mpi-implementations",
+"heading": "MPI implementations: Open MPI, Intel MPI, MPICH family > GPU-aware MPI",
+"text": "Passing device buffers directly to MPI calls needs an MPI built with GPU support. For Open MPI:\n\n```\nompi_info --parsable --all | grep opal_built_with_cuda_support:value\n```\n\nprints `...:value:false` for a build without it (measured). Without GPU support, a device address passed to MPI\nis read as a host address: a crash or wrong data. With OpenACC, use `!$acc host_data use_device(buf)` only\nwhen the MPI is GPU-aware; otherwise update the host copy before the call (hpc-practice pack).",
+"symbols": [
+"!$acc host_data use_device",
+"buf",
+"false",
+"value"
+]
+}
+]
+}

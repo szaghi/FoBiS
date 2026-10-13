@@ -1,8 +1,11 @@
 # Knowledge packs
 
 A knowledge pack is reference material FoBiS can search without a language model: distilled references
-of the Fortran, OpenMP, OpenACC and MPI standards, and lessons from HPC practice. The linter cites pack
-sections in its rule explanations, and the planned LLM features will use them to ground their answers.
+of the Fortran, OpenMP, OpenACC and MPI standards, lessons from HPC practice, the measured behaviour of the
+Fortran compilers and of MPI and HDF5, and the numerical-assessment methods behind `fobis assess` and
+`fobis bench` with their references. The linter cites pack sections in its rule explanations, `fobis assess`
+names the section describing each family's method, and the LLM features (`fobis ask`, `--explain`, `--deep`)
+ground their answers on them.
 
 ```bash
 fobis kb list                                      # installed packs
@@ -30,6 +33,14 @@ Every section has a stable id, `pack:document#section`, which is what rule expla
 | `openacc` | OpenACC API 3.4 | CC-BY-4.0 | Stefano Zaghi |
 | `mpi` | MPI 5.0 | CC-BY-4.0 | Stefano Zaghi; copying of the standard material by permission of the University of Tennessee |
 | `hpc-practice` | Fortran conventions and GPU/HPC pitfalls, many measured on production codes | CC-BY-4.0 | Stefano Zaghi |
+| `compilers` | gfortran, ifx/ifort, nvfortran: default optimisation, runtime checks, floating-point models and FMA, precision promotion flags, stack use, module files, a comparison table | CC-BY-4.0 | Stefano Zaghi |
+| `libraries` | MPI implementations (launchers, rank variables, compiler wrappers, modules, GPU awareness) and HDF5 from Fortran | CC-BY-4.0 | Stefano Zaghi |
+| `numerics` | Assessing numerical error (significant digits, precision, rounding, compiler, parallel, inputs, refinement: Richardson, GCI), floating-point behaviour, tolerances, run-time measurement, with references | CC-BY-4.0 | Stefano Zaghi |
+
+The `compilers`, `libraries` and `numerics` packs are written in the FoBiS repository (`kb-sources/`). Every
+behaviour they describe was measured on small programs with the compiler or library named (versions in each
+document), or is cited from the publication given in the `numerics` references; a test compiles a program with
+every compiler flag the `compilers` pack names and fails if the compiler rejects it.
 
 The standards packs are independent syntheses, not reproductions of the standards: the normative text
 is the published standard. `fobis kb notice <pack>` prints each pack's licence, attribution, source
@@ -42,7 +53,7 @@ Retrieval is lexical: no embeddings, no model. Technical questions name exact th
 `mpi_isend`, constraint `C1004`), and exact matching finds them better than semantic similarity does. Each
 section is scored with BM25, with the words of its heading counting twice. A query term that is one of
 the section's *symbols* (the directive, clause and routine names in its code spans, the constraint ids it
-cites) adds a bonus. The whole corpus is about 700 sections, searched in milliseconds.
+cites) adds a bonus. The whole corpus is about 800 sections, searched in milliseconds.
 
 ## Your own packs
 

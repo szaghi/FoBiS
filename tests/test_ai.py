@@ -121,6 +121,10 @@ def test_route_packs_by_programming_model():
     assert route_packs("MPI_Isend with OpenACC data", available)[:2] == ["openacc", "mpi"]
     assert route_packs("what is a pure procedure?", available) is None
     assert route_packs("accumulate the sum", available) is None  # "acc" only as a word
+    available += ["compilers", "libraries", "numerics"]
+    assert route_packs("why does ifx crash on a large automatic array?", available)[0] == "compilers"
+    assert route_packs("mpirun says not enough slots", available)[0] == "libraries"
+    assert route_packs("how many significant digits can I trust?", available)[0] == "numerics"
 
 
 def test_synonyms_find_the_deadlock_section():

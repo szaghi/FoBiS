@@ -15,6 +15,9 @@ Nothing here is specific to a field: the case says what the program computes, th
 
 ## Families
 
+The method of each family, its assumptions and its references are in the `numerics` knowledge pack: every family
+in the report names its section (`fobis kb show numerics:assessment#refinement-family`).
+
 | Family | Variants | What the spread estimates |
 |--------|----------|---------------------------|
 | `precision` | the program rebuilt with its reals promoted (defaults below, or declared flag sets such as a project kind switch `-DRKIND=16`) | digits of the base run that agree with the most precise run |
@@ -83,13 +86,13 @@ assessed with `precision`, `rounding` and `compiler` (another mode with nvfortra
 
 ```text
 assess naive (mode gnu): 9 build(s), 9 run(s)
-precision (1 member(s))
+precision (1 member(s); method: fobis kb show numerics:assessment#precision-family)
   note: default promotion for gnu: -freal-4-real-8 -freal-8-real-16
   total: 2.0 digit(s) agree with precision-promoted: 100958.344 vs 100000
-rounding (6 member(s))
+rounding (6 member(s); method: fobis kb show numerics:assessment#rounding-family)
   note: compiler-level perturbations (Verificarlo's Monte Carlo arithmetic is not used)
   total: 2.3 significant digit(s) (>= 2.1 at 95%); range 99759.8516 .. 100958.344; outlier rounding-fast-math
-compiler (1 member(s))
+compiler (1 member(s); method: fobis kb show numerics:assessment#compiler-family)
   total: 2.2 significant digit(s) (>= 1.0 at 95%); range 100022.352 .. 100958.344; outlier compiler-nvf
 budgets
   total: digits >= 6: 2.0 FAILED
@@ -97,11 +100,11 @@ budgets
 
 ```text
 assess kahan (mode gnu): 9 build(s), 9 run(s)
-precision (1 member(s))
+precision (1 member(s); method: fobis kb show numerics:assessment#precision-family)
   total: every digit agrees with precision-promoted: 100000 vs 100000
-rounding (6 member(s))
+rounding (6 member(s); method: fobis kb show numerics:assessment#rounding-family)
   total: 3.0 significant digit(s) (>= 2.8 at 95%); range 99759.8516 .. 100000; outlier rounding-fast-math
-compiler (1 member(s))
+compiler (1 member(s); method: fobis kb show numerics:assessment#compiler-family)
   total: every member gives the same value; range 100000 .. 100000
 ```
 
@@ -112,7 +115,7 @@ compensated algorithm needs its compiler flags too, and the rounding family is w
 **A non-deterministic OpenMP reduction** (an `atomic` update of a single-precision sum), `threads = 1 4`, 3 repeats:
 
 ```text
-parallel (6 member(s))
+parallel (6 member(s); method: fobis kb show numerics:assessment#parallel-family)
   harmonic: 4.5 significant digit(s) (>= 3.2 at 95%); range 15.3102655 .. 15.3110323; outlier threads=4
     NON-DETERMINISTIC at threads=4: 3 repeated runs differ (max rel 3.28e-05)
 ```

@@ -59,6 +59,8 @@ from .verify import index_text
 
 FAMILIES = ("precision", "rounding", "compiler", "parallel", "inputs", "refinement")
 DEFAULT_FAMILIES = ("rounding",)
+# the section of the numerics knowledge pack describing each family's method, assumptions and references
+METHODS = {family: f"numerics:assessment#{family}-family" for family in FAMILIES}
 DEFAULT_SAMPLES = 16
 DEFAULT_REPEATS = 2
 
@@ -520,8 +522,12 @@ class FamilyResult:
     quantities: dict[str, dict] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
 
+    @property
+    def method(self) -> str:
+        return METHODS.get(self.family, "")
+
     def to_dict(self) -> dict:
-        data = {"family": self.family, "members": self.members, "quantities": self.quantities}
+        data = {"family": self.family, "method": self.method, "members": self.members, "quantities": self.quantities}
         if self.failed:
             data["failed"] = self.failed
         if self.notes:
@@ -850,7 +856,7 @@ def render_text(assessment: Assessment) -> str:
     if assessment.error:
         return "\n".join([*lines, f"  ERROR: {assessment.error}"])
     for family in assessment.families:
-        lines.append(f"{family.family} ({len(family.members)} member(s))")
+        lines.append(f"{family.family} ({len(family.members)} member(s); method: fobis kb show {family.method})")
         lines += [f"  note: {note}" for note in family.notes]
         for failure in family.failed:
             detail = f" ({failure['detail']})" if failure["detail"] else ""

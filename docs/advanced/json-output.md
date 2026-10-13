@@ -275,7 +275,7 @@ directly with `calls`, `inclusive` and `percent`), `procedures` and `lines` (cal
 ### `fobis assess --json`
 
 `case`, `mode`, `status` (`ok`, `fail`: a budget failed, `error`: the base run failed, with `error`), `builds`,
-`runs`, `families` (per family: `family`, `members`, `failed` members with status and detail, `notes`, and
+`runs`, `families` (per family: `family`, `method` (the `numerics` pack section describing the method), `members`, `failed` members with status and detail, `notes`, and
 `quantities`, per quantity: ensembles `digits`, `digits_low` (95%), `digits_median`/`worst` for arrays, `mean`,
 `std`, `min`, `max`, `outlier`; precision `against`, `digits`, `base`, `reference`; parallel `nondeterministic`
 (configuration, runs, max_rel) and `bitwise_identical`; inputs `elasticity` or `mean`/`std`/`correlation`, and
