@@ -72,10 +72,11 @@ its error output.
 
 ## Builds you can trust
 
-FoBiS normally recompiles what changed since the last build, judged by timestamps: a different compiler with the
-same command name (`module load` of another GCC) would reuse the old objects. The cases' builds guard against it:
-the objects are recompiled from scratch when there is no record of how they were built, when the compiler (path,
-version) or its flags changed, or when another build touched the object directory since. The reason is recorded in
+FoBiS recompiles what changed since the last build, judged by timestamps, and every `fobis build` also recompiles
+everything when the compiler behind the mode's command changed (path or `--version`: a `module load` of another
+GCC; see [the build reference](/reference/build#compiler-changes)). The cases' builds are stricter: the objects
+are recompiled from scratch also when there is no record of how they were built, when the flags changed, or when
+another build touched the object directory since. The reason is recorded in
 the provenance (`rebuilt_because`).
 
 ## Non-determinism

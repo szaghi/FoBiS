@@ -591,6 +591,10 @@ def run_fobis_build(configuration):
                 configuration.print_r(f"Error: no targets match filter {target_filter}")
                 sys.exit(1)
 
+        # The compiler record is per object directory: checked once, before any target is built
+        compiler_record = _compiler_guard(
+            configuration, Builder(cliargs=cliargs, print_n=lambda *a, **k: None, print_w=configuration.print_r)
+        )
         # Scan source files once for all targets
         pfiles_all = parse_files(configuration=configuration)
         configuration.build_trace = {"pfiles": pfiles_all}
@@ -631,11 +635,13 @@ def run_fobis_build(configuration):
                     for rule_name in post_rules:
                         fobos.rule_execute(rule_name)
                     break
+        compiler_record()
         return
 
     # Standard (single-target) build path
     builder = Builder(cliargs=cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
     configuration.print_b(builder.verbose(quiet=cliargs.quiet))
+    compiler_record = _compiler_guard(configuration, builder)
     pfiles = parse_files(configuration=configuration)
     configuration.build_trace = {"pfiles": pfiles}
     dependency_hiearchy(
@@ -691,6 +697,8 @@ def run_fobis_build(configuration):
                     )
                     build_succeeded = True
 
+    compiler_record()  # the build ended without a compile failure: its objects are the recorded compiler's
+
     # Execute post_build lifecycle hooks (only on success)
     if build_succeeded:
         post_rules = getattr(cliargs, "post_build", []) or []
@@ -698,6 +706,56 @@ def run_fobis_build(configuration):
             post_rules = post_rules.split()
         for rule_name in post_rules:
             fobos.rule_execute(rule_name)
+
+
+COMPILER_RECORD = ".fobis-compiler.json"
+
+
+def _compiler_guard(configuration, builder):
+    """Force a full rebuild when the compiler behind the mode's command changed since the last build in this object
+    directory (another path, or another ``--version``: a module swap keeps the command name, and FoBiS's timestamps
+    alone would link objects of two compilers, or reuse ``.mod`` files the new one cannot read).
+
+    The record (``<obj_dir>/.fobis-compiler.json``) is written by the returned function, called once the build has
+    compiled without failure; without a record (first build, or objects of an older FoBiS) nothing is forced.
+    """
+    import json
+    import shlex
+
+    from .verification.provenance import compiler_version
+
+    words = shlex.split(builder.cmd_comp or "")
+    command = words[:1] + [w for w in words[1:3] if w.startswith(("-fc=", "-f90=", "-compiler="))]
+    current = {}
+    if command:
+        current = {
+            "command": " ".join(command),
+            "path": shutil.which(command[0]) or command[0],
+            "version": compiler_version(command[0]) if len(command) == 1 else _wrapped_version(command),
+        }
+    path = os.path.join(builder.obj_dir, COMPILER_RECORD)
+    recorded = {}
+    with contextlib.suppress(OSError, ValueError), open(path, encoding="utf-8") as handle:
+        recorded = json.load(handle)
+    changed = [k for k in ("path", "version") if recorded and current and recorded.get(k) != current.get(k)]
+    if changed and not configuration.cliargs.force_compile:
+        configuration.cliargs.force_compile = True
+        detail = "; ".join(f"{k} {recorded.get(k)!r} -> {current.get(k)!r}" for k in changed)
+        configuration.print_r(f"The compiler changed since the last build ({detail}): rebuilding everything")
+
+    def write():
+        if current:
+            with contextlib.suppress(OSError), open(path, "w", encoding="utf-8") as handle:
+                json.dump(current, handle, indent=1)
+
+    return write
+
+
+def _wrapped_version(command: list[str]) -> str:
+    """``--version`` of a wrapper that selects its compiler with an option (``mpiifort -fc=ifx``)."""
+    from .verification.provenance import _first_line
+
+    return _first_line([*command, "--version"])
 
 
 def _cliargs_for_target(base_cliargs, target_dict):

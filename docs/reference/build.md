@@ -28,6 +28,23 @@ fobis build [options]
 | `--ch`, `--cflags-heritage` | Track flag changes; force full rebuild when they differ |
 | `--tb`, `--track-build` | Save build info for use by `install` |
 
+## Compiler changes
+
+Objects are recompiled when their sources changed (timestamps). Independently, every build records the compiler
+behind the mode's command (its resolved path and the first line of its `--version`) in
+`<obj_dir>/.fobis-compiler.json`; when the next build finds another compiler there — typically a `module load`
+of another release that keeps the command name `gfortran` — it says so and recompiles everything, instead of
+linking objects (and reading `.mod` files) of two compilers:
+
+```text
+The compiler changed since the last build (path '/usr/bin/gfortran' -> '/opt/gcc/bin/15.2.0/bin/gfortran';
+version 'GNU Fortran ... 16.0.1 ...' -> 'GNU Fortran (GCC) 15.2.0'): rebuilding everything
+```
+
+The record is written only after a build that compiled without failure, so a failed build leaves the next one
+forced. Without a record (the first build, or objects built by an older FoBiS) nothing is forced. Flag changes
+are tracked separately with `--cflags-heritage`.
+
 ## Directory options
 
 | Option | Default | Description |
