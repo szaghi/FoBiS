@@ -16,6 +16,7 @@ fobis bench [CASE...] [options]
 | `--runs N` | Maximum runs per side (overrides `max_runs`) |
 | `--mode M` | Build the cases in this mode instead of their own |
 | `--keep` | Keep the scratch copies of `--compare` (path printed) |
+| `--runner local\|slurm` | Run the programs locally (default) or as Slurm jobs (see [Running on a cluster](/advanced/scheduler)) |
 | `--json` | One JSON object (see [JSON output](/advanced/json-output#fobis-bench-json)) |
 | `-f/--fobos`, `--fci` | The fobos file |
 

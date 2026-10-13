@@ -58,6 +58,13 @@ VariantCflagsOpt = Annotated[
 VariantLflagsOpt = Annotated[
     str | None, typer.Option("--variant-lflags", hidden=True, help="Link flags appended for the variant.")
 ]
+RunnerOpt = Annotated[
+    str,
+    typer.Option(
+        "--runner",
+        help="Where the programs run: local, or slurm (jobs submitted with sbatch; [scheduler] settings).",
+    ),
+]
 ShadowOpt = Annotated[
     str | None,
     typer.Option(

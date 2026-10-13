@@ -110,6 +110,7 @@ fobis assess CASE [--families precision,rounding,compiler,parallel,inputs,refine
 fobis diff-run [REF] [CASE...] [--assess] [--keep]  # cases on a revision vs the working tree (scratch copies)
 fobis bench [CASE...] [--compare REF [--feedback]] [--record] [--runs N]  # run time with a 95% interval of the median
 fobis gate [--base REF] [--stage S] [--skip S] [--advisory S] [--fail-fast]  # one verdict: every check, first failing fact
+fobis verify|test|case run|assess|bench|diff-run --runner slurm  # runs as Slurm jobs ([scheduler]), builds stay local
 fobis query callers|callees|uses|writers|readers|defines|region|device|mpi|interface ARG  # code graph answers
 fobis agents-md [-o CLAUDE.md] [--check] [--print]  # AGENTS.md block of facts (modes, commands, cases, kinds)
 fobis ask "QUESTION"     # answer from the knowledge packs (+ project procedures with -p DIR), with citations
@@ -169,6 +170,10 @@ fobis test --explain     # the same for every failed test (LLM for the first one
   case tolerance (verify comparator: worst index); changed files + procedures listed; `--assess` judges a
   difference against the worktree's own digits (within-uncertainty). Never writes the tree or repo metadata.
   Exit 1 when a case differs or fails.
+- `--runner slurm`: `[scheduler]` (user config, then fobos): kind slurm, partition, account, qos, options (#SBATCH
+  lines), launcher (default srun), setup (shell lines in the job), poll, login_nodes (patterns). Case ranks/threads/
+  gpus/timeout -> --ntasks/--cpus-per-task/--gpus/--time. The job records its own exit status and time; provenance
+  `scheduler` (job, state, node). On a login node, MPI/GPU cases are refused locally. Run dirs must be shared.
 - `gate`: stages build, review, test, verify, diff-run, bench, assess, matrix (nested `fobis --json` commands), each
   pass/fail/error/skipped with the FIRST failing fact; skipped with the reason when not applicable (no tests, no
   cases, no change against HEAD, no `[bench:]`, no budget, no `[gate] matrix_modes`). Without `--base`: working tree

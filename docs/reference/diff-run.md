@@ -14,6 +14,7 @@ fobis diff-run [REF] [CASE...] [options]
 | `--mode M` | Build with this mode instead of each case's own |
 | `--assess` | For a case that differs, assess the working tree's own spread (the `[assess:CASE]` families, except `inputs` and `refinement`; `rounding` by default) and judge each difference against it |
 | `--keep` | Keep the scratch copies (`revision/` and `worktree/`) and print where they are |
+| `--runner local\|slurm` | Run the programs locally (default) or as Slurm jobs (see [Running on a cluster](/advanced/scheduler)) |
 | `--json` | One JSON object on stdout (see [JSON output](/advanced/json-output#fobis-diff-run-json)); progress on stderr |
 | `-f/--fobos`, `--fci` | The fobos file |
 

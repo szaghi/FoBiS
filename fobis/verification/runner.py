@@ -177,6 +177,7 @@ class LocalRunner:
         self.shadow = shadow
         self.env = env
         self.variant = variant
+        self.refuse = ""  # why MPI/GPU cases must not run here (the login-node guard), '' when they may
         self._compilers: dict[str, dict] = {}
 
     def _fobis(self, args: list[str], timeout: float = 3600) -> subprocess.CompletedProcess:
@@ -344,6 +345,8 @@ class LocalRunner:
         when None).
         """
         mode = mode or case.mode
+        if self.refuse and (case.ranks or getattr(case, "gpus", 0)):
+            return RunResult(case.name, variant, "error", stderr=self.refuse, provenance=dict(provenance or {}))
         recorded = dict(provenance) if provenance is not None else self.provenance(case, mode)
         result = RunResult(case.name, variant, "error", provenance=recorded)
         if binary:

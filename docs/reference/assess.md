@@ -13,6 +13,7 @@ fobis assess CASE [options]
 | `--samples N` | Monte Carlo samples of the `inputs` family (default: `samples` of the section, else 16) |
 | `--jobs N`, `-j N` | Runs at a time (builds are sequential) [default: 1] |
 | `--mode M` | Build with this mode instead of the case's own |
+| `--runner local\|slurm` | Run the programs locally (default) or as Slurm jobs (see [Running on a cluster](/advanced/scheduler)) |
 | `--json` | One JSON object on stdout (see [JSON output](/advanced/json-output#fobis-assess-json)); progress on stderr |
 | `-f/--fobos`, `--fci` | The fobos file |
 

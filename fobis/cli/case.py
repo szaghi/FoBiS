@@ -7,7 +7,7 @@ from typing import Annotated
 import typer
 
 from ._app import _ns, app
-from ._options import FciOpt, FobosOpt, JsonOpt, ModeOpt, ShadowOpt
+from ._options import FciOpt, FobosOpt, JsonOpt, ModeOpt, RunnerOpt, ShadowOpt
 
 case_app = typer.Typer(
     name="case",
@@ -52,6 +52,7 @@ def cmd_case_run(
     fobos_case_insensitive: FciOpt = False,
     mode: ModeOpt = None,
     shadow: ShadowOpt = None,
+    runner: RunnerOpt = "local",
     json_output: JsonOpt = False,
 ):
     """Build and run cases; report their quantities, the status of each run and its provenance."""
@@ -64,6 +65,7 @@ def cmd_case_run(
         fobos=fobos,
         fobos_case_insensitive=fobos_case_insensitive,
         mode=None,  # the case's own mode is used; --mode overrides it per run, not for loading the fobos
+        runner=runner,
         json_output=json_output,
     )
 
@@ -109,6 +111,7 @@ def cmd_verify(
         int,
         typer.Option("--repeat", min=1, help="Run each case N times; any difference between the runs is reported."),
     ] = 1,
+    runner: RunnerOpt = "local",
     json_output: JsonOpt = False,
 ):
     """Run cases and compare their quantities with the stored references, within each quantity's tolerance."""
@@ -128,6 +131,7 @@ def cmd_verify(
         log=False,
         quiet=False,
         verbose=False,
+        runner=runner,
         json_output=json_output,
     )
 
@@ -205,6 +209,7 @@ def cmd_assess(
         int | None, typer.Option("--samples", min=2, help="Monte Carlo samples of the inputs family.")
     ] = None,
     jobs: Annotated[int, typer.Option("--jobs", "-j", min=1, help="Runs at a time (builds are sequential).")] = 1,
+    runner: RunnerOpt = "local",
     json_output: JsonOpt = False,
 ):
     """Assess the numerical error and uncertainty of a case's quantities from ensembles of its variants."""
@@ -224,6 +229,7 @@ def cmd_assess(
         log=False,
         quiet=False,
         verbose=False,
+        runner=runner,
         json_output=json_output,
     )
 
@@ -243,6 +249,7 @@ def cmd_diff_run(
         ),
     ] = False,
     keep: Annotated[bool, typer.Option("--keep", help="Keep the scratch copies (path printed).")] = False,
+    runner: RunnerOpt = "local",
     json_output: JsonOpt = False,
 ):
     """Run the cases on a revision and on the working tree, in scratch copies, and compare their quantities."""
@@ -262,6 +269,7 @@ def cmd_diff_run(
         log=False,
         quiet=False,
         verbose=False,
+        runner=runner,
         json_output=json_output,
     )
 
@@ -288,6 +296,7 @@ def cmd_bench(
     ] = False,
     runs: Annotated[int | None, typer.Option("--runs", help="Maximum runs per side (overrides max_runs).")] = None,
     keep: Annotated[bool, typer.Option("--keep", help="Keep the scratch copies of --compare (path printed).")] = False,
+    runner: RunnerOpt = "local",
     json_output: JsonOpt = False,
 ):
     """Measure the run time of cases: warm-up, then runs until the median's 95% interval is narrow enough; compared
@@ -311,6 +320,7 @@ def cmd_bench(
         log=False,
         quiet=False,
         verbose=False,
+        runner=runner,
         json_output=json_output,
     )
 

@@ -153,7 +153,7 @@ class Stats:
 class Sample:
     time: float
     wall: float
-    cpu: float
+    cpu: float | None  # None: not measurable (a scheduler job)
     load: float
 
 
@@ -161,7 +161,7 @@ def summarise(samples: list[Sample], spec: BenchSpec) -> Stats:
     times = [s.time for s in samples]
     interval = median_interval(times)
     centre = median(times)
-    ratios = [s.cpu / s.wall for s in samples if s.wall > 0]
+    ratios = [s.cpu / s.wall for s in samples if s.wall > 0 and s.cpu is not None]
     return Stats(
         n=len(times),
         median=centre,
@@ -214,6 +214,10 @@ def timed(run: Callable[[], Any], spec: BenchSpec) -> Sample:
         detail = (result.stderr or "").strip().splitlines()[-1:] or [result.status]
         raise RunFailedError(f"run {result.status}: {detail[0]}", result)
     cpu = (after.ru_utime - before.ru_utime) + (after.ru_stime - before.ru_stime)
+    if "scheduler" in getattr(
+        result, "provenance", {}
+    ):  # a batch job: this host's children are sbatch/squeue, its load is not
+        cpu, load = None, 0.0  # the job's (the program's own exit-file timing is still measured)
     if spec.time == "wall":
         measured = result.elapsed
     else:

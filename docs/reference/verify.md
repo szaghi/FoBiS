@@ -13,6 +13,7 @@ fobis verify [NAME...] [options]
 | `--repeat N` | Run each case N times; differences between the runs are reported, and `--update` refuses them |
 | `--mode M` | Build with this mode instead of each case's own |
 | `--shadow NAME` | Rebuild the mode as a [shadow](/advanced/matrix#shadow-modes): `checks`, `sanitize`, `strict` (or `none`), in `.fobis/shadow/<mode>-<shadow>/` |
+| `--runner local\|slurm` | Run the programs locally (default) or as Slurm jobs (see [Running on a cluster](/advanced/scheduler)) |
 | `--json` | One JSON object: `cases`, each with status, quantity comparisons, provenance changes, run summary |
 | `-f/--fobos`, `--fci` | The fobos file |
 

@@ -104,3 +104,6 @@ listing, calls with structured content, resource listing, templates and reads.
 The [FoBiS Claude Code skill](/guide/claude-skill) teaches an agent how to *use FoBiS* (fobos syntax,
 commands, options). The MCP server lets the agent *run* FoBiS and reach the knowledge packs directly. They
 complement each other: install both.
+
+The tools that run programs (`test`, `case_run`, `verify`, `assess`, `diff_run`, `bench`) take `runner: slurm` to
+submit the runs as Slurm jobs (see [Running on a cluster](/advanced/scheduler)).

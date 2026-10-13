@@ -2130,9 +2130,65 @@ def subprocess_ok(args: list[str]) -> bool:
         return False
 
 
+def _scheduler_config(configuration):
+    """The ``[scheduler]`` settings (user config, then fobos), loaded once; a declaration error exits 2."""
+    from .verification.scheduler import SchedulerError, load_config
+
+    if getattr(configuration, "_scheduler", None) is None:
+        try:
+            configuration._scheduler = load_config(configuration.fobos)
+        except SchedulerError as exc:
+            configuration.print_r(f"Error: {exc}")
+            sys.exit(2)
+    return configuration._scheduler
+
+
+def _scratch_parent(cliargs):
+    """Where scratch copies go: the system's temporary directory, but inside the project (``.fobis/scratch``) for
+    a scheduler, whose compute nodes do not see the login node's ``/tmp``."""
+    if getattr(cliargs, "runner", "local") != "slurm":
+        return None
+    os.makedirs(os.path.join(".fobis", "scratch"), exist_ok=True)
+    return os.path.abspath(os.path.join(".fobis", "scratch"))
+
+
+def _test_scheduler(configuration):
+    """The `SlurmScheduler` running the test programs with ``fobis test --runner slurm``, else None."""
+    from .verification.scheduler import SlurmScheduler
+
+    if getattr(configuration.cliargs, "runner", "local") != "slurm":
+        return None
+    config = _scheduler_config(configuration)
+    return SlurmScheduler(config, progress=lambda m: print(f"slurm: {m}", file=sys.stderr, flush=True))
+
+
+def _make_runner(configuration, *args, **kwargs):
+    """The runner of the cases: a `SlurmRunner` with ``--runner slurm``, else a `LocalRunner` that refuses MPI and
+    GPU cases on a declared login node."""
+    from .verification import LocalRunner
+    from .verification.scheduler import SlurmRunner, SlurmScheduler, guard_message, on_login_node
+
+    config = _scheduler_config(configuration)
+    kind = getattr(configuration.cliargs, "runner", "local") or "local"
+    if kind not in ("local", "slurm"):
+        configuration.print_r(f"Error: unknown runner {kind!r} (local or slurm)")
+        sys.exit(2)
+    if kind == "slurm":
+
+        def progress(message):
+            print(f"slurm: {message}", file=sys.stderr, flush=True)
+
+        return SlurmRunner(*args, scheduler=SlurmScheduler(config, progress=progress), **kwargs)
+    runner = LocalRunner(*args, **kwargs)
+    host = on_login_node(config)
+    if host:
+        runner.refuse = guard_message(host)
+    return runner
+
+
 def _verification_runner(configuration, shadow=None):
     """The `LocalRunner` of the project in the cwd, with the fobos's ``[verification]`` settings."""
-    from .verification import LocalRunner, load_settings
+    from .verification import load_settings
 
     cliargs = configuration.cliargs
     fobos_args = ["--fobos", cliargs.fobos] if cliargs.fobos else []
@@ -2140,7 +2196,7 @@ def _verification_runner(configuration, shadow=None):
         fobos_args.append("--fobos-case-insensitive")
     settings = load_settings(configuration.fobos)
     deps_dir = configuration.fobos.get_deps_dir() if configuration.fobos.fobos else ".fobis_deps"
-    return LocalRunner(".", fobos_args, settings.runs_dir, settings.launcher, deps_dir, shadow=shadow)
+    return _make_runner(configuration, ".", fobos_args, settings.runs_dir, settings.launcher, deps_dir, shadow=shadow)
 
 
 def _format_values(values: list, limit: int = 6) -> str:
@@ -2550,7 +2606,7 @@ def run_fobis_bench(configuration):
 
     from .analysis import parse_defines
     from .Ecosystem import copy_working_copy
-    from .verification import CaseError, LocalRunner, load_cases, load_settings
+    from .verification import CaseError, load_cases, load_settings
     from .verification import bench as bm
     from .verification.diffrun import DiffRunError, copy_dependencies, export_revision, resolve
 
@@ -2591,7 +2647,7 @@ def run_fobis_bench(configuration):
     results = []
     try:
         if compare:
-            scratch = tempfile.mkdtemp(prefix="fobis-bench-")
+            scratch = tempfile.mkdtemp(prefix="fobis-bench-", dir=_scratch_parent(cliargs))
             roots = {"old": os.path.join(scratch, "revision"), "new": os.path.join(scratch, "worktree")}
             say(f"extracting {compare} ({commit[:12]}) and copying the working tree to {scratch}")
             notes = []
@@ -2610,8 +2666,15 @@ def run_fobis_bench(configuration):
             results.append(result)
 
             def runner_for(root, variant=None, env=env):
-                return LocalRunner(
-                    root, fobos_args, settings.runs_dir, settings.launcher, deps_dir, env=env, variant=variant
+                return _make_runner(
+                    configuration,
+                    root,
+                    fobos_args,
+                    settings.runs_dir,
+                    settings.launcher,
+                    deps_dir,
+                    env=env,
+                    variant=variant,
                 )
 
             runs, provenances = {}, {}
@@ -2865,7 +2928,7 @@ def run_fobis_diff_run(configuration):
     import tempfile
 
     from .Ecosystem import copy_working_copy
-    from .verification import CaseError, LocalRunner, load_cases, load_settings
+    from .verification import CaseError, load_cases, load_settings
     from .verification.assess import AssessError, assess, load_spec
     from .verification.diffrun import (
         DiffRunError,
@@ -2902,7 +2965,7 @@ def run_fobis_diff_run(configuration):
         fobos_args.append("--fobos-case-insensitive")
     deps_dir = fobos.get_deps_dir() if fobos.fobos else ".fobis_deps"
     environment = _mode_environments(settings, fobos_args, deps_dir)
-    scratch = tempfile.mkdtemp(prefix="fobis-diff-run-")
+    scratch = tempfile.mkdtemp(prefix="fobis-diff-run-", dir=_scratch_parent(cliargs))
     old_root, new_root = os.path.join(scratch, "revision"), os.path.join(scratch, "worktree")
     notes: list[str] = []
 
@@ -2925,7 +2988,9 @@ def run_fobis_diff_run(configuration):
             sides = {}
             for side, root in (("old", old_root), ("new", new_root)):
                 say(f"case {name}: build and run on the {'revision' if side == 'old' else 'working tree'}")
-                runner = LocalRunner(root, fobos_args, settings.runs_dir, settings.launcher, deps_dir, env=env)
+                runner = _make_runner(
+                    configuration, root, fobos_args, settings.runs_dir, settings.launcher, deps_dir, env=env
+                )
                 sides[side] = runner.run(case, variant=f"diff-run-{side}", mode=mode)
             sides["old"].provenance["git"] = {"commit": commit, "ref": ref}
             sides["new"].provenance["git"] = repository
@@ -2938,7 +3003,8 @@ def run_fobis_diff_run(configuration):
                 families = [f for f in spec.families if f not in ("inputs", "refinement")] or ["rounding"]
 
                 def runner_for(build, mode_, root=new_root):
-                    return LocalRunner(
+                    return _make_runner(
+                        configuration,
                         root,
                         fobos_args,
                         settings.runs_dir,
@@ -3017,7 +3083,7 @@ def run_fobis_assess(configuration):
     """
     import json
 
-    from .verification import CaseError, LocalRunner, load_cases, load_settings
+    from .verification import CaseError, load_cases, load_settings
     from .verification.assess import FAMILIES, AssessError, assess, load_spec, render_text
 
     cliargs = configuration.cliargs
@@ -3047,8 +3113,15 @@ def run_fobis_assess(configuration):
     environment = _mode_environments(settings, fobos_args, deps_dir)
 
     def runner_for(build, mode):
-        return LocalRunner(
-            ".", fobos_args, settings.runs_dir, settings.launcher, deps_dir, env=environment(mode), variant=build
+        return _make_runner(
+            configuration,
+            ".",
+            fobos_args,
+            settings.runs_dir,
+            settings.launcher,
+            deps_dir,
+            env=environment(mode),
+            variant=build,
         )
 
     def progress(line):
@@ -3727,6 +3800,7 @@ def run_fobis_test(configuration):
         build_dir=build_dir,
         print_n=configuration.print_b,
         print_w=configuration.print_r,
+        scheduler=_test_scheduler(configuration),
     )
 
     configuration.print_b(f"\nBuilding test suite ({len(tests)} target(s))...\n")
@@ -3834,7 +3908,12 @@ def _run_fobis_test_json(configuration, tests, test_dir):
         return binary
 
     quiet = io.StringIO()
-    runner = TestRunner(build_dir=build_dir, print_n=lambda *a, **k: None, print_w=lambda *a, **k: None)
+    runner = TestRunner(
+        build_dir=build_dir,
+        print_n=lambda *a, **k: None,
+        print_w=lambda *a, **k: None,
+        scheduler=_test_scheduler(configuration),
+    )
     with contextlib.redirect_stdout(quiet):
         suite = runner.run_suite(
             tests=tests,

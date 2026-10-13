@@ -122,6 +122,11 @@ _BOOL = {"type": "boolean"}
 _INT = {"type": "integer"}
 _STR_LIST = {"type": "array", "items": {"type": "string"}}
 _MODE = {"type": "string", "description": "fobos mode (default: the fobos default mode)"}
+_RUNNER = {
+    "type": "string",
+    "enum": ["local", "slurm"],
+    "description": "where the programs run: local (default) or slurm jobs ([scheduler] settings)",
+}
 _SHADOW = {
     "type": "string",
     "enum": ["checks", "sanitize", "strict", "none"],
@@ -191,8 +196,9 @@ class Server:
 
     @staticmethod
     def _mode(arguments: dict) -> list[str]:
-        """``--mode`` (and ``--shadow`` for the tools that take one) from the arguments."""
+        """``--mode`` (and ``--runner``, ``--shadow`` for the tools that take them) from the arguments."""
         args = ["--mode", arguments["mode"]] if arguments.get("mode") else []
+        args += ["--runner", arguments["runner"]] if arguments.get("runner") else []
         return args + (["--shadow", arguments["shadow"]] if arguments.get("shadow") else [])
 
     @staticmethod
@@ -665,7 +671,9 @@ class Server:
                 "Discover, build and run the project's Fortran test programs (or only list them). Each failure holds "
                 "its facts: the parsed build errors and diagnoses, or the parsed crash (kind, message, location, "
                 "frames) and FoBiS's notes on it (trusted location, debug mode to rebuild with, known compiler bugs).",
-                _schema({"mode": _MODE, "shadow": _SHADOW, "suite": _STR, "filter": _STR, "list": _BOOL}),
+                _schema(
+                    {"mode": _MODE, "runner": _RUNNER, "shadow": _SHADOW, "suite": _STR, "filter": _STR, "list": _BOOL}
+                ),
                 self._test,
                 read_only=False,
             ),
@@ -679,6 +687,7 @@ class Server:
                     {
                         "names": {**_STR_LIST, "description": "cases to run (default: all)"},
                         "mode": _MODE,
+                        "runner": _RUNNER,
                         "shadow": _SHADOW,
                     }
                 ),
@@ -696,6 +705,7 @@ class Server:
                     {
                         "names": {**_STR_LIST, "description": "cases to verify (default: all)"},
                         "mode": _MODE,
+                        "runner": _RUNNER,
                         "shadow": _SHADOW,
                         "repeat": {**_INT, "description": "runs per case (non-determinism check)"},
                     }
@@ -741,6 +751,7 @@ class Server:
                         "case": {**_STR, "description": "the case to assess"},
                         "families": {**_STR_LIST, "description": "families (default: the case's, else rounding)"},
                         "mode": _MODE,
+                        "runner": _RUNNER,
                         "samples": {**_INT, "description": "Monte Carlo samples (inputs)"},
                         "jobs": {**_INT, "description": "runs at a time"},
                     },
@@ -762,6 +773,7 @@ class Server:
                         "ref": {**_STR, "description": "revision to compare with (default HEAD)"},
                         "names": {**_STR_LIST, "description": "cases (default: all)"},
                         "mode": _MODE,
+                        "runner": _RUNNER,
                         "assess": {**_BOOL, "description": "judge differences against the numerical spread"},
                     }
                 ),
@@ -782,6 +794,7 @@ class Server:
                     {
                         "names": {**_STR_LIST, "description": "cases (default: the declared benchmarks)"},
                         "mode": _MODE,
+                        "runner": _RUNNER,
                         "compare": {**_STR, "description": "revision to compare with"},
                         "feedback": {**_BOOL, "description": "with compare: diff the compiler reports"},
                         "runs": {**_INT, "description": "maximum runs per side"},

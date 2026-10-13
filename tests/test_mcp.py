@@ -172,6 +172,7 @@ def test_command_lines(server, calls):
     _call(server, "bench", {"names": ["sod"], "compare": "v1", "feedback": True, "runs": 9})
     _call(server, "bench", {"feedback": True})
     _call(server, "gate", {"stages": ["build", "test"], "advisory": ["test"], "base": "main", "fail_fast": True})
+    _call(server, "case_run", {"names": ["sod"], "runner": "slurm"})
     assert calls == [
         [
             "lint",
@@ -241,6 +242,7 @@ def test_command_lines(server, calls):
             "main",
             "--fail-fast",
         ],
+        ["case", "run", "sod", "--json", "--runner", "slurm"],
     ]
 
 

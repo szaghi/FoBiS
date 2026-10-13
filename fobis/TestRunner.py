@@ -13,6 +13,7 @@ import subprocess
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import Any
 
 from .utils import print_fake
 
@@ -176,8 +177,12 @@ class TestRunner:
         build_dir: str = "build",
         print_n: Callable[..., None] | None = None,
         print_w: Callable[..., None] | None = None,
+        scheduler: Any = None,
+        jobs_dir: str = os.path.join(".fobis", "runs", "test-jobs"),
     ) -> None:
         self.build_dir = build_dir
+        self.scheduler = scheduler  # a verification.scheduler.SlurmScheduler: tests run as batch jobs
+        self.jobs_dir = jobs_dir
         self.print_n = print_n if print_n is not None else print_fake
         self.print_w = print_w if print_w is not None else print_fake
 
@@ -203,6 +208,8 @@ class TestRunner:
         TestResult
         """
         args = [binary_path] + (extra_args or [])
+        if self.scheduler is not None:
+            return self._run_job(test, args, timeout)
         start = time.monotonic()
         try:
             proc = subprocess.run(
@@ -245,6 +252,32 @@ class TestRunner:
                 suite=test.get("suite", ""),
                 binary=binary_path,
             )
+
+    def _run_job(self, test: dict, args: list[str], timeout: float) -> TestResult:
+        """Run a test program as a scheduler job (its run directory under ``jobs_dir``, shared with the nodes)."""
+        from .verification.scheduler import Job, SchedulerError
+
+        job = Job(
+            name=test["name"],
+            command=[os.path.abspath(args[0]), *args[1:]],
+            rundir=os.path.abspath(os.path.join(self.jobs_dir, test["name"])),
+            timeout=timeout,
+        )
+        try:
+            done = self.scheduler.submit(job)
+        except SchedulerError as exc:
+            return TestResult(test["name"], False, -2, 0.0, "", str(exc), test.get("suite", ""), args[0])
+        code = done.exit_code if done.exit_code is not None else -1
+        return TestResult(
+            name=test["name"],
+            passed=code == 0,
+            exit_code=code,
+            duration=done.elapsed,
+            stdout=done.stdout,
+            stderr=done.stderr,
+            suite=test.get("suite", ""),
+            binary=args[0],
+        )
 
     def run_suite(
         self,

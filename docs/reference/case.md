@@ -23,6 +23,7 @@ Build (for a `target`) and run each case (all by default) in a fresh run directo
 |--------|-------------|
 | `--mode M` | Build with this mode instead of the case's own |
 | `--shadow NAME` | Rebuild the mode as a [shadow](/advanced/matrix#shadow-modes): `checks`, `sanitize`, `strict` (or `none`), in `.fobis/shadow/<mode>-<shadow>/` |
+| `--runner local\|slurm` | Run the programs locally (default) or as Slurm jobs (see [Running on a cluster](/advanced/scheduler)) |
 | `--json` | One JSON object: `results`, each with status, exit code, elapsed time, command, run directory, quantities, probe errors, output tails, provenance and, when the build failed, the build's diagnoses |
 | `-f/--fobos`, `--fci` | The fobos file |
 

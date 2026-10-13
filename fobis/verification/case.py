@@ -57,6 +57,7 @@ _KEYS = {
     "inputs",
     "ranks",
     "threads",
+    "gpus",
     "timeout",
     "env",
     "quantities",
@@ -83,6 +84,7 @@ class Case:
     inputs: list[str] = field(default_factory=list)
     ranks: int = 0
     threads: int = 0
+    gpus: int = 0  # GPUs the case needs (a scheduler job requests them; the login-node guard refuses them)
     timeout: float = DEFAULT_TIMEOUT
     env: dict[str, str] = field(default_factory=dict)
     probes: list[Probe] = field(default_factory=list)
@@ -100,6 +102,7 @@ class Case:
             "inputs": self.inputs,
             "ranks": self.ranks,
             "threads": self.threads,
+            "gpus": self.gpus,
             "timeout": self.timeout,
             "env": self.env,
             "quantities": [p.text for p in self.probes],
@@ -196,6 +199,7 @@ def parse_case(name: str, options: dict[str, str], variables: dict[str, str] | N
         inputs=options.get("inputs", "").split(),
         ranks=_number(options.get("ranks", "0") or "0", name, "ranks"),
         threads=_number(options.get("threads", "0") or "0", name, "threads"),
+        gpus=_number(options.get("gpus", "0") or "0", name, "gpus"),
         timeout=_number(options.get("timeout", str(DEFAULT_TIMEOUT)) or str(DEFAULT_TIMEOUT), name, "timeout", float),
         env=_env(options.get("env", ""), name),
         probes=probes,

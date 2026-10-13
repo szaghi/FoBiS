@@ -48,6 +48,7 @@ runs_dir = .fobis/runs               ; default
 | `args` | Arguments of the program. |
 | `inputs` | Files and directories copied into the run directory, at the same relative paths. |
 | `threads`, `ranks` | `OMP_NUM_THREADS`, and the number of MPI ranks given to the launcher. |
+| `gpus` | GPUs the case needs: requested from the scheduler (`--runner slurm`); with `ranks`, refused on a declared login node. |
 | `timeout` | Seconds; the whole process group is killed after it. |
 | `env` | More environment variables, `KEY=VALUE`. |
 | `quantities` | One per line, `name : kind arguments` (below), or `stdout` alone. |
