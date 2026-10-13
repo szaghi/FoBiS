@@ -24,6 +24,7 @@ fobis commit [options]
 | `--init-config` | | Create a commented default config file and exit |
 | `--show-facts` | | Print the facts of the staged change (scope candidates, Fortran line kinds, type hints) and exit; no model is run |
 | `--no-facts` | | Do not compute the facts of the change: the scope is left free |
+| `--json` | | With (or implying) `--show-facts`: the facts as one JSON object (see [JSON output](/advanced/json-output#fobis-commit-show-facts-json)) |
 
 ## Description
 

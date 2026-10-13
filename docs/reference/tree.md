@@ -16,6 +16,7 @@ an annotated ASCII tree.
 |---|---|---|
 | `--depth N` | unlimited | Limit tree expansion to N levels deep |
 | `--no-dedupe` | `False` | Show duplicate nodes in full instead of collapsing with `(*)` |
+| `--json` | `False` | The tree as JSON: name, spec, version, fetched, dependencies (see [JSON output](/advanced/json-output#fobis-tree-json)) |
 
 ## fobos options
 

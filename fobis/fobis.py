@@ -180,8 +180,11 @@ def run_fobis_build_json(configuration):
     old_stderr = sys.stderr
     sys.stderr = io.StringIO()
     exit_code = 0
+    failure = None
     try:
         run_fobis_build(configuration)
+    except BuildFailed as exc:
+        exit_code, failure = (exc.code if isinstance(exc.code, int) else 1), exc
     except SystemExit as exc:
         exit_code = exc.code if isinstance(exc.code, int) else 1
     finally:
@@ -201,6 +204,10 @@ def run_fobis_build_json(configuration):
         "objects_compiled": objects_compiled,
         "errors": errors,
     }
+    if failure is not None:  # the compiler's messages, parsed, and what FoBiS explains from facts
+        diagnostics, diagnoses, _, _ = _build_failure_facts(configuration, failure)
+        result["diagnostics"] = [d.to_dict() for d in diagnostics]
+        result["diagnoses"] = [d.to_dict() for d in diagnoses]
     print(json.dumps(result, indent=2))
     if exit_code != 0:
         sys.exit(exit_code)
@@ -423,6 +430,11 @@ def run_fobis_commit(configuration):
         from .ai.change import change_facts
 
         facts = change_facts()
+        if getattr(cliargs, "json_output", False):
+            import json
+
+            print(json.dumps({"staged": bool(facts.files), **facts.to_dict()}, indent=2))
+            sys.exit(0 if facts.files else 1)
         if not facts.files:
             configuration.print_r("Nothing staged. Run `git add <files>` first.")
             sys.exit(1)
@@ -1027,8 +1039,10 @@ def build_pfile(configuration, pfile, pfiles, nomodlibs, submodules, builder):
         pfile.save_dep_graph()
 
 
-def _explain_build_failure(configuration, failure):
-    """Explain a failed build (``fobis build --explain``): facts first, then the LLM for what they do not cover.
+def _build_failure_facts(configuration, failure):
+    """The facts of a failed build: (diagnostics, deterministic diagnoses, errors left, `BuildFacts`).
+
+    Shared by ``build --explain`` and ``build --json``. The project scan runs only when an error is recognised.
 
     Parameters
     ----------
@@ -1037,16 +1051,14 @@ def _explain_build_failure(configuration, failure):
         Carries the output of the failed commands.
     """
     from .ai.diagnostics import parse_diagnostics
-    from .ai.explain import BuildFacts, build_bundle, classify, explain, render_diagnoses
+    from .ai.explain import BuildFacts, classify
     from .analysis import parse_defines
     from .lint import discover_files
 
     cliargs = configuration.cliargs
-    say = configuration.print_b
     diagnostics = parse_diagnostics("\n".join(failure.outputs))
     if not any(d.is_error for d in diagnostics):
-        configuration.print_r("explain: no compiler or linker error recognised in the output")
-        return
+        return diagnostics, [], [], None
     trace = getattr(configuration, "build_trace", {})
     pfiles = trace.get("pfiles")
     target = trace.get("target")
@@ -1072,6 +1084,25 @@ def _explain_build_failure(configuration, failure):
         exclude_dirs=list(cliargs.exclude_dirs or []),
     )
     diagnoses, remaining = classify(diagnostics, facts)
+    return diagnostics, diagnoses, remaining, facts
+
+
+def _explain_build_failure(configuration, failure):
+    """Explain a failed build (``fobis build --explain``): facts first, then the LLM for what they do not cover.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    failure : BuildFailed
+        Carries the output of the failed commands.
+    """
+    from .ai.explain import build_bundle, explain, render_diagnoses
+
+    say = configuration.print_b
+    _, diagnoses, remaining, facts = _build_failure_facts(configuration, failure)
+    if facts is None:
+        configuration.print_r("explain: no compiler or linker error recognised in the output")
+        return
     say("")
     say("Explanation (fobis build --explain)")
     if diagnoses:
@@ -1661,8 +1692,6 @@ def run_fobis_tree(configuration):
     root_label = root_name
     if root_version:
         root_label += " " + root_version
-    configuration.print_b(root_label)
-
     nodes = fobos.get_dep_tree(
         deps_dir=deps_dir,
         depth=0,
@@ -1670,6 +1699,29 @@ def run_fobis_tree(configuration):
         visited=set(),
         dedupe=dedupe,
     )
+    if getattr(cliargs, "json_output", False):
+        import json
+
+        def node(n):
+            return {
+                "name": n.name,
+                "spec": n.spec,
+                "version": n.version,
+                "fetched": n.fetched,
+                "has_fobos": n.has_fobos,
+                "duplicate": n.duplicate,
+                "dependencies": [node(c) for c in n.children],
+            }
+
+        tree = {
+            "name": root_name,
+            "version": root_version,
+            "deps_dir": deps_dir,
+            "dependencies": [node(n) for n in nodes],
+        }
+        print(json.dumps(tree, indent=2))
+        return
+    configuration.print_b(root_label)
     if nodes:
         configuration.print_b(render_tree(nodes))
     else:
@@ -1764,10 +1816,18 @@ def run_fobis_check(configuration):
     """
     Run FoBiS in check mode: validate the dependency graph without building.
 
+    With ``--json`` one object goes to stdout: ``status``, ``files`` (number scanned), ``unresolved`` (file,
+    dependency, type) and ``warnings`` (what the dependency analysis reported).
+
     Parameters
     ----------
     configuration : FoBiSConfig()
     """
+    as_json = getattr(configuration.cliargs, "json_output", False)
+    warnings: list[str] = []
+    if as_json:
+        configuration.print_b = lambda *a, **k: None
+        configuration.print_r = lambda message, *a, **k: warnings.append(str(message))
     pfiles = parse_files(configuration=configuration)
     # Create a dummy builder just to resolve includes
     builder = Builder(
@@ -1782,14 +1842,31 @@ def run_fobis_check(configuration):
         force_compile=False,
     )
     # Check for unresolved dependencies
-    errors = 0
-    for pfile in pfiles:
-        for dep in pfile.dependencies:
-            if not dep.file:
-                configuration.print_r(f"  Unresolved: '{pfile.name}' depends on '{dep.name}' ({dep.type}) — not found")
-                errors += 1
-    if errors:
-        configuration.print_r(f"\nDependency check: {errors} unresolved dependency(-ies).")
+    unresolved = [
+        {"file": pfile.name, "dependency": dep.name, "type": dep.type}
+        for pfile in pfiles
+        for dep in pfile.dependencies
+        if not dep.file
+    ]
+    if as_json:
+        import json
+
+        result = {
+            "status": "error" if unresolved else "ok",
+            "files": len(pfiles),
+            "unresolved": unresolved,
+            "warnings": [w for w in warnings if w.strip()],
+        }
+        print(json.dumps(result, indent=2))
+        if unresolved:
+            sys.exit(1)
+        return
+    for item in unresolved:
+        configuration.print_r(
+            f"  Unresolved: '{item['file']}' depends on '{item['dependency']}' ({item['type']}) — not found"
+        )
+    if unresolved:
+        configuration.print_r(f"\nDependency check: {len(unresolved)} unresolved dependency(-ies).")
         sys.exit(1)
     else:
         configuration.print_b(f"Dependency check: OK ({len(pfiles)} files scanned, 0 errors)")
@@ -1828,7 +1905,14 @@ def run_fobis_merge_assist(configuration):
     )
 
     cliargs = configuration.cliargs
-    say = configuration.print_b
+    if getattr(cliargs, "merge_format", "text") not in ("text", "json"):
+        configuration.print_r(f"Error: unknown format {cliargs.merge_format!r}: use text or json")
+        sys.exit(2)
+    as_json = getattr(cliargs, "merge_format", "text") == "json"
+    say = (lambda m: print(m, file=sys.stderr)) if as_json else configuration.print_b  # stdout: the JSON only
+    if as_json and cliargs.merge_apply and not cliargs.merge_yes:
+        configuration.print_r("Error: --format json does not ask: use --apply --yes, or no --apply")
+        sys.exit(2)
     root = _git("rev-parse", "--show-toplevel").strip()
     if not root:
         configuration.print_r("Error: not inside a git repository")
@@ -1838,7 +1922,12 @@ def run_fobis_merge_assist(configuration):
         wanted = {os.path.relpath(os.path.abspath(p), root) for p in cliargs.merge_paths}
         paths = [p for p in paths if p in wanted]
     if not paths:
-        say("No conflicted file.")
+        if as_json:
+            import json
+
+            print(json.dumps({"operation": None, "files": [], "both_sides_touched": []}, indent=2))
+        else:
+            say("No conflicted file.")
         return
     op = operation()
     say(f"{op.kind}: ours = {op.ours_name}; theirs = {op.theirs_name}")
@@ -1880,12 +1969,16 @@ def run_fobis_merge_assist(configuration):
             provider = get_provider(LLMConfig.from_user_config(UserConfig()), on_status=say)
         except LLMError as exc:
             configuration.print_r(f"Warning: no model ({exc}): deterministic resolutions only")
+    checks = {}
     try:
         for cf in files:
             file_includes = [os.path.join(root, os.path.dirname(cf.path)), *includes]
             check = resolve_file(
                 cf, op, provider, compiler=compiler, fc=fc, includes=file_includes, defines=defines, on_status=say
             )
+            checks[cf.path] = check
+            if as_json:
+                continue
             say("")
             for hunk in cf.hunks:
                 say(render_hunk(cf, hunk, op))
@@ -1919,6 +2012,32 @@ def run_fobis_merge_assist(configuration):
             if quit_:
                 break
     touched = both_sides_touched(files)
+    if as_json:
+        import json
+
+        data = {
+            "operation": {
+                "kind": op.kind,
+                "ours": op.ours,
+                "theirs": op.theirs,
+                "ours_name": op.ours_name,
+                "theirs_name": op.theirs_name,
+            },
+            "files": [
+                {
+                    "path": cf.path,
+                    "hunks": [h.to_dict() for h in cf.hunks],
+                    "compiles": checks[cf.path].ok,
+                    "not_checked_because": checks[cf.path].reason if checks[cf.path].ok is None else "",
+                    "errors_elsewhere": [d.to_dict() for d in checks[cf.path].elsewhere],
+                }
+                for cf in files
+            ],
+            "both_sides_touched": touched,
+            "applied": bool(cliargs.merge_apply),
+        }
+        print(json.dumps(data, indent=2))
+        return
     say("")
     if touched:
         say("Changed by both sides (test them after the merge): " + ", ".join(touched))
@@ -2557,20 +2676,32 @@ def run_fobis_test(configuration):
     extra_args = getattr(cliargs, "test_extra_args", []) or []
     do_coverage = getattr(cliargs, "test_coverage", False)
 
-    if not os.path.isdir(test_dir):
-        configuration.print_b(f"No '{test_dir}' directory found. Create it and add Fortran program files.")
+    as_json = getattr(cliargs, "json_output", False)
+    if not os.path.isdir(test_dir) or not (tests := discover_tests(test_dir)):
+        if as_json:
+            import json
+
+            print(json.dumps({"status": "none", "test_dir": test_dir, "results": []}, indent=2))
+        elif not os.path.isdir(test_dir):
+            configuration.print_b(f"No '{test_dir}' directory found. Create it and add Fortran program files.")
+        else:
+            configuration.print_b(f"No test programs found in '{test_dir}'.")
         return
 
-    tests = discover_tests(test_dir)
-    if not tests:
-        configuration.print_b(f"No test programs found in '{test_dir}'.")
-        return
+    if list_only and as_json:
+        import json
 
+        print(json.dumps({"status": "listed", "test_dir": test_dir, "tests": tests}, indent=2))
+        return
     if list_only:
         configuration.print_b(f"Discovered tests in '{test_dir}':")
         for t in tests:
             suite_tag = f"  [{t['suite']}]" if t.get("suite") else ""
             configuration.print_b(f"  {t['name']:<30} {t['source']}{suite_tag}")
+        return
+
+    if as_json:
+        _run_fobis_test_json(configuration, tests, test_dir)
         return
 
     build_dir = getattr(cliargs, "build_dir", "build")
@@ -2633,6 +2764,97 @@ def run_fobis_test(configuration):
         run_fobis_coverage(configuration)
 
     if suite.failed:
+        sys.exit(1)
+
+
+def _run_fobis_test_json(configuration, tests, test_dir):
+    """``fobis test --json``: build and run the tests silently, then one JSON object on stdout.
+
+    Each result carries its status (passed, failed, timeout, build-failed, error), exit code, duration and the
+    tails of its output; a failed build carries the build's parsed ``diagnostics`` and ``diagnoses`` (see
+    ``build --json``), a failed run the parsed ``crash`` and FoBiS's ``notes`` on it (the facts of ``--explain``).
+    """
+    import contextlib
+    import io
+    import json
+
+    from .TestRunner import TestRunner
+
+    cliargs = configuration.cliargs
+    build_dir = getattr(cliargs, "build_dir", "build")
+    mode = getattr(cliargs, "mode", None)
+    builds: dict[str, dict] = {}
+
+    def build_test(test):
+        binary = os.path.join(build_dir, "test", test["name"])
+        os.makedirs(os.path.dirname(binary), exist_ok=True)
+        args = ["build", "-target", test["source"], "-output", os.path.abspath(binary), "--json"]
+        if mode:
+            args += ["-mode", mode]
+        captured = io.StringIO()
+        with contextlib.redirect_stdout(captured), contextlib.suppress(SystemExit):
+            run_fobis(fake_args=args)
+        text = captured.getvalue()
+        with contextlib.suppress(ValueError):
+            builds[test["name"]] = json.loads(text[text.index("{") :])
+        return binary if os.path.isfile(binary) else None
+
+    quiet = io.StringIO()
+    runner = TestRunner(build_dir=build_dir, print_n=lambda *a, **k: None, print_w=lambda *a, **k: None)
+    with contextlib.redirect_stdout(quiet):
+        suite = runner.run_suite(
+            tests=tests,
+            build_fn=build_test,
+            suite_filter=getattr(cliargs, "test_suite", None),
+            name_filter=getattr(cliargs, "test_filter", None),
+            timeout=getattr(cliargs, "test_timeout", 60.0),
+            extra_args=getattr(cliargs, "test_extra_args", []) or [],
+            no_build=getattr(cliargs, "test_no_build", False),
+        )
+    context = None
+    results = []
+    for result in suite.results:
+        item = {
+            "name": result.name,
+            "suite": result.suite,
+            "exit_code": result.exit_code,
+            "duration": round(result.duration, 3),
+            "stdout": "\n".join(result.stdout.splitlines()[-40:]),
+            "stderr": "\n".join(result.stderr.splitlines()[-40:]),
+        }
+        report = builds.get(result.name)
+        if result.passed:
+            item["status"] = "passed"
+        elif result.exit_code == -3 and report is not None and report.get("status") == "error":
+            item["status"] = "build-failed"
+            item["diagnostics"] = report.get("diagnostics", [])
+            item["diagnoses"] = report.get("diagnoses", [])
+        elif result.exit_code == -1 and result.stderr.startswith("TIMEOUT"):
+            item["status"] = "timeout"
+        elif result.exit_code in (-2, -3):
+            item["status"] = "error"
+        else:
+            from .ai.crash import classify_crash, parse_crash, scan_context
+
+            item["status"] = "failed"
+            crash = parse_crash(result.stderr, result.exit_code)
+            if crash is not None:
+                with contextlib.redirect_stdout(quiet):
+                    context = context or scan_context(configuration.fobos, mode, command="test")
+                    notes, _ = classify_crash(crash, context)
+                item["crash"] = crash.to_dict()
+                item["notes"] = [n.to_dict() for n in notes]
+        results.append(item)
+    failed = [r for r in results if r["status"] != "passed"]
+    data = {
+        "status": "error" if failed else "ok",
+        "test_dir": test_dir,
+        "passed": len(results) - len(failed),
+        "failed": len(failed),
+        "results": results,
+    }
+    print(json.dumps(data, indent=2))
+    if failed:
         sys.exit(1)
 
 

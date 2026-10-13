@@ -349,6 +349,24 @@ class ChangeFacts:
     def scope_names(self) -> list[str]:
         return [c.name for c in self.scopes]
 
+    def to_dict(self) -> dict:
+        """JSON-ready form (``fobis commit --show-facts --json``, the MCP server)."""
+        return {
+            "scopes": [{"name": c.name, "score": round(c.score, 3), "reasons": c.reasons} for c in self.scopes],
+            "hints": [{"type": hint, "reason": reason} for hint, reason in self.hints],
+            "files": [
+                {
+                    "path": f.path,
+                    "status": f.status,
+                    "kind": f.kind,
+                    "lines": dict(sorted(f.lines.items())),
+                    "procedures": f.procedures,
+                    "interfaces": f.interfaces,
+                }
+                for f in self.files
+            ],
+        }
+
     def render(self) -> str:
         """The prompt section (also printed by ``fobis commit --show-facts``)."""
         lines = ["## Facts of the change (computed by FoBiS from git and the sources)", ""]

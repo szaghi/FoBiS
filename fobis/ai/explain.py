@@ -296,6 +296,17 @@ class Diagnosis:
     advice: list[str] = field(default_factory=list)
     consequences: list[Diagnostic] = field(default_factory=list)
 
+    def to_dict(self) -> dict:
+        """JSON-ready form (``build --json``, the MCP server)."""
+        return {
+            "kind": self.kind,
+            "summary": self.summary,
+            "diagnostic": self.diagnostic.to_dict(),
+            "facts": list(self.facts),
+            "advice": list(self.advice),
+            "consequences": len(self.consequences),
+        }
+
 
 def missing_module_name(diagnostic: Diagnostic) -> str | None:
     """The module a "cannot open module file" message is about."""

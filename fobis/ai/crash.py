@@ -183,6 +183,21 @@ class Crash:
         """Frames in Fortran sources with a line number, innermost first."""
         return [f for f in self.frames if f.file and f.line and f.file.lower().endswith(FORTRAN_EXTENSIONS)]
 
+    def to_dict(self) -> dict:
+        """JSON-ready form (``test --json``, the MCP server); the location is the runtime's, trusted or not
+        (see `trusted_location`)."""
+        return {
+            "tool": self.tool,
+            "kind": self.kind,
+            "message": self.message,
+            "exit_code": self.exit_code,
+            "signal": self.signal,
+            "file": self.file,
+            "line": self.line,
+            "frames": [{"function": f.function, "file": f.file, "line": f.line} for f in self.frames],
+            "detail": dict(self.detail),
+        }
+
 
 def _kind_of(message: str) -> str:
     lowered = message.lower()
@@ -406,6 +421,16 @@ class Note:
     facts: list[str] = field(default_factory=list)
     advice: list[str] = field(default_factory=list)
     refs: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        """JSON-ready form (``test --json``, the MCP server)."""
+        return {
+            "kind": self.kind,
+            "summary": self.summary,
+            "facts": self.facts,
+            "advice": self.advice,
+            "refs": self.refs,
+        }
 
 
 def _line_text(path: str | None, line: int | None) -> str | None:

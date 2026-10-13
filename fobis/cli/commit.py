@@ -85,6 +85,7 @@ def cmd_commit(
     no_facts: Annotated[
         bool, typer.Option("--no-facts", help="Do not compute the facts of the change (free scope).")
     ] = False,
+    json_output: Annotated[bool, typer.Option("--json", help="With --show-facts: the facts as JSON.")] = False,
 ):
     """Generate a Conventional Commits message for staged changes via a local LLM."""
     ctx.ensure_object(dict)
@@ -100,8 +101,9 @@ def cmd_commit(
         config=config,
         show_config=show_config,
         init_config=init_config,
-        show_facts=show_facts,
+        show_facts=show_facts or json_output,
         no_facts=no_facts,
+        json_output=json_output,
         # unused by commit but required by FoBiSConfig common path
         fobos=None,
         fobos_case_insensitive=False,

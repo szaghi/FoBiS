@@ -12,7 +12,7 @@ import typer
 from ._app import _ns, app
 from ._completions import _complete_fobos_varset
 from ._constants import __extensions_inc__, __extensions_parsed__
-from ._options import FciOpt, FobosOpt, ModeOpt, SrcOpt
+from ._options import FciOpt, FobosOpt, JsonOpt, ModeOpt, SrcOpt
 
 
 @app.command("check")
@@ -37,6 +37,7 @@ def cmd_check(
             autocompletion=_complete_fobos_varset,
         ),
     ] = None,
+    json_output: JsonOpt = False,
 ):
     """Validate the dependency graph without building."""
     ctx.ensure_object(dict)
@@ -109,6 +110,6 @@ def cmd_check(
         verbose=False,
         jobs=1,
         makefile=None,
-        json_output=False,
+        json_output=json_output,
         active_features=[],
     )

@@ -700,6 +700,7 @@ class Fobos:
             filename = cliargs.fobos
         else:
             filename = "fobos"
+        self.filename = filename
         if os.path.exists(filename):
             self.fobos = configparser.RawConfigParser()
             if not cliargs.fobos_case_insensitive:
@@ -1267,6 +1268,8 @@ class Fobos:
            file path (relative to the git repository root), the version
            string is read from that file.
         2. Query the most recent git tag via ``git describe --tags --abbrev=0``.
+        Both are resolved in the repository of the fobos file, not of the working directory (``fobis tree``
+        reads the fobos of every fetched dependency).
         3. If both sources provide a version and they disagree, emit a
            warning with a suggested fix.
         4. Return the fobos version when available; fall back to the git
@@ -1278,11 +1281,12 @@ class Fobos:
           Resolved version string, or '' if not determinable.
         """
         fobos_version = ""
+        here = os.path.dirname(os.path.abspath(self.filename)) or "."  # the fobos's repository, not the cwd's
         if self.fobos and self.fobos.has_section("project"):
             if self.fobos.has_option("project", "version"):
                 raw = self.fobos.get("project", "version").strip()
                 # try to resolve as a file path relative to the git repo root
-                git_root_result = syswork("git rev-parse --show-toplevel")
+                git_root_result = syswork(["git", "-C", here, "rev-parse", "--show-toplevel"])
                 if git_root_result[0] == 0:
                     candidate = os.path.join(git_root_result[1].strip(), raw)
                     if os.path.isfile(candidate):
@@ -1297,7 +1301,7 @@ class Fobos:
 
         # query the most recent git tag
         git_version = ""
-        git_result = syswork("git describe --tags --abbrev=0")
+        git_result = syswork(["git", "-C", here, "describe", "--tags", "--abbrev=0"])
         if git_result[0] == 0:
             git_version = git_result[1].strip()
 
@@ -1830,7 +1834,7 @@ class Fobos:
                         fobos_case_insensitive=False,
                         mode=None,
                     )
-                    child_fobos = Fobos(cliargs=dummy_args)
+                    child_fobos = Fobos(cliargs=dummy_args, print_n=self.print_n, print_w=self.print_w)
                     child_version = child_fobos.get_version() or version
                     children = child_fobos.get_dep_tree(
                         deps_dir=deps_dir,

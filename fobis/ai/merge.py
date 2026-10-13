@@ -185,6 +185,20 @@ class Resolution:
     verified: bool | None = None
     note: str = ""
 
+    def to_dict(self) -> dict:
+        """JSON-ready form (``merge-assist --format json``, the MCP server)."""
+        return {
+            "source": self.source,
+            "strategy": self.strategy,
+            "lines": list(self.lines),
+            "rationale": self.rationale,
+            "confidence": self.confidence,
+            "risks": list(self.risks),
+            "citations": [s.id for s in self.sources],
+            "verified": self.verified,
+            "note": self.note,
+        }
+
 
 @dataclass
 class Hunk:
@@ -195,6 +209,16 @@ class Hunk:
     base: list[str]
     theirs: list[str]
     resolution: Resolution | None = None
+
+    def to_dict(self) -> dict:
+        """JSON-ready form: the three versions and the resolution (None when unresolved)."""
+        return {
+            "index": self.index,
+            "base": list(self.base),
+            "ours": list(self.ours),
+            "theirs": list(self.theirs),
+            "resolution": self.resolution.to_dict() if self.resolution else None,
+        }
 
     def side(self, strategy: str) -> list[str]:
         """The text of *strategy* ``ours``/``theirs``/``both`` (ours then theirs)."""

@@ -62,6 +62,13 @@ def cmd_ask(
         kb = KnowledgeBase([*kb.packs.values(), project_pack(analysed)])
         pack = [*pack, PROJECT_PACK] if pack else None
     bundle = build_bundle(text, kb, k=k, packs=pack)
+    if show_context and as_json:  # the retrieved, citable sections: what an agent reasons on itself
+        sources = [
+            {"label": label, "id": src.id, "title": src.title, "text": src.text}
+            for label, src in zip(bundle.labels, bundle.sources, strict=True)
+        ]
+        typer.echo(json.dumps({"question": text, "sources": sources}, indent=2))
+        return
     if show_context:
         typer.echo("=== system prompt ===\n" + load_prompt("ask") + "\n=== user message ===\n" + bundle.render())
         return

@@ -10,7 +10,7 @@ from typing import Annotated
 import typer
 
 from ._app import _ns, app
-from ._options import FciOpt, FobosOpt, ModeOpt
+from ._options import FciOpt, FobosOpt, JsonOpt, ModeOpt
 
 
 @app.command("tree")
@@ -27,6 +27,7 @@ def cmd_tree(
         bool,
         typer.Option("--no-dedupe", help="Expand duplicate deps instead of marking them with (*)"),
     ] = False,
+    json_output: JsonOpt = False,
 ):
     """Print the resolved inter-project dependency tree."""
     ctx.ensure_object(dict)
@@ -38,4 +39,5 @@ def cmd_tree(
         lmodes=False,
         tree_depth=depth,
         tree_no_dedupe=no_dedupe,
+        json_output=json_output,
     )

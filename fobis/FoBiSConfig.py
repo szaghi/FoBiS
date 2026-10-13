@@ -412,26 +412,44 @@ class FoBiSConfig:
                     )
                 self._add_auxiliary_paths(add_paths)
 
+    @property
+    def machine_output(self) -> bool:
+        """The command writes one machine-readable document on stdout (``--json``, ``--format json/sarif``):
+        messages and warnings must go to stderr, never in front of it."""
+        cliargs = self.cliargs
+        formats = (getattr(cliargs, "merge_format", ""), getattr(cliargs, "testgen_format", ""))
+        return (
+            bool(getattr(cliargs, "json_output", False))
+            or "json" in formats
+            or getattr(cliargs, "lint_format", "") in ("json", "sarif")
+        )
+
     def print_b(self, string: str, end: str = "\n") -> None:
         """
-        Print string with bold color.
+        Print string with bold color (on stderr, uncoloured, when stdout carries machine output).
 
         Parameters
         ----------
         string : str
           string to be printed
         """
+        if self.machine_output:
+            print(string, end=end, file=sys.stderr)
+            return
         self.colors.print_b(string, end=end)
 
     def print_r(self, string: str, end: str = "\n") -> None:
         """
-        Print string with red color.
+        Print string with red color (on stderr, uncoloured, when stdout carries machine output).
 
         Parameters
         ----------
         string : str
           string to be printed
         """
+        if self.machine_output:
+            print(string, end=end, file=sys.stderr)
+            return
         self.colors.print_r(string, end=end)
 
     def printf(self) -> str:

@@ -96,7 +96,7 @@ fobis commit             # generate a Conventional-Commits message via a local L
 ```bash
 fobis lint [PATHS]       # rule-based checks: correctness, obsolescent, OpenMP/OpenACC/MPI defects
 fobis kb search "QUERY"  # search the knowledge packs (Fortran/OpenMP/OpenACC/MPI standards, HPC practice)
-fobis mcp                # MCP server (stdio) exposing lint, kb, introspect, check, build, test to AI agents
+fobis mcp                # MCP server (stdio): 19 annotated tools (lint, review, kb, build/test with diagnoses, merge, ecosystem ...)
 fobis llm <...>          # local LLM harness: runtime install, pull models, serve, ask, doctor
 fobis review [--staged | --base REF]  # lint findings on the changed lines only (pre-commit, PR); --deep risk summary
 fobis merge-assist [--apply [--yes]]  # proposals for merge/rebase/cherry-pick conflicts, compiled; never stages
@@ -117,7 +117,18 @@ fobis test --explain     # the same for every failed test (LLM for the first one
 - `kb`: `list`, `search QUERY [-k N] [--pack P] [--json]`, `show ID [-C N]`, `notice PACK`,
   `build SOURCES --name N`, `add DIR`, `remove NAME` (`--project` for `.fobis/kb`). Shipped packs are
   CC-BY-4.0.
-- `mcp`: `--root DIR`. Register in Claude Code with `claude mcp add fobis -- fobis mcp`.
+- `mcp`: `--root DIR`. Register in Claude Code with `claude mcp add fobis -- fobis mcp`. Tools (read-only): lint
+  (+ `fix_diff`), review, list_rules, explain_rule, kb_search, kb_show, ask_context (retrieved sources, NO answer),
+  introspect, check, tree, merge_conflicts, commit_facts, testgen_skeleton, ecosystem_status, ecosystem_impact;
+  writing: build, test, clean (destructive), fetch (network). Annotations (readOnly/destructive/idempotent/
+  openWorld), JSON as text + `structuredContent` (2025-06-18), a failed build/test is a result (status error), not
+  a tool error; lint/review trimmed to `max_findings` (200). Resources `fobis://rules/{id}`, template
+  `fobis://kb/{id}` (URL-encoded id). By design no local-LLM answer is exposed: the client is the model.
+- **Machine output** (`--json` / `--format json`): build (on failure + `diagnostics` parsed + `diagnoses` from
+  facts), clean, fetch, check, tree (each dep with ITS version), test (per test status passed/failed/build-failed/
+  timeout/error + `crash`/`notes` or `diagnostics`/`diagnoses`), introspect, lint/review, merge-assist, testgen,
+  `commit --show-facts --json`, `ask --show-context --json`, ecosystem dashboard/impact. With machine output all
+  FoBiS messages and warnings go to stderr: stdout is the JSON document only.
 - `llm`: `recommended`, `pull MODEL`, `list [--json]`, `rm MODEL`; `runtime install [--variant V]
   [--build bN --sha256 H|--trust]`, `runtime list`, `runtime remove NAME`; `serve start [--model M]|stop|
   status`; `ask PROMPT [--schema F] [--system S]`; `doctor [--no-sample]`. Nothing is downloaded implicitly.

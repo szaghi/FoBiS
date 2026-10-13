@@ -18,6 +18,7 @@ fobis merge-assist [PATHS...] [options]
 | `--yes` | With `--apply`, no questions: accept the high-confidence rules and the model proposals that compile |
 | `--no-model` | Deterministic rules only |
 | `--context` | Print what the model would receive for each conflict the rules do not settle, run no model |
+| `--format text\|json` | `json`: the report as one JSON object on stdout (conflicts, resolutions, compile checks); asks nothing, so `--apply` needs `--yes` |
 | `--mode`, `-f/--fobos`, `--fci` | The fobos mode whose compiler, flags and module directory verify the proposals |
 
 ## Exit codes

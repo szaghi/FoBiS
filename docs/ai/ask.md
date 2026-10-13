@@ -62,5 +62,5 @@ The answer is as good as the model: use `coder-7b` or larger (see [Local models]
 | `-k N` | Number of sections given to the model [default: 6] |
 | `--show-context` | Print what the model would receive and stop (no model is run) |
 | `--verbose` | Also print the statements dropped as uncited |
-| `--json` | Claims with their source ids, dropped statements, sources |
+| `--json` | Claims with their source ids, dropped statements, sources; with `--show-context`, the retrieved sections only (label, id, title, text), no model |
 | `--provider`, `--model`, `-m` | Override the configured LLM provider and model |

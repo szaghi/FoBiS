@@ -39,6 +39,9 @@ def cmd_merge_assist(
     context: Annotated[
         bool, typer.Option("--context", help="Print what the model would receive for each hunk, run no model.")
     ] = False,
+    output_format: Annotated[
+        str, typer.Option("--format", help="Output format: text, or json (the report on stdout; asks nothing).")
+    ] = "text",
 ):
     """Propose resolutions for merge, rebase or cherry-pick conflicts, checked by the compiler; never stages."""
     ctx.ensure_object(dict)
@@ -49,6 +52,7 @@ def cmd_merge_assist(
         merge_yes=yes,
         merge_no_model=no_model,
         merge_context=context,
+        merge_format=output_format,
         fobos=fobos,
         fobos_case_insensitive=fobos_case_insensitive,
         mode=mode,

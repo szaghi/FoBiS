@@ -16,6 +16,7 @@ structured diagnostics. Exit code 0 means no errors.
 |---|---|
 | `--src SRC` | Source directory (repeatable) |
 | `--strict` | Treat warnings as errors (exit 1 on any warning) |
+| `--json` | One JSON object on stdout: `status`, `files`, `unresolved` (file, dependency, type), `warnings` (see [JSON output](/advanced/json-output#fobis-check-json)) |
 | `--varset NAMES` | Apply one or more `[varset:NAME]` sections' `$variable` bindings before validating. Comma- or space-separated; last write wins. See [Varsets](/advanced/varsets). |
 
 ## fobos options

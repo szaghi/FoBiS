@@ -115,6 +115,21 @@ class Diagnostic:
             return f"{self.file}:{self.line}"
         return self.file or "?"
 
+    def to_dict(self) -> dict:
+        """JSON-ready form (``build --json``, the MCP server); empty fields left out."""
+        data = {
+            "tool": self.tool,
+            "severity": self.severity,
+            "message": self.message,
+            "file": self.file,
+            "line": self.line,
+            "column": self.column,
+            "code": self.code,
+            "symbol": self.symbol,
+            "context": self.context,
+        }
+        return {k: v for k, v in data.items() if v is not None}
+
 
 def _int(value: str | None) -> int | None:
     return int(value) if value else None
