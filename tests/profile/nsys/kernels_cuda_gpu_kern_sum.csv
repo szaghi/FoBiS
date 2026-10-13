@@ -1,0 +1,3 @@
+Time (%),Total Time (ns),Instances,Avg (ns),Med (ns),Min (ns),Max (ns),StdDev (ns),Name
+50.7,18400,1,18400.0,18400.0,18400,18400,0.0,acc_kernels_scale_9_gpu
+49.3,17888,1,17888.0,17888.0,17888,17888,0.0,shift_add_one_21_gpu

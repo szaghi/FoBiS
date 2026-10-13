@@ -46,7 +46,11 @@ The case gives the rest: `ranks` -> `--ntasks`, `threads` -> `--cpus-per-task` a
    and the time excludes queueing. A job killed by the scheduler (time limit, memory) is reported with its state and
    the last line of its Slurm log.
 6. The probes read the run directory: the result is the same `RunResult`, its provenance extended with
-   `scheduler` (kind, partition, account, job id, final state, compute node).
+   `scheduler` (kind, partition, account, job id, final state, compute node). The job also records the facts of
+   the node it ran on (host, OS, CPU model, processors available to the job, the GPUs it was given, from
+   `nvidia-smi -L`), and these replace the submitting host's in the provenance's `machine`: a reference or a
+   benchmark history written from a login node describes the compute node, not the login node. Job ids and node
+   names are not reported as provenance changes, and GPUs are compared by model, not by serial number.
 
 The run directories must be on a file system the compute nodes share: by default they are inside the project
 (`.fobis/runs`), and with a scheduler the scratch copies of `diff-run` and `bench --compare` are also made inside
@@ -70,6 +74,13 @@ cluster policies forbid.
   be measured from the submitting host: they are left out.
 - `fobis matrix` and `fobis gate` drive nested commands and run locally.
 - PBS and other schedulers are not supported yet (`kind = slurm` only).
-- Tested against a stand-in Slurm (stub `sbatch`/`squeue`/`sacct`/`scancel`/`srun` that run the job script
-  locally): the job script, polling, states, time limit, missing accounting and the guard. A real cluster run is
-  the remaining check.
+- **Memory.** Slurm gives a job its partition's default memory, often per CPU (`scontrol show config | grep
+  DefMemPer`): a case with one CPU per rank may get little. On the cluster used to test FoBiS (`DefMemPerCPU =
+  1024` MB), two ranks with a GPU each under Nsight Systems ended with `srun: error: ...: Out Of Memory`; set it
+  with `options = --mem=32G` (any `#SBATCH` option goes there).
+- Tested on a real cluster (Slurm 23.11, NVIDIA A30 nodes, nvfortran 25.5 with HPC-X Open MPI and
+  `launcher = srun --mpi=pmix -n {ranks}`): an MPI case (4 ranks), an OpenACC case (1 GPU) and an MPI+OpenACC case
+  (2 ranks, 2 GPUs), `case run`, `verify --update` then `verify` (PASS), `test`, `profile --tool nsys`, and the
+  guard refusing the same cases on the login node. The test suite uses a stand-in Slurm (stub
+  `sbatch`/`squeue`/`sacct`/`scancel`/`srun` that run the job script locally) for the job script, polling,
+  states, time limit and missing accounting.

@@ -1,0 +1,3 @@
+Time (%),Total Time (ns),Instances,Avg (ns),Med (ns),Min (ns),Max (ns),StdDev (ns),Name
+80.7,21536,1,21536.0,21536.0,21536,21536,0.0,mpi_acc_17_gpu
+19.3,5152,1,5152.0,5152.0,5152,5152,0.0,mpi_acc_17_gpu__red

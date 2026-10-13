@@ -25,6 +25,7 @@ from fobis.verification.scheduler import (
     SlurmScheduler,
     guard_message,
     load_config,
+    node_facts,
     on_login_node,
 )
 
@@ -235,6 +236,19 @@ def _run(args, capsys):
     return code, captured.out, captured.err
 
 
+def test_node_facts():
+    text = "host=gnode01\nos=Linux 4.18\ncpu=Intel Xeon Gold 6338\ncores=8\ngpu=GPU 0: NVIDIA A30 (UUID: GPU-1)\n"
+    assert node_facts(text) == {
+        "host": "gnode01",
+        "os": "Linux 4.18",
+        "cpu": "Intel Xeon Gold 6338",
+        "cores": 8,
+        "gpus": ["GPU 0: NVIDIA A30 (UUID: GPU-1)"],
+    }
+    assert node_facts("gnode02\n") == {"host": "gnode02"}  # a host file of an older FoBiS
+    assert node_facts("") == {}
+
+
 def test_case_run_through_slurm(project, fake_slurm, capsys, monkeypatch):
     monkeypatch.setenv("FAKE_SLURM_PENDING", "2")
     code, out, err = _run(["case", "run", "app", "mpi", "--runner", "slurm", "--json"], capsys)
@@ -243,6 +257,8 @@ def test_case_run_through_slurm(project, fake_slurm, capsys, monkeypatch):
     scheduler = results["mpi"]["provenance"]["scheduler"]
     assert scheduler["partition"] == "debug" and scheduler["state"] == "COMPLETED"
     assert scheduler["node"] == platform.node() and scheduler["job"] == "2"
+    machine = results["mpi"]["provenance"]["machine"]  # written by the job on its node (here: this host)
+    assert machine["host"] == platform.node() and machine["cores"] >= 1 and isinstance(machine["gpus"], list)
     script = (fake_slurm / "2.script").read_text()
     assert "#SBATCH --ntasks=2" in script and "#SBATCH --cpus-per-task=3" in script
     assert "export OMP_NUM_THREADS=3" in script and "\nsrun " in script  # the scheduler's launcher, not mpirun

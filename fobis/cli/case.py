@@ -385,15 +385,17 @@ def cmd_profile(
         str,
         typer.Option(
             "--tool",
-            help="gprof (time, sampled; -pg build) or callgrind (instructions per function and source line, "
-            "inlined code included; much slower).",
+            help="gprof (time, sampled; -pg build), callgrind (instructions per function and source line, "
+            "inlined code included; much slower) or nsys (GPU kernel and host-device transfer times mapped to the "
+            "directives, Nsight Systems).",
         ),
     ] = "gprof",
     top: Annotated[int, typer.Option("--top", min=1, help="Routines, procedures and lines shown.")] = 15,
+    runner: RunnerOpt = "local",
     json_output: JsonOpt = False,
 ):
-    """Profile a case: where it spends its time (gprof) or its instructions (callgrind), mapped to the project's
-    procedures and source lines."""
+    """Profile a case: where it spends its time (gprof), its instructions (callgrind) or its GPU time and transfers
+    (nsys), mapped to the project's procedures and source lines."""
     from .lint import lint_namespace
 
     ctx.ensure_object(dict)
@@ -403,6 +405,7 @@ def cmd_profile(
         profile_tool=tool,
         profile_top=top,
         profile_mode=mode,
+        runner=runner,
         fobos=fobos,
         fobos_case_insensitive=fobos_case_insensitive,
         mode=mode,

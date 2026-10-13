@@ -258,11 +258,14 @@ with `--keep`. See [Benchmarks](/advanced/bench).
 
 ### `fobis profile --json`
 
-`case`, `mode`, `tool` (`gprof`, `callgrind`), `unit` (`s` or `Ir`), `total`, `project_share` (percent of the
+`case`, `mode`, `tool` (`gprof`, `callgrind`, `nsys`), `unit` (`s` or `Ir`), `total` (nsys: seconds in GPU kernels), `project_share` (percent of the
 total in the analysed sources; null when gprof measured no time), `routines` (`symbol`, `procedure`, `location`,
 `self`, `percent`, `calls`; for a callgrind routine outside the sources, `callers`: the project procedures calling it
 directly with `calls`, `inclusive` and `percent`), `procedures` and `lines` (callgrind: per project procedure and per source line:
-`location`, `procedure`, `self`, `percent`, `text`), `processes` and `imbalance` (gprof, several processes), `notes`,
+`location`, `procedure`, `self`, `percent`, `text`), `processes` and `imbalance` (gprof and nsys, several processes;
+nsys: each process's kernel time), `transfers` (nsys: per direction `count`, `mb`, `seconds`), `transfer_lines`
+(nsys with OpenACC: `location`, `kind` upload/download, `calls`, `seconds`, `procedure`, `text`; nsys routines are
+the kernels, `location` the directive's line and `calls` the launches), `notes`,
 `run` (`status`, `elapsed`, `rundir`). See [Profiling](/advanced/profile).
 
 ### `fobis gate --json`

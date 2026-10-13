@@ -12,7 +12,15 @@ Two CPU backends, both optional tools found on PATH:
 
 Symbols are demangled (gfortran ``__m_MOD_p``, ifx ``m_mp_p_``, nvfortran ``m_p_``) and mapped to the project's
 procedures (file and line); costs outside the project's sources (runtime, libraries) are reported as such.
-GPU backends (nsys, ncu) are not implemented yet.
+
+One GPU backend:
+
+- ``nsys`` (Nsight Systems): the program runs under ``nsys profile`` (one report per process, named after its MPI
+  rank), and ``nsys stats`` exports the kernel, memory-transfer and OpenACC summaries as CSV. nvfortran names its
+  device kernels after the procedure and the directive's line (OpenACC ``proc_LINE_gpu``, ``__red`` for the
+  reduction part; OpenMP ``nvkernel_<symbol>F1L<LINE>_<n>_``), so kernel time maps to the directive; the OpenACC
+  summary maps uploads and downloads to their source lines. Times, not hardware counters: Nsight Compute (ncu) is
+  not used (on the cluster where this was built, user access to the GPU counters is disabled: ERR_NVGPUCTRPERM).
 """
 
 from __future__ import annotations
@@ -24,7 +32,19 @@ from dataclasses import dataclass, field
 
 from .case import CaseError
 
-TOOLS = ("gprof", "callgrind")
+TOOLS = ("gprof", "callgrind", "nsys")
+NSYS_REPORTS = ("cuda_gpu_kern_sum", "cuda_gpu_mem_time_sum", "cuda_gpu_mem_size_sum", "openacc_sum")
+# the program under nsys, one report per process named after its rank (srun, Open MPI, MPICH/Intel MPI, else 0)
+NSYS_WRAPPER = [
+    "sh",
+    "-c",
+    "exec nsys profile --force-overwrite=true --trace=cuda,openacc,openmp "
+    '-o "nsys-${SLURM_PROCID:-${OMPI_COMM_WORLD_RANK:-${PMI_RANK:-0}}}" "$@"',
+    "nsys",
+]
+_ACC_KERNEL = re.compile(r"^(?P<proc>\w+?)_(?P<line>\d+)_gpu(?P<red>__red)?$")
+_OMP_KERNEL = re.compile(r"^nvkernel_(?P<symbol>\w+?_)F\d+L(?P<line>\d+)_\d+_?$")
+_ACC_EVENT = re.compile(r"^(?P<kind>[A-Za-z ]+)@(?P<file>.+):(?P<line>\d+)$")
 GPROF_FLAGS = {"gnu": "-pg", "nvfortran": "-pg", "intel": "-p"}  # per shadow family
 _GPROF_ROW = re.compile(
     r"^\s*(?P<pct>[\d.]+)\s+(?P<cum>[\d.]+)\s+(?P<self>[\d.]+)"
@@ -181,9 +201,10 @@ def qualified(unit) -> str:
 class SourceMap:
     """The project's procedures by name and by file span (from the source analysis)."""
 
-    def __init__(self, units: dict, root: str = ".") -> None:
+    def __init__(self, units: dict, root: str = ".", main: str | None = None) -> None:
         self.root = root
         self.units = units
+        self.main = main  # the file of the profiled program: MAIN__ is its program when the sources hold several
         self.by_name: dict[str, list[tuple[str, object]]] = {}
         self.modules: set[str] = set()
         for path, file_units in units.items():
@@ -202,6 +223,8 @@ class SourceMap:
 
         if symbol == "MAIN__":  # gfortran's main program
             candidates = [(p, u) for p, fu in self.units.items() for u in fu.units if u.kind == "program"]
+            if len(candidates) > 1 and self.main:
+                candidates = [(p, u) for p, u in candidates if _same_file(p, self.main)]
         else:
             found = demangle(symbol, frozenset(self.modules))
             candidates = self.by_name.get(found.name, [])
@@ -248,6 +271,8 @@ class Profile:
     project_share: float | None = None  # percent of the total in the analysed sources (the mode's, vendored included)
     processes: list[float] = field(default_factory=list)  # gprof: each process's (MPI rank's) own total
     notes: list[str] = field(default_factory=list)
+    transfers: dict = field(default_factory=dict)  # nsys: per direction count, MB, seconds
+    transfer_lines: list[dict] = field(default_factory=list)  # nsys + OpenACC: uploads/downloads per source line
 
     @property
     def imbalance(self) -> float | None:
@@ -267,6 +292,8 @@ class Profile:
             "lines": self.lines,
             "processes": self.processes,
             "imbalance": self.imbalance,
+            "transfers": self.transfers,
+            "transfer_lines": self.transfer_lines,
             "notes": self.notes,
         }
 
@@ -359,18 +386,144 @@ def from_callgrind(data: Callgrind, source: SourceMap, top: int) -> Profile:
     return profile
 
 
+# ── nsys ───────────────────────────────────────────────────────────────────────
+
+
+def parse_csv(text: str) -> list[dict]:
+    """The rows of an ``nsys stats --format csv`` table (the header line first; other lines before it ignored)."""
+    import csv
+
+    lines = text.splitlines()
+    start = next(
+        (i for i, line in enumerate(lines) if "," in line and not line.startswith(("WARNING", "NOTICE"))), None
+    )
+    return [] if start is None else list(csv.DictReader(lines[start:]))
+
+
+def _number(value: str) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _acc_kernel_file(prefix: str, line: int, source: SourceMap) -> str:
+    """The file of the procedure an OpenACC kernel name prefix designates: nvfortran joins the procedure's scopes with
+    ``_`` (``program``, ``module_procedure``, ``host_internal``), so a procedure matches when the prefix is a tail of
+    its scope chain and the directive's line lies inside it; '' unless exactly one does."""
+    found = set()
+    starts = [0] + [i + 1 for i, char in enumerate(prefix) if char == "_"]
+    for start in starts:
+        for path, unit in source.by_name.get(prefix[start:], []):
+            chain = qualified(unit).split("::")
+            tails = {"_".join(chain[k:]) for k in range(len(chain))}
+            if prefix in tails and unit.line <= line <= (unit.end_line or 0):
+                found.add((path, unit.line))
+    return next(iter(found))[0] if len(found) == 1 else ""
+
+
+def kernel_source(name: str, source: SourceMap) -> tuple[str, str, str]:
+    """(procedure, file:line, the line's text) of an nvfortran device kernel (OpenACC or OpenMP); ('', '', '')
+    when the name says nothing or the procedure is not in the sources."""
+    found = _ACC_KERNEL.match(name)
+    if found:
+        path = _acc_kernel_file(found["proc"].lower(), int(found["line"]), source)
+        if not path:
+            return "", "", ""
+    else:
+        found = _OMP_KERNEL.match(name)
+        if not found:
+            return "", "", ""
+        location = source.symbol(found["symbol"])[1]
+        if not location:
+            return "", "", ""
+        path = location.rsplit(":", 1)[0]
+    shown, procedure, text = source.line(path, int(found["line"]))
+    return procedure, f"{shown}:{found['line']}", text
+
+
+def from_nsys(reports: list[dict[str, list[dict]]], source: SourceMap, top: int) -> Profile:
+    """A profile from the ``nsys stats`` tables of each process (report name -> rows)."""
+    kernels: dict[str, list] = {}  # name -> [seconds, instances]
+    processes = []
+    directions: dict[str, dict] = {}
+    by_line: dict[tuple[str, str], list] = {}  # (location, kind) -> [seconds, calls]
+    for tables in reports:
+        own = 0.0
+        for row in tables.get("cuda_gpu_kern_sum", []):
+            seconds = _number(row.get("Total Time (ns)")) * 1e-9
+            entry = kernels.setdefault(row.get("Name", ""), [0.0, 0])
+            entry[0] += seconds
+            entry[1] += int(_number(row.get("Instances")))
+            own += seconds
+        processes.append(round(own, 9))
+        for row in tables.get("cuda_gpu_mem_time_sum", []):
+            item = directions.setdefault(row.get("Operation", "").strip("[]"), {"count": 0, "mb": 0.0, "seconds": 0.0})
+            item["count"] += int(_number(row.get("Count")))
+            item["seconds"] += _number(row.get("Total Time (ns)")) * 1e-9
+        for row in tables.get("cuda_gpu_mem_size_sum", []):
+            item = directions.setdefault(row.get("Operation", "").strip("[]"), {"count": 0, "mb": 0.0, "seconds": 0.0})
+            item["mb"] += _number(row.get("Total (MB)"))
+        for row in tables.get("openacc_sum", []):
+            event = _ACC_EVENT.match(row.get("Name", ""))
+            if event and event["kind"] in ("Enqueue Upload", "Enqueue Download"):
+                key = (f"{event['file']}:{event['line']}", "upload" if "Upload" in event["kind"] else "download")
+                entry = by_line.setdefault(key, [0.0, 0])
+                entry[0] += _number(row.get("Total Time (ns)")) * 1e-9
+                entry[1] += int(_number(row.get("Num Calls")))
+    if not kernels:
+        raise ProfileError("nsys recorded no GPU kernel (did the program run on a GPU?)")
+    total = sum(seconds for seconds, _ in kernels.values())
+    routines = []
+    for name, (seconds, instances) in sorted(kernels.items(), key=lambda item: -item[1][0]):
+        procedure, location, _ = kernel_source(name, source)
+        routines.append(Routine(name, round(seconds, 9), instances, procedure, location, 100 * seconds / total))
+    profile = Profile("nsys", "s", round(total, 9), routines[:top])
+    profile.project_share = sum(r.percent for r in routines if r.procedure)
+    if len(processes) > 1:
+        profile.processes = processes
+    copies = {k: v for k, v in directions.items() if "memcpy" in k}
+    profile.transfers = {
+        k.replace("CUDA memcpy ", ""): {"count": v["count"], "mb": round(v["mb"], 3), "seconds": round(v["seconds"], 9)}
+        for k, v in sorted(copies.items())
+    }
+    for (location, kind), (seconds, calls) in sorted(by_line.items(), key=lambda item: -item[1][0]):
+        file, line = location.rsplit(":", 1)
+        shown, procedure, text = source.line(file, int(line))
+        profile.transfer_lines.append(
+            {
+                "location": f"{shown}:{line}" if shown else location,
+                "kind": kind,
+                "calls": calls,
+                "seconds": round(seconds, 9),
+                "procedure": procedure,
+                "text": text,
+            }
+        )
+    moved = sum(v["seconds"] for v in copies.values())
+    if moved and total:
+        profile.notes.append(
+            f"host-device transfers {moved:.4g} s = {moved / total:.3g} x the kernel time"
+            + (": the data movement dominates, keep the data on the device" if moved > total else "")
+        )
+    profile.notes.append("kernel and transfer times measured by Nsight Systems; no hardware counters (ncu not used)")
+    return profile
+
+
 def render_text(case: str, profile: Profile) -> str:
     total = f"{profile.total:.4g} s" if profile.unit == "s" else f"{int(profile.total):,} instructions"
+    if profile.tool == "nsys":
+        total += " in GPU kernels"
     lines = [f"profile {case} ({profile.tool}): {total}"]
     if profile.project_share is not None:
         lines[0] += f", {profile.project_share:.1f}% in the mode's sources"
     if profile.imbalance is not None:
         each = ", ".join(f"{t:.4g}" for t in profile.processes)
         lines.append(f"  processes: {each} s (imbalance max/mean {profile.imbalance:.2f})")
-    lines.append("  routines (self):")
+    lines.append("  kernels:" if profile.tool == "nsys" else "  routines (self):")
     for r in profile.routines:
         where = f" = {r.procedure} ({r.location})" if r.procedure else " (outside the sources: runtime, libraries)"
-        calls = f", {r.calls} calls" if r.calls is not None else ""
+        calls = f", {r.calls} {'launches' if profile.tool == 'nsys' else 'calls'}" if r.calls is not None else ""
         value = f"{r.self_cost:.4g} s" if profile.unit == "s" else f"{int(r.self_cost):,} Ir"
         lines.append(f"    {r.percent:5.1f}%  {value}  {r.symbol}{where}{calls}")
         for c in r.callers:
@@ -380,6 +533,16 @@ def render_text(case: str, profile: Profile) -> str:
     if profile.procedures:
         lines.append("  project procedures (by their source lines, inlined code included):")
         lines += [f"    {p['percent']:5.1f}%  {p['procedure']}" for p in profile.procedures]
+    if profile.transfers:
+        lines.append("  host-device transfers:")
+        for direction, item in profile.transfers.items():
+            lines.append(f"    {direction}: {item['count']} copies, {item['mb']:.4g} MB, {item['seconds']:.4g} s")
+    if profile.transfer_lines:
+        lines.append("  transfers by source line (OpenACC):")
+        for item in profile.transfer_lines:
+            lines.append(
+                f"    {item['kind']:8s} {item['seconds']:.4g} s  {item['calls']} calls  {item['location']}  {item['text']}"
+            )
     if profile.lines:
         lines.append("  hottest lines:")
         lines += [f"    {item['percent']:5.1f}%  {item['location']}  {item['text']}" for item in profile.lines]

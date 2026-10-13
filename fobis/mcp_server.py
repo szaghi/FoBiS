@@ -829,14 +829,16 @@ class Server:
                 "Where a declared case spends its time (tool gprof: the case rebuilt with -pg, sampled self seconds and "
                 "call counts; per-process totals and the max/mean imbalance for MPI ranks) or its instructions "
                 "(tool callgrind: per function and per SOURCE LINE, so procedures the compiler inlined are still "
-                "found), mapped to the project's procedures (file:line) and hottest source lines. Writes run "
-                "directories only.",
+                "found), or its GPU time (tool nsys: kernel times mapped to the OpenACC/OpenMP directive lines, "
+                "host-device transfers per direction and per OpenACC source line, per-rank kernel time), mapped to "
+                "the project's procedures (file:line) and hottest source lines. Writes run directories only.",
                 _schema(
                     {
                         "case": _STR,
-                        "tool": {"type": "string", "enum": ["gprof", "callgrind"]},
+                        "tool": {"type": "string", "enum": ["gprof", "callgrind", "nsys"]},
                         "top": {**_INT, "description": "routines, procedures and lines shown (default 15)"},
                         "mode": _MODE,
+                        "runner": _RUNNER,
                     },
                     ("case",),
                 ),

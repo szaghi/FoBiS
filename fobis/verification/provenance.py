@@ -30,6 +30,7 @@ import datetime
 import hashlib
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -200,15 +201,22 @@ def collect(
     return data
 
 
+def _gpu_models(gpus: list) -> list:
+    return [re.sub(r"\s*\(UUID:[^)]*\)", "", str(g)) for g in gpus]
+
+
 def differences(old: dict, new: dict, prefix: str = "") -> list[str]:
-    """What changed between two provenances that can change results (dates and hosts aside): ``key: old -> new``."""
-    ignored = {"date", "machine.host", "git.branch", "fobis", "rebuilt_because"}
+    """What changed between two provenances that can change results (dates, hosts and job ids aside; GPUs by model,
+    not by serial number): ``key: old -> new``."""
+    ignored = {"date", "machine.host", "git.branch", "fobis", "rebuilt_because", "scheduler.job", "scheduler.node"}
     found = []
     for key in sorted(set(old) | set(new)):
         path = f"{prefix}{key}"
         if path in ignored:
             continue
         a, b = old.get(key), new.get(key)
+        if path == "machine.gpus" and isinstance(a, list) and isinstance(b, list):
+            a, b = _gpu_models(a), _gpu_models(b)
         if isinstance(a, dict) and isinstance(b, dict):
             found += differences(a, b, f"{path}.")
         elif a != b:

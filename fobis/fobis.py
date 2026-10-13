@@ -2933,6 +2933,7 @@ def run_fobis_profile(configuration):
     """
     import glob
     import json
+    import re
     import shutil as _shutil
     import subprocess
 
@@ -2941,7 +2942,6 @@ def run_fobis_profile(configuration):
     from .verification import CaseError, LocalRunner, load_cases, load_settings
     from .verification import profile as pf
     from .verification.runner import BuildVariant
-    from .verification.scheduler import guard_message, on_login_node
     from .verification.shadow import family
 
     cliargs = configuration.cliargs
@@ -2952,8 +2952,8 @@ def run_fobis_profile(configuration):
         if cliargs.profile_case not in cases:
             raise CaseError(f"unknown case {cliargs.profile_case!r} (declared: {', '.join(cases) or 'none'})")
         if tool not in pf.TOOLS:
-            raise CaseError(f"unknown tool {tool!r} (available: {', '.join(pf.TOOLS)}; nsys/ncu are not supported yet)")
-        executable = "gprof" if tool == "gprof" else "valgrind"
+            raise CaseError(f"unknown tool {tool!r} (available: {', '.join(pf.TOOLS)}; ncu is not supported)")
+        executable = {"gprof": "gprof", "callgrind": "valgrind", "nsys": "nsys"}[tool]
         if _shutil.which(executable) is None:
             raise CaseError(f"{executable} is not on PATH (needed by --tool {tool})")
         case = cases[cliargs.profile_case]
@@ -2972,12 +2972,6 @@ def run_fobis_profile(configuration):
     mode = cliargs.profile_mode or case.mode
     environment = _mode_environments(settings, fobos_args, deps_dir)(mode)
 
-    class Runner(LocalRunner):
-        wrapper: list = []
-
-        def command(self, case_, program):
-            return pf.wrap(super().command(case_, program), program, case_.args, self.wrapper)
-
     probe = LocalRunner(".", fobos_args, settings.runs_dir, settings.launcher, deps_dir, env=environment)
     compiler = probe.introspect(mode).get("compiler", {}).get("name", "") if case.target else ""
     if tool == "gprof":
@@ -2986,16 +2980,23 @@ def run_fobis_profile(configuration):
             configuration.print_r(f"Error: no gprof flag known for the compiler {compiler!r} (use --tool callgrind)")
             sys.exit(2)
         variant = BuildVariant("profile-gprof", f"{flags} -g", flags)
-    else:
+    elif tool == "callgrind":
         variant = BuildVariant("profile-callgrind", "-g", "") if case.target else None
-    runner = Runner(".", fobos_args, settings.runs_dir, settings.launcher, deps_dir, env=environment, variant=variant)
-    host = on_login_node(_scheduler_config(configuration))
-    if host:
-        runner.refuse = guard_message(host)
+    else:
+        variant = None  # nsys: the mode's own build
+    runner = _make_runner(
+        configuration, ".", fobos_args, settings.runs_dir, settings.launcher, deps_dir, env=environment, variant=variant
+    )
+    wrapper = []
     if tool == "callgrind":
-        runner.wrapper = ["valgrind", "--tool=callgrind", "--callgrind-out-file=callgrind.out.%p"]
+        wrapper = ["valgrind", "--tool=callgrind", "--callgrind-out-file=callgrind.out.%p"]
+    elif tool == "nsys":
+        wrapper = pf.NSYS_WRAPPER
     else:
         case.env = {**case.env, "GMON_OUT_PREFIX": "gmon.out"}  # one file per process (MPI ranks), summed by gprof
+    if wrapper:
+        unwrapped = runner.command
+        runner.command = lambda case_, program: pf.wrap(unwrapped(case_, program), program, case_.args, wrapper)
     binary = None
     print(f"profile: building {case.name} for {tool}", file=sys.stderr, flush=True)
     if case.target:
@@ -3018,7 +3019,7 @@ def run_fobis_profile(configuration):
         recursive=not cliargs.disable_recursive_search,
     )
     analysed = lint_files(files, [], defines=parse_defines(_merged_preproc_flags(cliargs)))
-    source = pf.SourceMap(analysed.units)
+    source = pf.SourceMap(analysed.units, main=case.target or None)
     try:
         if tool == "gprof":
             outputs = sorted(glob.glob(os.path.join(result.rundir, "gmon.out*")))
@@ -3030,6 +3031,38 @@ def run_fobis_profile(configuration):
                 for output in outputs:
                     alone = subprocess.run(["gprof", "-b", "-p", binary, output], capture_output=True, text=True)
                     profile.processes.append(round(sum(r.self_cost for r in pf.parse_gprof(alone.stdout)[0]), 6))
+        elif tool == "nsys":
+            reports = sorted(
+                glob.glob(os.path.join(result.rundir, "nsys-*.nsys-rep")),
+                key=lambda p: int(re.sub(r"\D", "", os.path.basename(p)) or 0),
+            )
+            if not reports:
+                raise pf.ProfileError("nsys wrote no report (is nsys available where the program ran?)")
+            tables = []
+            for report in reports:
+                base = report[: -len(".nsys-rep")]
+                subprocess.run(
+                    [
+                        "nsys",
+                        "stats",
+                        "--format",
+                        "csv",
+                        "--force-export=true",
+                        "--report",
+                        ",".join(pf.NSYS_REPORTS),
+                        "--output",
+                        base,
+                        report,
+                    ],
+                    capture_output=True,
+                    text=True,
+                )
+                own = {}
+                for name in pf.NSYS_REPORTS:
+                    with contextlib.suppress(OSError), open(f"{base}_{name}.csv", encoding="utf-8") as handle:
+                        own[name] = pf.parse_csv(handle.read())
+                tables.append(own)
+            profile = pf.from_nsys(tables, source, cliargs.profile_top)
         else:
             data = pf.Callgrind()
             for path in sorted(glob.glob(os.path.join(result.rundir, "callgrind.out.*"))):

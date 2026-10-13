@@ -1,0 +1,4 @@
+Time (%),Total Time (ns),Instances,Avg (ns),Med (ns),Min (ns),Max (ns),StdDev (ns),Name
+79.3,595137,5,119027.4,119072.0,118721,119488,312.1,acc_copy_10_gpu
+11.2,84320,1,84320.0,84320.0,84320,84320,0.0,acc_copy_16_gpu
+9.5,71200,1,71200.0,71200.0,71200,71200,0.0,acc_copy_16_gpu__red

@@ -332,6 +332,15 @@ def test_collect_and_differences(project):
     other = json.loads(json.dumps(data))
     other["compiler"]["cflags"], other["date"], other["machine"]["host"] = "-O3", "later", "elsewhere"
     assert differences(data, other) == ["compiler.cflags: '-O2' -> '-O3'"]
+    # a Slurm run: the job id and node always differ; another GPU of the same model is no change, another model is
+    data["machine"]["gpus"] = ["GPU 0: NVIDIA A30 (UUID: GPU-1)"]
+    data["scheduler"] = {"job": "1", "node": "gnode01", "partition": "p"}
+    other = json.loads(json.dumps(data))
+    other["scheduler"].update(job="2", node="gnode07")
+    other["machine"]["gpus"] = ["GPU 0: NVIDIA A30 (UUID: GPU-2)"]
+    assert differences(data, other) == []
+    other["machine"]["gpus"] = ["GPU 0: NVIDIA A100 (UUID: GPU-3)"]
+    assert differences(data, other) == ["machine.gpus: ['GPU 0: NVIDIA A30'] -> ['GPU 0: NVIDIA A100']"]
 
 
 # ── CLI ────────────────────────────────────────────────────────────────────────

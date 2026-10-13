@@ -1,0 +1,3 @@
+Time (%),Total Time (ns),Instances,Avg (ns),Med (ns),Min (ns),Max (ns),StdDev (ns),Name
+51.9,120192,1,120192.0,120192.0,120192,120192,0.0,nvkernel_MAIN__F1L9_2_
+48.1,111296,1,111296.0,111296.0,111296,111296,0.0,nvkernel_MAIN__F1L14_4_
