@@ -522,6 +522,22 @@ class Server:
                 ),
             ),
             Tool(
+                "case_list",
+                "List the declared cases",
+                "The runnable cases declared in the fobos ([case:NAME]): program or command, mode, inputs, ranks, "
+                "threads, timeout and the quantities each produces.",
+                _schema(),
+                lambda a: self._json(["case", "list", "--json"]),
+            ),
+            Tool(
+                "provenance",
+                "Provenance of a result",
+                "What a result produced now depends on: commit and uncommitted change, dependency pins, compiler with "
+                "version and flags of the mode, loaded modules, machine and GPUs.",
+                _schema({"mode": _MODE}),
+                lambda a: self._json(["provenance", "--json", *self._mode(a)]),
+            ),
+            Tool(
                 "build",
                 "Build the project",
                 "Build the project with FoBiS (writes objects and targets in the mode's build directory). On failure "
@@ -539,6 +555,16 @@ class Server:
                 "frames) and FoBiS's notes on it (trusted location, debug mode to rebuild with, known compiler bugs).",
                 _schema({"mode": _MODE, "suite": _STR, "filter": _STR, "list": _BOOL}),
                 self._test,
+                read_only=False,
+            ),
+            Tool(
+                "case_run",
+                "Run cases",
+                "Build and run declared cases (all by default) in fresh run directories and return, per run, its "
+                "status (ok, failed, timeout, build-failed with diagnoses, probe-error), its quantities, the tails of "
+                "its output and its provenance.",
+                _schema({"names": {**_STR_LIST, "description": "cases to run (default: all)"}, "mode": _MODE}),
+                lambda a: self._json(["case", "run", *a.get("names", []), "--json", *self._mode(a)]),
                 read_only=False,
             ),
             Tool(

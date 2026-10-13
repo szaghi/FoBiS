@@ -16,6 +16,7 @@ programmatically; the [MCP server](/ai/mcp) returns the same documents to agents
 | `fobis merge-assist --format json` | each conflict's versions and resolution (below) |
 | `fobis commit --show-facts --json` | the facts of the staged change (below) |
 | `fobis ask --show-context --json` | the retrieved, citable sections of a question (below) |
+| `fobis case list --json`, `fobis case run --json`, `fobis provenance --json` | cases, runs with their quantities, provenance (below) |
 | `fobis testgen --format json`, `fobis ecosystem impact --format json`, `fobis ecosystem dashboard --json` | see [testgen](/reference/testgen), [ecosystem](/reference/ecosystem) |
 
 With machine output on, FoBiS's own messages and warnings go to **stderr**: stdout holds the JSON document only.
@@ -190,6 +191,15 @@ by kind (`code`, `omp`, `acc`, `comment`), `procedures` and `interfaces`. Exit c
 ### `fobis ask --show-context --json`
 
 `question` and `sources`: each with its `label` (S1...), `id`, `title` and `text`. No model is run.
+
+### `fobis case run --json`
+
+`results`, one per run: `case`, `variant`, `status` (`ok`, `probe-error`, `failed`, `timeout`, `build-failed`,
+`error`), `exit_code`, `elapsed`, `command`, `rundir`, `quantities` (name -> `values`, and `shape` when declared or
+known; NaN and infinities as the strings `"nan"`, `"inf"`, `"-inf"`), `probe_errors` (name -> reason), the tails of
+`stdout` and `stderr`, `provenance`, and `build` (the `build --json` document) when the build failed. `fobis case
+list --json` gives the declared `cases`; `fobis provenance --json` the provenance alone (see
+[Cases](/advanced/cases#provenance)).
 
 ## Exit codes
 

@@ -28,6 +28,7 @@ from . import (  # noqa: F401
     ask,
     build,
     cache_cmd,
+    case,
     check,
     clean,
     commit,

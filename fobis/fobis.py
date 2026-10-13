@@ -116,6 +116,10 @@ def run_fobis(fake_args=None):
             run_fobis_merge_assist(configuration)
         if configuration.cliargs.which == "testgen":
             run_fobis_testgen(configuration)
+        if configuration.cliargs.which == "case":
+            run_fobis_case(configuration)
+        if configuration.cliargs.which == "provenance":
+            run_fobis_provenance(configuration)
         if configuration.cliargs.which == "test":
             run_fobis_test(configuration)
         if configuration.cliargs.which == "introspect":
@@ -2092,6 +2096,138 @@ def _choose_hunks(cf, accept_all):
     return accepted, False
 
 
+def subprocess_ok(args: list[str]) -> bool:
+    """*args* ran and exited with status 0."""
+    import subprocess
+
+    try:
+        return subprocess.run(args, capture_output=True, timeout=30).returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
+def _verification_runner(configuration):
+    """The `LocalRunner` of the project in the cwd, with the fobos's ``[verification]`` settings."""
+    from .verification import LocalRunner, load_settings
+
+    cliargs = configuration.cliargs
+    fobos_args = ["--fobos", cliargs.fobos] if cliargs.fobos else []
+    if cliargs.fobos_case_insensitive:
+        fobos_args.append("--fobos-case-insensitive")
+    settings = load_settings(configuration.fobos)
+    deps_dir = configuration.fobos.get_deps_dir() if configuration.fobos.fobos else ".fobis_deps"
+    return LocalRunner(".", fobos_args, settings.runs_dir, settings.launcher, deps_dir)
+
+
+def _format_values(values: list, limit: int = 6) -> str:
+    shown = ", ".join(f"{v:.17g}" if isinstance(v, float) else str(v) for v in values[:limit])
+    return shown + (f", ... ({len(values)} values)" if len(values) > limit else "")
+
+
+def run_fobis_case(configuration):
+    """
+    Run FoBiS in case mode: list the declared cases, or build and run them and report their quantities.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import json
+
+    from .verification import CaseError, load_cases
+
+    cliargs = configuration.cliargs
+    as_json = getattr(cliargs, "json_output", False)
+    try:
+        cases = load_cases(configuration.fobos)
+    except CaseError as exc:
+        configuration.print_r(f"Error: {exc}")
+        sys.exit(2)
+    if cliargs.case_action == "list":
+        if as_json:
+            print(json.dumps({"cases": [c.to_dict() for c in cases.values()]}, indent=2))
+        elif not cases:
+            configuration.print_b("No case declared: add [case:NAME] sections to the fobos (see fobis case --help).")
+        else:
+            for case in cases.values():
+                what = case.target or " ".join(case.command)
+                quantities = ", ".join(p.name for p in case.probes) or "none"
+                configuration.print_b(f"{case.name:<20} {what}  [quantities: {quantities}]")
+        return
+    wanted = cliargs.case_names or list(cases)
+    unknown = [n for n in wanted if n not in cases]
+    if unknown:
+        configuration.print_r(f"Error: unknown case(s) {', '.join(unknown)} (declared: {', '.join(cases) or 'none'})")
+        sys.exit(2)
+    runner = _verification_runner(configuration)
+    if not as_json and os.path.isdir(".git"):
+        ignored = subprocess_ok(["git", "check-ignore", "-q", os.path.join(runner.runs_dir, "x")])
+        if not ignored:
+            configuration.print_r(
+                f"Note: add {os.path.relpath(runner.runs_dir)}/ to .gitignore (run directories and built programs)"
+            )
+    results = []
+    for name in wanted:
+        if not as_json:
+            configuration.print_b(f"Running case {name}...")
+        result = runner.run(cases[name], mode=cliargs.case_mode)
+        results.append(result)
+        if as_json:
+            continue
+        say = configuration.print_b if result.ok else configuration.print_r
+        say(
+            f"  {result.status} (exit {result.exit_code}, {result.elapsed:.2f} s) in {os.path.relpath(result.rundir or '.')}"
+        )
+        for quantity in result.quantities:
+            shape = f" shape {quantity.shape}" if quantity.shape else ""
+            configuration.print_b(f"    {quantity.name} = {_format_values(quantity.values)}{shape}")
+        for name_, error in result.probe_errors.items():
+            configuration.print_r(f"    {name_}: {error}")
+        if result.build is not None:
+            for diagnosis in result.build.get("diagnoses", []):
+                configuration.print_r(f"    build: {diagnosis.get('summary')}")
+            if not result.build.get("diagnoses"):
+                configuration.print_r("    build: " + "; ".join(result.build.get("errors", [])[:3]))
+        if result.status in ("failed", "timeout", "error") and result.stderr.strip():
+            configuration.print_r("    " + "\n    ".join(result.stderr.strip().splitlines()[-10:]))
+    if as_json:
+        print(json.dumps({"results": [r.to_dict() for r in results]}, indent=2))
+    if any(not r.ok for r in results):
+        sys.exit(1)
+
+
+def run_fobis_provenance(configuration):
+    """
+    Run FoBiS in provenance mode: print what a result produced now would depend on.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import json
+
+    from .verification.case import Case
+
+    runner = _verification_runner(configuration)
+    mode = configuration.cliargs.prov_mode
+    data = runner.provenance(Case("provenance", target="-"), mode)
+    if getattr(configuration.cliargs, "json_output", False):
+        print(json.dumps(data, indent=2))
+        return
+
+    def lines(value, indent=""):
+        for key, item in value.items():
+            if isinstance(item, dict):
+                yield f"{indent}{key}:"
+                yield from lines(item, indent + "  ")
+            elif isinstance(item, list):
+                yield f"{indent}{key}: {', '.join(map(str, item)) or '-'}"
+            else:
+                yield f"{indent}{key}: {item if item not in ('', None) else '-'}"
+
+    configuration.print_b("\n".join(lines(data)))
+
+
 def _testgen_dirs(configuration) -> tuple[str, str]:
     """``testgen``: the test directory (fobos ``[test] test_dir``) and the directory, relative to the project
     root, where test programs are built in the scratch copy: the test directory when the mode's sources contain it
@@ -2896,6 +3032,7 @@ def run_fobis_introspect(configuration):
             "binary": getattr(cliargs, "fc", "") or "",
             "cflags": getattr(cliargs, "cflags", "") or "",
             "lflags": getattr(cliargs, "lflags", "") or "",
+            "preproc": _merged_preproc_flags(cliargs),
         }
 
     # Source files
@@ -2953,7 +3090,7 @@ def run_fobis_introspect(configuration):
     # Build options
     if getattr(cliargs, "introspect_buildoptions", False):
         data["buildoptions"] = {
-            "mode": getattr(cliargs, "mode", "") or "",
+            "mode": getattr(cliargs, "mode", "") or getattr(configuration.fobos, "mode", "") or "",
             "build_dir": getattr(cliargs, "build_dir", "./"),
             "obj_dir": getattr(cliargs, "obj_dir", "./obj/"),
             "mod_dir": getattr(cliargs, "mod_dir", "./mod/"),

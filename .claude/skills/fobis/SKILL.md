@@ -101,6 +101,8 @@ fobis llm <...>          # local LLM harness: runtime install, pull models, serv
 fobis review [--staged | --base REF]  # lint findings on the changed lines only (pre-commit, PR); --deep risk summary
 fobis merge-assist [--apply [--yes]]  # proposals for merge/rebase/cherry-pick conflicts, compiled; never stages
 fobis testgen MODULE [--skeleton] [--apply]  # test program for a module's public API, kept only if it builds+runs+checks
+fobis case list|run [NAME] [--json]  # run fobos [case:NAME] programs, extract their quantities (+ provenance)
+fobis provenance [--json]            # commit/dirty, dep pins, compiler+version+flags, modules, machine
 fobis ask "QUESTION"     # answer from the knowledge packs (+ project procedures with -p DIR), with citations
 fobis build --explain    # on failure: explain from facts (missing module, unlinked object ...), then LLM
 fobis run --explain      # runtime crash: located facts, debug mode to use, known compiler bugs, then LLM
@@ -124,6 +126,12 @@ fobis test --explain     # the same for every failed test (LLM for the first one
   openWorld), JSON as text + `structuredContent` (2025-06-18), a failed build/test is a result (status error), not
   a tool error; lint/review trimmed to `max_findings` (200). Resources `fobis://rules/{id}`, template
   `fobis://kb/{id}` (URL-encoded id). By design no local-LLM answer is exposed: the client is the model.
+- `case`: fobos `[case:NAME]`: `target` (built with the case's `mode`) or `command`, `args`, `inputs` (copied
+  into a fresh `.fobis/runs/<case>/<variant>/`), `ranks` (`[verification] launcher`, `{ranks}`), `threads`,
+  `timeout`, `env`, `quantities` (`name : regex stdout PAT [last]` | `column FILE N` | `json FILE $.k` | `hdf5
+  FILE /ds` | `binary FILE real64 [n] record 2|stream` | `exit`, or `stdout` alone). Status ok/probe-error/
+  failed/timeout/build-failed/error; exit 1 when a run is not ok, 2 on a bad declaration. Base of the coming
+  `verify`/`assess`/`diff-run`/`bench` (PLAN-verification.md).
 - **Machine output** (`--json` / `--format json`): build (on failure + `diagnostics` parsed + `diagnoses` from
   facts), clean, fetch, check, tree (each dep with ITS version), test (per test status passed/failed/build-failed/
   timeout/error + `crash`/`notes` or `diagnostics`/`diagnoses`), introspect, lint/review, merge-assist, testgen,

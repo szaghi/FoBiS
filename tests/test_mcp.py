@@ -31,8 +31,11 @@ TOOLS = [
     "testgen_skeleton",
     "ecosystem_status",
     "ecosystem_impact",
+    "case_list",
+    "provenance",
     "build",
     "test",
+    "case_run",
     "clean",
     "fetch",
 ]
@@ -95,7 +98,7 @@ def test_tools_list_has_schemas_and_annotations(server):
     assert all(t["inputSchema"]["type"] == "object" and t["description"] and t["title"] for t in tools.values())
     assert tools["kb_search"]["inputSchema"]["required"] == ["query"]
     hints = {n: t["annotations"] for n, t in tools.items()}
-    assert {n for n, a in hints.items() if not a["readOnlyHint"]} == {"build", "test", "clean", "fetch"}
+    assert {n for n, a in hints.items() if not a["readOnlyHint"]} == {"build", "test", "case_run", "clean", "fetch"}
     assert {n for n, a in hints.items() if a["destructiveHint"]} == {"clean"}
     assert {n for n, a in hints.items() if a["openWorldHint"]} == {"ecosystem_status", "fetch"}
     assert not hints["fetch"]["idempotentHint"] and hints["build"]["idempotentHint"]
@@ -135,6 +138,9 @@ def test_command_lines(server, calls):
     _call(server, "test", {"suite": "unit", "filter": "t_*", "list": True})
     _call(server, "clean")
     _call(server, "fetch", {"update": True})
+    _call(server, "case_list")
+    _call(server, "provenance", {"mode": "gnu"})
+    _call(server, "case_run", {"names": ["sod"], "mode": "gnu"})
     assert calls == [
         [
             "lint",
@@ -178,6 +184,9 @@ def test_command_lines(server, calls):
         ["test", "--json", "--suite", "unit", "--filter", "t_*", "--list"],
         ["clean", "--json"],
         ["fetch", "--json", "--update"],
+        ["case", "list", "--json"],
+        ["provenance", "--json", "--mode", "gnu"],
+        ["case", "run", "sod", "--json", "--mode", "gnu"],
     ]
 
 
