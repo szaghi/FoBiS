@@ -20,7 +20,7 @@ def cmd_install(
     mode: ModeOpt = None,
     lmodes: LmodesOpt = False,
     # directories group (install variant)
-    build_dir: BuildDirOpt = "./",
+    build_dir: BuildDirOpt = None,
     prefix: Annotated[
         str, typer.Option("--prefix", "-p", help="Prefix path where built objects are installed [default: ./]")
     ] = "./",
@@ -63,7 +63,8 @@ def cmd_install(
         fobos_case_insensitive=fobos_case_insensitive,
         mode=mode,
         lmodes=lmodes,
-        build_dir=build_dir,
+        build_dir=build_dir or "./",
+        build_dir_explicit=build_dir is not None,
         prefix=prefix,
         bin=bin,
         lib=lib,

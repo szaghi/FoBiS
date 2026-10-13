@@ -41,7 +41,7 @@ fobis clean [options]
 | Option | Default | Description |
 |---|---|---|
 | `-s`, `--src` | `./` | Root source directory |
-| `--dbld`, `--build-dir` | `./` | Build output directory to clean |
+| `--dbld`, `--build-dir` | `./` | Build output directory to clean; given on the command line it wins over the mode's `build_dir` |
 | `--dobj`, `--obj-dir` | `./obj/` | Compiled objects directory |
 | `--dmod`, `--mod-dir` | `./mod/` | Module interface files directory |
 | `--dlib`, `--lib-dir` | — | Library search directories |

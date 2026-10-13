@@ -4176,8 +4176,8 @@ def _read_feedback_log(path: str, cliargs, configuration) -> str:
     mode = f" --mode {cliargs.mode}" if getattr(cliargs, "mode", None) else ""
     if flags:
         hint = (
-            f'produce it with:\n  fobis build{mode} --cflags "{flags}" -j 1 --force-compile --no-cache'
-            f" 2>&1 | tee {path}"
+            f'produce it with:\n  fobis build{mode} --cflags "{flags}" --build-dir .fobis/feedback -j 1 --force-compile'
+            f" --no-cache 2>&1 | tee {path}"
         )
     else:
         hint = f"compiler '{compiler}' is not supported (supported: nvfortran, gnu)"

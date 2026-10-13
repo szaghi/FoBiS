@@ -1027,6 +1027,8 @@ class Fobos:
             # an explicit --target builds that program, not the mode's: its output is the CLI's too (fobis test,
             # case and testgen build their programs with --target/--output in modes that declare a target)
             explicit = {"target", "output"} if cliargs_dict.get("target") else set()
+            if cliargs_dict.get("build_dir_explicit"):  # --build-dir given: it wins over the mode's build_dir
+                explicit.add("build_dir")
             for item in self.fobos.items(self.mode):
                 if item[0] in self._SKIP_AUTO_ATTRS or item[0] in explicit:
                     continue

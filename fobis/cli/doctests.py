@@ -38,7 +38,7 @@ def cmd_doctests(
     track_build: TrackBuildOpt = False,
     # directories group
     src: SrcOpt = None,
-    build_dir: BuildDirOpt = "./",
+    build_dir: BuildDirOpt = None,
     obj_dir: ObjDirOpt = "./obj/",
     mod_dir: ModDirOpt = "./mod/",
     lib_dir: LibDirOpt = None,
@@ -110,7 +110,8 @@ def cmd_doctests(
         cflags_heritage=cflags_heritage,
         track_build=track_build,
         src=src or ["./"],
-        build_dir=build_dir,
+        build_dir=build_dir or "./",
+        build_dir_explicit=build_dir is not None,
         obj_dir=obj_dir,
         mod_dir=mod_dir,
         lib_dir=lib_dir or [],

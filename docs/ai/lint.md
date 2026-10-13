@@ -104,8 +104,9 @@ loops it could not vectorise. `--compiler-feedback` reads the compiler's own opt
 build log and reports it as findings on your source lines, next to the other rules:
 
 ```bash
-# 1. build once with the report flags (one job: messages of different files must not interleave)
-fobis build --mode nvidia --cflags "-Minfo=accel,mp" -j 1 --force-compile --no-cache 2>&1 | tee build.log
+# 1. build once with the report flags, apart from your build tree (one job: messages must not interleave)
+fobis build --mode nvidia --cflags "-Minfo=accel,mp" --build-dir .fobis/feedback -j 1 --force-compile --no-cache \
+  2>&1 | tee build.log
 # 2. lint with the report
 fobis lint --mode nvidia --compiler-feedback build.log
 ```

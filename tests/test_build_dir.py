@@ -1,0 +1,50 @@
+"""Tests for the precedence of ``--build-dir``: given on the command line it wins over the mode's ``build_dir`` (as
+an explicit ``--target`` does), so a build can go to a scratch directory without touching the mode's build tree;
+without it the mode's ``build_dir`` applies as before. Real gfortran builds."""
+
+from __future__ import annotations
+
+import shutil
+
+import pytest
+
+from fobis.fobis import run_fobis
+
+pytestmark = pytest.mark.skipif(shutil.which("gfortran") is None, reason="gfortran")
+
+
+@pytest.fixture
+def project(tmp_path, monkeypatch):
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "app.f90").write_text("program app\nprint *, 1\nend program\n")
+    (tmp_path / "fobos").write_text(
+        "[modes]\nmodes = gnu\n\n[gnu]\ncompiler = gnu\nsrc = ./src/\nbuild_dir = ./build/\ntarget = src/app.f90\n"
+        "cflags = -c\n"
+    )
+    monkeypatch.chdir(tmp_path)
+    return tmp_path
+
+
+def _run(args, capsys):
+    try:
+        run_fobis(fake_args=args)
+        code = 0
+    except SystemExit as exc:
+        code = exc.code or 0
+    capsys.readouterr()
+    return code
+
+
+def test_mode_build_dir_without_the_option(project, capsys):
+    assert _run(["build"], capsys) == 0
+    assert (project / "build" / "app").is_file()
+
+
+def test_explicit_build_dir_wins_over_the_mode(project, capsys):
+    assert _run(["build", "--build-dir", "scratch"], capsys) == 0
+    assert (project / "scratch" / "app").is_file() and (project / "scratch" / "obj" / "app.o").is_file()
+    assert not (project / "build").exists()  # the mode's build tree is not touched
+    assert _run(["build", "--build_dir", "legacy"], capsys) == 0  # the legacy spelling, normalised
+    assert (project / "legacy" / "app").is_file()
+    assert _run(["clean", "--build-dir", "scratch"], capsys) == 0
+    assert not (project / "scratch" / "obj" / "app.o").exists()

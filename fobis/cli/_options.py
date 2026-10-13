@@ -111,7 +111,12 @@ TrackBuildOpt = Annotated[bool, typer.Option("--track-build", "--tb", help="Stor
 
 SrcOpt = Annotated[list[str] | None, typer.Option("--src", "-s", help="Root-directory of source files [default: ./]")]
 BuildDirOpt = Annotated[
-    str, typer.Option("--build-dir", "--dbld", help="Directory containing built objects [default: ./]")
+    str | None,
+    typer.Option(
+        "--build-dir",
+        "--dbld",
+        help="Directory containing built objects [default: ./]; given here, it wins over the mode's build_dir",
+    ),
 ]
 ObjDirOpt = Annotated[
     str, typer.Option("--obj-dir", "--dobj", help="Directory containing compiled objects [default: ./obj/]")

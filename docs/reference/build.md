@@ -50,7 +50,7 @@ are tracked separately with `--cflags-heritage`.
 | Option | Default | Description |
 |---|---|---|
 | `-s`, `--src` | `./` | Root source directory (repeatable: `--src ./a --src ./b`) |
-| `--dbld`, `--build-dir` | `./` | Build output directory |
+| `--dbld`, `--build-dir` | `./` | Build output directory; given on the command line it wins over the mode's `build_dir` (a build apart from the mode's tree) |
 | `--dobj`, `--obj-dir` | `./obj/` | Compiled objects directory |
 | `--dmod`, `--mod-dir` | `./mod/` | Module interface files directory |
 | `--dlib`, `--lib-dir` | — | Library search directories (repeatable) |
