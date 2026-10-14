@@ -623,6 +623,7 @@ class DepNode:
     children: list["DepNode"] = field(default_factory=list)
     duplicate: bool = False
     version: str = ""
+    dev: bool = False  # a test-only dependency (:: dev)
 
 
 def render_tree(nodes: list[DepNode], prefix: str = "") -> str:
@@ -650,6 +651,8 @@ def render_tree(nodes: list[DepNode], prefix: str = "") -> str:
             label += f" {node.version}"
         if node.spec:
             label += f" ({node.spec})"
+        if node.dev:
+            label += " [test only]"
         if node.duplicate:
             label += " (*) [already shown]"
         elif not node.fetched:
@@ -1800,6 +1803,9 @@ class Fobos:
         deps = self.get_dependencies()
         nodes: list[DepNode] = []
         for name, spec in deps.items():
+            dev = any(part.strip().lower() == "dev" for part in spec.split("::")[1:])
+            if dev and depth > 0:  # a dependency's test-only dependencies are its own business
+                continue
             dep_dir = os.path.join(deps_dir, name)
             fetched = os.path.isdir(dep_dir)
             fobos_file = os.path.join(dep_dir, "fobos")
@@ -1825,6 +1831,7 @@ class Fobos:
                     has_fobos=has_fobos,
                     version=version,
                     duplicate=True,
+                    dev=dev,
                 )
                 nodes.append(node)
                 continue
@@ -1864,6 +1871,7 @@ class Fobos:
                 version=child_version if has_fobos else version,
                 children=children,
                 duplicate=False,
+                dev=dev,
             )
             nodes.append(node)
         return nodes

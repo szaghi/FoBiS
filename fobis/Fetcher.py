@@ -65,7 +65,9 @@ class Fetcher:
         Parse a dependency spec string into a dict.
 
         Format: URL [:: branch=X] [:: tag=X] [:: rev=X] [:: mode=X]
-                    [:: use=sources|fobos] [:: semver=^1.5]
+                    [:: use=sources|fobos] [:: semver=^1.5] [:: dev]
+
+        ``dev`` marks a test-only dependency: fetched like the others, used only by ``fobis test`` and doctests.
 
         Parameters
         ----------
@@ -89,6 +91,8 @@ class Fetcher:
             if "=" in part:
                 key, _, value = part.partition("=")
                 result[key.strip()] = value.strip()
+            elif part.lower() == "dev":
+                result["dev"] = "true"
         # Validate semver exclusivity
         if "semver" in result:
             conflicts = [k for k in ("tag", "branch", "rev") if k in result]
@@ -287,19 +291,18 @@ class Fetcher:
         """
         config = configparser.RawConfigParser()
         config.add_section("deps")
-        dependon_entries = []
-        src_entries = []
+        entries: dict[str, list[str]] = {"dependon": [], "src": [], "dev_dependon": [], "dev_src": []}
         for dep in deps_info:
+            prefix = "dev_" if dep.get("dev") else ""  # test-only: loaded by fobis test and doctests only
             if dep.get("use", "sources") == "fobos":
                 fobos_path = os.path.join(dep["path"], "fobos")
                 entry = fobos_path + ":" + dep["mode"] if dep.get("mode") else fobos_path
-                dependon_entries.append(entry)
+                entries[prefix + "dependon"].append(entry)
             else:
-                src_entries.append(dep["path"])
-        if dependon_entries:
-            config.set("deps", "dependon", " ".join(dependon_entries))
-        if src_entries:
-            config.set("deps", "src", " ".join(src_entries))
+                entries[prefix + "src"].append(dep["path"])
+        for key, values in entries.items():
+            if values:
+                config.set("deps", key, " ".join(values))
         config_path = os.path.join(self.deps_dir, self.DEPS_CONFIG_FILE)
         with open(config_path, "w") as cfg_file:
             config.write(cfg_file)
@@ -321,7 +324,7 @@ class Fetcher:
         str
           full git-cloneable URL
         """
-        if repo.startswith("http://") or repo.startswith("https://") or repo.startswith("git@"):
+        if "://" in repo or repo.startswith("git@"):  # any URL (https, ssh, file: a local remote) as written
             return repo
         return "https://github.com/" + repo
 
@@ -570,7 +573,8 @@ class Fetcher:
         dict
           'dependon' : list of fobos-path strings for use=fobos deps
           'src'      : list of directory paths for use=sources deps
-          either key is absent when no entries of that type exist
+          'dev_dependon', 'dev_src' : the same for test-only (``:: dev``) deps
+          a key is absent when no entries of that type exist
         """
         config_path = os.path.join(self.deps_dir, self.DEPS_CONFIG_FILE)
         if not os.path.exists(config_path):
@@ -582,4 +586,7 @@ class Fetcher:
             result["dependon"] = config.get("deps", "dependon").split()
         if config.has_option("deps", "src"):
             result["src"] = config.get("deps", "src").split()
+        for key in ("dev_dependon", "dev_src"):
+            if config.has_option("deps", key):
+                result[key] = config.get("deps", key).split()
         return result

@@ -15,6 +15,7 @@ After fetching, run `fobis build` as usual — it automatically picks up the fet
 | `--deps-dir DIR` | `.fobis_deps` | Directory where dependencies are cloned (overrides `deps_dir` in fobos `[dependencies]`) |
 | `--update` | `False` | Re-fetch (git pull / checkout) and rebuild existing dependencies |
 | `--no-build` | `False` | Clone only — skip building even for `use=fobos` dependencies |
+| `--no-dev` | `False` | Skip the test-only (`:: dev`) dependencies (see [test-only dependencies](/advanced/fetch#test-only-dependencies-dev)) |
 | `--frozen` | `False` | Abort if `<deps_dir>/fobos.lock` is missing; check every dep out at its locked commit and keep the lock unchanged (see [Lock File](/advanced/lock-file)) |
 | `--no-cache` | `False` | Disable build cache when pre-building `use=fobos` deps |
 
@@ -56,8 +57,11 @@ simple   = https://github.com/user/repo
 Each dependency entry has the form:
 
 ```
-name = URL [:: branch=X | tag=X | rev=X | semver=X] [:: mode=X] [:: use=sources|fobos]
+name = URL [:: branch=X | tag=X | rev=X | semver=X] [:: mode=X] [:: use=sources|fobos] [:: dev]
 ```
+
+`:: dev` marks a test-only dependency: used by `fobis test`, doctests and `check`, left out of every other build
+([test-only dependencies](/advanced/fetch#test-only-dependencies-dev)).
 
 | Part | Description |
 |---|---|
@@ -177,6 +181,7 @@ See the [Fetch Dependencies](/advanced/fetch) advanced guide for the full workfl
 | `--deps-dir` | TEXT |  | Directory for storing fetched dependencies [default: .fobis_deps or fobos [dependencies] setting] |
 | `--update` |  |  | Update already-fetched dependencies (git fetch + re-checkout) |
 | `--no-build` |  |  | Only fetch dependencies, do not build them |
+| `--no-dev` |  |  | Skip the test-only dependencies (:: dev), e.g. for a production build |
 | `--frozen` |  |  | Check every dependency out at the commit of &lt;deps_dir&gt;/fobos.lock; abort if the lock is absent |
 | `--no-cache` |  |  | Disable build artifact cache for fetched dependencies |
 | `--force-compile` |  |  | Force to (re-)compile all |

@@ -212,7 +212,7 @@ class FoBiSConfig:
         entries to cliargs.dependon so the existing interdependent build machinery
         picks them up automatically. ``check`` reads it too: without it the fetched modules were unresolved.
         """
-        if self.cliargs.which in ("build", "check"):
+        if self.cliargs.which in ("build", "check", "doctests"):
             deps_dir = self.fobos.get_deps_dir()
             config_file = os.path.join(deps_dir, ".deps_config.ini")
             if os.path.exists(config_file):
@@ -220,17 +220,26 @@ class FoBiSConfig:
 
                 fetcher = Fetcher(deps_dir=deps_dir, print_n=self.print_b, print_w=self.print_r)
                 config = fetcher.load_config()
-                if config.get("dependon"):
-                    self.cliargs.dependon.extend(config["dependon"])
-                    for entry in config["dependon"]:
-                        dep_dir = os.path.normpath(os.path.dirname(entry.split(":")[0]))
-                        if dep_dir not in self.cliargs.exclude_dirs:
-                            self.cliargs.exclude_dirs.append(dep_dir)
-                if config.get("src"):
-                    for src_path in config["src"]:
-                        abs_src = os.path.abspath(src_path)
-                        if not any(abs_src.startswith(os.path.abspath(s)) for s in self.cliargs.src):
-                            self.cliargs.src.append(src_path)
+                # test-only deps: for the builds of fobis test (hidden --dev-deps), doctests and check (it scans the
+                # test programs too); any other build leaves them out, even when its sources contain the deps dir
+                with_dev = self.cliargs.which in ("check", "doctests") or getattr(self.cliargs, "dev_deps", False)
+                dependon = config.get("dependon", []) + (config.get("dev_dependon", []) if with_dev else [])
+                src = config.get("src", []) + (config.get("dev_src", []) if with_dev else [])
+                excluded = [] if with_dev else config.get("dev_src", [])
+                excluded += [
+                    os.path.dirname(e.split(":")[0]) for e in (config.get("dev_dependon", []) if not with_dev else [])
+                ]
+                self.cliargs.dependon.extend(dependon)
+                for entry in dependon:
+                    excluded.append(os.path.dirname(entry.split(":")[0]))
+                for dep_dir in excluded:
+                    dep_dir = os.path.normpath(dep_dir)
+                    if dep_dir not in self.cliargs.exclude_dirs:
+                        self.cliargs.exclude_dirs.append(dep_dir)
+                for src_path in src:
+                    abs_src = os.path.abspath(src_path)
+                    if not any(abs_src.startswith(os.path.abspath(s)) for s in self.cliargs.src):
+                        self.cliargs.src.append(src_path)
 
     @staticmethod
     def _check_md5sum(filename: str, hashfile: str) -> tuple[bool, bool]:

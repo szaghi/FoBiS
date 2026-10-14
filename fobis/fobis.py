@@ -381,9 +381,21 @@ def run_fobis_fetch(configuration):
 
     deps_info = []
     lock_entries = []
+    no_dev = getattr(configuration.cliargs, "no_dev", False)
     for name, spec in deps.items():
         parsed = fetcher.parse_dep_spec(spec)
         use_mode = parsed.get("use", "sources")
+        dev = parsed.get("dev") == "true"
+        if dev and no_dev:  # a test-only dependency, not wanted: its lock entry (if any) is kept as it was
+            configuration.print_b(f"{name}: test-only dependency, skipped (--no-dev)")
+            if name in lock:
+                lock_entries.append({"name": name, **lock[name]})
+            clone = os.path.join(deps_dir, name)
+            if os.path.isdir(clone):  # fetched before: recorded as test-only, so no other build compiles it
+                deps_info.append(
+                    {"name": name, "path": clone, "mode": parsed.get("mode", ""), "use": use_mode, "dev": True}
+                )
+            continue
 
         # Semver resolution
         if "semver" in parsed:
@@ -422,7 +434,7 @@ def run_fobis_fetch(configuration):
         if not configuration.cliargs.no_build and use_mode == "fobos":
             fetcher.build_dep(name, dep_path, mode=parsed.get("mode"))
 
-        deps_info.append({"name": name, "path": dep_path, "mode": parsed.get("mode", ""), "use": use_mode})
+        deps_info.append({"name": name, "path": dep_path, "mode": parsed.get("mode", ""), "use": use_mode, "dev": dev})
 
         # Build lock entry
         lock_entry: dict[str, str] = {
@@ -431,7 +443,7 @@ def run_fobis_fetch(configuration):
             "commit": commit_sha,
             "sha256": fetcher._compute_sha256(dep_path),
         }
-        for pin_key in ("branch", "tag", "rev", "semver"):
+        for pin_key in ("branch", "tag", "rev", "semver", "dev"):
             if pin_key in parsed:
                 lock_entry[pin_key] = parsed[pin_key]
         if "semver" in parsed and parsed.get("tag"):
@@ -1823,6 +1835,7 @@ def run_fobis_tree(configuration):
                 "fetched": n.fetched,
                 "has_fobos": n.has_fobos,
                 "duplicate": n.duplicate,
+                "dev": n.dev,
                 "dependencies": [node(c) for c in n.children],
             }
 
@@ -4464,7 +4477,7 @@ def run_fobis_test(configuration):
         with contextlib.suppress(FileNotFoundError):
             os.remove(binary)  # a build that produces nothing must not leave an older program to run
         # absolute: the builder joins -output to the mode's build_dir, which would prefix it twice
-        build_args = ["build", "-target", src, "-output", os.path.abspath(binary)]
+        build_args = ["build", "-target", src, "-output", os.path.abspath(binary), "--dev-deps"]
         mode_val = getattr(cliargs, "mode", None)
         if mode_val:
             build_args += ["-mode", mode_val]
@@ -4539,7 +4552,7 @@ def _run_fobis_test_json(configuration, tests, test_dir):
         os.makedirs(os.path.dirname(binary), exist_ok=True)
         with contextlib.suppress(FileNotFoundError):
             os.remove(binary)  # a build that produces nothing must not leave an older program to run
-        args = ["build", "-target", test["source"], "-output", os.path.abspath(binary), "--json"]
+        args = ["build", "-target", test["source"], "-output", os.path.abspath(binary), "--json", "--dev-deps"]
         if mode:
             args += ["-mode", mode]
         if getattr(cliargs, "shadow", None):

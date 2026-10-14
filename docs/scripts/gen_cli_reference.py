@@ -46,7 +46,7 @@ NOT_KEYS = {
     "variant_cflags", "variant_lflags", "shadow", "explain", "explain_context", "active_features", "target_filter",
     "examples", "repo", "branch", "tag", "rev", "update", "no_build", "execute", "list", "get", "get_output_name",
     "ford", "gcov_analyzer", "is_ascii_kind_supported", "is_float128_kind_supported", "is_ucs4_kind_supported",
-    "only_obj", "only_target", "makefile",
+    "only_obj", "only_target", "makefile", "dev_deps",
 }  # fmt: skip
 # keys a mode holds that are not command-line settings, read by the fobos parser itself
 OTHER_KEYS = {

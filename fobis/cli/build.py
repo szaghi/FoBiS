@@ -26,6 +26,10 @@ def cmd_build(
     lmodes: LmodesOpt = False,
     shadow: ShadowOpt = None,
     variant: VariantOpt = None,
+    dev_deps: Annotated[
+        bool,
+        typer.Option("--dev-deps", hidden=True, help="Also use the test-only (:: dev) dependencies (fobis test)."),
+    ] = False,
     variant_cflags: VariantCflagsOpt = None,
     variant_lflags: VariantLflagsOpt = None,
     # compiler group
@@ -205,6 +209,7 @@ def cmd_build(
         mode=mode,
         lmodes=lmodes,
         shadow=shadow,
+        dev_deps=dev_deps,
         variant=variant,
         variant_cflags=variant_cflags or "",
         variant_lflags=variant_lflags or "",

@@ -28,6 +28,10 @@ def cmd_fetch(
         bool, typer.Option("--update", help="Update already-fetched dependencies (git fetch + re-checkout)")
     ] = False,
     no_build: Annotated[bool, typer.Option("--no-build", help="Only fetch dependencies, do not build them")] = False,
+    no_dev: Annotated[
+        bool,
+        typer.Option("--no-dev", help="Skip the test-only dependencies (:: dev), e.g. for a production build"),
+    ] = False,
     frozen: Annotated[
         bool,
         typer.Option(
@@ -61,6 +65,7 @@ def cmd_fetch(
         deps_dir=deps_dir,
         update=update,
         no_build=no_build,
+        no_dev=no_dev,
         frozen=frozen,
         no_cache=no_cache,
         force_compile=force_compile,

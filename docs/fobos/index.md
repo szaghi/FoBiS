@@ -348,9 +348,12 @@ Declares GitHub-hosted dependencies. Each entry maps a short name to a repositor
 deps_dir = .fobis_deps          # optional: where to clone deps (same as --deps-dir)
 penf     = https://github.com/szaghi/PENF :: tag=v1.5.0
 stdlib   = https://github.com/fortran-lang/stdlib :: semver=>=0.5,<1.0 :: use=fobos :: mode=gnu
+testkit  = https://github.com/user/testkit :: tag=v1.0.0 :: dev   # test-only
 ```
 
-The `use=` field selects the integration mode:
+`:: dev` marks a test-only dependency: used by `fobis test`, doctests and `check`, left out of every other build
+([test-only dependencies](/advanced/fetch#test-only-dependencies-dev)). The `use=` field selects the integration
+mode:
 - **`sources`** (default) — dependency sources are compiled inline with your project
 - **`fobos`** — dependency is built as a separate library and linked
 

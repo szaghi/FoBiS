@@ -19,6 +19,22 @@ fobis build          # the dependency's sources are compiled with yours
 `tag=`, `branch=` or `rev=` pin it; `user/repo` is short for a GitHub URL. Tutorial:
 [dependencies](/tutorial/first-steps/05-dependencies). Guide: [fetch](/advanced/fetch).
 
+## A testing framework for the tests only
+
+```ini
+[dependencies]
+testkit = https://github.com/user/testkit :: tag=v1.0.0 :: dev
+```
+
+```bash
+fobis fetch            # fetched with the others
+fobis test             # the tests use it
+fobis fetch --no-dev   # a production checkout: not fetched
+```
+
+Never compiled into the library or the programs, never fetched for projects using yours. Guide:
+[test-only dependencies](/advanced/fetch#test-only-dependencies-dev).
+
 ## Build a dependency as its own library
 
 ```ini

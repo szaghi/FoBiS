@@ -27,20 +27,42 @@ fobis build
 ## Dependency specification syntax
 
 ```
-name = URL [:: branch=X] [:: tag=X] [:: rev=X] [:: mode=X] [:: use=sources|fobos]
+name = URL [:: branch=X] [:: tag=X] [:: rev=X] [:: mode=X] [:: use=sources|fobos] [:: dev]
 ```
 
 | Field | Description |
 |---|---|
 | `name` | Short identifier; also becomes the subdirectory name under `deps_dir` |
-| `URL` | HTTPS Git URL of the repository |
+| `URL` | Git URL of the repository (`https://`, `ssh://`, `git@...`, `file://` for a local repository), or `user/repo` for GitHub |
 | `branch=X` | Check out branch `X` |
 | `tag=X` | Check out tag `X` |
 | `rev=X` | Check out commit `X` |
 | `mode=X` | fobos mode to use when building the dependency (only relevant for `use=fobos`) |
 | `use=X` | Integration mode: `sources` (default) or `fobos` — see below |
+| `dev` | A test-only dependency: used by `fobis test`, doctests and `check` only — see below |
 
 Only one of `branch`, `tag`, or `rev` may be specified. Without any of these, the repository's default branch is used.
+
+## Test-only dependencies (`:: dev`)
+
+A testing framework, or fixtures shared by the tests, should not become part of the project. Mark such a
+dependency `:: dev`:
+
+```ini
+[dependencies]
+penf    = https://github.com/szaghi/PENF :: tag=v2.0.1
+testkit = https://github.com/user/testkit :: tag=v1.0.0 :: dev
+```
+
+- `fobis fetch` fetches it like the others; `fobis fetch --no-dev` skips it (a production build), keeping its lock
+  entry and leaving an earlier clone in place, still marked test-only.
+- `fobis test` (its builds), `fobis doctests` and `fobis check` use it.
+- Every other build leaves it out, even when its sources contain the dependency directory (`src = ./`): a library
+  or program that uses one of its modules does not build, and it never ends up in a library, an install or a
+  dependent project. A project using yours never fetches your test-only dependencies (`fobis tree` does not show
+  them below the first level, and marks yours `[test only]`).
+- A build of every program (a mode without `target`) whose sources include test programs using it needs it too:
+  give the mode a `target`, or keep the test directory out of its sources.
 
 ## Integration modes (`use=`)
 
@@ -128,6 +150,7 @@ src      = .fobis_deps/penf
 | `--deps-dir DIR` | `.fobis_deps` | Where to clone dependencies (overrides `deps_dir` in fobos) |
 | `--update` | `False` | Re-fetch and rebuild existing dependencies |
 | `--no-build` | `False` | Clone only — skip building even for `use=fobos` deps |
+| `--no-dev` | `False` | Skip the test-only (`:: dev`) dependencies |
 
 ## Typical workflows
 

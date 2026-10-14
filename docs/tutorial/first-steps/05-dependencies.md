@@ -68,7 +68,9 @@ and checks every dependency against it:
 | `URL :: semver=^2.0` | the newest tag that satisfies the constraint |
 | `user/repo` | `https://github.com/user/repo` |
 
-`:: mode=NAME` picks the dependency's fobos mode, `:: use=fobos` builds it as a library.
+`:: mode=NAME` picks the dependency's fobos mode, `:: use=fobos` builds it as a library, and `:: dev` makes it
+test-only: `fobis test` uses it, the builds of the program and of the library do not
+([test-only dependencies](/advanced/fetch#test-only-dependencies-dev)).
 
 ::: tip What you learned
 `[dependencies]`, `fobis fetch`, `.fobis_deps/`, the lock and `--frozen`, `fobis tree`. Reference:

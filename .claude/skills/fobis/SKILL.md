@@ -569,7 +569,10 @@ stdlib   = fortran-lang/stdlib :: semver=^0.5 :: use=fobos :: mode=gnu   ; user/
 jsonfort = https://github.com/jacobwilliams/json-fortran :: branch=main :: use=fobos
 ```
 
-Spec: `name = URL [:: branch=X | tag=X | rev=X | semver=EXPR] [:: mode=X] [:: use=sources|fobos]`.
+Spec: `name = URL [:: branch=X | tag=X | rev=X | semver=EXPR] [:: mode=X] [:: use=sources|fobos] [:: dev]`.
+`:: dev` = test-only: used by `fobis test` builds (hidden `build --dev-deps`), doctests, `check`; every other build
+excludes it (even with `src = ./`); `fetch --no-dev` skips it; `tree` marks it `[test only]` and never shows a
+dependency's own dev deps. URLs: any `scheme://` (incl. `file://`) or `git@`, else `user/repo` = GitHub.
 `semver` is **mutually exclusive** with branch/tag/rev and resolves the highest matching git tag
 (Cargo-style `^`, `~`, `=`, `>=`/`<=`/`>`/`<`, `*`, comma-AND).
 
