@@ -338,7 +338,13 @@ _VOLATILE = (
 )
 
 
+# the source location of a backtrace frame inside a system library (glibc's "at ./signal/../sysdeps/..."): printed
+# only where that library's debug information is installed
+_SYSTEM_FRAME = re.compile(r"^\s*at \.\.?/.*\n", re.MULTILINE)
+
+
 def _normalised(text: str) -> str:
+    text = _SYSTEM_FRAME.sub("", text)
     for pattern, replacement in _VOLATILE:
         text = pattern.sub(replacement, text)
     return text
