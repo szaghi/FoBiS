@@ -58,7 +58,12 @@ fobis cache <list|clean|show>   # manage the build-artifact cache
   GitHub mode: `--branch`, `--tag`, `--rev`, `--update`, `--no-build`, `--deps-dir` (default `~/.fobis/`).
 - `introspect`: `--sources`, `--compiler`, `--dependencies`, `--targets`, `--include-dirs`,
   `--buildoptions`, `--projectinfo`, `--varsets`, `--all`, `--write` (to `.fobis-info/`),
-  `--format json|toml`, `--varset`.
+  `--format json|toml`, `--varset`. `--compile-commands` (alone): the mode's compilation database as a JSON list,
+  nothing built.
+- Compilation database (opt-in): `compile_commands = True` in a mode or `fobis build --compile-commands` writes
+  `<build_dir>/compile_commands.json` (every compiled source: directory, file, exact `arguments`, output) before
+  compiling, linked as `./compile_commands.json` (never over a file FoBiS did not write; `.fobis/` builds leave the
+  root alone); `fobis clean` removes it. Add it to `.gitignore` (a new root file breaks clean-tree release checks).
 - `tree`: `--depth/-d N`, `--no-dedupe`.
 - `cache list` (`--cache-dir`); `cache clean --older-than N` (`--cache-dir`); `cache show DEP_NAME`
   (positional required, `--cache-dir`).

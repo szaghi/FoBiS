@@ -104,6 +104,14 @@ CflagsHeritageOpt = Annotated[
     typer.Option("--cflags-heritage", "--ch", help="Store cflags for heritage checking; re-compile all if they change"),
 ]
 TrackBuildOpt = Annotated[bool, typer.Option("--track-build", "--tb", help="Store build info for the install command")]
+CompileCommandsOpt = Annotated[
+    bool,
+    typer.Option(
+        "--compile-commands/--no-compile-commands",
+        help="Write the compilation database compile_commands.json in the build directory, linked from the project "
+        "root (opt-in)",
+    ),
+]
 
 # ---------------------------------------------------------------------------
 # Directories group  (build, clean, rule, doctests)

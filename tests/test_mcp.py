@@ -400,3 +400,13 @@ def test_merge_conflicts_tool_for_real(tmp_path, monkeypatch):
     assert data["operation"]["kind"] == "merge" and data["files"][0]["compiles"] is True
     assert hunk["resolution"]["lines"] == ["use iso_fortran_env, only: int32, int64, real64"]
     assert "<<<<<<<" in source.read_text()  # nothing written
+
+
+def test_introspect_compile_commands(server, calls, reply):
+    reply["out"] = '[{"directory": "/p", "file": "/p/a.f90", "arguments": ["gfortran", "-c"], "output": "/p/a.o"}]'
+    server.handle(_request(1, "initialize", {"protocolVersion": "2025-06-18"}))
+    result = _result(server, "introspect", {"sections": ["compile-commands"], "mode": "gnu"})
+    assert calls[-1] == ["introspect", "--compile-commands", "--mode", "gnu"]
+    assert result["structuredContent"]["compile_commands"][0]["file"] == "/p/a.f90"
+    text, error = _call(server, "introspect", {"sections": ["compile-commands", "sources"]})
+    assert error and "alone" in text

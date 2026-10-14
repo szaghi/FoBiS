@@ -27,6 +27,14 @@ a single JSON object.
 | `--varsets` | Available `[varset:NAME]` sections and their bindings (plus the declared default) |
 | `--all` | All of the above |
 
+`--compile-commands` prints the [compilation database](/reference/build#compilation-database) of the selected mode
+(the same entries `fobis build --compile-commands` writes) and compiles nothing. It prints the database alone, as a
+JSON list: combined with another flag it exits with status 2.
+
+```bash
+fobis introspect --compile-commands --mode release > compile_commands.json
+```
+
 ## Output options
 
 | Option | Default | Description |
@@ -111,6 +119,7 @@ See [Claude Code Skill](/guide/claude-skill) for details.
 | `--projectinfo` |  |  | Show [project] section metadata |
 | `--varsets` |  |  | Show available [varset:NAME] sections and their bindings |
 | `--all` |  |  | Show all introspection data |
+| `--compile-commands` |  |  | Print the compilation database of the mode's build (what fobis build writes in compile_commands.json) and compile nothing; not combinable with the other sections |
 | `--write` |  |  | Write individual intro-*.json files into .fobis-info/ |
 | `--format` | TEXT | `json` | Output format: json (default) or toml |
 | `--varset` | TEXT |  | Apply one or more [varset:NAME] sections' $variable bindings (comma- or space-separated; last write wins) before resolving introspection data. |

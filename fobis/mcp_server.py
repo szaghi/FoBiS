@@ -295,6 +295,18 @@ class Server:
 
     def _introspect(self, arguments: dict) -> Reply:
         sections = arguments.get("sections") or ["all"]
+        if "compile-commands" in sections:  # a JSON list, printed alone
+            if len(sections) > 1:
+                raise ToolError("the compile-commands section is returned alone")
+            args = ["introspect", "--compile-commands", *self._mode(arguments)]
+            code, out, err = self.run(args)
+            try:
+                database = json.loads(out)
+            except ValueError:
+                raise ToolError(
+                    f"fobis {' '.join(args)} failed (exit {code}):\n{(out + err).strip()[-4000:]}"
+                ) from None
+            return Reply(json.dumps(database, indent=1), {"compile_commands": database})
         return self._json(["introspect", *self._mode(arguments), *(f"--{s}" for s in sections)])
 
     def _merge_conflicts(self, arguments: dict) -> Reply:
@@ -555,14 +567,15 @@ class Server:
                 "introspect",
                 "Project build facts",
                 "Return the project's build facts as JSON: sources, compiler, dependencies, targets, include dirs, "
-                "build options, project info, varsets (sections: all or a subset).",
+                "build options, project info, varsets (sections: all or a subset), or alone the compilation "
+                "database (compile-commands: every source's exact compile command, nothing built).",
                 _schema(
                     {
                         "mode": _MODE,
                         "sections": {
                             **_STR_LIST,
                             "description": "sources compiler dependencies targets include-dirs buildoptions "
-                            "projectinfo varsets all",
+                            "projectinfo varsets all, or compile-commands alone",
                         },
                     }
                 ),

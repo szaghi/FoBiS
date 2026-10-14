@@ -260,7 +260,7 @@ def test_build_dep_with_mode():
         with patch("fobis.Fetcher.syswork", return_value=(0, "")) as mock_sw:
             fetcher.build_dep("testdep", tmpdir, mode="gnu")
         cmd = mock_sw.call_args[0][0]
-        assert "-mode" in cmd and "gnu" in cmd
+        assert cmd[-3:] == ["build", "--mode", "gnu"]  # this FoBiS, current syntax
 
 
 def test_build_dep_build_failure_logged():
@@ -301,7 +301,7 @@ def test_build_dep_tracked_with_mode():
         with patch("fobis.Fetcher.syswork", return_value=(0, "")) as mock_sw:
             fetcher._build_dep_tracked("testdep", tmpdir, mode="release")
         cmd = mock_sw.call_args[0][0]
-        assert "track_build" in cmd and "-mode" in cmd and "release" in cmd
+        assert "--track-build" in cmd and cmd[-2:] == ["--mode", "release"]
 
 
 # ── install_from_github() ─────────────────────────────────────────────────────

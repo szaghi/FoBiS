@@ -45,7 +45,7 @@ Read-only tools (the project is not written):
 | `kb_search` | Sections of the [knowledge packs](/ai/knowledge-packs), with their resource URI | `query`, `k`, `packs` |
 | `kb_show` | A knowledge-pack section, optionally with its neighbours | `id`, `context` |
 | `ask_context` | The sections, and with `project` the procedures' facts, most relevant to a question, labelled S1..Sn; no answer | `question`, `project`, `packs`, `k` |
-| `introspect` | Build facts: sources, compiler, dependencies, targets, include dirs, options | `mode`, `sections` |
+| `introspect` | Build facts: sources, compiler, dependencies, targets, include dirs, options; or alone the compilation database (`sections: ["compile-commands"]`) | `mode`, `sections` |
 | `check` | The module dependency graph checked without compiling: unresolved modules and includes | `mode` |
 | `tree` | The inter-project dependency tree, each dependency with its version | `depth` |
 | `merge_conflicts` | During a merge, rebase or cherry-pick: each conflict's base, ours and theirs (named correctly), the [deterministic resolution](/ai/merge-assist) when a rule applies, whether the file compiles | `paths`, `mode` |

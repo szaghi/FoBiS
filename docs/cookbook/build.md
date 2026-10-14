@@ -114,6 +114,24 @@ src      = ./src/
 or switch groups of macros by name with `[features]` (`features = checks` in the mode, `--features` on the
 command line). Guide: [feature flags](/advanced/features).
 
+## Editor and language-server integration
+
+```ini
+[release]
+compiler         = gnu
+cflags           = -c -O2
+compile_commands = True      ; <build_dir>/compile_commands.json, linked as ./compile_commands.json
+```
+
+```bash
+echo compile_commands.json >> .gitignore
+fobis build --mode release
+fobis introspect --compile-commands --mode debug   # the database of another mode, printed, nothing built
+```
+
+Every compiled source with its exact command: include and module directories, macros, flags. Reference:
+[compilation database](/reference/build#compilation-database).
+
 ## A Makefile for people without FoBiS
 
 ```bash

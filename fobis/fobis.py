@@ -27,6 +27,7 @@ import re
 import shutil
 import sys
 
+from . import compile_commands
 from .Builder import Builder
 from .Cleaner import Cleaner
 from .FoBiSConfig import FoBiSConfig
@@ -613,6 +614,7 @@ def run_fobis_build(configuration):
         # Scan source files once for all targets
         pfiles_all = parse_files(configuration=configuration)
         configuration.build_trace = {"pfiles": pfiles_all}
+        database: list[dict] = []  # the compilation database of all the targets
         for t_dict in all_build_targets:
             t_cliargs = _cliargs_for_target(cliargs, t_dict)
             t_builder = Builder(cliargs=t_cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
@@ -623,6 +625,7 @@ def run_fobis_build(configuration):
                 print_w=configuration.print_r,
                 force_compile=t_cliargs.force_compile,
             )
+            compile_commands.update(t_cliargs, t_builder, pfiles_all, configuration.print_r, accumulated=database)
             nomodlibs = build_nomodlibs(configuration=configuration, pfiles=pfiles_all, builder=t_builder)
             submodules = build_submodules(configuration=configuration, pfiles=pfiles_all, builder=t_builder)
             # pre_build hooks
@@ -662,6 +665,8 @@ def run_fobis_build(configuration):
     dependency_hiearchy(
         builder=builder, pfiles=pfiles, print_w=configuration.print_r, force_compile=cliargs.force_compile
     )
+    # before compiling: an editor needs the database most when the build fails
+    compile_commands.update(cliargs, builder, pfiles, configuration.print_r)
     if cliargs.makefile:
         save_makefile(configuration=configuration, pfiles=pfiles, builder=builder)
         return
@@ -833,6 +838,7 @@ def run_fobis_clean(configuration):
         cleaner.clean_mod()
         cleaner.clean_obj()
         cleaner.clean_target()
+        compile_commands.remove(cleaner.build_dir, print_w=cleaner.print_w)
     if configuration.cliargs.only_obj:
         cleaner.clean_mod()
         cleaner.clean_obj()
@@ -4573,6 +4579,54 @@ def _run_fobis_test_json(configuration, tests, test_dir):
         sys.exit(1)
 
 
+INTROSPECT_SECTIONS = (
+    "sources",
+    "compiler",
+    "dependencies",
+    "targets",
+    "include_dirs",
+    "buildoptions",
+    "projectinfo",
+    "varsets",
+    "write",
+)
+
+
+def _introspect_compile_commands(configuration):
+    """Print the compilation database ``fobis build`` would write for the same fobos, mode, varset, shadow and
+    variant, without compiling: the build's own settings (its namespace, not introspect's) give the same commands."""
+    import json
+
+    from .utils import CircularDependency
+
+    cliargs = configuration.cliargs
+    others = [name for name in INTROSPECT_SECTIONS if getattr(cliargs, f"introspect_{name}", False)]
+    if others:
+        configuration.print_r(f"Error: --compile-commands prints the database alone (not with --{others[0]})")
+        sys.exit(2)
+    args = ["build", "--quiet"]
+    for option, value in (("--fobos", cliargs.fobos), ("--mode", cliargs.mode), ("--varset", cliargs.varset)):
+        if value:
+            args += [option, value]
+    if cliargs.fobos_case_insensitive:
+        args.append("--fci")
+    if getattr(cliargs, "shadow", None):
+        args += ["--shadow", cliargs.shadow]
+    if getattr(cliargs, "variant", None):
+        args += ["--variant", cliargs.variant, "--variant-cflags", cliargs.variant_cflags or ""]
+        args += ["--variant-lflags", cliargs.variant_lflags or ""]
+    build = FoBiSConfig(fake_args=args)
+    build.print_b = lambda *a, **k: None
+    build.print_r = configuration.print_r
+    builder = Builder(cliargs=build.cliargs, print_n=build.print_b, print_w=build.print_r)
+    pfiles = parse_files(configuration=build)
+    try:
+        dependency_hiearchy(builder=builder, pfiles=pfiles, print_w=build.print_r, force_compile=False)
+    except CircularDependency:
+        sys.exit(1)
+    print(json.dumps(compile_commands.entries(builder, pfiles), indent=2))
+
+
 def run_fobis_introspect(configuration):
     """
     Run FoBiS in introspect mode: emit machine-readable project metadata.
@@ -4585,6 +4639,10 @@ def run_fobis_introspect(configuration):
 
     cliargs = configuration.cliargs
     fobos = configuration.fobos
+
+    if getattr(cliargs, "introspect_compile_commands", False):
+        _introspect_compile_commands(configuration)
+        return
 
     data = {}
 

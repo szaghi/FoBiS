@@ -46,6 +46,7 @@ def cmd_build(
     ranlib: RanlibOpt = "ranlib",
     cflags_heritage: CflagsHeritageOpt = False,
     track_build: TrackBuildOpt = False,
+    compile_commands: CompileCommandsOpt = False,
     # directories group
     src: SrcOpt = None,
     build_dir: BuildDirOpt = None,
@@ -238,6 +239,7 @@ def cmd_build(
         ranlib=ranlib,
         cflags_heritage=cflags_heritage,
         track_build=track_build,
+        compile_commands=compile_commands,
         src=src or ["./"],
         build_dir=build_dir or "./",
         build_dir_explicit=build_dir is not None,

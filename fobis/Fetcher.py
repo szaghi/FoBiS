@@ -29,7 +29,7 @@ import subprocess
 from collections.abc import Callable
 from typing import Any
 
-from .utils import print_fake, syswork
+from .utils import fobis_command, print_fake, syswork
 
 
 class Fetcher:
@@ -266,10 +266,7 @@ class Fetcher:
         self.print_n("Building dependency " + name)
         old_pwd = os.getcwd()
         os.chdir(dep_dir)
-        if mode:
-            result = syswork("FoBiS.py build -mode " + mode)
-        else:
-            result = syswork("FoBiS.py build")
+        result = syswork([*fobis_command(), "build", *(["--mode", mode] if mode else [])])  # this FoBiS, not PATH's
         os.chdir(old_pwd)
         if result[0] != 0:
             self.print_w("Error building " + name + ":\n" + result[1])
@@ -401,9 +398,9 @@ class Fetcher:
         self.print_n("Building " + name + " (with --track_build)")
         old_pwd = os.getcwd()
         os.chdir(dep_dir)
-        cmd = "fobis build --track_build"
+        cmd = [*fobis_command(), "build", "--track-build"]
         if mode:
-            cmd += " -mode " + mode
+            cmd += ["--mode", mode]
         result = syswork(cmd)
         os.chdir(old_pwd)
         if result[0] != 0:

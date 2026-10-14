@@ -130,6 +130,7 @@ Generated from the settings of the commands that read a mode.
 | `cflags_heritage` | build, clean, doctests, rule | Store cflags for heritage checking; re-compile all if they change |
 | `coarray` | build, clean, doctests, rule | Use coarrays |
 | `colors` | all | Activate colors in shell prints |
+| `compile_commands` | build | Write the compilation database compile_commands.json in the build directory, linked from the project root (opt-in) |
 | `compiler` | build, clean, doctests, rule | Compiler used (case insensitive, default gnu) |
 | `coverage` | build, clean, doctests, rule | Instrument for coverage analysis |
 | `dependon` | build, clean, doctests, rule | Interdependent external fobos files for interdependent building |

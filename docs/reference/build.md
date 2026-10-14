@@ -165,6 +165,45 @@ a `pkg-config` `.pc` file for your own project.
 | `-m`, `--makefile` | Export a GNU Makefile instead of building |
 | `--json` | Emit structured JSON to stdout (see [JSON output](/advanced/json-output)) |
 
+## Compilation database
+
+| Option | Description |
+|---|---|
+| `--compile-commands` | Write the compilation database `compile_commands.json` (opt-in; mode key `compile_commands = True`) |
+
+The compilation database lists, for every source file of the build, the directory the command runs in, the file,
+the exact compile command (as a list of words) and the object it writes:
+
+```json
+[
+  {
+    "directory": "/home/me/quad",
+    "file": "/home/me/quad/src/quad_rules.F90",
+    "arguments": ["gfortran", "-c", "-O2", "-J", "build/mod", "-Ibuild/mod", "src/quad_rules.F90",
+                  "-o", "build/obj/quad_rules.o"],
+    "output": "/home/me/quad/build/obj/quad_rules.o"
+  }
+]
+```
+
+Editors, language servers and static analysers read it to learn how each file is compiled: include directories,
+module directory, `-D` macros, flags. With it on, FoBiS writes it:
+
+- in the build directory, after the dependency analysis and **before** compiling, so it exists even when the build
+  fails, and rewritten only when its content changes;
+- with an entry for every compiled source, not only those compiled this time (an incremental build keeps it
+  complete); included files have none;
+- naming the original source when a separate preprocessor (`--preprocessor`) produces the file actually compiled;
+- linked from the project root (`./compile_commands.json`, a relative link, or a copy where links are not
+  available), where most tools look for it. A `compile_commands.json` in the root that FoBiS did not write is never
+  replaced. Builds kept under `.fobis/` (shadow builds, `fobis assess` variants) write their own database and leave
+  the root alone; the `[target.NAME]` sections of one run share one database.
+
+`fobis clean` removes the database and the root link to it. The database is off by default because a new file in
+the root makes clean-tree checks (release scripts, `fobis ecosystem release`) fail until the project's `.gitignore`
+names it: add `compile_commands.json` to `.gitignore` when turning it on. `fobis introspect --compile-commands`
+prints the same database for any mode without building or writing anything.
+
 ## Explain options
 
 | Option | Description |
@@ -244,6 +283,7 @@ fobis build --compiler intel --mode release  # current style
 | `--ranlib` | TEXT | `ranlib` | Ranlib executable; empty string to skip [default: ranlib] |
 | `--cflags-heritage`, `--ch` |  |  | Store cflags for heritage checking; re-compile all if they change |
 | `--track-build`, `--tb` |  |  | Store build info for the install command |
+| `--compile-commands`, `--no-compile-commands` |  |  | Write the compilation database compile_commands.json in the build directory, linked from the project root (opt-in) |
 | `--src`, `-s` | TEXT |  | Root-directory of source files [default: ./] |
 | `--build-dir`, `--dbld` | TEXT |  | Directory containing built objects [default: ./]; given here, it wins over the mode's build_dir |
 | `--obj-dir`, `--dobj` | TEXT | `./obj/` | Directory containing compiled objects [default: ./obj/] |

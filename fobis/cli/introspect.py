@@ -38,6 +38,14 @@ def cmd_introspect(
         typer.Option("--varsets", help="Show available [varset:NAME] sections and their bindings"),
     ] = False,
     all_info: Annotated[bool, typer.Option("--all", help="Show all introspection data")] = False,
+    compile_commands: Annotated[
+        bool,
+        typer.Option(
+            "--compile-commands",
+            help="Print the compilation database of the mode's build (what fobis build writes in "
+            "compile_commands.json) and compile nothing; not combinable with the other sections",
+        ),
+    ] = False,
     write: Annotated[
         bool,
         typer.Option("--write", help="Write individual intro-*.json files into .fobis-info/"),
@@ -80,6 +88,7 @@ def cmd_introspect(
         introspect_projectinfo=projectinfo or all_info,
         introspect_varsets=varsets or all_info,
         introspect_all=all_info,
+        introspect_compile_commands=compile_commands,
         introspect_write=write,
         introspect_format=output_format,
         # Minimal build-like attrs needed by FoBiSConfig
