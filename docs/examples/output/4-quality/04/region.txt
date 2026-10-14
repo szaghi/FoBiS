@@ -1,0 +1,4 @@
+$ fobis query region src/sweep.F90:17
+region src/sweep.F90:17: 1 result(s)
+src/sweep.F90:14-19: sweep: !$omp parallel do private(n)
+(10 file(s) analysed)

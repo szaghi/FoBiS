@@ -52,6 +52,19 @@ const docs = [
           { text: '6. The release train',        link: '/tutorial/ecosystem/06-release' },
         ],
       },
+      {
+        text: '4. Code quality',
+        collapsed: false,
+        items: [
+          { text: '1. The linter',               link: '/tutorial/quality/01-lint' },
+          { text: '2. Suppressions and fixes',   link: '/tutorial/quality/02-fixes' },
+          { text: '3. Reviewing a change',       link: '/tutorial/quality/03-review' },
+          { text: '4. Querying the code',        link: '/tutorial/quality/04-query' },
+          { text: '5. Verified modernisation',   link: '/tutorial/quality/05-modernize' },
+          { text: '6. C and Python bindings',    link: '/tutorial/quality/06-bindings' },
+          { text: '7. Instructions for agents',  link: '/tutorial/quality/07-agents' },
+        ],
+      },
     ],
   },
   {

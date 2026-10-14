@@ -1,0 +1,6 @@
+$ fobis query writers error
+writers error: 2 result(s)
+src/sweep.F90:17: sweep [local; assignment]: error(1, k) = abs(trapezoid(sine, 0._R8P, pi, n) - 2._R8P)
+src/sweep.F90:18: sweep [local; assignment]: error(2, k) = abs(simpson(sine, 0._R8P, pi, n) - 2._R8P)
+note: pointer aliasing and accesses under another name (argument association) are not followed
+(10 file(s) analysed)

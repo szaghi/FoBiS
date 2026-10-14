@@ -1,0 +1,5 @@
+show bindings 'fobis bindings quad_rules gauss_legendre'
+show shim 'cat bindings/quad_c.f90'
+show header 'cat bindings/quad.h'
+show build 'fobis build --mode python --quiet'
+show python 'python3 gauss.py'

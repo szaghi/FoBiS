@@ -1,0 +1,10 @@
+$ fobis query interface trapezoid
+interface trapezoid: 1 result(s)
+src/quad_rules.F90:38: quad_rules::trapezoid
+    pure function trapezoid(f, a, b, n)
+    procedure(integrand) :: f
+    real(r8p), intent(in) :: a
+    real(r8p), intent(in) :: b
+    integer, intent(in) :: n
+    result: real(r8p) :: s
+(10 file(s) analysed)

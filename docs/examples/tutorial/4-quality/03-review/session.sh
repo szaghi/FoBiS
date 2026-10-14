@@ -1,0 +1,8 @@
+quiet 'git add -A && git commit -qm "lint: implicit none in the interface, the mpi suppression, the baseline"'
+quiet 'cp "$DOCS_CHAPTER/racy/sweep.F90" src/sweep.F90'
+show diff 'git diff'
+show review 'fobis review'
+show markdown 'fobis review --format markdown'
+quiet 'cp "$DOCS_CHAPTER/fixed/sweep.F90" src/sweep.F90'
+show fixed 'fobis review'
+quiet 'git add -A && git commit -qm "sweep: the number of intervals in a variable"'

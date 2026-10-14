@@ -1,0 +1,12 @@
+$ fobis modernize
+modernize: base copy in ~/tmp/fobis-modernize-yeebvuhj
+modernize: checking MDN021, OBS005, OBS011
+fixes found:
+  MDN021: 1 edit(s) in 1 file(s)
+  OBS005: 1 edit(s) in 1 file(s)
+  OBS011: 6 edit(s) in 1 file(s)
+check [MDN021, OBS005, OBS011]: PASS (evidence: tests)
+    build: ok
+    tests: ok
+verified: MDN021, OBS005, OBS011
+applied: nothing (use --apply)

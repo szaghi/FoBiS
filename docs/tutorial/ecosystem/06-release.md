@@ -33,4 +33,4 @@ If a release fails, the train stops there and prints the `--from` command that r
 covers the configuration and the safety rules in full.
 :::
 
-This is the end of the third track. The [fourth](../#tracks) comes back to `quad`, to look at its code.
+This is the end of the third track. The [fourth](../quality/01-lint) comes back to `quad`, to look at its code.

@@ -261,7 +261,7 @@ _VOLATILE = (
     (re.compile(r'"duration": [0-9.]+'), '"duration": N'),
     (re.compile(r"\b0x[0-9a-f]{6,}\b"), "0xADDRESS"),
     (re.compile(r"\b\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(\.\d+)?\b"), "DATETIME"),  # "generated" stamps
-    (re.compile(r"(~/tmp/[\w.-]*?)[a-z0-9_]{8}\b"), r"\1RANDOM"),  # scratch directories (mkdtemp)
+    (re.compile(r"(~/tmp/[\w.-]*-)[a-z0-9_]{8}(?!\w)"), r"\1RANDOM"),  # scratch directories (mkdtemp PREFIX-)
 )
 
 

@@ -1,0 +1,7 @@
+$ fobis bindings quad_rules gauss_legendre
+1 of 4 procedure(s) bound
+  bound    gauss_legendre::gauss_nodes -> gauss_legendre_gauss_nodes
+  skipped  quad_rules::midpoint: argument f: procedure arguments are not bound
+  skipped  quad_rules::trapezoid: argument f: procedure arguments are not bound
+  skipped  quad_rules::simpson: argument f: procedure arguments are not bound
+written: bindings/quad_c.f90, bindings/quad.h, bindings/quad.py

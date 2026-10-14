@@ -605,6 +605,7 @@ class Builder:
                         "Warning: compiling file "
                         + file_to_build.name
                         + " fails! Removing from the list of non-module libraries linked into the target!"
+                        + ("\n" + results[0][1].rstrip() if results[0][1].strip() else "")  # why: the compiler's words
                     )
         return build_ok
 

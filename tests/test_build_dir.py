@@ -73,3 +73,15 @@ def test_sources_are_parsed_in_natural_path_order(project):
         (project / "src" / name).write_text(f"module {name[:-4].replace('-', '_')}\nend module\n")
     names = [p.name for p in parse_files(FoBiSConfig(fake_args=["build"]))]
     assert names == ["src/a.f90", "src/app.f90", "src/m-2.f90", "src/m-10.f90"]
+
+
+def test_a_c_header_next_to_the_sources_is_not_scanned(project):
+    """`.h` is an include extension: the words of a C header's comments became dependencies (``fobis bindings``
+    writes one next to the shim)."""
+    from fobis.fobis import parse_files
+    from fobis.FoBiSConfig import FoBiSConfig
+
+    (project / "src" / "api.h").write_text("/* use like the library */\n#include <stdint.h>\nvoid f(int32_t *n);\n")
+    (project / "src" / "inc.h").write_text("integer, parameter :: n = 3\n")  # a Fortran include file: kept
+    names = [p.name for p in parse_files(FoBiSConfig(fake_args=["build"]))]
+    assert "src/api.h" not in names and "src/inc.h" in names

@@ -1,0 +1,19 @@
+$ fobis lint
+src/integrate_mpi.F90:4: COR040 [warning] 'use mpi' has no 'only:' list
+src/quad_rules.F90:10: COR002 [warning] interface body function 'integrand' has no 'implicit none'
+src/romberg.f:3: COR001 [warning] function 'romb' has no 'implicit none'
+src/romberg.f:3: COR031 [warning] function 'romb' is not in a module
+src/romberg.f:4: COR010 [warning] dummy argument 'a' of function 'romb' has no intent
+src/romberg.f:4: COR010 [warning] dummy argument 'b' of function 'romb' has no intent
+src/romberg.f:4: COR010 [warning] dummy argument 'tol' of function 'romb' has no intent
+src/romberg.f:4: COR030 [warning] 'f' is declared external in function 'romb'
+src/romberg.f:11: OBS011 [warning] labelled do loop (obsolescent): use do ... end do
+src/romberg.f:14: OBS011 [warning] labelled do loop (obsolescent): use do ... end do
+src/romberg.f:19: OBS011 [warning] labelled do loop (obsolescent): use do ... end do
+src/romberg.f:23: MDN021 [warning] old relational operator .lt.: use symbolic operators
+src/romberg.f:23: OBS005 [warning] specific intrinsic name 'dabs' (obsolescent): use the generic name
+test/test_romberg.F90:7: COR030 [warning] 'romb' is declared external in program 'test_romberg'
+
+14 finding(s) in 10 file(s): COR001 x1, COR002 x1, COR010 x3, COR030 x2, COR031 x1, COR040 x1, MDN021 x1, OBS005 x1, OBS011 x3
+Explain a rule with: fobis lint --explain <ID>
+[exit status 1]

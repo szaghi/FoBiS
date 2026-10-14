@@ -20,11 +20,11 @@ Every command output shown is the real one: the pages include what the commands 
 | [1. First steps](./first-steps/01-first-build) | basic | build without configuration, a fobos with modes, a library, tests and coverage, dependencies |
 | [2. Growing a project](./growing/01-templates) | intermediate | templates and variables, build profiles and feature flags, external libraries (MPI, OpenMP), rules, the cache, CI with machine-readable output, fpm and Makefile export |
 | [3. Many repositories](./ecosystem/01-register) | intermediate | an ecosystem of projects: dashboard, commands across all of them, checking the projects downstream, the release train |
-| 4. Code quality | advanced | the linter, baselines and fixes, reviewing a change, querying the code, verified modernisation, C and Python bindings |
+| [4. Code quality](./quality/01-lint) | advanced | the linter, baselines and fixes, reviewing a change, querying the code, verified modernisation, C and Python bindings |
 | 5. Verified numerics | advanced | cases and references, shadow builds and the compiler matrix, error and uncertainty assessment, differential runs, benchmarks, the gate, clusters, profiling |
 | 6. AI-assisted development | expert | a local model, explained failures, questions answered from the sources, generated tests, merge conflicts, an agent working under the gate |
 
-Tracks 4 to 6 are being written; until then, the [guides](/guide/topics) cover their subjects.
+Tracks 5 and 6 are being written; until then, the [guides](/guide/topics) cover their subjects.
 
 ### 1. First steps
 
@@ -63,6 +63,18 @@ flowchart LR
 | [4. Before releasing](./ecosystem/04-check) | `check` (dependents against a working copy), `impact` |
 | [5. Shared boilerplate](./ecosystem/05-scaffold) | `scaffold status` and `sync` |
 | [6. The release train](./ecosystem/06-release) | `release`: plan, pre-flight, release in order |
+
+### 4. Code quality
+
+| Chapter | You learn |
+|---|---|
+| [1. The linter](./quality/01-lint) | `fobis lint`, `--explain`, `--select`, formats for CI |
+| [2. Suppressions, baselines and fixes](./quality/02-fixes) | inline suppressions, `--diff`/`--fix`, the baseline |
+| [3. Reviewing a change](./quality/03-review) | `fobis review`, findings on the changed lines only |
+| [4. Querying the code](./quality/04-query) | `fobis query`: callers, writers, regions, MPI calls |
+| [5. Verified modernisation](./quality/05-modernize) | `fobis modernize`: fixes kept only when tests pass |
+| [6. C and Python bindings](./quality/06-bindings) | `fobis bindings`, a shared library, ctypes |
+| [7. Instructions for agents](./quality/07-agents) | `fobis agents-md` |
 
 ## Running the examples yourself
 

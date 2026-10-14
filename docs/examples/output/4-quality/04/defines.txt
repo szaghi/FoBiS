@@ -1,0 +1,4 @@
+$ fobis query defines integrand
+defines integrand: 1 result(s)
+src/quad_rules.F90:10: abstract interface quad_rules::integrand
+(10 file(s) analysed)

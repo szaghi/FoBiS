@@ -1,0 +1,5 @@
+$ fobis test --filter test_romberg 2>&1 | tail -n 4
+  PASS  test_romberg                   (0.00 s)
+
+  Results: 1 passed, 0 failed, 0 skipped
+  Total:   0.00 s

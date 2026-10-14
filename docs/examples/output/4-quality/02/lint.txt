@@ -1,0 +1,2 @@
+$ fobis lint --select COR002,COR040
+0 finding(s) in 10 file(s)

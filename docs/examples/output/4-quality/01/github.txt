@@ -1,0 +1,3 @@
+$ fobis lint --format github --select COR040
+::warning file=src/integrate_mpi.F90,line=4,endLine=4,title=COR040 use-all::'use mpi' has no 'only:' list
+[exit status 1]

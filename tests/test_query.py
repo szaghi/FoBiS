@@ -189,3 +189,15 @@ def test_cli(tmp_path, monkeypatch, capsys):
     with pytest.raises(SystemExit) as exit_info:
         run_fobis(fake_args=["query", "who", "x"])
     assert exit_info.value.code == 2
+
+
+def test_an_abstract_interface_is_a_definition():
+    """``procedure(integrand) :: f`` names it: `defines integrand` found nothing before."""
+    source = (
+        "module r\nimplicit none\nabstract interface\npure function integrand(x) result(y)\nreal, intent(in) :: x\n"
+        "real :: y\nend function integrand\nend interface\ncontains\nsubroutine s()\nend subroutine s\nend module r\n"
+    )
+    units = analyse(source, "r.f90")
+    graph = CodeGraph({"r.f90": units}, build_index([units]))
+    (definition,) = graph.definitions["integrand"]
+    assert (definition.kind, definition.qualified, definition.line) == ("abstract interface", "r::integrand", 4)

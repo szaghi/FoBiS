@@ -1,0 +1,21 @@
+$ git diff
+diff --git a/src/sweep.F90 b/src/sweep.F90
+index 7d85740..c5396f5 100644
+--- a/src/sweep.F90
++++ b/src/sweep.F90
+@@ -9,11 +9,13 @@ integer,   parameter :: cases = 12                !< Number of cases.
+ real(R8P), parameter :: pi = acos(-1._R8P)        !< Pi.
+ real(R8P)            :: error(2, cases)           !< Errors, trapezoid and Simpson, of each case.
+ integer              :: k                         !< Counter.
++integer              :: n                         !< Number of intervals.
+ 
+ !$omp parallel do
+ do k = 1, cases
+-   error(1, k) = abs(trapezoid(sine, 0._R8P, pi, 2 ** k) - 2._R8P)
+-   error(2, k) = abs(simpson(sine, 0._R8P, pi, 2 ** k) - 2._R8P)
++   n = 2 ** k
++   error(1, k) = abs(trapezoid(sine, 0._R8P, pi, n) - 2._R8P)
++   error(2, k) = abs(simpson(sine, 0._R8P, pi, n) - 2._R8P)
+ enddo
+ !$ print '(A, I0)', 'threads: ', omp_get_max_threads()
+ print '(A6, 2A18)', 'n', 'trapezoid error', 'simpson error'

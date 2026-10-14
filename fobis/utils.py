@@ -21,6 +21,7 @@ utils.py, module definition of FoBiS.py util functions.
 # from builtins import *
 import contextlib
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -43,6 +44,21 @@ class BuildFailed(SystemExit):
 def print_fake(input_obj, end="\n"):
     """Rename print."""
     print(input_obj, end=end)
+
+
+_C_MARKERS_RE = re.compile(r"/\*|\btypedef\b|\bextern\b|^\s*#\s*include\s*<", re.MULTILINE)
+
+
+def is_c_header(path: str) -> bool:
+    """A ``.h``/``.H`` file written in C (a comment, ``typedef``, ``extern``, ``#include <...>``), not a Fortran include
+    file: FoBiS scans ``.h`` files as includes, and the words of a C header became dependencies."""
+    if not path.endswith((".h", ".H")):
+        return False
+    try:
+        with open(path, errors="replace") as handle:
+            return bool(_C_MARKERS_RE.search(handle.read()))
+    except OSError:
+        return False
 
 
 def fobis_command() -> list[str]:

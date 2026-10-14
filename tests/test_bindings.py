@@ -207,3 +207,29 @@ def test_cli(tmp_path, monkeypatch, capsys):
     assert (tmp_path / "b2" / "other.h").is_file()
     code, out, err = _run(["bindings", "nope"], capsys)
     assert code == 2 and "unknown module(s) nope" in out + err
+
+
+@pytest.mark.skipif(shutil.which("gfortran") is None, reason="gfortran")
+def test_shim_sees_a_kind_the_module_does_not_export(tmp_path):
+    """The bound module is private by default and takes R8P from another module: the shim repeats its use
+    statements (before: 'Symbol r8p has no IMPLICIT type')."""
+    from fobis.analysis.project import build_index
+    from fobis.fobis import _generic_specifics
+    from fobis.lint.engine import analyse
+
+    kinds = "module kinds\nuse, intrinsic :: iso_fortran_env, only : R8P => real64\nend module kinds\n"
+    nodes = (
+        "module nodes\nuse kinds, only : R8P\nimplicit none\nprivate\npublic :: fill\ncontains\n"
+        "pure subroutine fill(n, x)\ninteger, intent(in) :: n\nreal(R8P), intent(out) :: x(n)\nx = 1._R8P\n"
+        "end subroutine fill\nend module nodes\n"
+    )
+    units = [analyse(kinds, "kinds.f90"), analyse(nodes, "nodes.f90")]
+    module = units[1].units[0]
+    found = bd.plan(module, build_index(units), _is_public, _generic_specifics(module))
+    (tmp_path / "kinds.f90").write_text(kinds)
+    (tmp_path / "nodes.f90").write_text(nodes)
+    (tmp_path / "nodes_c.f90").write_text(bd.shim(found, "nodes"))
+    result = subprocess.run(
+        ["gfortran", "-c", "kinds.f90", "nodes.f90", "nodes_c.f90"], cwd=tmp_path, capture_output=True, text=True
+    )
+    assert result.returncode == 0, result.stderr

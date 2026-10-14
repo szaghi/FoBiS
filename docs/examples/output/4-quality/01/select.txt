@@ -1,0 +1,18 @@
+$ fobis lint --select OBS,MDN
+src/integrate_mpi.F90:4: MDN201 [warning] use mpi: prefer use mpi_f08
+src/romberg.f:4: MDN001 [warning] double precision declaration: use real with a named kind parameter
+src/romberg.f:6: MDN001 [warning] double precision declaration: use real with a named kind parameter
+src/romberg.f:9: MDN002 [warning] double precision literal: use a kind suffix (1.0_rk)
+src/romberg.f:11: OBS011 [warning] labelled do loop (obsolescent): use do ... end do
+src/romberg.f:12: MDN002 [warning] double precision literal: use a kind suffix (1.0_rk)
+src/romberg.f:13: MDN002 [warning] double precision literal: use a kind suffix (1.0_rk)
+src/romberg.f:14: OBS011 [warning] labelled do loop (obsolescent): use do ... end do
+src/romberg.f:17: MDN002 [warning] double precision literal: use a kind suffix (1.0_rk)
+src/romberg.f:19: OBS011 [warning] labelled do loop (obsolescent): use do ... end do
+src/romberg.f:20: MDN002 [warning] double precision literal: use a kind suffix (1.0_rk)
+src/romberg.f:23: MDN021 [warning] old relational operator .lt.: use symbolic operators
+src/romberg.f:23: OBS005 [warning] specific intrinsic name 'dabs' (obsolescent): use the generic name
+
+13 finding(s) in 10 file(s): MDN001 x2, MDN002 x5, MDN021 x1, MDN201 x1, OBS005 x1, OBS011 x3
+Explain a rule with: fobis lint --explain <ID>
+[exit status 1]

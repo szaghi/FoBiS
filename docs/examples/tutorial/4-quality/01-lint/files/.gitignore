@@ -1,0 +1,5 @@
+build/
+.fobis_deps/
+coverage/
+*.tar.gz
+Makefile

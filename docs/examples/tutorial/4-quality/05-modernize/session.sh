@@ -1,0 +1,5 @@
+show modernize 'fobis modernize'
+show apply 'fobis modernize --apply'
+show diff 'git diff --stat'
+show lint 'fobis lint --select OBS005,OBS011,MDN021'
+quiet 'git add -A && git commit -qm "romberg: block do loops, generic abs, symbolic operator"'

@@ -1,0 +1,2 @@
+$ fobis lint --select OBS005,OBS011,MDN021
+0 finding(s) in 10 file(s)

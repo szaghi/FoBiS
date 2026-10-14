@@ -1,0 +1,16 @@
+$ fobis lint --update-baseline && head -n 14 .fobis-lint-baseline.json
+Baseline .fobis-lint-baseline.json: 12 finding(s) recorded
+{
+ "version": 1,
+ "tool": "fobis lint",
+ "findings": [
+  {
+   "rule": "COR001",
+   "path": "src/romberg.f",
+   "fingerprint": "9edb8cdb21af9611",
+   "message": "function 'romb' has no 'implicit none'"
+  },
+  {
+   "rule": "COR031",
+   "path": "src/romberg.f",
+   "fingerprint": "a34062bfd0a685a4",

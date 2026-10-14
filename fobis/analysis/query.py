@@ -325,6 +325,8 @@ class CodeGraph:
             if (unit.kind in ("module", "submodule", "program") or unit.is_procedure) and unit.name:
                 if not unit.is_interface_body:
                     self._define(unit.name, unit.kind, qualified(unit), path, unit.line)
+                elif unit.parent.abstract:  # an abstract interface: a name used as procedure(NAME) by dummies
+                    self._define(unit.name, "abstract interface", qualified(unit), path, unit.line)
             if unit.kind == "interface" and unit.name and not unit.abstract:
                 words = {w for s in unit.statements for w in re.findall(r"\w+", s.masked)}
                 specifics = sorted((words - {"module", "procedure"}) | {b.name for b in unit.children if b.name})

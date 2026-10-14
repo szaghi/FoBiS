@@ -1,0 +1,17 @@
+$ fobis review --format markdown
+### fobis review
+
+1 finding(s) on the changed lines (1 warning), 4 changed line(s) in 1 Fortran file(s).
+
+| Severity | Rule | Location | Message |
+|---|---|---|---|
+| warning | `OMP001` shared-scalar-written-in-parallel-region | `src/sweep.F90:16` | 'n' is shared and written by every thread (missing private?) |
+
+<details><summary>Rules</summary>
+
+- `OMP001` shared-scalar-written-in-parallel-region: A shared scalar is assigned inside an OpenMP parallel region: a data race.
+
+Explain a rule with `fobis lint --explain <ID>`.
+
+</details>
+[exit status 1]

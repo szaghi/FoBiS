@@ -1,0 +1,31 @@
+$ fobis lint --select OBS005,OBS011,MDN021 --diff
+--- a/src/romberg.f
++++ b/src/romberg.f
+@@ -8,20 +8,20 @@
+       H = B - A
+       R(1,1) = 0.5D0*H*(F(A)+F(B))
+       N = 1
+-      DO 30 I = 2, 10
++      DO I = 2, 10
+          H = 0.5D0*H
+          S = 0.0D0
+-         DO 10 K = 1, N
++         DO K = 1, N
+             S = S + F(A+DBLE(2*K-1)*H)
+-   10    CONTINUE
++         END DO
+          R(I,1) = 0.5D0*R(I-1,1) + H*S
+          N = 2*N
+-         DO 20 J = 2, I
++         DO J = 2, I
+             R(I,J) = R(I,J-1)
+      &             + (R(I,J-1)-R(I-1,J-1))/(4.0D0**(J-1)-1.0D0)
+-   20    CONTINUE
+-         IF (DABS(R(I,I)-R(I-1,I-1)) .LT. TOL) GOTO 40
+-   30 CONTINUE
++         END DO
++         IF (ABS(R(I,I)-R(I-1,I-1)) < TOL) GOTO 40
++      END DO
+       I = 10
+    40 ROMB = R(I,I)
+       RETURN

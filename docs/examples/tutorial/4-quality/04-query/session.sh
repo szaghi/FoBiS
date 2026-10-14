@@ -1,0 +1,6 @@
+show callers 'fobis query callers simpson'
+show defines 'fobis query defines integrand'
+show interface 'fobis query interface trapezoid'
+show writers 'fobis query writers error'
+show region 'fobis query region src/sweep.F90:17'
+show mpi 'fobis query mpi'

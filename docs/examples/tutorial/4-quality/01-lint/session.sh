@@ -1,0 +1,6 @@
+quiet 'git init -q && git add -A && git commit -qm "quad 0.1.0"'
+show test 'fobis test --filter test_romberg 2>&1 | tail -n 4'
+show lint 'fobis lint'
+show explain 'fobis lint --explain COR002'
+show select 'fobis lint --select OBS,MDN'
+show github 'fobis lint --format github --select COR040'

@@ -1,0 +1,32 @@
+$ fobis lint --explain COR002
+COR002 interface-implicit-typing [warning]
+
+An interface body has no `implicit none`.
+
+An interface body is a separate scoping unit: it does not inherit the `implicit none` of the module
+or procedure that contains the interface block. Dummy arguments left undeclared in the body are
+typed implicitly, and the interface then disagrees with the procedure it describes.
+
+Reported:
+
+    interface
+      subroutine callback(x)
+        real :: x
+      end subroutine callback
+    end interface
+
+Preferred:
+
+    interface
+      subroutine callback(x)
+        implicit none
+        real, intent(inout) :: x
+      end subroutine callback
+    end interface
+
+Equivalent Fortitude rule: C002
+
+References (read with: fobis kb show <id>):
+    fortran-std:ch19-scope-association#anti-patterns
+
+Suppress one occurrence with:  ! fobis: ignore[COR002] <reason>

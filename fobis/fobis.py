@@ -32,7 +32,7 @@ from .Cleaner import Cleaner
 from .FoBiSConfig import FoBiSConfig
 from .Gcov import Gcov, _mermaid_pie
 from .ParsedFile import ParsedFile
-from .utils import BuildFailed, dependency_hiearchy, remove_other_main, safe_mkdir, syswork
+from .utils import BuildFailed, dependency_hiearchy, is_c_header, remove_other_main, safe_mkdir, syswork
 
 
 def main():
@@ -1083,6 +1083,7 @@ def parse_files(configuration, src_dir=None, is_doctest=False):
                             pfiles.append(pfile)
     # by path, in natural order: not the directory listing's (it differs between file systems, so did the order of
     # compilation and of the doctests)
+    pfiles = [pfile for pfile in pfiles if not is_c_header(pfile.name)]  # C headers next to the sources
     return sorted(pfiles, key=lambda pfile: _natural_key(pfile.name))
 
 

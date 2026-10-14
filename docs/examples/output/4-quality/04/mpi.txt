@@ -1,0 +1,9 @@
+$ fobis query mpi
+mpi: 5 result(s)
+src/integrate_mpi.F90:15: mpi_init [setup] in integrate_mpi
+src/integrate_mpi.F90:16: mpi_comm_rank [setup] in integrate_mpi
+src/integrate_mpi.F90:17: mpi_comm_size [setup] in integrate_mpi
+src/integrate_mpi.F90:21: mpi_reduce [collective] in integrate_mpi
+src/integrate_mpi.F90:23: mpi_finalize [setup] in integrate_mpi
+note: calls by kind: collective 1, setup 4
+(10 file(s) analysed)
