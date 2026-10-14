@@ -91,8 +91,8 @@ def test_ranks_default_to_one_and_ranks_alone_use_mpirun(project):
 
 
 def test_dry_run_shows_the_launcher(project):
-    done = _fobis(["run", "--dry-run", "--launcher", "gdb --args"], project)
-    assert "[run]    gdb --args build/app" in done.stdout + done.stderr
+    done = _fobis(["run", "--dry-run", "--launcher", "wrap --args"], project)  # a stub: CI machines have no gdb
+    assert "[run]    wrap --args build/app" in done.stdout + done.stderr
 
 
 def test_a_launcher_not_on_path_stops_before_building(project, capsys):
