@@ -12,42 +12,42 @@ Look at your fobos for modes that differ **only** in `$variable` values
 of mode blocks like:
 
 ```ini
-[mode-prism-leonardo]
+[mode-solver-hpc1]
 template = template-nvf-oac
-target   = adam_prism_fnl.F90
-libs     = $HDF5_leonardo_nvf/lib/libhdf5_fortran.a $HDF5_leonardo_nvf/lib/libhdf5.a
-lib_dir  = $HDF5_leonardo_nvf/lib
-include  = $HDF5_leonardo_nvf/include
+target   = solver.F90
+libs     = $HDF5_hpc1_nvf/lib/libhdf5_fortran.a $HDF5_hpc1_nvf/lib/libhdf5.a
+lib_dir  = $HDF5_hpc1_nvf/lib
+include  = $HDF5_hpc1_nvf/include
 
-[mode-prism-iac]
+[mode-solver-lab]
 template = template-nvf-oac
-target   = adam_prism_fnl.F90
-libs     = $HDF5_iac_nvf/lib/libhdf5_fortran.a $HDF5_iac_nvf/lib/libhdf5.a
-lib_dir  = $HDF5_iac_nvf/lib
-include  = $HDF5_iac_nvf/include
+target   = solver.F90
+libs     = $HDF5_lab_nvf/lib/libhdf5_fortran.a $HDF5_lab_nvf/lib/libhdf5.a
+lib_dir  = $HDF5_lab_nvf/lib
+include  = $HDF5_lab_nvf/include
 ```
 
 …that is the varset use case in textbook form. With varsets the per-cluster
 modes collapse to a single mode plus N varsets:
 
 ```ini
-[varset:leonardo]
-$HDF5_PREFIX = /leonardo/prod/spack/.../hdf5-1.14.3
+[varset:hpc1]
+$HDF5_PREFIX = /opt/spack/.../hdf5-1.14.3
 
-[varset:iac]
-$HDF5_PREFIX = lib/hdf5/develop/nvf/25.5-iac
+[varset:lab]
+$HDF5_PREFIX = /opt/hdf5/1.14.3-nvf
 
-[mode-prism]
+[mode-solver]
 template = template-nvf-oac
-target   = adam_prism_fnl.F90
+target   = solver.F90
 libs     = $HDF5_PREFIX/lib/libhdf5_fortran.a $HDF5_PREFIX/lib/libhdf5.a
 lib_dir  = $HDF5_PREFIX/lib
 include  = $HDF5_PREFIX/include
 ```
 
 ```bash
-fobis build --mode mode-prism --varset leonardo
-fobis build --mode mode-prism --varset iac
+fobis build --mode mode-solver --varset hpc1
+fobis build --mode mode-solver --varset lab
 ```
 
 ## Defining a varset
@@ -89,13 +89,13 @@ Either varset can be active and both names resolve correctly.
 
 ```bash
 # Activate a single varset
-fobis build --mode mode-prism --varset leonardo
+fobis build --mode mode-solver --varset hpc1
 
 # Multiple varsets, last write wins on shared variable names
-fobis build --mode mode-prism --varset leonardo,cuda-cc89
+fobis build --mode mode-solver --varset hpc1,cuda-cc89
 
 # Mix space and comma separators
-fobis build --mode mode-prism --varset "leonardo cuda-cc89"
+fobis build --mode mode-solver --varset "hpc1 cuda-cc89"
 ```
 
 When multiple varsets define the same `$NAME`, the rightmost one in the list
@@ -113,13 +113,13 @@ default = local
 [varset:local]
 $HDF5_PREFIX = lib/hdf5/develop/nvf/26.1
 
-[varset:leonardo]
-$HDF5_PREFIX = /leonardo/prod/spack/.../hdf5-1.14.3
+[varset:hpc1]
+$HDF5_PREFIX = /opt/spack/.../hdf5-1.14.3
 ```
 
 ```bash
-fobis build --mode mode-prism                    # uses local (the default)
-fobis build --mode mode-prism --varset leonardo  # overrides default; leonardo wins
+fobis build --mode mode-solver                    # uses local (the default)
+fobis build --mode mode-solver --varset hpc1  # overrides default; hpc1 wins
 ```
 
 The default is applied **only** when `--varset` is not supplied. CLI varsets
@@ -179,8 +179,8 @@ Varsets and feature flags are orthogonal mechanisms that compose cleanly:
   flags, capability switches).
 
 ```bash
-# leonardo paths + production feature bundle
-fobis build --mode mode-prism --varset leonardo --features prod
+# hpc1 paths + production feature bundle
+fobis build --mode mode-solver --varset hpc1 --features prod
 ```
 
 ::: tip Why varsets, not more modes

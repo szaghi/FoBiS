@@ -35,4 +35,4 @@ never meets a model.
   order.
 - **[Cookbook](/cookbook/)**: short recipes by task ("how do I ...?"), each linking to its tutorial chapter and guide.
 - **[Guides](/guide/topics)**: one page per feature, for when you know what you want.
-- **[Reference](/reference/build)**: every command and option, the fobos file, the lint rules.
+- **[Reference](/reference/)**: every command and option, the fobos file, the lint rules.

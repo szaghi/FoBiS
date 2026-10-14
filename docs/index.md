@@ -17,7 +17,7 @@ hero:
       link: /cookbook/
     - theme: alt
       text: Reference
-      link: /reference/build
+      link: /reference/
     - theme: alt
       text: View on GitHub
       link: https://github.com/szaghi/FoBiS

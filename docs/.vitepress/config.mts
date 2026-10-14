@@ -210,6 +210,7 @@ const docs = [
         text: 'Commands',
         collapsed: true,
         items: [
+          { text: 'All commands', link: '/reference/' },
           { text: 'build',        link: '/reference/build' },
           { text: 'clean',        link: '/reference/clean' },
           { text: 'run',          link: '/reference/run' },
@@ -242,12 +243,12 @@ const docs = [
           { text: 'bindings',     link: '/reference/bindings' },
           { text: 'agents-md',    link: '/reference/agents-md' },
           { text: 'kb',           link: '/reference/kb' },
-          { text: 'ask',          link: '/ai/ask#options' },
+          { text: 'ask',          link: '/reference/ask' },
           { text: 'merge-assist', link: '/reference/merge-assist' },
           { text: 'testgen',      link: '/reference/testgen' },
           { text: 'commit',       link: '/reference/commit' },
           { text: 'llm',          link: '/reference/llm' },
-          { text: 'mcp',          link: '/ai/mcp' },
+          { text: 'mcp',          link: '/reference/mcp' },
         ],
       },
       {
@@ -266,6 +267,9 @@ const docs = [
           { text: '[lint] Section',    link: '/fobos/lint' },
         ],
       },
+      { text: 'User Configuration', link: '/reference/configuration' },
+      { text: 'JSON Output',  link: '/advanced/json-output' },
+      { text: 'MCP Tools',    link: '/ai/mcp' },
       { text: 'Lint Rules',   link: '/lint-rules/' },
       { text: 'Compilers',    link: '/guide/compilers' },
       { text: 'Architecture', link: '/advanced/architecture' },
@@ -320,7 +324,7 @@ export default defineConfig({
       { text: 'Tutorials', link: '/tutorial/', activeMatch: '^/tutorial/' },
       { text: 'Cookbook', link: '/cookbook/', activeMatch: '^/cookbook/' },
       { text: 'Guides', link: '/guide/topics', activeMatch: '^/(advanced|ai)/|^/guide/topics' },
-      { text: 'Reference', link: '/reference/build', activeMatch: '^/(reference|fobos|lint-rules)/' },
+      { text: 'Reference', link: '/reference/', activeMatch: '^/(reference|fobos|lint-rules)/' },
     ],
 
     sidebar: {

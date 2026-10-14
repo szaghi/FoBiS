@@ -83,6 +83,23 @@ _TEMPLATE = """\
 
 # HTML dashboard mode: auto (follow the system), light or dark
 # mode = auto
+
+[scheduler]
+# Where --runner slurm submits the runs of this machine (a fobos [scheduler] section adds to it, key by key)
+# kind = slurm
+# partition =
+# account =
+# qos =
+# More #SBATCH lines, one per line (e.g. --mem=32G)
+# options =
+# How a case with ranks is launched inside the job; {{ranks}} is replaced
+# launcher = srun
+# Shell lines run in the job before the program (e.g. module load ...)
+# setup =
+# Seconds between squeue polls
+# poll = 10
+# Host-name patterns of the login nodes, where MPI and GPU cases are not run locally
+# login_nodes =
 """
 
 _BACKENDS = ("managed", "ollama", "openai")

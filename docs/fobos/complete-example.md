@@ -103,8 +103,8 @@ default = local                                   ; applied when --varset is omi
 $HDF5_PREFIX = lib/hdf5/develop/nvf/26.1
 $ARCH        = cc89
 
-[varset:leonardo]
-$HDF5_PREFIX = /leonardo/prod/spack/.../hdf5-1.14.3
+[varset:hpc1]
+$HDF5_PREFIX = /opt/spack/.../hdf5-1.14.3
 $ARCH        = cc80
 
 # ─────────────────────────────────────────────────────────────────────────────

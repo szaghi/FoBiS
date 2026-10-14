@@ -120,7 +120,7 @@ project/
 ├── fobos                      ; main entry point (no extension)
 ├── templates.fobos            ; included fragment
 ├── rules.fobos
-└── prism/
+└── app/
     └── modes.fobos            ; nested fragment
 ```
 
@@ -135,8 +135,8 @@ already established in build-tooling and gives you three concrete benefits:
 - **Searchability.** `grep -r --include='*.fobos'` walks the include graph
   cleanly without picking up stray text files.
 
-This is a recommendation, not a rule — `[include] paths = fobos_prism` works
-exactly the same as `[include] paths = prism.fobos`. Pick what fits your
+This is a recommendation, not a rule — `[include] paths = fobos_app` works
+exactly the same as `[include] paths = app.fobos`. Pick what fits your
 project; if you don't have a strong preference, prefer `.fobos`.
 
 ## Merge semantics

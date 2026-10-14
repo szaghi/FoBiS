@@ -147,13 +147,13 @@ fobis ecosystem discover
 
 ```
 Unregistered FoBiS projects under /home/me/fortran:
-  adam
+  solver
   FiNeR
   FLOw
   ...
 
 Register the ones you want to manage (not necessarily all):
-  fobis ecosystem add adam FiNeR FLOw ...
+  fobis ecosystem add solver FiNeR FLOw ...
 ```
 
 `add` and `remove` edit the registry for you:

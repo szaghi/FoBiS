@@ -59,5 +59,16 @@ def test_fobos_snippets_keys_are_checked_in_modes_only():
         "```ini\n# fobos.lock\n[penf]\ncommit = abc\n```\n"
     )
     keys = [(section, key) for _, section, key in docs.fobos_snippets(text)]
-    assert keys == [("modes", "modes"), ("gnu", "compiler"), ("gnu", "cflag"), ("gnu", "src"), ("case:x", "target")]
-    assert "cflag" not in docs.option_keys(typer.main.get_command(app)) | docs.MODE_KEYS
+    assert keys == [
+        ("modes", "modes"),
+        ("mode:gnu", "compiler"),
+        ("mode:gnu", "cflag"),
+        ("mode:gnu", "src"),
+        ("case:x", "target"),
+    ]
+    sys.path.insert(0, str(SCRIPT.parent))
+    from gen_cli_reference import mode_keys
+
+    keys = mode_keys()
+    assert "cflag" not in keys and {"cflags", "build_dir", "template", "help", "prefix"} <= set(keys)
+    assert "json_output" not in keys and "fobos_case_insensitive" not in keys  # command-line plumbing

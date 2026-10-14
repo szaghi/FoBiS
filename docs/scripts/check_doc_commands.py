@@ -146,48 +146,15 @@ def check(command: str, root) -> str | None:
     return None
 
 
-# keys a fobos mode (or template) may hold besides the command-line options of the commands
-MODE_KEYS = {
-    "template",
-    "build_profile",
-    "varset",
-    "pre_build",
-    "post_build",
-    "intrinsic_modules",
-    "features",
-    "no_default_features",
-    "help",
-    "output",
-    "target",
-    "externals",
-    "pkgconfig",
-    "pkgconfig_desc",
-    "pkgconfig_name",
-    "pkgconfig_req",
-    "pkgconfig_req_priv",
-    "pkgconfig_url",
-}
 # sections that are not modes: their keys are checked by their own parsers
 OTHER_SECTIONS = re.compile(
     r"modes|common-variables|project|dependencies|features|test|lint|gate|scheduler|verification|ecosystem|scaffold"
+    r"|coverage"
     r"|include|externals|pkgconfig|examples?|llm|varsets|rule-.*|(case|assess|bench|varset|example|test|feature"
     r"|feature-group):.*|(target|example)\..*",
 )
 _INI_KEY = re.compile(r"^([A-Za-z_][\w-]*)\s*[=:]")
 _SECTION = re.compile(r"^\[([^\]]+)\]\s*(;.*|#.*)?$")
-
-
-def option_keys(root) -> set[str]:
-    """Every option name of every command, as a fobos key (``--build-dir`` -> ``build_dir``)."""
-    keys: set[str] = set()
-    stack = [root]
-    while stack:
-        node = stack.pop()
-        for param in node.params:
-            keys.update(o.lstrip("-").replace("-", "_") for o in getattr(param, "opts", []) if o.startswith("--"))
-        if _is_group(node):
-            stack.extend(node.commands.values())
-    return keys
 
 
 def fobos_snippets(text: str) -> Iterator[tuple[int, str, str]]:
@@ -211,6 +178,14 @@ def _ini_keys(block: list[tuple[int, str]]) -> Iterator[tuple[int, str, str]]:
     first = next((line.strip() for _, line in block if line.strip()), "")
     if first[:1] in "#;" and re.search(r"\.lock|config\.ini", first):
         return
+    listed = set()  # the modes the block's [modes] declares: such a section is a mode whatever its name
+    for index, (_, line) in enumerate(block):
+        if line.strip() == "[modes]":
+            for _, after in block[index + 1 :]:
+                match = re.match(r"\s*modes\s*=\s*(.*)", after)
+                if match:
+                    listed.update(match.group(1).split(";")[0].split())
+                    break
     section = ""
     for number, line in block:
         if line[:1] in (" ", "\t"):  # continuation lines
@@ -221,7 +196,7 @@ def _ini_keys(block: list[tuple[int, str]]) -> Iterator[tuple[int, str, str]]:
             continue
         key = _INI_KEY.match(line)
         if key and section:
-            yield number, section, key.group(1)
+            yield number, (f"mode:{section}" if section in listed else section), key.group(1)
 
 
 def problems(docs: Path = DOCS) -> list[Problem]:
@@ -231,7 +206,10 @@ def problems(docs: Path = DOCS) -> list[Problem]:
     from fobis.cli._app import app
 
     root = typer.main.get_command(app)
-    known = option_keys(root) | MODE_KEYS
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from gen_cli_reference import mode_keys  # the same keys as the fobos reference's table
+
+    known = set(mode_keys())
     from fobis.lint import rule as lint_rule
     from fobis.lint import rules as _rules  # noqa: F401 (registers the rules)
 
@@ -253,7 +231,8 @@ def problems(docs: Path = DOCS) -> list[Problem]:
                 if rule_id not in rules:
                     found.append(Problem(relative, number, rule_id, "no such lint rule"))
         for number, section, key in fobos_snippets(text):
-            if not OTHER_SECTIONS.fullmatch(section) and key not in known and not key.startswith("$"):
+            is_mode = section.startswith("mode:") or not OTHER_SECTIONS.fullmatch(section)
+            if is_mode and key not in known and not key.startswith("$"):
                 found.append(Problem(relative, number, f"[{section}] {key}", "fobos modes have no such key"))
     return found
 

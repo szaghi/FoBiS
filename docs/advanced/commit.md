@@ -421,7 +421,7 @@ prompt as a `## Facts of the change` section:
   directory that has them, stopping below `src/` and the package (their history is the whole project); the
   file's own commits then break the ties. Projects name components
   by directory, and this keeps their convention: in a repository whose commits say `feat(lib): ...` and
-  `fix(prism/fnl): ...`, those are the candidates, hierarchical names included. A path new to the whole
+  `fix(solver/gpu): ...`, those are the candidates, hierarchical names included. A path new to the whole
   history is named after its directory under `src/` (or the package).
 - **Fortran line kinds**, from the staged and the HEAD versions lexed by FoBiS: each removed or added line is
   code, an OpenMP or OpenACC directive, or a comment/blank line; the procedures whose code changed, and the
@@ -432,26 +432,26 @@ prompt as a `## Facts of the change` section:
 
 With the structured answer, the scope is restricted to the candidates (or empty, for a cross-cutting change):
 the model chooses among the project's own names instead of inventing one. A candidate is kept as written
-(`prism/fnl`); without candidates the scope is free, normalised as before.
+(`solver/gpu`); without candidates the scope is free, normalised as before.
 
 ```bash
 fobis commit --show-facts    # print the facts, run no model
 ```
 
-A directive-only change in an HPC code (real output, OpenACC `async` added to one loop):
+A directive-only change in an HPC code (real output, file and scope names changed; OpenACC `async` added to one loop):
 
 ```text
 ## Facts of the change (computed by FoBiS from git and the sources)
 
 Scope candidates (use one of these, or an empty scope for a cross-cutting change):
 - acc: only these directives changed
-- lib: 9 of 24 past commits touching src/lib/fnl/ used it
-- fnl: 1 of 24 past commits touching src/lib/fnl/ used it; 1 of 2 past commits touching src/lib/fnl/adam_fnl_ib_kernels.F90 used it
-- lib/ib: 1 of 24 past commits touching src/lib/fnl/ used it; 1 of 2 past commits touching src/lib/fnl/adam_fnl_ib_kernels.F90 used it
+- lib: 9 of 24 past commits touching src/lib/gpu/ used it
+- gpu: 1 of 24 past commits touching src/lib/gpu/ used it; 1 of 2 past commits touching src/lib/gpu/gpu_ib_kernels.F90 used it
+- lib/ib: 1 of 24 past commits touching src/lib/gpu/ used it; 1 of 2 past commits touching src/lib/gpu/gpu_ib_kernels.F90 used it
 Type hint: perf(acc) (only OpenACC directive lines changed, no code)
 
 Fortran sources (changed lines classified by the lexer; comment = comment or blank):
-- src/lib/fnl/adam_fnl_ib_kernels.F90: changed lines (removed + added): 2 acc
+- src/lib/gpu/gpu_ib_kernels.F90: changed lines (removed + added): 2 acc
 ```
 
 `--no-facts` skips them. All `git diff` and `git log` calls use `--no-color`: a `color.ui = always` setting
