@@ -1,0 +1,5 @@
+$ git merge midpoint
+Auto-merging test/test_exactness.F90
+CONFLICT (content): Merge conflict in test/test_exactness.F90
+Automatic merge failed; fix conflicts and then commit the result.
+[exit status 1]

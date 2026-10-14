@@ -167,6 +167,12 @@ def test_missing_module_defined_in_project(facts):
     assert "which this build compiles" in classify(parse_diagnostics(MISSING_GEOMETRY), facts)[0][0].facts[0]
 
 
+def test_missing_module_with_a_close_name_is_a_misspelling(facts):
+    typo = classify(parse_diagnostics(MISSING_GEOMETRY.replace("geometry", "geometri")), facts)[0][0]
+    assert typo.facts == ["no source defines module geometri; modules with a close name: geometry (geometry.f90)."]
+    assert typo.advice == ["if the name is misspelt, use geometry"]
+
+
 def test_missing_module_library_dependency_and_disabled(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "gated.F90").write_text("#ifdef WITH_GPU\nmodule gpu_kernels\nend module gpu_kernels\n#endif\n")

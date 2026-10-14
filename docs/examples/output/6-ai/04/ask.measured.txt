@@ -1,0 +1,6 @@
+$ fobis ask -p src -p test "Which rule integrates cubic polynomials exactly?"
+Using the running llama-server at http://127.0.0.1:41675
+- Simpson's rule integrates exactly cubic polynomials. [1]
+
+Sources:
+  [1] program test_exactness (test/test_exactness.F90:2) - this project's sources  (project:test/test_exactness.F90#test_exactness)

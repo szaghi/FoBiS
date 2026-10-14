@@ -105,13 +105,16 @@ def claims_schema(labels: list[str], kinds: list[str] | None = None) -> dict:
     if kinds:
         claim["properties"] = {"kind": {"type": "string", "enum": list(kinds)}, **claim["properties"]}
         claim["required"] = ["kind", "text", "citations"]
+    # claims BEFORE insufficient: a grammar-constrained server (llama.cpp) emits the properties in this order, and
+    # a model made to declare `insufficient` first decides before trying to answer (coder-7b declined a question
+    # its first source answered word for word)
     schema = {
         "type": "object",
         "properties": {
-            "insufficient": {"type": "boolean"},
             "claims": {"type": "array", "items": claim},
+            "insufficient": {"type": "boolean"},
         },
-        "required": ["insufficient", "claims"],
+        "required": ["claims", "insufficient"],
         "additionalProperties": False,
     }
     return bounded(schema, limits={"citations": 6})

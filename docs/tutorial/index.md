@@ -22,9 +22,8 @@ Every command output shown is the real one: the pages include what the commands 
 | [3. Many repositories](./ecosystem/01-register) | intermediate | an ecosystem of projects: dashboard, commands across all of them, checking the projects downstream, the release train |
 | [4. Code quality](./quality/01-lint) | advanced | the linter, baselines and fixes, reviewing a change, querying the code, verified modernisation, C and Python bindings |
 | [5. Verified numerics](./numerics/01-cases) | advanced | cases and references, shadow builds and the compiler matrix, error and uncertainty assessment, differential runs, benchmarks, the gate, profiling, clusters |
-| 6. AI-assisted development | expert | a local model, explained failures, questions answered from the sources, generated tests, merge conflicts, an agent working under the gate |
+| [6. AI-assisted development](./ai/01-model) | expert | a local model, explained failures, questions answered from the sources, generated tests, merge conflicts, an agent working under the gate |
 
-Track 6 is being written; until then, the [guides](/guide/topics) cover its subjects.
 
 ### 1. First steps
 
@@ -89,6 +88,20 @@ flowchart LR
 | [7. One command for all of it](./numerics/07-gate) | `fobis gate`, `[gate]` |
 | [8. Where the time goes](./numerics/08-profile) | `fobis profile`: gprof, callgrind |
 | [9. On a cluster](./numerics/09-cluster) | `--runner slurm`, the login-node guard, nsys on a GPU |
+
+### 6. AI-assisted development
+
+| Chapter | You learn |
+|---|---|
+| [1. A local model](./ai/01-model) | `fobis llm`: runtime, models, `doctor` |
+| [2. Build failures, explained](./ai/02-explain) | `build --explain`: diagnoses from facts, cited answers |
+| [3. Crashes, located](./ai/03-crash) | `run --explain`, trusted locations |
+| [4. Questions about the code](./ai/04-ask) | `fobis ask`, what a citation guarantees |
+| [5. Generated tests](./ai/05-testgen) | `fobis testgen`: skeletons, accepted tests |
+| [6. A second reader for a change](./ai/06-review) | `review --deep` |
+| [7. Commit messages](./ai/07-commit) | `fobis commit`, `--show-facts` |
+| [8. Merge conflicts](./ai/08-merge) | `fobis merge-assist`, compiled proposals |
+| [9. An agent under the gate](./ai/09-agent) | `fobis mcp`, an agent calling the gate |
 
 ## Running the examples yourself
 

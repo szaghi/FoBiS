@@ -1,0 +1,24 @@
+$ git diff
+diff --cc test/test_exactness.F90
+index ec5aa9c,288bc6e..0000000
+--- a/test/test_exactness.F90
++++ b/test/test_exactness.F90
+@@@ -1,12 -1,13 +1,17 @@@
+  !< Each rule integrates exactly the polynomials of its degree: trapezoid lines, Simpson cubics.
+  program test_exactness
+  !< Each rule integrates exactly the polynomials of its degree: trapezoid lines, Simpson cubics.
+- use quad_rules,  only : R8P, trapezoid, simpson
++ use quad_rules,  only : R8P, midpoint, trapezoid, simpson
+  use polynomials, only : line, cubic
+  implicit none
+++<<<<<<< HEAD
+ +real(R8P), parameter :: tolerance = 4.e-14_R8P !< Rounding allowance: a few ulps of the results, at -O3.
+++=======
++ real(R8P), parameter :: tolerance = 1.e-14_R8P !< Rounding allowance, checked on the midpoint rule too.
+++>>>>>>> midpoint
+  
+  if (abs(trapezoid(line, 0._R8P, 2._R8P, 3) - 8._R8P) > tolerance) error stop 'trapezoid is not exact on a line'
++ if (abs(midpoint(line, 0._R8P, 2._R8P, 3) - 8._R8P) > tolerance) error stop 'midpoint is not exact on a line'
+  if (abs(simpson(cubic, 0._R8P, 2._R8P, 2) - 4._R8P) > tolerance) error stop 'simpson is not exact on a cubic'
+  print '(A)', 'exact on polynomials of its degree'
+  endprogram test_exactness

@@ -1,0 +1,35 @@
+$ python3 tools/mcp_client.py list
+fobis: protocol 2025-06-18
+  lint                 read-only  Lint Fortran sources
+  review               read-only  Review a change
+  list_rules           read-only  List lint rules
+  explain_rule         read-only  Explain a lint rule
+  kb_search            read-only  Search the knowledge packs
+  kb_show              read-only  Show a knowledge-pack section
+  ask_context          read-only  Retrieve grounding for a question
+  query                read-only  Query the code graph
+  agents_md            read-only  Project briefing for agents
+  bindings             read-only  Plan C and Python bindings
+  introspect           read-only  Project build facts
+  check                read-only  Check the dependency graph
+  tree                 read-only  Dependency tree
+  merge_conflicts      read-only  Analyse merge conflicts
+  commit_facts         read-only  Facts of the staged change
+  testgen_skeleton     read-only  Test skeleton for a module
+  ecosystem_status     read-only  Ecosystem status
+  ecosystem_impact     read-only  Impact of an API change
+  case_list            read-only  List the declared cases
+  provenance           read-only  Provenance of a result
+  build                writes     Build the project
+  test                 writes     Run the tests
+  case_run             writes     Run cases
+  verify               writes     Verify results against references
+  matrix               writes     Build and test every mode x shadow
+  assess               writes     Assess numerical error and uncertainty
+  diff_run             writes     Compare results with a revision
+  bench                writes     Measure run time
+  profile              writes     Profile a case
+  modernize            writes     Verify mechanical modernisation
+  gate                 writes     One verdict for a change
+  clean                writes     Clean build products
+  fetch                writes     Fetch dependencies

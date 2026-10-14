@@ -1,0 +1,11 @@
+--- a/test/test_exactness.F90
++++ b/test/test_exactness.F90
+@@ -4,7 +4,7 @@
+ use quad_rules,  only : R8P, trapezoid, simpson
+ use polynomials, only : line, cubic
+ implicit none
+-real(R8P), parameter :: tolerance = 1.e-14_R8P !< Rounding allowance.
++real(R8P), parameter :: tolerance = 4.e-14_R8P !< Rounding allowance: a few ulps of the results, at -O3.
+ 
+ if (abs(trapezoid(line, 0._R8P, 2._R8P, 3) - 8._R8P) > tolerance) error stop 'trapezoid is not exact on a line'
+ if (abs(simpson(cubic, 0._R8P, 2._R8P, 2) - 4._R8P) > tolerance) error stop 'simpson is not exact on a cubic'

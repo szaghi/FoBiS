@@ -329,7 +329,7 @@ _VOLATILE = (
     (re.compile(r"\b\d+\.\d+ ?s\b"), "N s"),
     # commit hashes: the ecosystem demo's commits hold its scratch path (the scaffolded remote URL)
     (re.compile(r"\b(?=[0-9a-f]*[a-f])(?=[0-9a-f]*\d)[0-9a-f]{7,64}\b"), "HASH"),
-    (re.compile(r'"duration": [0-9.]+'), '"duration": N'),
+    (re.compile(r'"(duration|elapsed)": [0-9.]+'), r'"\1": N'),
     # the compiler's full version: compared only when the major version is the recorded one
     (re.compile(r"GNU Fortran \([^)]*\) \d+\.\d+\.\d+"), "GNU Fortran VERSION"),
     (re.compile(r"\b0x[0-9a-f]{6,}\b"), "0xADDRESS"),

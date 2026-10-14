@@ -1,0 +1,61 @@
+$ fobis testgen gauss_legendre --max 2
+Module gauss_legendre (src/gauss_legendre.F90): building the skeleton in a scratch copy...
+[llm] gauss_legendre: attempt 1/4
+Using the running llama-server at http://127.0.0.1:41675
+
+Test of module gauss_legendre:
+  test gauss_nodes
+
+Accepted after 1 attempt(s): builds, runs (exit 0), calls gauss_nodes; 6 check(s). Review it before committing.
+Model notes: The checks verify that the nodes and weights returned by the `gauss_nodes` procedure are correct for a 3-point rule. The expected values were obtained by analyzing the implementation of the procedure and understanding the properties of the Legendre polynomial.
+
+program test_gauss_legendre
+  use gauss_legendre
+  use quad_rules, only : R8P
+  implicit none
+  integer :: failures = 0
+
+  call test_gauss_nodes()
+  if (failures > 0) then
+    print '(a,i0,a)', 'FAILED: ', failures, ' check(s)'
+    error stop 1
+  end if
+  print '(a)', 'test_gauss_legendre: all checks passed'
+contains
+
+  subroutine test_gauss_nodes()
+    integer :: n
+    real(r8p), allocatable :: x(:)
+    real(r8p), allocatable :: w(:)
+    ! TODO: give the inputs values, then check the outputs against expected values
+    n = 3
+    allocate(x(n), w(n))
+    call gauss_nodes(n=n, x=x, w=w)
+    if (abs(x(1) + 0.774596669241483_R8P) > 1.e-15_R8P) then
+      print '(a, ES10.3, a, ES10.3)', 'gauss_nodes: x(1) = ', x(1), ', expected = ', -0.774596669241483_R8P
+      failures = failures + 1
+    end if
+    if (abs(x(2) - 0.000000000000000_R8P) > 1.e-15_R8P) then
+      print '(a, ES10.3, a, ES10.3)', 'gauss_nodes: x(2) = ', x(2), ', expected = ', 0.000000000000000_R8P
+      failures = failures + 1
+    end if
+    if (abs(x(3) - 0.774596669241483_R8P) > 1.e-15_R8P) then
+      print '(a, ES10.3, a, ES10.3)', 'gauss_nodes: x(3) = ', x(3), ', expected = ', 0.774596669241483_R8P
+      failures = failures + 1
+    end if
+    if (abs(w(1) - 0.555555555555556_R8P) > 1.e-15_R8P) then
+      print '(a, ES10.3, a, ES10.3)', 'gauss_nodes: w(1) = ', w(1), ', expected = ', 0.555555555555556_R8P
+      failures = failures + 1
+    end if
+    if (abs(w(2) - 0.888888888888889_R8P) > 1.e-15_R8P) then
+      print '(a, ES10.3, a, ES10.3)', 'gauss_nodes: w(2) = ', w(2), ', expected = ', 0.888888888888889_R8P
+      failures = failures + 1
+    end if
+    if (abs(w(3) - 0.555555555555556_R8P) > 1.e-15_R8P) then
+      print '(a, ES10.3, a, ES10.3)', 'gauss_nodes: w(3) = ', w(3), ', expected = ', 0.555555555555556_R8P
+      failures = failures + 1
+    end if
+  end subroutine test_gauss_nodes
+end program test_gauss_legendre
+
+(fobis testgen gauss_legendre --apply writes it to test/)

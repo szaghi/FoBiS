@@ -92,4 +92,4 @@ the login-node guard; the compute node's facts in the provenance; `--tool nsys`.
 [running on a cluster](/advanced/scheduler), [profiling](/advanced/profile).
 :::
 
-This is the end of the track. [Track 6](/tutorial/#tracks) puts an AI assistant to work under these checks.
+This is the end of the track. [Track 6](/tutorial/ai/01-model) puts a model to work under these checks.

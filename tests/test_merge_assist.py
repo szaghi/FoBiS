@@ -293,6 +293,29 @@ def test_resolve_file_retries_a_proposal_that_does_not_compile(conflict):
     assert all(h.resolution.verified for h in cf.hunks)
 
 
+def test_a_proposal_that_never_compiles_is_low_confidence(conflict):
+    """The model rates its proposal "high"; once the compiler rejects it (and the retries too) it is "low"."""
+    bad = json.dumps(
+        {
+            "strategy": "custom",
+            "merged_text": "  q(i) = (q(i) + dt) *** 0.5_rk",
+            "rationale": "both",
+            "confidence": "high",
+            "risks": [],
+            "citations": ["S2", "S3"],
+        }
+    )
+    draft = json.dumps({**json.loads(bad), "merged_text": "!$acc parallel loop firstprivate(n, dt)\n!$omp OMPLOOP"})
+    answers = iter([draft, bad, bad, bad])
+    cf = load_conflict("solver.f90")
+    check = resolve_file(
+        cf, operation(), FakeProvider(lambda m: next(answers)), includes=[str(conflict / "build" / "mod")]
+    )
+    assert check.ok is False
+    failing = [h.resolution for h in cf.hunks if h.resolution.verified is False]
+    assert failing and all(r.confidence == "low" and r.note.startswith("does not compile") for r in failing)
+
+
 # ── CLI ────────────────────────────────────────────────────────────────────────
 
 

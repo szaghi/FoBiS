@@ -1,0 +1,8 @@
+$ fobis commit --show-facts
+## Facts of the change (computed by FoBiS from git and the sources)
+
+Scope candidates (use one of these, or an empty scope for a cross-cutting change):
+- area: src/area.F90 is new to the history: named after its directory
+
+Fortran sources (changed lines classified by the lexer; comment = comment or blank):
+- src/area.F90: changed lines (removed + added): 3 code; procedures: area

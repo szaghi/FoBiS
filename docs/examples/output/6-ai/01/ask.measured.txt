@@ -1,0 +1,3 @@
+$ fobis llm ask "In one sentence: what does the Fortran intrinsic merge(tsource, fsource, mask) return?"
+Using the running llama-server at http://127.0.0.1:41675
+The Fortran intrinsic `merge(tsource, fsource, mask)` returns an array where each element is taken from `tsource` if the corresponding element in `mask` is true, otherwise it is taken from `fsource`.

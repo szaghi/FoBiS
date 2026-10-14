@@ -1,0 +1,17 @@
+--- a/src/area.F90
++++ b/src/area.F90
+@@ -1,7 +1,7 @@
+ !< The integral of sin(x) over [0, pi], exact value 2, with n intervals (the first argument, default 16).
+ program area
+ !< The integral of sin(x) over [0, pi], exact value 2, with n intervals (the first argument, default 16).
+-use quad_rules, only : R8P, trapezoid, simpson
++use quad_rules, only : R8P, midpoint, trapezoid, simpson
+ use integrands, only : sine
+ implicit none
+ real(R8P), parameter :: pi = acos(-1._R8P) !< Pi.
+@@ -16,4 +16,5 @@
+ print '(A, I0)', 'n = ', n
+ print '(A, ES24.17)', 'trapezoid = ', trapezoid(sine, 0._R8P, pi, n)
+ print '(A, ES24.17)', 'simpson = ', simpson(sine, 0._R8P, pi, n)
++print '(A, ES24.17)', 'midpoint = ', midpoint(sine, 0._R8P, pi, n)
+ endprogram area

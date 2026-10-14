@@ -13,7 +13,8 @@ from ._app import _ns, app
 from ._options import FciOpt, FobosOpt, ModeOpt, ShadowOpt
 
 
-@app.command("run", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+# no ignore_unknown_options: an unknown option is an error (it became the TARGET_NAME); program options go after --
+@app.command("run", context_settings={"allow_extra_args": True})
 def cmd_run(
     ctx: typer.Context,
     fobos: FobosOpt = None,

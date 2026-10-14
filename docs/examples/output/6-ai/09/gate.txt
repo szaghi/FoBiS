@@ -1,0 +1,53 @@
+$ python3 tools/mcp_client.py call gate '{"stages": ["build", "test", "verify"]}'
+result of gate
+{
+ "status": "fail",
+ "base": "",
+ "elapsed": 1.89,
+ "stages": [
+  {
+   "stage": "build",
+   "status": "pass",
+   "advisory": false,
+   "fact": "",
+   "details": [],
+   "commands": [
+    [
+     "build",
+     "--json"
+    ]
+   ],
+   "elapsed": 0.23
+  },
+  {
+   "stage": "test",
+   "status": "fail",
+   "advisory": false,
+   "fact": "test_exactness: failed: the program stopped itself: error stop at test/test_exactness.F90:10",
+   "details": [
+    "test_symmetry: failed: the program stopped itself: error stop at test/test_symmetry.F90:12"
+   ],
+   "commands": [
+    [
+     "test",
+     "--json"
+    ]
+   ],
+   "elapsed": 0.93
+  },
+  {
+   "stage": "verify",
+   "status": "pass",
+   "advisory": false,
+   "fact": "",
+   "details": [],
+   "commands": [
+    [
+     "verify",
+     "--json"
+    ]
+   ],
+   "elapsed": 0.73
+  }
+ ]
+}

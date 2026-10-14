@@ -1,0 +1,14 @@
+$ git diff
+diff --git a/src/quad_rules.F90 b/src/quad_rules.F90
+index 563c154..4cb1281 100644
+--- a/src/quad_rules.F90
++++ b/src/quad_rules.F90
+@@ -84,7 +84,7 @@ contains
+       odd = odd + f(a + i * h)
+    enddo
+    even = 0._R8P
+-   do i = 2, n - 2, 2
++   do i = 2, n, 2
+       even = even + f(a + i * h)
+    enddo
+    s = (f(a) + f(b) + 4._R8P * odd + 2._R8P * even) * h / 3._R8P

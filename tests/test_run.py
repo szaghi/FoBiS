@@ -245,3 +245,9 @@ def test_usage_names_fobis_under_python_m(monkeypatch):
     assert _prog_name() == "fobis"
     monkeypatch.setattr("sys.argv", ["/usr/bin/FoBiS.py", "ecosystem"])
     assert _prog_name() == "FoBiS.py"
+
+
+def test_run_unknown_option_is_an_error(echo_project):
+    """An unknown option is an error, not the TARGET_NAME (``--target`` was run as a program named ``--target``)."""
+    result = _fobis(echo_project, "run", "--target", "src/echo.f90")
+    assert result.returncode == 2 and "No such option" in result.stderr + result.stdout

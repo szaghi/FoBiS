@@ -32,6 +32,7 @@ the interfaces of the project procedures named on the line, knowledge-pack secti
 
 from __future__ import annotations
 
+import difflib
 import os
 import re
 from collections.abc import Iterable
@@ -360,6 +361,14 @@ def _missing_module(diagnostic: Diagnostic, name: str, facts: BuildFacts) -> Dia
         library, todo = LIBRARY_MODULES[name]
         diag.facts.append(f"{name} is the module of the {library} library, not a project source.")
         diag.advice.append(todo)
+        return diag
+    known = {m: paths[0] for m, paths in facts.modules().items() if paths}
+    known.update({m: path for m, (_dep, path) in facts.dep_modules().items()})
+    close = difflib.get_close_matches(name, sorted(known), n=3, cutoff=0.8)
+    if close:  # most likely a misspelt name
+        shown = ", ".join(f"{m} ({_show(known[m])})" for m in close)
+        diag.facts.append(f"no source defines module {name}; modules with a close name: {shown}.")
+        diag.advice.append(f"if the name is misspelt, use {close[0]}")
         return diag
     unfetched = [d for d in facts.dependencies if not os.path.isdir(os.path.join(facts.deps_dir, d))]
     diag.facts.append(f"no project source defines module {name}, and it is not a known library module.")

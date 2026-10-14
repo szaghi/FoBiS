@@ -1,0 +1,146 @@
+$ fobis build --mode release --quiet --explain-context
+
+Building src/romberg.f
+Nothing to compile, all objects are up-to-date
+Building src/integrate.F90
+Compiling src/integrate.F90 serially
+src/integrate.F90:14:33:
+
+   14 |    print '(I6, 2ES18.4)', n, abs(trapezoid(sine, 0, pi, n) - 2._R8P), abs(simpson(sine, 0._R8P, pi, n) - 2._R8P)
+      |                                 1
+Error: Type mismatch in argument 'a' at (1); passed INTEGER(4) to REAL(8)
+
+
+Explanation (fobis build --explain)
+=== system prompt ===
+You explain why a Fortran compile step failed and how to fix it. You receive the compiler's message, the
+build settings, and numbered sources: the source lines around the error (the error line is marked `>`), the
+declarations of the procedure that contains it, the interfaces of project procedures named on that line, and
+sections of the Fortran standard and practice notes. You may use ONLY the message and the numbered sources.
+
+Answer with one JSON object:
+
+- `claims`: short, self-contained sentences, each with a `kind` and the labels of the sources that support
+  it (`"citations": ["S1", "S3"]`).
+  - `kind: "cause"`: what in the code makes the compiler reject it. Name the line, the entity and the rule
+    it breaks, as the sources show them.
+  - `kind: "fix"`: a concrete change to the code or to the build that removes the error. Quote the code to
+    write when the change is small.
+- `insufficient`: true when the sources do not show the cause; then return no claims rather than guessing.
+
+Rules:
+
+- Never state something that no source supports, even if you believe it is true: such statements are
+  discarded.
+- Explain the error of the message, not other problems you notice.
+- Give at least one cause and, when the sources allow it, one fix.
+- Quote identifiers, types and constraint numbers exactly as the sources write them.
+- Do not mention the labels or this format inside the claim text.
+
+=== user message ===
+## Compiler message
+
+src/integrate.F90:14:33:
+
+   14 |    print '(I6, 2ES18.4)', n, abs(trapezoid(sine, 0, pi, n) - 2._R8P), abs(simpson(sine, 0._R8P, pi, n) - 2._R8P)
+      |                                 1
+Error: Type mismatch in argument 'a' at (1); passed INTEGER(4) to REAL(8)
+
+## Build
+
+compiler: gfortran (gnu)
+fobos mode: release
+compile flags: -O3 -funroll-loops -c
+
+## Sources
+
+[S1] src/integrate.F90 lines 8-18 (code:src/integrate.F90:8-18)
+8  | real(R8P), parameter :: pi = acos(-1._R8P) !< Pi.
+9  | integer              :: n                  !< Number of intervals.
+10 | 
+11 | print '(A6, 2A18)', 'n', 'trapezoid error', 'simpson error'
+12 | n = 4
+13 | do while (n <= 64)
+14 >    print '(I6, 2ES18.4)', n, abs(trapezoid(sine, 0, pi, n) - 2._R8P), abs(simpson(sine, 0._R8P, pi, n) - 2._R8P)
+15 |    n = 2 * n
+16 | enddo
+17 | print '(A)', 'Simpson, 64 intervals: '//trim(str(simpson(sine, 0._R8P, pi, 64), no_sign=.true., compact=.true.))
+18 | endprogram integrate
+
+[S2] declarations of program integrate (src/integrate.F90:2) (fact:src/integrate.F90#integrate)
+program integrate
+use quad_rules, only : R8P, trapezoid, simpson
+use integrands, only : sine
+use penf,       only : str
+real(R8P), parameter :: pi = acos(-1._R8P) !< Pi.
+integer              :: n                  !< Number of intervals.
+
+[S3] interface of function trapezoid (module quad_rules), src/quad_rules.F90:38 (fact:src/quad_rules.F90#trapezoid)
+pure function trapezoid(f, a, b, n) result(s)
+procedure(integrand)  :: f !< Integrand.
+real(R8P), intent(in) :: a !< Lower bound.
+real(R8P), intent(in) :: b !< Upper bound.
+integer,   intent(in) :: n !< Number of intervals.
+real(R8P)             :: s !< Integral estimate.
+real(R8P)             :: h !< Interval width.
+integer               :: i !< Counter.
+
+[S4] interface of function sine (module integrands), src/integrands.F90:10 (fact:src/integrands.F90#sine)
+pure function sine(x) result(y)
+real(R8P), intent(in) :: x !< Abscissa.
+real(R8P)             :: y !< sin(x).
+
+[S5] interface of function simpson (module quad_rules), src/quad_rules.F90:61 (fact:src/quad_rules.F90#simpson)
+pure function simpson(f, a, b, n) result(s)
+procedure(integrand)  :: f !< Integrand.
+real(R8P), intent(in) :: a !< Lower bound.
+real(R8P), intent(in) :: b !< Upper bound.
+integer,   intent(in) :: n !< Number of intervals, even.
+real(R8P)             :: s !< Integral estimate.
+real(R8P)             :: h !< Interval width.
+real(R8P)             :: odd  !< Sum at the odd nodes.
+real(R8P)             :: even !< Sum at the even inner nodes.
+integer               :: i    !< Counter.
+
+[S6] Glossary — Fortran 2023 Standard - Fortran 2023 standard: distilled reference (fortran-std:glossary#glossary-fortran-2023-standard-2)
+**actual argument** — an expression, variable, or procedure passed in a procedure reference; associated with a dummy argument (15).
+**allocatable** — attribute for an object whose allocation status is dynamic; auto-deallocated at scope exit (8).
+**array section** — a designator selecting a subset of an array via triplets or vector subscripts (9).
+**assumed-rank** — dummy `a(..)` whose rank is taken from the actual argument; used with SELECT RANK (8, 11).
+**assumed-shape** — dummy `a(:)` whose extents come from the actual; **lower bound defaults to 1** (8).
+**assumed-size** — dummy `a(*)`; last dimension size unknown; legacy/interop (8).
+**assumed-type** — `TYPE(*)` dummy; unlimited polymorphic, opaque pass-through (7).
+**association** — a relationship by which an entity is reachable by another name/storage; 9 kinds (3, 19).
+**attribute** — a property of an entity (ALLOCATABLE, POINTER, INTENT, …) (8).
+**BIND(C)** — gives an entity C linkage and an optional binding label (18).
+**BLOCK construct** — a nested scope permitting local declarations within the execution part (11).
+**characteristics** — the fixed properties of a procedure/dummy used in interface matching (15).
+**CLASS(*)** — unlimited polymorphic declaration; dynamic type may be anything (7).
+**coarray** — an object with codimensions, accessible across images (8, 9).
+**collating sequence** — processor-dependent ordering of a character set (3, 20).
+[...]
+
+[S7] Fortran Conventions > Kind Specifications (Portability) > Forbidden kind-violating patterns - Fortran and GPU/HPC practice: conventions, pitfalls, measured lessons (hpc-practice:fortran-practice#forbidden-kind-violating-patterns)
+These are the LLM's default Fortran sins — the forms generated when no kind discipline
+is enforced. Reject every one of them on sight; they bypass the kind system, hardcode
+precision, and silently break single/mixed-precision builds.
+
+- `dsqrt`, `dexp`, `dlog`, `dabs`, `dcos`, `dsin`, `dtan`, `datan`, `datan2`, `dble`,
+  `dmin1`, `dmax1`, etc. → use the **generic intrinsics** `sqrt`, `exp`, `log`, `abs`,
+  `cos`, ...; let the compiler resolve to the right kind from the argument.
+- `1.0d0`, `2.5d-3`, `1.d-12` (the `d` exponent literal) → use kind-suffixed literals:
+  `1.0_R8P`, `2.5e-3_R8P`. The `d` form silently locks to double precision.
+- `real(8)`, `real(4)`, `real(16)` → bare numeric kinds are non-portable and
+  meaningless across compilers. Use `real(R8P)` / `real(real64)` via your kind module.
+- `double precision` keyword → use `real(R8P)` / `real(real64)`.
+- `dble(x)` for type conversion → use `real(x, R8P)` / `real(x, real64)`.
+- Hardcoded byte sizes like `int(8._R8P, 8)` → use `storage_size(0._R8P)/8` or
+  `c_sizeof` for portability across precision modes.
+- Bare integer-kinded "real" literal like `2_R8P` → spelled `2.0_R8P`; `2_R8P` is an
+  *integer* literal of kind R8P, not a real, and silently wrong in expressions expecting a real.
+
+The single test: every floating-point literal and every intrinsic call must compile
+identically when `R8P` is redefined from `real64` to `real32` (single precision) or to
+[...]
+
+[exit status 1]

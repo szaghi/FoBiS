@@ -1,0 +1,94 @@
+$ python3 tools/mcp_client.py call query '{"kind": "callers", "argument": "simpson"}'
+result of query
+{
+ "kind": "callers",
+ "argument": "simpson",
+ "items": [
+  {
+   "caller": "area",
+   "path": "src/area.F90",
+   "line": 18,
+   "name": "simpson",
+   "kind": "function",
+   "resolved": [
+    "quad_rules::simpson"
+   ],
+   "how": "unique",
+   "text": "print '(A, ES24.17)', 'simpson = ', simpson(sine, 0._R8P, pi, n)"
+  },
+  {
+   "caller": "integrate",
+   "path": "src/integrate.F90",
+   "line": 14,
+   "name": "simpson",
+   "kind": "function",
+   "resolved": [
+    "quad_rules::simpson"
+   ],
+   "how": "unique",
+   "text": "print '(I6, 2ES18.4)', n, abs(trapezoid(sine, 0._R8P, pi, n) - 2._R8P), abs(simpson(sine, 0._R8P,..."
+  },
+  {
+   "caller": "integrate",
+   "path": "src/integrate.F90",
+   "line": 17,
+   "name": "simpson",
+   "kind": "function",
+   "resolved": [
+    "quad_rules::simpson"
+   ],
+   "how": "unique",
+   "text": "print '(A)', 'Simpson, 64 intervals: '//trim(str(simpson(sine, 0._R8P, pi, 64), no_sign=.true., c..."
+  },
+  {
+   "caller": "integrate_mpi",
+   "path": "src/integrate_mpi.F90",
+   "line": 20,
+   "name": "simpson",
+   "kind": "function",
+   "resolved": [
+    "quad_rules::simpson"
+   ],
+   "how": "unique",
+   "text": "piece = simpson(sine, a, b, n)"
+  },
+  {
+   "caller": "sweep",
+   "path": "src/sweep.F90",
+   "line": 18,
+   "name": "simpson",
+   "kind": "function",
+   "resolved": [
+    "quad_rules::simpson"
+   ],
+   "how": "unique",
+   "text": "error(2, k) = abs(simpson(sine, 0._R8P, pi, n) - 2._R8P)"
+  },
+  {
+   "caller": "test_order",
+   "path": "test/test_order.F90",
+   "line": 12,
+   "name": "simpson",
+   "kind": "function",
+   "resolved": [
+    "quad_rules::simpson"
+   ],
+   "how": "unique",
+   "text": "p_simpson = log(abs(simpson(sine, 0._R8P, pi, 16) - 2._R8P) / abs(simpson(sine, 0._R8P, pi, 32) -..."
+  },
+  {
+   "caller": "test_order",
+   "path": "test/test_order.F90",
+   "line": 12,
+   "name": "simpson",
+   "kind": "function",
+   "resolved": [
+    "quad_rules::simpson"
+   ],
+   "how": "unique",
+   "text": "p_simpson = log(abs(simpson(sine, 0._R8P, pi, 16) - 2._R8P) / abs(simpson(sine, 0._R8P, pi, 32) -..."
+  }
+ ],
+ "notes": [],
+ "files": 13
+}

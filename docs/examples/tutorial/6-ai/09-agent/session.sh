@@ -1,0 +1,6 @@
+quiet 'git reset -q --hard && git branch -q -D midpoint'
+show tools 'python3 tools/mcp_client.py list'
+show callers 'python3 tools/mcp_client.py call query '"'"'{"kind": "callers", "argument": "simpson"}'"'"''
+quiet 'git apply "$DOCS_CHAPTER/agent.patch"'
+show edit 'git diff'
+show gate 'python3 tools/mcp_client.py call gate '"'"'{"stages": ["build", "test", "verify"]}'"'"''

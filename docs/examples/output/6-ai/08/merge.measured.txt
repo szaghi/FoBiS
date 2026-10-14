@@ -1,0 +1,22 @@
+$ fobis merge-assist
+merge: ours = master (HEAD); theirs = midpoint
+[llm] test/test_exactness.F90: conflict 1/1
+Using the running llama-server at http://127.0.0.1:41675
+[llm] test/test_exactness.F90: conflict 1 does not compile, retry 1/2
+[llm] test/test_exactness.F90: conflict 1 does not compile, retry 2/2
+
+test/test_exactness.F90: conflict 1 of 1
+  base:
+    | real(R8P), parameter :: tolerance = 1.e-14_R8P !< Rounding allowance.
+  ours (master (HEAD)):
+    | real(R8P), parameter :: tolerance = 4.e-14_R8P !< Rounding allowance: a few ulps of the results, at -O3.
+  theirs (midpoint):
+    | real(R8P), parameter :: tolerance = 1.e-14_R8P !< Rounding allowance, checked on the midpoint rule too.
+  proposal [model, both, confidence low, does NOT compile]: Both sides changed the value of the tolerance parameter. The result keeps both changes, making the tolerance value 4.e-14_R8P, as this is the value from our side. The comment is updated to reflect the intent of both sides.
+  proposed:
+    | real(R8P), parameter :: tolerance = 4.e-14_R8P !< Rounding allowance: a few ulps of the results, at -O3.
+    | real(R8P), parameter :: tolerance = 1.e-14_R8P !< Rounding allowance, checked on the midpoint rule too.
+  note: does not compile: Symbol 'tolerance' at (1) already has basic type of REAL
+  cites: ours:test/test_exactness.F90#1, theirs:test/test_exactness.F90#1
+
+Nothing was staged. Review with `git diff`, run `fobis test`, then `git add` the files yourself.

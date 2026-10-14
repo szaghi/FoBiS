@@ -48,7 +48,7 @@ replayed: `merge-assist` says so, both to you and to the model.
    at the conflict, and the draft when there is one. It answers a strategy (`ours`, `theirs`, `both`, `custom`),
    the merged text for `custom`, a rationale, a confidence, risks and citations. For `ours`, `theirs` and
    `both`, FoBiS builds the text itself; a `custom` text with conflict markers is rejected; a proposal that
-   cites nothing is kept at confidence low.
+   cites nothing is kept at confidence low, and so is a proposal that still does not compile after the retries.
 4. **Compilation.** The file, with every proposal applied, is compiled syntax-only with the fobos mode's compiler
    (gfortran `-fsyntax-only`, ifx `-syntax-only`, nvfortran and LFortran into a scratch object), with the mode's
    `-D`/`-I` flags and its module directory. A model proposal that does not compile goes back to the model with

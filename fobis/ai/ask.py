@@ -70,7 +70,31 @@ def route_packs(question: str, available: Iterable[str]) -> list[str] | None:
     return [p for p in (*named, *GENERAL_PACKS) if p in available]
 
 
-def _unit_text(unit: Unit, path: str) -> str:
+DOC_LINES = 4  # doc-comment lines kept per unit
+
+
+def _doc(unit: Unit, lines: list[str]) -> str:
+    """The unit's documentation comment: the ``!<`` lines after its header (FORD), else the ``!>``/``!<`` lines
+    just before it (Doxygen); prose only, up to a code fence, at most DOC_LINES lines."""
+
+    def comment(index: int) -> str | None:
+        text = lines[index].strip() if 0 <= index < len(lines) else ""
+        return text[2:].strip() if text[:2] in ("!<", "!>") else None
+
+    found: list[str] = []
+    index = unit.line  # the line after the header (unit.line is 1-based)
+    while (text := comment(index)) is not None and not text.startswith("```") and len(found) < DOC_LINES:
+        found.append(text)
+        index += 1
+    if not found:
+        index = unit.line - 2
+        while (text := comment(index)) is not None and len(found) < DOC_LINES:
+            found.insert(0, text)
+            index -= 1
+    return " ".join(t for t in found if t)
+
+
+def _unit_text(unit: Unit, path: str, source: list[str] | None = None) -> str:
     calls: list[str] = []
     mpi: list[str] = []
     directives: list[str] = []
@@ -86,6 +110,9 @@ def _unit_text(unit: Unit, path: str) -> str:
     lines = [f"{unit.kind} {unit.name} in {path}, lines {unit.line}-{unit.end_line}"]
     if unit.header is not None:
         lines.append(f"header: {unit.header.text.strip()}")
+    doc = _doc(unit, source) if source else ""
+    if doc:
+        lines.append(f"doc: {doc}")
     if unit.args:
         lines.append(f"arguments: {', '.join(unit.args)}")
     if unit.uses:
@@ -107,7 +134,7 @@ def project_pack(files: Iterable[FileUnits]) -> Pack:
         for unit in file_units.walk():
             if not unit.name or unit.kind in ("interface", "fragment") or unit.is_interface_body:
                 continue
-            text = _unit_text(unit, path)
+            text = _unit_text(unit, path, file_units.source.lines)
             symbols = tuple(sorted({unit.name, *(w for w in text.replace(",", " ").split() if "_" in w)}))
             chunks.append(
                 Chunk(

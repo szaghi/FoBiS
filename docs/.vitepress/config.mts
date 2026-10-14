@@ -80,6 +80,21 @@ const docs = [
           { text: '9. On a cluster',             link: '/tutorial/numerics/09-cluster' },
         ],
       },
+      {
+        text: '6. AI-assisted development',
+        collapsed: false,
+        items: [
+          { text: '1. A local model',            link: '/tutorial/ai/01-model' },
+          { text: '2. Build failures, explained', link: '/tutorial/ai/02-explain' },
+          { text: '3. Crashes, located',         link: '/tutorial/ai/03-crash' },
+          { text: '4. Questions about the code', link: '/tutorial/ai/04-ask' },
+          { text: '5. Generated tests',          link: '/tutorial/ai/05-testgen' },
+          { text: '6. A second reader',          link: '/tutorial/ai/06-review' },
+          { text: '7. Commit messages',          link: '/tutorial/ai/07-commit' },
+          { text: '8. Merge conflicts',          link: '/tutorial/ai/08-merge' },
+          { text: '9. An agent under the gate',  link: '/tutorial/ai/09-agent' },
+        ],
+      },
     ],
   },
   {

@@ -1,0 +1,68 @@
+$ fobis ask --show-context -p src -p test "Which rule integrates cubic polynomials exactly?"
+=== system prompt ===
+You answer technical questions about Fortran, OpenMP, OpenACC, MPI, HPC practice and the user's Fortran
+project. You may use ONLY the numbered sources given with the question: the knowledge-pack sections and,
+when present, entries describing the project's units (modules, procedures, programs). A `doc:` line in such
+an entry is the authors' documentation of that unit: what it states may be cited.
+
+Answer with one JSON object:
+
+- `claims`: the statements that answer the question, each a short, self-contained sentence, each with the
+  labels of the sources that state it (`"citations": ["S2"]`). Cite only sources that really contain the
+  statement. Prefer several precise claims to one long one.
+- `insufficient`: true when the sources do not answer the question; then return no claims rather than
+  answering from memory.
+
+Rules:
+
+- Never state something that no source supports, even if you believe it is true: such statements are
+  discarded.
+- For the project's procedures, say where things are (procedure, file, line) as the sources give them;
+  do not describe code you were not shown.
+- Quote identifiers, directives and constraint numbers exactly as the sources write them.
+- Do not mention the labels or this format inside the claim text.
+
+=== user message ===
+## Question
+
+Which rule integrates cubic polynomials exactly?
+
+## Sources
+
+[S1] program test_exactness (test/test_exactness.F90:2) - this project's sources (project:test/test_exactness.F90#test_exactness)
+program test_exactness in test/test_exactness.F90, lines 2-12
+header: program test_exactness
+doc: Each rule integrates exactly the polynomials of its degree: trapezoid lines, Simpson cubics.
+uses: polynomials, quad_rules
+
+[S2] function cubic (test/polynomials.F90:18) - this project's sources (project:test/polynomials.F90#cubic)
+function cubic in test/polynomials.F90, lines 18-24
+header: pure function cubic(x) result(y)
+doc: x**3, integral on [0, 2] = 4.
+arguments: x
+
+[S3] module polynomials (test/polynomials.F90:2) - this project's sources (project:test/polynomials.F90#polynomials)
+module polynomials in test/polynomials.F90, lines 2-25
+header: module polynomials
+doc: Polynomials whose integrals are known exactly.
+uses: quad_rules
+
+[S4] program test_symmetry (test/test_symmetry.F90:2) - this project's sources (project:test/test_symmetry.F90#test_symmetry)
+program test_symmetry in test/test_symmetry.F90, lines 2-23
+header: program test_symmetry
+doc: Every rule integrates an odd function over a symmetric interval to zero.
+uses: polynomials, quad_rules
+
+[S5] program integrate (src/integrate.F90:2) - this project's sources (project:src/integrate.F90#integrate)
+program integrate in src/integrate.F90, lines 2-18
+header: program integrate
+doc: Integrate sin(x) over [0, pi], whose exact value is 2, with more and more intervals.
+uses: integrands, penf, quad_rules
+
+[S6] program integrate_mpi (src/integrate_mpi.F90:2) - this project's sources (project:src/integrate_mpi.F90#integrate_mpi)
+program integrate_mpi in src/integrate_mpi.F90, lines 2-24
+header: program integrate_mpi
+doc: Simpson's rule over [0, pi] split among the MPI processes: each integrates its piece, rank 0 adds them up.
+uses: integrands, mpi, quad_rules
+MPI calls: mpi_init, mpi_comm_rank, mpi_comm_size, mpi_reduce, mpi_finalize
+

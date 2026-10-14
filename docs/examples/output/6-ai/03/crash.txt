@@ -1,0 +1,20 @@
+$ fobis run --no-build --explain
+     n   trapezoid error     simpson error
+ERROR STOP simpson: the number of intervals must be even
+
+Error termination. Backtrace:
+#0  0x7852f5428d14 in ???
+#1  0x7852f5429ab1 in ???
+#2  0x7852f542b1c8 in ???
+#3  0x6405a48d640b in __quad_rules_MOD_simpson
+	at src/quad_rules.F90:79
+#4  0x6405a48f0204 in integrate
+	at src/integrate.F90:14
+#5  0x6405a48f044e in main
+	at src/integrate.F90:4
+
+Explanation (fobis run --explain)
+the program failed at src/quad_rules.F90:79
+  - runtime message: simpson: the number of intervals must be even
+  - statement: if (mod(n, 2) /= 0) error stop 'simpson: the number of intervals must be even'
+[exit status 1]

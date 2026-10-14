@@ -1,0 +1,20 @@
+$ fobis build --mode release --quiet --explain
+
+warning: the file 'src/integrate.F90' depends on 'quad_rule' that is unreachable
+Building src/romberg.f
+Nothing to compile, all objects are up-to-date
+Building src/integrate.F90
+Compiling src/integrate.F90 serially
+src/integrate.F90:4:5:
+
+    4 | use quad_rule, only : R8P, trapezoid, simpson
+      |     1
+Fatal Error: Cannot open module file 'quad_rule.mod' for reading at (1): No such file or directory
+compilation terminated.
+
+
+Explanation (fobis build --explain)
+src/integrate.F90:4: module quad_rule is not available when src/integrate.F90 is compiled
+  - no source defines module quad_rule; modules with a close name: quad_rules (src/quad_rules.F90).
+  fix: if the name is misspelt, use quad_rules
+[exit status 1]

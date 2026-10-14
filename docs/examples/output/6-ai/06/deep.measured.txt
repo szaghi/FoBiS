@@ -1,0 +1,16 @@
+$ fobis review --deep
+Using the running llama-server at http://127.0.0.1:41675
+src/sweep.F90:16: OMP001 [warning] 'n' is shared and written by every thread (missing private?)
+
+1 finding(s) in 13 file(s): OMP001 x1
+Explain a rule with: fobis lint --explain <ID>
+Reviewed 1 changed line(s) in 1 Fortran file(s).
+
+Risk summary [llm]:
+Risks:
+  - The variable 'n' is shared and written by every thread in the OpenMP parallel region, leading to a data race. [1][2]
+
+Sources:
+  [1] diff of src/sweep.F90 (- removed, + added)  (diff:src/sweep.F90)
+  [2] rule OMP001 shared-scalar-written-in-parallel-region  (rule:OMP001)
+[exit status 1]

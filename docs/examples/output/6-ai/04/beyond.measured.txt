@@ -1,0 +1,10 @@
+$ fobis ask -p src -p test "How long does simpson take on a GPU?"
+Using the running llama-server at http://127.0.0.1:41675
+- The runtime for simpson on a GPU depends on the specific GPU and the number of intervals (n). [1]
+- To run simpson on a GPU, you need to enable OpenACC with the `-acc` option and specify the GPU compute capability with `-gpu=cc80` or `-gpu=ccnative`. [2]
+- For optimal performance, minimize host-to-device transfers and maximize data reuse on the device. [3]
+
+Sources:
+  [1] function simpson (src/quad_rules.F90:61) - this project's sources  (project:src/quad_rules.F90#simpson)
+  [2] NVIDIA Fortran (nvfortran) > GPU options - Fortran compilers in practice: gfortran, ifx, nvfortran defaults, checks, floating point, modules  (compilers:nvfortran#gpu-options)
+  [3] GPU / OpenACC / CUDA Conventions > Data Movement - Fortran and GPU/HPC practice: conventions, pitfalls, measured lessons  (hpc-practice:gpu-practice#data-movement)

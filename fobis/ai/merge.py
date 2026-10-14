@@ -818,6 +818,7 @@ def resolve_file(
             res.verified = True
         elif check.ok is False and hunk.index in check.by_hunk:
             res.verified = False
+            res.confidence = "low"  # the compiler outranks the model's own rating
             res.note = f"does not compile: {check.by_hunk[hunk.index][0].message}"
         elif check.ok is None:
             res.note = res.note or f"not compiled: {check.reason}"

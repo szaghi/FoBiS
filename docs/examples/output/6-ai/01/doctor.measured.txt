@@ -1,0 +1,8 @@
+$ fobis llm doctor
+ok   provider   managed  (model coder-7b)
+ok   directory  ~/fobis-dev/llm
+ok   platform   linux/x86_64, variants cpu, cuda12, cuda13, vulkan, rocm, sycl; auto -> cuda12 (NVIDIA driver supports CUDA 12.9)
+ok   runtime    ~/fobis-dev/llama.cpp-b11308/build/bin/llama-server  (version: 0.5.0-dev (build 1, commit feb9a3d))
+ok   model      models/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF/13fb94bfda8c8cf22497dc57b78f391a9acb426a/qwen2.5-coder-7b-instruct-q4_k_m.gguf
+ok   start      server ready in 0.0 s
+ok   sample     'ready' in 0.0 s

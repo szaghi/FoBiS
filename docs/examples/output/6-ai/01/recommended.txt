@@ -1,0 +1,8 @@
+$ fobis llm recommended
+coder-0.5b       491 MB  Apache-2.0  smoke tests of the setup only: too small to describe a diff
+coder-1.5b       1.1 GB  Apache-2.0  quick experiments on CPU; copies prompt examples instead of reading the diff
+coder-7b         4.7 GB  Apache-2.0  default choice: 8 GB GPU, or a recent CPU
+coder-14b        9.0 GB  Apache-2.0  12-16 GB GPU
+coder-30b-a3b   18.6 GB  Apache-2.0  24 GB GPU; mixture of experts (3B active), fast for its size
+
+Pull one with: fobis llm pull <alias>   (or any hf:<org>/<repo>[@<rev>]/<file>.gguf)

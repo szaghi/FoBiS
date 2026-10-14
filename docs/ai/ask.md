@@ -52,6 +52,15 @@ pack states the rule for loop variables as "predetermined attributes: loop itera
 a question about "the index of a sequential loop" does not reach that section among the first ones. Rephrase
 with the terms of the standard, raise `-k`, or look with `fobis kb search` first.
 
+A citation proves that the cited source exists, not that it says what the statement says. A question the sources
+do not answer can still get statements, each citing something: read the cited sections (the tutorial shows a real
+case, [Questions about the code](/tutorial/ai/04-ask#what-a-citation-guarantees)). The model writes its statements
+first and its `insufficient` verdict after: asked for the verdict first, coder-7b declined a question its first
+source answered word for word.
+
+The project's units are described by their header, their documentation comment (FORD `!<` after the header, or
+Doxygen `!>` before it), arguments, uses and calls: document a procedure and `ask` can find it.
+
 The answer is as good as the model: use `coder-7b` or larger (see [Local models](/ai/models)).
 
 ## Options

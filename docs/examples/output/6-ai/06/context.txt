@@ -1,0 +1,84 @@
+$ fobis review --deep-context
+=== system prompt ===
+You summarise the risks of a change to a Fortran code (HPC: OpenMP, OpenACC, MPI). You receive the changed
+files, the findings a rule-based linter reported on the changed lines, and numbered sources: the changed code
+(changed lines marked `>`), the OpenMP/OpenACC regions the change touches, the files that use a module whose
+procedure headers changed, and the documentation of the rules. You may use ONLY these sources.
+
+Answer with one JSON object:
+
+- `claims`: short, self-contained sentences, each with a `kind` and the labels of the sources that support it
+  (`"citations": ["S1", "S4"]`).
+  - `kind: "risk"`: what this change could break, and where: a changed interface and the files using it, a data
+    race or data movement in a touched parallel region, a changed numerical path, a finding of the linter.
+  - `kind: "check"`: what to verify before merging: a test to run, a caller to update, a result to compare.
+- `insufficient`: true when the sources show no risk worth reporting; then return no claims.
+
+Rules:
+
+- Never state something that no source supports: such statements are discarded.
+- Be specific: name files, procedures, lines and variables as the sources show them. No generic advice.
+- Prefer a few precise claims to many vague ones.
+- Do not mention the labels or this format inside the claim text.
+
+=== user message ===
+## Changed files
+
+M src/sweep.F90
+
+## Findings on the changed lines
+
+OMP001 [warning] src/sweep.F90:16: 'n' is shared and written by every thread (missing private?)
+
+## Sources
+
+[S1] diff of src/sweep.F90 (- removed, + added) (diff:src/sweep.F90)
+@@ -12,5 +12,5 @@ integer              :: k                         !< Counter.
+ integer              :: n                         !< Number of intervals.
+ 
+-!$omp parallel do private(n)
++!$omp parallel do
+ do k = 1, cases
+    n = 2 ** k
+
+[S2] src/sweep.F90 lines 11-17 (changed lines marked >) (code:src/sweep.F90:11-17)
+11 | integer              :: k                         !< Counter.
+12 | integer              :: n                         !< Number of intervals.
+13 | 
+14 > !$omp parallel do
+15 | do k = 1, cases
+16 |    n = 2 ** k
+17 |    error(1, k) = abs(trapezoid(sine, 0._R8P, pi, n) - 2._R8P)
+
+[S3] !$omp parallel do region, src/sweep.F90 lines 14-19 (region:src/sweep.F90:14-19)
+14 > !$omp parallel do
+15 | do k = 1, cases
+16 |    n = 2 ** k
+17 |    error(1, k) = abs(trapezoid(sine, 0._R8P, pi, n) - 2._R8P)
+18 |    error(2, k) = abs(simpson(sine, 0._R8P, pi, n) - 2._R8P)
+19 | enddo
+
+[S4] rule OMP001 shared-scalar-written-in-parallel-region (rule:OMP001)
+OMP001 shared-scalar-written-in-parallel-region [warning]: A shared scalar is assigned inside an OpenMP parallel region: a data race.
+
+Inside a parallel region every variable of the enclosing procedure is shared unless a clause
+says otherwise, so a scalar temporary assigned in the loop body is written by all threads at
+once: each thread may read another thread's value. The loop variables of the region's DO loops
+are private automatically (Fortran rule), nothing else is. List the variable in `private` (or use
+`default(none)` to make the compiler ask for every variable), or protect the write with
+`critical`/`atomic` when the sharing is intended. Offload regions are no exception: in
+`target teams distribute parallel do`, an unmapped scalar is firstprivate to the target region,
+and that single copy is shared by all the threads of its teams. Compilers often privatise such
+scalars as an optimisation, which hides the race until a compiler or a flag changes. Writing the
+same value from every thread (`n = omp_get_num_threads()`) is a race too: use `single`.
+
+Reported:
+!$omp parallel do
+do i = 1, n
+  tmp = a(i) * 2      ! tmp is shared: race
+  b(i) = tmp + 1
+end do
+
+Preferred:
+!$omp parallel
+

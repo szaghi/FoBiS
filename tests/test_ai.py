@@ -53,7 +53,8 @@ def test_bundle_renders_sections_then_labelled_sources():
 def test_claims_schema_restricts_citations_to_the_labels():
     schema = claims_schema(["S1", "S2"])
     assert schema["properties"]["claims"]["items"]["properties"]["citations"]["items"]["enum"] == ["S1", "S2"]
-    assert claims_schema([])["required"] == ["insufficient", "claims"]
+    assert claims_schema([])["required"] == ["claims", "insufficient"]
+    assert list(claims_schema([])["properties"]) == ["claims", "insufficient"]  # answer first, then judge
 
 
 def test_check_claims_keeps_cited_and_drops_the_rest():
@@ -195,3 +196,20 @@ def test_cli_ask_errors(cli):
     assert nothing.exit_code == 1 and "no knowledge-pack section matches" in nothing.output
     assert runner.invoke(app, ["ask", "x", "--pack", "nope"]).exit_code == 1
     assert provider.calls == []
+
+
+def test_project_pack_carries_doc_comments(tmp_path, monkeypatch):
+    """A unit's documentation comment is searchable: FORD ``!<`` after the header (prose up to a code fence),
+    else Doxygen ``!>`` before it."""
+    (tmp_path / "rules.f90").write_text(
+        "!< The rules.\nmodule rules\n!< Quadrature rules.\ncontains\n"
+        "!> Simpson rule, exact on cubics.\nreal function simpson(n)\ninteger :: n\nsimpson = n\nend function\n"
+        "real function trap(n)\n!< Trapezoidal rule.\n!<```fortran\n!< print *, trap(2)\n!<```\n"
+        "integer :: n\ntrap = n\nend function\nend module\n"
+    )
+    monkeypatch.chdir(tmp_path)
+    files = [analyse(read_source("rules.f90"), "rules.f90")]
+    texts = {c.id.split("#")[1]: c.text for c in project_pack(files).chunks}
+    assert "doc: Quadrature rules." in texts["rules"]
+    assert "doc: Simpson rule, exact on cubics." in texts["simpson"]
+    assert "doc: Trapezoidal rule.\n" in texts["trap"] and "print" not in texts["trap"]
