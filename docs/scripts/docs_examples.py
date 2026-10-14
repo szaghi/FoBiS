@@ -188,7 +188,7 @@ def run_chapter(track: str, chapter: Path, home: Path, project: Path, out: Path,
     for txt in fresh.glob("*.txt"):  # a session stopped by `needs` overwrites only what ran
         text = txt.read_text(errors="replace").replace(str(home), "~")
         target = out / txt.name
-        if not (target.is_file() and _normalised(target.read_text()) == _normalised(text)):  # no churn: addresses
+        if not (target.is_file() and _first_difference(text, target.read_text()) is None):  # no churn: addresses
             target.write_text(text)
     shutil.rmtree(fresh)
     return not kept
@@ -271,8 +271,23 @@ def _normalised(text: str) -> str:
     return text
 
 
-def _same(new: Path, old: Path) -> bool:
-    return _normalised(new.read_text()) == _normalised(old.read_text())
+_HEX = re.compile(r"[0-9a-f]{7,40}|HASH")
+_TOKENS = re.compile(r"(\W+)")
+
+
+def _first_difference(new: str, old: str) -> str | None:
+    """The first line pair that differs after normalisation, or None. A token that is hexadecimal on both sides at the
+    same place is taken for a commit hash: a hash made only of digits (or letters) escapes the HASH pattern."""
+    new_lines, old_lines = _normalised(new).splitlines(), _normalised(old).splitlines()
+    for a, b in zip(new_lines, old_lines, strict=False):
+        ta, tb = _TOKENS.split(a), _TOKENS.split(b)
+        if len(ta) != len(tb) or any(
+            x != y and not (_HEX.fullmatch(x) and _HEX.fullmatch(y)) for x, y in zip(ta, tb, strict=True)
+        ):
+            return f"new {a!r}, committed {b!r}"
+    if len(new_lines) != len(old_lines):
+        return f"{len(new_lines)} lines instead of {len(old_lines)}"
+    return None
 
 
 def _status(text: str) -> str:
@@ -297,8 +312,8 @@ def compare(fresh: Path, committed: Path = OUTPUT, track: str | None = None) -> 
             problems.append(f"{name}: committed but no longer generated")
         elif not old.is_file():
             problems.append(f"{name}: generated but not committed")
-        elif exact and not _same(new, old):
-            problems.append(f"{name}: differs")
+        elif exact and (difference := _first_difference(new.read_text(), old.read_text())) is not None:
+            problems.append(f"{name}: differs ({difference})")
         elif not exact and _status(new.read_text()) != _status(old.read_text()):
             problems.append(f"{name}: {_status(new.read_text())} instead of {_status(old.read_text())}")
     return problems
