@@ -1,0 +1,6 @@
+[case:area]
+description = sin(x) over [0, pi] with 16 intervals, both rules
+target      = src/area.F90
+mode        = release
+args        = 16
+quantities  = stdout

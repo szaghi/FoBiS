@@ -7,6 +7,12 @@ Layout::
         session.sh    the chapter's commands (cwd: the project, $DOCS_CHAPTER: this directory), bash with the
                       helpers of PRELUDE:
                         show ID COMMAND   run COMMAND, write "$ COMMAND", its output and its exit status to ID.txt
+                        measure ID COMMAND  like show, for what depends on the machine (timings, profiles,
+                                          provenance): written to ID.measured.txt, recorded once and kept
+                                          while the command is unchanged (DOCS_REMEASURE=1 records again);
+                                          the check compares its command only
+                        excerpt ID FILE PREFIX  the lines of FILE from the first one starting with PREFIX to
+                                          the next blank line, without a command line (a fobos section)
                         quiet COMMAND     run COMMAND, output not shown; the session stops when it fails
                         needs TOOL...     the rest of the chapter needs TOOL: when it is missing, the chapter's
                                           committed outputs are kept (a chapter recorded on another machine)
@@ -22,12 +28,18 @@ identity and fixed commit dates, so commit hashes are reproducible); ``fobis`` i
 is ``$DOCS_FC`` (default ``gfortran-13``, the compiler of the CI, when installed). Variables named ``DOCS_*`` reach
 the sessions: ``DOCS_MPI_SETUP`` is the shell code that makes ``mpif90`` and ``mpirun`` available on this machine (for
 example ``source /usr/share/lmod/lmod/init/bash; module load openmpi``); without it the MPI chapters keep their outputs.
+``DOCS_CLUSTER_SETUP`` (Slurm and nvfortran) and ``DOCS_CLUSTER_CONFIG`` (a user config file holding the site's
+``[scheduler]`` section, kept out of the repository) serve the cluster chapter, run with
+``--chapter`` on the cluster's login node; ``DOCS_FOBIS`` replaces the ``fobis`` command (``python3 fobis.pyz`` where
+FoBiS's dependencies are not installed); ``DOCS_REDACT='OLD=NEW;...'`` replaces site names (host names, a Slurm
+account) in what a chapter records.
 
 Usage::
 
     python docs/scripts/docs_examples.py            # regenerate docs/examples/output
     python docs/scripts/docs_examples.py --check    # regenerate in a scratch directory and compare
     python docs/scripts/docs_examples.py --track 1-first-steps
+    python docs/scripts/docs_examples.py --chapter 5-numerics/09 --state KEEP/states/5-numerics/08
 
 ``--check`` compares byte by byte (durations, backtrace addresses, timestamps, commit hashes and scratch
 directory names aside) when the compiler's major version is the recorded one; with another compiler only the
@@ -51,6 +63,7 @@ EXAMPLES = DOCS / "examples"
 TUTORIAL = EXAMPLES / "tutorial"
 OUTPUT = EXAMPLES / "output"
 MANIFEST = "manifest.json"
+MEASURED = ".measured.txt"  # outputs of `measure`: machine-dependent, recorded once, never compared
 KEPT = ".kept"  # written by `needs` when a tool is missing: the chapter's outputs are not regenerated
 DEFAULT_PROJECT = "quad"
 GIT_DATE = "2026-01-15T10:00:00+00:00"
@@ -67,6 +80,15 @@ show() {  # show ID COMMAND: run COMMAND, record it with its output and exit sta
     [ "$status" -ne 0 ] && printf '[exit status %d]\n' "$status"
   } > "$DOCS_OUT/$id.txt"
   return 0
+}
+measure() {  # measure ID COMMAND: show, for a machine-dependent output (ID.measured.txt, never compared)
+  local id=$1; shift
+  show "$id.measured" "$@"
+}
+excerpt() {  # excerpt ID FILE PREFIX: a section of FILE (from PREFIX to a blank line), no command line
+  [ -e "$DOCS_OUT/.kept" ] && return 0
+  awk -v p="$3" 'index($0, p) == 1 {on = 1} on && /^$/ {exit} on' "$2" > "$DOCS_OUT/$1.txt"
+  [ -s "$DOCS_OUT/$1.txt" ] || { printf 'docs_examples: %s: no line starts with %s\n' "$2" "$3" >&2; exit 1; }
 }
 quiet() {  # quiet COMMAND: run COMMAND unseen; stop the chapter when it fails
   [ -e "$DOCS_OUT/.kept" ] && return 0
@@ -123,7 +145,8 @@ def _major(version: str) -> str:
 def _shims(bin_dir: Path, fc: str) -> None:
     """``fobis`` running this repository's FoBiS; ``gfortran`` and ``gcov`` the chosen compiler's."""
     bin_dir.mkdir(parents=True, exist_ok=True)
-    tools = {"fobis": f'exec "{sys.executable}" -m fobis "$@"', "gfortran": f'exec "{fc}" "$@"'}
+    fobis = os.environ.get("DOCS_FOBIS") or f'"{sys.executable}" -m fobis'  # e.g. python3 fobis.pyz (a cluster)
+    tools = {"fobis": f'exec {fobis} "$@"', "gfortran": f'exec "{fc}" "$@"'}
     gcov = shutil.which(Path(fc).name.replace("gfortran", "gcov"))
     if gcov:
         tools["gcov"] = f'exec "{gcov}" "$@"'
@@ -161,8 +184,17 @@ def _git_config(home: Path) -> None:
     )
 
 
-def run_chapter(track: str, chapter: Path, home: Path, project: Path, out: Path, env: dict[str, str]) -> bool:
-    """Run one chapter in *project*, writing its outputs to *out*; False when its outputs are kept."""
+def _redactions(spec: str) -> list[tuple[str, str]]:
+    """``DOCS_REDACT='OLD=NEW;...'``: site names (hosts, Slurm account and partition) replaced in the outputs."""
+    pairs = [item.split("=", 1) for item in spec.split(";") if "=" in item]
+    return [(old, new) for old, new in pairs if old]
+
+
+def run_chapter(
+    track: str, chapter: Path, home: Path, project: Path, out: Path, env: dict[str, str], homes: tuple[str, ...] = ()
+) -> bool:
+    """Run one chapter in *project*, writing its outputs to *out*; False when its outputs are kept. *home* and the
+    other *homes* (where a copied state was made: its records name them) are shown as ``~``."""
     files = chapter / "files"
     if files.is_dir():
         shutil.copytree(files, project, dirs_exist_ok=True, copy_function=shutil.copy)  # fresh mtimes: an edit
@@ -186,12 +218,59 @@ def run_chapter(track: str, chapter: Path, home: Path, project: Path, out: Path,
             if not (fresh / stale.name).exists():
                 stale.unlink()
     for txt in fresh.glob("*.txt"):  # a session stopped by `needs` overwrites only what ran
-        text = txt.read_text(errors="replace").replace(str(home), "~")
+        text = txt.read_text(errors="replace")
+        for path in (str(home), *homes):
+            text = text.replace(path, "~")
+        for old, new in _redactions(env.get("DOCS_REDACT", "")):
+            text = text.replace(old, new)
         target = out / txt.name
-        if not (target.is_file() and _first_difference(text, target.read_text()) is None):  # no churn: addresses
+        if txt.name.endswith(MEASURED):  # recorded again only when the command changed, or asked to
+            if not target.is_file() or _command(target.read_text()) != _command(text) or env.get("DOCS_REMEASURE"):
+                target.write_text(text)
+        elif not (target.is_file() and _first_difference(text, target.read_text()) is None):  # no churn
             target.write_text(text)
     shutil.rmtree(fresh)
     return not kept
+
+
+def _home(scratch: Path, fc: str) -> tuple[Path, dict[str, str]]:
+    """A fresh HOME under *scratch* and the sessions' environment. One HOME path for every track: a state copied
+    from another track keeps its paths (the compiler recorded in its object directories, ~/.local/bin/gfortran, is
+    the same compiler)."""
+    home = scratch / "home"
+    if home.exists():
+        shutil.rmtree(home)
+    (home / "tmp").mkdir(parents=True)
+    _git_config(home)
+    bin_dir = home / ".local" / "bin"  # under HOME: shown as ~/.local/bin in the outputs
+    _shims(bin_dir, fc)
+    return home, _environment(home, bin_dir)
+
+
+def _project_name(first: Path) -> str:
+    """The project directory of a track, from its first chapter."""
+    return (first / "PROJECT").read_text().strip() if (first / "PROJECT").is_file() else DEFAULT_PROJECT
+
+
+def run_one(key: str, state: Path, keep: Path | None = None, state_home: str | None = None) -> bool:
+    """Run the chapter *key* alone, from a copy of *state* (the previous chapter's project, taken from a --keep
+    directory: ``states/<key>``), writing its outputs into the committed directory. For a chapter recorded on
+    another machine (a cluster): copy the state there, run, bring the outputs back. *state_home* is the HOME the
+    state was made under (``<keep>/home``): references and records written there name it, shown as ``~``."""
+    track = key.split("/")[0]
+    found = [c for t, c in chapters(track) if chapter_key(t, c) == key]
+    if not found:
+        raise ExamplesError(f"{key}: no such chapter")
+    scratch = Path(tempfile.mkdtemp(prefix="fobis-docs-")) if keep is None else keep
+    try:
+        home, env = _home(scratch, _compiler())
+        project = home / _project_name(chapters(track)[0][1])
+        shutil.copytree(state, project, symlinks=True)
+        homes = (state_home,) if state_home else ()
+        return run_chapter(track, found[0], home, project, OUTPUT / key, env, homes)
+    finally:
+        if keep is None:
+            shutil.rmtree(scratch, ignore_errors=True)
 
 
 def generate(out_root: Path, track: str | None = None, keep: Path | None = None) -> dict[str, bool]:
@@ -203,27 +282,20 @@ def generate(out_root: Path, track: str | None = None, keep: Path | None = None)
     fc = _compiler()
     scratch = Path(tempfile.mkdtemp(prefix="fobis-docs-")) if keep is None else keep
     states = scratch / "states"
-    bin_dir = scratch / "bin"
     by_track: dict[str, list[Path]] = {}
     for t, c in chapters():
         by_track.setdefault(t, []).append(c)
     done: dict[str, bool] = {}
 
     def run_track(t: str, upto: str | None = None) -> None:
-        home = scratch / f"home-{t}"
-        if home.exists():
-            shutil.rmtree(home)
-        (home / "tmp").mkdir(parents=True)
-        _git_config(home)
-        env = _environment(home, bin_dir)
         first = by_track[t][0]
-        name = (first / "PROJECT").read_text().strip() if (first / "PROJECT").is_file() else DEFAULT_PROJECT
-        project = home / name
         start = first / "START"
-        if start.is_file():
-            origin = start.read_text().strip()
-            if not (states / origin).exists():
-                run_track(origin.split("/")[0], upto=origin)
+        origin = start.read_text().strip() if start.is_file() else None
+        if origin is not None and not (states / origin).exists():
+            run_track(origin.split("/")[0], upto=origin)
+        home, env = _home(scratch, fc)
+        project = home / _project_name(first)
+        if origin is not None:
             shutil.copytree(states / origin, project, symlinks=True)
         else:
             project.mkdir()
@@ -241,7 +313,6 @@ def generate(out_root: Path, track: str | None = None, keep: Path | None = None)
                 return
 
     try:
-        _shims(bin_dir, fc)
         for t in by_track:
             if track is None or t == track:
                 run_track(t)
@@ -259,6 +330,8 @@ _VOLATILE = (
     # commit hashes: the ecosystem demo's commits hold its scratch path (the scaffolded remote URL)
     (re.compile(r"\b(?=[0-9a-f]*[a-f])(?=[0-9a-f]*\d)[0-9a-f]{7,64}\b"), "HASH"),
     (re.compile(r'"duration": [0-9.]+'), '"duration": N'),
+    # the compiler's full version: compared only when the major version is the recorded one
+    (re.compile(r"GNU Fortran \([^)]*\) \d+\.\d+\.\d+"), "GNU Fortran VERSION"),
     (re.compile(r"\b0x[0-9a-f]{6,}\b"), "0xADDRESS"),
     (re.compile(r"\b\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(\.\d+)?\b"), "DATETIME"),  # "generated" stamps
     (re.compile(r"(~/tmp/[\w.-]*-)[a-z0-9_]{8}(?!\w)"), r"\1RANDOM"),  # scratch directories (mkdtemp PREFIX-)
@@ -290,6 +363,10 @@ def _first_difference(new: str, old: str) -> str | None:
     return None
 
 
+def _command(text: str) -> str:
+    return text.split("\n", 1)[0]
+
+
 def _status(text: str) -> str:
     last = text.rstrip("\n").rsplit("\n", 1)[-1]
     return last if last.startswith("[exit status") else "[exit status 0]"
@@ -312,6 +389,9 @@ def compare(fresh: Path, committed: Path = OUTPUT, track: str | None = None) -> 
             problems.append(f"{name}: committed but no longer generated")
         elif not old.is_file():
             problems.append(f"{name}: generated but not committed")
+        elif name.name.endswith(MEASURED):
+            if _command(new.read_text()) != _command(old.read_text()):
+                problems.append(f"{name}: another command ({_command(new.read_text())})")
         elif exact and (difference := _first_difference(new.read_text(), old.read_text())) is not None:
             problems.append(f"{name}: differs ({difference})")
         elif not exact and _status(new.read_text()) != _status(old.read_text()):
@@ -324,8 +404,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--check", action="store_true", help="regenerate in a scratch directory and compare")
     parser.add_argument("--track", help="only this track (and the chapters it starts from)")
     parser.add_argument("--keep", type=Path, help="run in this directory and keep it (debugging)")
+    parser.add_argument("--chapter", help="run this chapter (TRACK/NN) alone, from --state")
+    parser.add_argument("--state", type=Path, help="with --chapter: the project as the previous chapter left it")
+    parser.add_argument("--state-home", help="with --chapter: the HOME the state was made under (shown as ~)")
     args = parser.parse_args(argv)
     try:
+        if args.chapter:
+            if args.state is None or not args.state.is_dir():
+                parser.error("--chapter needs --state DIR (states/<previous chapter> of a --keep directory)")
+            ran = run_one(args.chapter, args.state.resolve(), args.keep, args.state_home)
+            print(f"{args.chapter}: {'regenerated' if ran else 'kept (a tool is missing)'}")
+            return 0
         if args.check:
             with tempfile.TemporaryDirectory(prefix="fobis-docs-check-") as tmp:
                 generate(Path(tmp), args.track, args.keep)

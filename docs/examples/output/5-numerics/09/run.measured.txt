@@ -1,0 +1,7 @@
+$ fobis case run gpu --runner slurm
+Running case gpu...
+slurm: job 1356000 submitted (gpu)
+slurm: job 1356000: pending
+  ok (exit 0, 0.57 s) in .fobis/runs/gpu/default
+    n = 100000000
+    trapezoid = 1.9999999999999998

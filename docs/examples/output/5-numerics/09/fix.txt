@@ -1,0 +1,2 @@
+$ grep -n "update self" src/area_acc.F90
+25:!$acc update self(y(0:0), y(n:n))

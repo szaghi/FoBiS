@@ -1,0 +1,7 @@
+$ fobis verify gpu --update --runner slurm
+Verifying case gpu...
+slurm: job 1356001 submitted (gpu)
+slurm: job 1356001: pending
+gpu: UPDATED (reference written to verification/references/gpu.json (from uncommitted code))
+
+1 of 1 case(s) verified.

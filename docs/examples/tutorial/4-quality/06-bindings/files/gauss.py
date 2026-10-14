@@ -3,7 +3,7 @@
 import sys
 
 sys.path.insert(0, "bindings")
-import quad  # noqa: E402  (bindings/quad.py, written by fobis bindings)
+import quad  # bindings/quad.py, written by fobis bindings
 
 quad.load("build/python/libquad_c.so")
 x, w = quad.gauss_nodes(3, [0.0] * 3, [0.0] * 3)

@@ -341,6 +341,9 @@ def test_collect_and_differences(project):
     assert differences(data, other) == []
     other["machine"]["gpus"] = ["GPU 0: NVIDIA A100 (UUID: GPU-3)"]
     assert differences(data, other) == ["machine.gpus: ['GPU 0: NVIDIA A30'] -> ['GPU 0: NVIDIA A100']"]
+    local = {"scheduler": None}  # a reference written by a local run, a result from a Slurm job
+    job = {"scheduler": {"kind": "slurm", "partition": "gpu", "job": "17", "state": "COMPLETED", "node": "n1"}}
+    assert differences(local, job) == ["scheduler.kind: None -> 'slurm'", "scheduler.partition: None -> 'gpu'"]
 
 
 # ── CLI ────────────────────────────────────────────────────────────────────────

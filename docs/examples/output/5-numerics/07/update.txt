@@ -1,0 +1,5 @@
+$ fobis verify fine --update
+Verifying case fine...
+fine: UPDATED (reference written to verification/references/fine.json (from uncommitted code))
+
+1 of 1 case(s) verified.

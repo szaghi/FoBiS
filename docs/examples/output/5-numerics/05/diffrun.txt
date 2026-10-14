@@ -1,0 +1,16 @@
+$ fobis diff-run HEAD
+diff-run: extracting HEAD (d5caf8a97967) and copying the working tree to ~/tmp/fobis-diff-run-u_zmeskf
+diff-run: case area: build and run on the revision
+diff-run: case area: build and run on the working tree
+diff-run: HEAD (d5caf8a97967) vs the working tree, 1 file(s) changed
+  M src/quad_rules.F90: quad_rules::simpson
+note: both sides use the working copy's fetched dependencies (.fobis_deps)
+
+area: DIFFERS
+  n: equal (1 value(s), exact)
+  trapezoid: equal (1 value(s), exact)
+  simpson: 1/1 out of tolerance (exact): max abs 4.44089e-16, max rel 2.22043e-16, L2 4.44089e-16
+    got 2.0000165910479355, HEAD 2.000016591047936
+
+0 of 1 case(s) equivalent.
+[exit status 1]

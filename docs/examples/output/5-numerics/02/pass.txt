@@ -1,0 +1,8 @@
+$ fobis verify
+Verifying case area...
+area: PASS
+  n: equal (1 value(s), exact)
+  trapezoid: equal (1 value(s), exact)
+  simpson: equal (1 value(s), exact)
+
+1 of 1 case(s) verified.

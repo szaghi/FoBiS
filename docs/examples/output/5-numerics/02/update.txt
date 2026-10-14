@@ -1,0 +1,5 @@
+$ fobis verify --update
+Verifying case area...
+area: UPDATED (reference written to verification/references/area.json)
+
+1 of 1 case(s) verified.

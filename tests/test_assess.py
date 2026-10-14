@@ -207,6 +207,11 @@ def test_analysis():
     refine = [_member(f"n{n}", {"e": 1 / n**2}, "refinement", params={"h": 1 / n}) for n in (10, 20, 40, 80)]
     data = analyse("refinement", _member("base", {"e": 0.01}), refine, None).quantities["e"]
     assert data["order"] == pytest.approx(2.0) and data["asymptotic"] is True and data["convergence"] == "monotonic"
+    echo = [_member(f"n{n}", {"n": n}, "refinement", params={"h": 1 / n}) for n in (10, 20, 40, 80)]
+    data = analyse("refinement", _member("base", {"n": 10}), echo, None).quantities["n"]
+    assert data == {"note": "the refined parameter itself (its values are the ladder's): not assessed"}
+    last_bit = [_member("O3", {"x": 1.0 + 2 * 2.0**-52}), _member("fma", {"x": 1.0})]  # round-off: no outlier
+    assert "outlier" not in analyse("rounding", _member("base", {"x": 1.0}), last_bit, None).quantities["x"]
 
 
 def test_budgets():

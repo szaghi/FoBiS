@@ -1,0 +1,5 @@
+$ fobis bench fine --compare HEAD~1 2>/dev/null
+bench fine (mode release, wall time)
+  HEAD~1: median 0.03192 s [0.03117, 0.03237] 95%, MAD 0.0007874 s, min 0.03094 s, 35 runs, CPU/wall 1.08
+  working tree: median 0.0309 s [0.03055, 0.03165] 95%, MAD 0.0005326 s, min 0.03018 s, 23 runs, CPU/wall 1.08
+  vs HEAD~1: speedup 1.033 [0.985, 1.059]: no measurable difference (the intervals overlap)

@@ -34,11 +34,13 @@ from .case import CaseError
 
 TOOLS = ("gprof", "callgrind", "nsys")
 NSYS_REPORTS = ("cuda_gpu_kern_sum", "cuda_gpu_mem_time_sum", "cuda_gpu_mem_size_sum", "openacc_sum")
-# the program under nsys, one report per process named after its rank (srun, Open MPI, MPICH/Intel MPI, else 0)
+# the program under nsys, one report per process named after its rank (srun, Open MPI, MPICH/Intel MPI, else 0).
+# TMPDIR=/tmp: with TMPDIR on a network file system nsys records no CUDA or OpenACC event at all, silently (measured:
+# Nsight Systems 2025.3.1 on a cluster's NFS home); /tmp is local to the node
 NSYS_WRAPPER = [
     "sh",
     "-c",
-    "exec nsys profile --force-overwrite=true --trace=cuda,openacc,openmp "
+    "export TMPDIR=/tmp; exec nsys profile --force-overwrite=true --trace=cuda,openacc,openmp "
     '-o "nsys-${SLURM_PROCID:-${OMPI_COMM_WORLD_RANK:-${PMI_RANK:-0}}}" "$@"',
     "nsys",
 ]
@@ -472,7 +474,10 @@ def from_nsys(reports: list[dict[str, list[dict]]], source: SourceMap, top: int)
                 entry[0] += _number(row.get("Total Time (ns)")) * 1e-9
                 entry[1] += int(_number(row.get("Num Calls")))
     if not kernels:
-        raise ProfileError("nsys recorded no GPU kernel (did the program run on a GPU?)")
+        raise ProfileError(
+            "nsys recorded no GPU kernel: did the program run on a GPU (NVCOMPILER_ACC_NOTIFY=1 prints every launch)? "
+            "Was the job given one (case key gpus)?"
+        )
     total = sum(seconds for seconds, _ in kernels.values())
     routines = []
     for name, (seconds, instances) in sorted(kernels.items(), key=lambda item: -item[1][0]):

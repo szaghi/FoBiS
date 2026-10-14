@@ -208,7 +208,16 @@ def _gpu_models(gpus: list) -> list:
 def differences(old: dict, new: dict, prefix: str = "") -> list[str]:
     """What changed between two provenances that can change results (dates, hosts and job ids aside; GPUs by model,
     not by serial number): ``key: old -> new``."""
-    ignored = {"date", "machine.host", "git.branch", "fobis", "rebuilt_because", "scheduler.job", "scheduler.node"}
+    ignored = {
+        "date",
+        "machine.host",
+        "git.branch",
+        "fobis",
+        "rebuilt_because",
+        "scheduler.job",
+        "scheduler.node",
+        "scheduler.state",
+    }
     found = []
     for key in sorted(set(old) | set(new)):
         path = f"{prefix}{key}"
@@ -217,8 +226,8 @@ def differences(old: dict, new: dict, prefix: str = "") -> list[str]:
         a, b = old.get(key), new.get(key)
         if path == "machine.gpus" and isinstance(a, list) and isinstance(b, list):
             a, b = _gpu_models(a), _gpu_models(b)
-        if isinstance(a, dict) and isinstance(b, dict):
-            found += differences(a, b, f"{path}.")
+        if isinstance(a, dict | None) and isinstance(b, dict | None) and (a or b):  # a section on one side only:
+            found += differences(a or {}, b or {}, f"{path}.")  # compared key by key
         elif a != b:
             found.append(f"{path}: {a!r} -> {b!r}")
     return found

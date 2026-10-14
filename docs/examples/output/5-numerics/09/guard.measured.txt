@@ -1,0 +1,5 @@
+$ fobis case run gpu
+Running case gpu...
+  error
+    refusing to run an MPI or GPU case on the login node login01.cluster ([scheduler] login_nodes): run it through the scheduler with --runner slurm
+[exit status 1]

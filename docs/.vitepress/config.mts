@@ -65,6 +65,21 @@ const docs = [
           { text: '7. Instructions for agents',  link: '/tutorial/quality/07-agents' },
         ],
       },
+      {
+        text: '5. Verified numerics',
+        collapsed: false,
+        items: [
+          { text: '1. Cases and quantities',     link: '/tutorial/numerics/01-cases' },
+          { text: '2. References',               link: '/tutorial/numerics/02-verify' },
+          { text: '3. Defects some builds see',  link: '/tutorial/numerics/03-shadows' },
+          { text: '4. How accurate is it?',      link: '/tutorial/numerics/04-assess' },
+          { text: '5. Is a refactoring harmless?', link: '/tutorial/numerics/05-diff-run' },
+          { text: '6. Is it faster?',            link: '/tutorial/numerics/06-bench' },
+          { text: '7. One command for all',      link: '/tutorial/numerics/07-gate' },
+          { text: '8. Where the time goes',      link: '/tutorial/numerics/08-profile' },
+          { text: '9. On a cluster',             link: '/tutorial/numerics/09-cluster' },
+        ],
+      },
     ],
   },
   {

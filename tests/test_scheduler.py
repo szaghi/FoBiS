@@ -245,6 +245,8 @@ def test_node_facts():
         "cores": 8,
         "gpus": ["GPU 0: NVIDIA A30 (UUID: GPU-1)"],
     }
+    no_gpu = "host=gnode01\ncores=1\ngpu=No devices found.\n"  # nvidia-smi -L in a job given no GPU (real)
+    assert node_facts(no_gpu) == {"host": "gnode01", "cores": 1, "gpus": []}
     assert node_facts("gnode02\n") == {"host": "gnode02"}  # a host file of an older FoBiS
     assert node_facts("") == {}
 
@@ -291,5 +293,7 @@ def test_login_node_guard(project, capsys):
     results = {r["case"]: r for r in json.loads(out)["results"]}
     assert code == 1 and results["app"]["status"] == "ok"  # a serial case may run on the login node
     assert results["mpi"]["status"] == "error" and "refusing to run an MPI or GPU case" in results["mpi"]["stderr"]
+    code, out, err = _run(["case", "run", "mpi"], capsys)
+    assert code == 1 and "  error\n" in out + err and "exit None" not in out + err  # never started: no exit status
     assert _run(["case", "run", "mpi", "--runner", "slurm"], capsys)[0] == 0
     assert _run(["case", "run", "app", "--runner", "pbs"], capsys)[0] == 2

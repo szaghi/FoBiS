@@ -48,6 +48,9 @@ from .runner import RunResult
 REFERENCE_VERSION = 1
 
 
+MAX_CHANGES = 20  # provenance changes listed in the text report (all of them in JSON)
+
+
 class VerifyError(Exception):
     """A tolerance or a reference cannot be used."""
 
@@ -421,7 +424,10 @@ def render_text(
         if outcome.provenance_changes:
             since = "the reference" if reference == "reference" else reference
             lines.append(f"  changed since {since}" + (" (results unaffected):" if outcome.ok else ":"))
-            lines += [f"    {change}" for change in outcome.provenance_changes[:12]]
+            lines += [f"    {change}" for change in outcome.provenance_changes[:MAX_CHANGES]]
+            if len(outcome.provenance_changes) > MAX_CHANGES:
+                more = len(outcome.provenance_changes) - MAX_CHANGES
+                lines.append(f"    ... and {more} more (--json lists them all)")
         if outcome.status == "run-failed" and outcome.run is not None:
             run = outcome.run
             if run.build is not None:

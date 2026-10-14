@@ -1,0 +1,8 @@
+[gpu]
+help      = The OpenACC program, for an NVIDIA A30 (compute capability 8.0)
+compiler  = nvfortran
+cflags    = -c -O2 -acc -gpu=cc80
+lflags    = -acc -gpu=cc80
+src       = ./src/
+build_dir = ./build/gpu/
+target    = src/area_acc.F90

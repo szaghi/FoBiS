@@ -1,0 +1,5 @@
+$ fobis bench fine --record 2>/dev/null
+bench fine (mode release, wall time)
+  measured: median 0.03143 s [0.03095, 0.0324] 95%, MAD 0.0009789 s, min 0.0302 s, 50 runs, CPU/wall 1.08
+  note: the interval is +-2.3%, wider than the target 2.0%: the runs stopped at max_runs or max_time
+  recorded in verification/bench/fine.jsonl

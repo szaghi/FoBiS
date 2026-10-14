@@ -1,0 +1,4 @@
+[gate]
+skip           = bench
+matrix_modes   = fast
+matrix_shadows = none checks

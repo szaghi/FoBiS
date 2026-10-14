@@ -44,6 +44,7 @@ import os
 import random
 import re
 import shlex
+import sys
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
@@ -484,6 +485,13 @@ def _number(value: float | None) -> Any:
     return None if value is None else json_number(value)
 
 
+OUTLIER_ULPS = 8  # an ensemble's outlier is named only beyond this many double-precision ulps from the median
+
+
+def _close(a: float, b: float) -> bool:
+    return abs(a - b) <= 1e-12 * max(abs(a), abs(b))
+
+
 def ensemble(members: list[tuple[str, Quantity]]) -> dict:
     """Digits shared by the members of an ensemble, its spread and its outlier, for one quantity."""
     first = members[0][1]
@@ -510,7 +518,8 @@ def ensemble(members: list[tuple[str, Quantity]]) -> dict:
     if sigma > 0:
         median = sorted(column)[len(column) // 2]
         label, value = max(((label, q.values[points.worst]) for label, q in members), key=lambda m: abs(m[1] - median))
-        data["outlier"] = {"member": label, "value": _number(value), "median": _number(median)}
+        if abs(value - median) > OUTLIER_ULPS * sys.float_info.epsilon * abs(median):  # not a last-bit difference
+            data["outlier"] = {"member": label, "value": _number(value), "median": _number(median)}
     return data
 
 
@@ -655,6 +664,8 @@ def _refinement(name: str, ok: list[Member]) -> dict:
         return {"note": f"{len(levels)} level(s) ran: at least 3 are needed"}
     h = [lvl for lvl, _ in levels]
     f = [q.values[0] for _, q in levels]
+    if all(_close(v, x) for v, x in zip(f, h, strict=True)) or all(_close(v, 1 / x) for v, x in zip(f, h, strict=True)):
+        return {"note": "the refined parameter itself (its values are the ladder's): not assessed"}
     found = stats.orders(h, f)
     last = found[-1]
     data = {

@@ -18,12 +18,14 @@ from fobis.fobis import run_fobis
 from fobis.verification import LocalRunner, Quantity, RunResult
 from fobis.verification.case import CaseError, parse_case
 from fobis.verification.verify import (
+    MAX_CHANGES,
     Reference,
     Tolerance,
     VerifyError,
     compare,
     index_text,
     load_reference,
+    render_text,
     save_reference,
     verify,
 )
@@ -124,6 +126,12 @@ def test_verify_outcomes():
     near = _result([Quantity("a", [1.0 + 1e-12])], provenance={"mode": "dbg"})
     passing = verify([near], Reference("c", {"a": Quantity("a", [1.0])}, {"mode": "gnu"}), {"*": "rel 1e-9"})
     assert passing.status == "pass" and passing.provenance_changes == ["mode: 'gnu' -> 'dbg'"]
+    many = {f"k{i:02d}": i for i in range(MAX_CHANGES + 2)}  # more changes than the text report lists
+    crowded = verify(
+        [_result([Quantity("a", [1.0])], provenance=many)], Reference("c", {"a": Quantity("a", [1.0])}, {}), {}
+    )
+    text = render_text([crowded])
+    assert f"k{MAX_CHANGES - 1:02d}: None" in text and "... and 2 more (--json lists them all)" in text
     runs = [_result([Quantity("a", [1.0])]), _result([Quantity("a", [1.0])]), _result([Quantity("a", [1.5])])]
     repeated = verify(runs, Reference("c", {"a": Quantity("a", [1.0])}, {}), {})
     assert repeated.status == "nondeterministic" and [c.name for c in repeated.repeat] == ["a"]

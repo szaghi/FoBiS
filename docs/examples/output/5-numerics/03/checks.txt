@@ -1,0 +1,57 @@
+$ fobis test --mode fast --shadow checks --quiet
+
+Building test suite (4 target(s))...
+
+
+Building src/romberg.f
+Compiling src/romberg.f serially
+Building test/test_exactness.F90
+Compiling src/quad_rules.F90 serially
+Compiling test/polynomials.F90 serially
+Compiling test/test_exactness.F90 serially
+Linking ~/quad/.fobis/shadow/fast-checks/test/test_exactness
+Target test/test_exactness.F90 has been successfully built
+
+Building src/romberg.f
+Nothing to compile, all objects are up-to-date
+Building test/test_order.F90
+Compiling src/integrands.F90 serially
+Compiling test/test_order.F90 serially
+Linking ~/quad/.fobis/shadow/fast-checks/test/test_order
+Target test/test_order.F90 has been successfully built
+
+Building src/romberg.f
+Nothing to compile, all objects are up-to-date
+Building test/test_romberg.F90
+Compiling test/test_romberg.F90 serially
+Linking ~/quad/.fobis/shadow/fast-checks/test/test_romberg
+Target test/test_romberg.F90 has been successfully built
+
+Building src/romberg.f
+Nothing to compile, all objects are up-to-date
+Building test/test_symmetry.F90
+Compiling test/test_symmetry.F90 serially
+Linking ~/quad/.fobis/shadow/fast-checks/test/test_symmetry
+Target test/test_symmetry.F90 has been successfully built
+
+  PASS  test_exactness                 (0.00 s)
+  PASS  test_order                     (0.00 s)
+  PASS  test_romberg                   (0.00 s)
+  FAIL  test_symmetry                  (0.14 s)
+        Program received signal SIGFPE: Floating-point exception - erroneous arithmetic operation.
+        
+        Backtrace for this error:
+        #0  0x7a5768e28d14 in ???
+        #1  0x7a5768e27905 in ???
+        #2  0x7a5768a4532f in ???
+        	at ./signal/../sysdeps/unix/sysv/linux/x86_64/libc_sigaction.c:0
+        #3  0x63b9c9f7320a in relative
+        	at test/test_symmetry.F90:21
+        #4  0x63b9c9f732b1 in test_symmetry
+        	at test/test_symmetry.F90:10
+        #5  0x63b9c9f7349a in main
+        	at test/test_symmetry.F90:4
+
+  Results: 3 passed, 1 failed, 0 skipped
+  Total:   0.14 s
+[exit status 1]

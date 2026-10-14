@@ -1,0 +1,2 @@
+$ wc -l verification/bench/fine.jsonl
+1 verification/bench/fine.jsonl

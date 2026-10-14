@@ -2351,9 +2351,13 @@ def run_fobis_case(configuration):
         if as_json:
             continue
         say = configuration.print_b if result.ok else configuration.print_r
-        say(
-            f"  {result.status} (exit {result.exit_code}, {result.elapsed:.2f} s) in {os.path.relpath(result.rundir or '.')}"
-        )
+        if result.exit_code is None and not result.rundir:  # never started: refused, or the build failed
+            say(f"  {result.status}")
+        else:
+            say(
+                f"  {result.status} (exit {result.exit_code}, {result.elapsed:.2f} s) "
+                f"in {os.path.relpath(result.rundir or '.')}"
+            )
         for quantity in result.quantities:
             shape = f" shape {quantity.shape}" if quantity.shape else ""
             configuration.print_b(f"    {quantity.name} = {_format_values(quantity.values)}{shape}")
@@ -2975,7 +2979,7 @@ def run_fobis_gate(configuration):
         config = load_config(configuration.fobos)
         if cliargs.gate_stages:
             config.stages = list(cliargs.gate_stages)
-        config.stages = [s for s in config.stages if s not in set(cliargs.gate_skip)]
+        config.skip(cliargs.gate_skip, "--skip")
         config.advisory |= set(cliargs.gate_advisory)
         config.base = cliargs.gate_base or config.base
         config.check()
@@ -4315,7 +4319,7 @@ def run_fobis_test(configuration):
     ----------
     configuration : FoBiSConfig()
     """
-    from .TestRunner import TestRunner, discover_tests
+    from .TestRunner import TestRunner, discover_tests, select_tests
 
     cliargs = configuration.cliargs
     fobos = configuration.fobos
@@ -4369,7 +4373,8 @@ def run_fobis_test(configuration):
         scheduler=_test_scheduler(configuration),
     )
 
-    configuration.print_b(f"\nBuilding test suite ({len(tests)} target(s))...\n")
+    selected = len(select_tests(tests, suite_filter, filter_pattern))
+    configuration.print_b(f"\nBuilding test suite ({selected} target(s))...\n")
 
     def build_test(test):
         """Build a single test program and return the binary path."""
@@ -4386,6 +4391,8 @@ def run_fobis_test(configuration):
             build_args += ["-mode", mode_val]
         if getattr(cliargs, "shadow", None):
             build_args += ["--shadow", cliargs.shadow]
+        if getattr(cliargs, "quiet", False):
+            build_args += ["--quiet"]
         if getattr(cliargs, "explain", False):
             build_args += ["--explain-context" if cliargs.explain_context else "--explain"]
         try:

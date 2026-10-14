@@ -19,6 +19,7 @@ fobis test [options] [-- EXTRA_ARGS...]
 | `--explain` | `False` | Explain each failed test (see [Explaining failures](/ai/explain#runtime-failures)); the model is asked for the first one only |
 | `--explain-context` | `False` | Like `--explain`, but print what the model would receive instead of running it |
 | `--runner local\|slurm` | `local` | Run the test programs locally or as Slurm jobs (see [Running on a cluster](/advanced/scheduler)) |
+| `--quiet`, `-q` | `False` | Build the tests without printing the builder's settings for each |
 | `--json` | `False` | Build and run silently, then one JSON object: each result with its status and, for a failure, the facts of `--explain` (see [JSON output](/advanced/json-output#fobis-test-json)) |
 
 ## fobos options

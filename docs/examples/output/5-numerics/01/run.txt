@@ -1,0 +1,6 @@
+$ fobis case run
+Running case area...
+  ok (exit 0, 0.00 s) in .fobis/runs/area/default
+    n = 16
+    trapezoid = 1.9935703437723395
+    simpson = 2.0000165910479359

@@ -1,0 +1,8 @@
+[case:gpu]
+description = sin(x) over [0, pi] with 100 million intervals, on one GPU
+target      = src/area_acc.F90
+mode        = gpu
+gpus        = 1
+timeout     = 300
+quantities  = stdout
+tolerance   = trapezoid: rel 1e-12

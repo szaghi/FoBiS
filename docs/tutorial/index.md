@@ -21,10 +21,10 @@ Every command output shown is the real one: the pages include what the commands 
 | [2. Growing a project](./growing/01-templates) | intermediate | templates and variables, build profiles and feature flags, external libraries (MPI, OpenMP), rules, the cache, CI with machine-readable output, fpm and Makefile export |
 | [3. Many repositories](./ecosystem/01-register) | intermediate | an ecosystem of projects: dashboard, commands across all of them, checking the projects downstream, the release train |
 | [4. Code quality](./quality/01-lint) | advanced | the linter, baselines and fixes, reviewing a change, querying the code, verified modernisation, C and Python bindings |
-| 5. Verified numerics | advanced | cases and references, shadow builds and the compiler matrix, error and uncertainty assessment, differential runs, benchmarks, the gate, clusters, profiling |
+| [5. Verified numerics](./numerics/01-cases) | advanced | cases and references, shadow builds and the compiler matrix, error and uncertainty assessment, differential runs, benchmarks, the gate, profiling, clusters |
 | 6. AI-assisted development | expert | a local model, explained failures, questions answered from the sources, generated tests, merge conflicts, an agent working under the gate |
 
-Tracks 5 and 6 are being written; until then, the [guides](/guide/topics) cover their subjects.
+Track 6 is being written; until then, the [guides](/guide/topics) cover its subjects.
 
 ### 1. First steps
 
@@ -76,6 +76,20 @@ flowchart LR
 | [6. C and Python bindings](./quality/06-bindings) | `fobis bindings`, a shared library, ctypes |
 | [7. Instructions for agents](./quality/07-agents) | `fobis agents-md` |
 
+### 5. Verified numerics
+
+| Chapter | You learn |
+|---|---|
+| [1. Cases and quantities](./numerics/01-cases) | `[case:NAME]`, quantities, `fobis case run`, provenance |
+| [2. References](./numerics/02-verify) | `fobis verify`, `--update`, a failure explained by its provenance |
+| [3. Defects only some builds see](./numerics/03-shadows) | `--shadow checks/sanitize/strict`, `fobis matrix` |
+| [4. How accurate is the result?](./numerics/04-assess) | `fobis assess`: refinement, precision and rounding families, budgets |
+| [5. Is a refactoring harmless?](./numerics/05-diff-run) | `fobis diff-run REF`, `--assess`, tolerances |
+| [6. Is it faster?](./numerics/06-bench) | `fobis bench`, `--compare`, `--record` |
+| [7. One command for all of it](./numerics/07-gate) | `fobis gate`, `[gate]` |
+| [8. Where the time goes](./numerics/08-profile) | `fobis profile`: gprof, callgrind |
+| [9. On a cluster](./numerics/09-cluster) | `--runner slurm`, the login-node guard, nsys on a GPU |
+
 ## Running the examples yourself
 
 The project of each chapter is in
@@ -88,3 +102,5 @@ python docs/scripts/docs_examples.py --check   # compares with the committed out
 ```
 
 The outputs were produced with gfortran 13, the compiler of the CI; `DOCS_FC=gfortran-14` runs them with another.
+Timings, profiles and the cluster chapter depend on the machine: they were recorded once (files named
+`*.measured.txt`) and the CI checks only that their commands are unchanged.

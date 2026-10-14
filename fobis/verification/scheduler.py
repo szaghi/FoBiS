@@ -144,8 +144,9 @@ def node_facts(text: str) -> dict:
     facts: dict = {}
     for line in lines:
         key, _, value = line.partition("=")
-        if key == "gpu":
-            facts.setdefault("gpus", []).append(value.strip())
+        if key == "gpu":  # nvidia-smi -L lines; on a node without a GPU given to the job: "No devices found."
+            if value.strip().startswith("GPU"):
+                facts.setdefault("gpus", []).append(value.strip())
         elif key == "cores":
             with contextlib.suppress(ValueError):
                 facts["cores"] = int(value)

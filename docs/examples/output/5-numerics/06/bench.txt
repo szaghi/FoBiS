@@ -1,0 +1,3 @@
+[bench:fine]
+min_runs = 10
+target   = 0.02

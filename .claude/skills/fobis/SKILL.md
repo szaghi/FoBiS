@@ -26,7 +26,7 @@ FoBiS.py scans your source directories, parses every `.f90` (and related) file f
 ```bash
 fobis build              # compile and link (the default workhorse)
 fobis run [TARGET] [-- ARGS...]   # build if needed, then execute (passthrough args after --)
-fobis test [-- ARGS...]  # discover, build, run Fortran test programs (passthrough)
+fobis test [--quiet] [-- ARGS...]  # discover, build, run Fortran test programs (passthrough; --quiet: no build settings per test)
 fobis coverage           # generate coverage reports from instrumented runs
 fobis check              # validate the dependency graph without building
 ```
@@ -197,7 +197,8 @@ fobis test --explain     # the same for every failed test (LLM for the first one
   pass/fail/error/skipped with the FIRST failing fact; skipped with the reason when not applicable (no tests, no
   cases, no change against HEAD, no `[bench:]`, no budget, no `[gate] matrix_modes`). Without `--base`: working tree
   vs HEAD; `--base REF`: merge base vs working tree (review `--base MB --worktree`). `[gate]` stages/skip/advisory/
-  base/mode/matrix_modes/matrix_shadows. Build failure skips the stages that need it. Exit 1 on a blocking failure.
+  base/mode/matrix_modes/matrix_shadows (a skipped stage is listed `skip: by [gate] skip`). Build failure skips the
+  stages that need it. Exit 1 on a blocking failure. Keep `bench` out of a CI gate (`skip = bench`): runners are noisy.
 - `bench`: `[bench:CASE]` warmup/min_runs/max_runs/target (relative half-width of the median's 95% interval,
   distribution-free)/max_time/time (wall or a quantity)/work. Runs interleaved across sides; faster/slower ONLY when
   the intervals do not overlap (else "no measurable difference"). History `verification/bench/<case>.jsonl` only

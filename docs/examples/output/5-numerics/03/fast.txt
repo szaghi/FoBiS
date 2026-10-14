@@ -1,0 +1,8 @@
+[fast]
+help          = Optimised, with the tests
+template      = template-gnu
+build_profile = release
+cflags        = -c
+src           = ./src/ ./test/
+build_dir     = ./build/fast/
+target        = src/area.F90

@@ -1,0 +1,3 @@
+$ ls .fobis/runs/area/default
+stderr.txt
+stdout.txt

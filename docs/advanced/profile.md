@@ -40,7 +40,9 @@ after its procedure's scopes and the line of its directive (OpenACC `prog_17_gpu
 a reduction's final step; OpenMP `nvkernel_<symbol>F1L9_2_`), so kernel time is reported at the directive. On a
 production OpenACC code (2 ranks, 2 A30) 97% of the kernel time mapped this way; the rest was in a library outside
 the analysed sources. GPU
-cases usually need a compute node: use `--runner slurm` ([Running on a cluster](/advanced/scheduler)).
+cases usually need a compute node: use `--runner slurm` ([Running on a cluster](/advanced/scheduler)). nsys runs
+with `TMPDIR=/tmp`: with `TMPDIR` on a network file system, Nsight Systems 2025.3 recorded no CUDA or OpenACC event
+at all, and reported no error.
 
 ## Real runs
 

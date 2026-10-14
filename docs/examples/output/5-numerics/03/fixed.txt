@@ -1,0 +1,6 @@
+$ fobis matrix --modes fast --shadows none,checks,sanitize --verify
+matrix: fast/none (gnu)
+matrix: fast/checks (gnu)
+matrix: fast/sanitize (gnu)
+mode  none      checks    sanitize
+fast  ok        ok        ok

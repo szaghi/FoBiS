@@ -1,0 +1,9 @@
+$ fobis profile fine 2>/dev/null
+profile fine (gprof): 0 s
+  routines (self):
+      0.0%  0 s  __integrands_MOD_sine = integrands::sine (src/integrands.F90:10), 8000002 calls
+      0.0%  0 s  MAIN__ = area (src/area.F90:2), 1 calls
+      0.0%  0 s  __quad_rules_MOD_simpson = quad_rules::simpson (src/quad_rules.F90:61), 1 calls
+      0.0%  0 s  __quad_rules_MOD_trapezoid = quad_rules::trapezoid (src/quad_rules.F90:38), 1 calls
+  note: no time measured: the run is shorter than one 0.01 s sample; only the call counts are facts (profile a longer case, or use --tool callgrind, which counts instructions)
+  note: procedures inlined by the compiler count in their caller (callgrind's per-line view attributes them to their own lines)

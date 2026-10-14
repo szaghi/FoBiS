@@ -1,0 +1,31 @@
+$ fobis assess area
+assess: build base
+assess: build precision-promoted
+assess: build rounding-O0
+assess: build rounding-O3
+assess: build rounding-fma
+assess: build rounding-no-fma
+assess: build rounding-fast-math
+assess: build rounding-no-vectorize
+assess: run 13 member(s)
+assess area (mode release): 8 build(s), 13 run(s)
+refinement (5 member(s); method: fobis kb show numerics:assessment#refinement-family)
+  note: n = 8 16 32 64 128, h = 1/n
+  n: the refined parameter itself (its values are the ladder's): not assessed
+  trapezoid: observed order 2.000 (triples: 2.003, 2.001, 2.000), monotonic, asymptotic
+    extrapolated 1.999999984, error estimate 0.0001, GCI 6.27e-05
+  simpson: observed order 4.001 (triples: 4.021, 4.005, 4.001), monotonic, asymptotic
+    extrapolated 2, error estimate 4.03e-09, GCI 2.52e-09
+precision (1 member(s); method: fobis kb show numerics:assessment#precision-family)
+  note: default promotion for gnu: -freal-4-real-8 -freal-8-real-16
+  n: every digit agrees with precision-promoted: 16 vs 16
+  trapezoid: 16.0 digit(s) agree with precision-promoted: 1.993570344 vs 1.993570344
+  simpson: 15.7 digit(s) agree with precision-promoted: 2.000016591 vs 2.000016591
+rounding (6 member(s); method: fobis kb show numerics:assessment#rounding-family)
+  note: compiler-level perturbations (Verificarlo's Monte Carlo arithmetic is not used)
+  n: every member gives the same value; range 16 .. 16
+  trapezoid: 15.9 significant digit(s) (>= 15.6 at 95%); range 1.993570344 .. 1.993570344
+  simpson: 16.0 significant digit(s) (>= 15.8 at 95%); range 2.000016591 .. 2.000016591
+budgets
+  simpson: order >= 3.9: 4.001 ok
+  trapezoid: order >= 1.9: 2 ok

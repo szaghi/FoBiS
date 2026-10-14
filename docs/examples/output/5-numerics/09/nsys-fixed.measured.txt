@@ -1,0 +1,13 @@
+$ fobis profile gpu --tool nsys --runner slurm 2>/dev/null
+profile gpu (nsys): 0.002778 s in GPU kernels, 100.0% in the mode's sources
+  kernels:
+     56.0%  0.001555 s  area_acc_16_gpu = area_acc (src/area_acc.F90:16), 1 launches
+     37.8%  0.001049 s  area_acc_21_gpu = area_acc (src/area_acc.F90:21), 1 launches
+      6.3%  0.0001737 s  area_acc_21_gpu__red = area_acc (src/area_acc.F90:21), 1 launches
+  host-device transfers:
+    Device-to-Host: 3 copies, 0 MB, 8.704e-06 s
+  transfers by source line (OpenACC):
+    download 0.0003179 s  3 calls  src/area_acc.F90:25  !$acc update self(y(0:0), y(n:n))
+    upload   7.745e-06 s  1 calls  src/area_acc.F90:21  !$acc parallel loop reduction(+:s)
+  note: host-device transfers 8.704e-06 s = 0.00313 x the kernel time
+  note: kernel and transfer times measured by Nsight Systems; no hardware counters (ncu not used)

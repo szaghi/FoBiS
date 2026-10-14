@@ -1,0 +1,22 @@
+$ fobis provenance --mode release | sed "/^machine:/,\$d"
+fobis: 3.9.8
+date: 2026-10-14T08:39:21+00:00
+git:
+  commit: b15eb6be644457b2e64c9cc90d3fb60599820baa
+  branch: master
+  dirty: False
+dependencies:
+  penf: 4cb9d326c08f109ed5126d83c27e8e70c98b7eaa
+mode: release
+compiler:
+  name: gnu
+  binary: -
+  cflags: -O3 -funroll-loops -c
+  lflags: -
+  preproc: -
+  command: gfortran
+  version: GNU Fortran (Ubuntu 13.4.0-6ubuntu1~24~ppa1) 13.4.0
+  path: ~/.local/bin/gfortran
+environment:
+  modules: -
+  omp_num_threads: -

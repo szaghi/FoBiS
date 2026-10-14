@@ -31,7 +31,8 @@ def test_config():
             "[gate]\nstages = build test verify\nskip = test\nadvisory = verify\nbase = main\nmatrix_modes = a, b\n"
         )
     )
-    assert config.stages == ["build", "verify"] and config.advisory == {"verify"} and config.base == "main"
+    assert config.stages == ["build", "test", "verify"] and config.skipped == {"test": "by [gate] skip"}
+    assert config.advisory == {"verify"} and config.base == "main"
     assert config.matrix_modes == ["a", "b"] and config.matrix_shadows == ["none", "checks"]
     assert g.load_config(FakeFobos("[modes]\nmodes = a\n")).stages == list(g.STAGES)
     with pytest.raises(g.GateError, match="unknown key"):
@@ -211,7 +212,8 @@ def test_gate(project, capsys):
     (project / "src" / "m.f90").write_text(MODULE.replace("y = 2 * x", "y = 2 * x + 0.5"))  # the result changes
     code, data, _ = _gate(capsys, "--skip", "test")
     stages = {s["stage"]: s for s in data["stages"]}
-    assert code == 1 and data["status"] == "fail" and "test" not in stages
+    assert code == 1 and data["status"] == "fail" and stages["test"]["status"] == "skipped"
+    assert stages["test"]["fact"] == "by --skip"
     assert stages["verify"]["fact"].startswith("app: fail: value fail") and "3.5 vs 3.0" in stages["verify"]["fact"]
     assert stages["diff-run"]["status"] == "fail" and "changed: src/m.f90 (m::f)" in stages["diff-run"]["details"]
     subprocess.run([*GIT, "checkout", "-q", "-b", "topic"], check=True)

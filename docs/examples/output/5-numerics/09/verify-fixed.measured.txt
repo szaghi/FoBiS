@@ -1,0 +1,11 @@
+$ fobis verify gpu --runner slurm
+Verifying case gpu...
+slurm: job 1356005 submitted (gpu)
+slurm: job 1356005: pending
+gpu: PASS
+  n: equal (1 value(s), exact)
+  trapezoid: equal (1 value(s), rel 1e-12)
+  changed since the reference (results unaffected):
+    git.diff_sha256: '9a8afd220189bb3431217a4094d3d94e43a3e1e4112bf2b22173f3760402fc76' -> '9b0139474b4acf4888c489fab8043a74bfdd86315d55aae9b25aea6c7c5d31b8'
+
+1 of 1 case(s) verified.

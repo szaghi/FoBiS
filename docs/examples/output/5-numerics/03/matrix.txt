@@ -1,0 +1,11 @@
+$ fobis matrix --modes fast --shadows none,checks,sanitize
+matrix: fast/none (gnu)
+matrix: fast/checks (gnu)
+matrix: fast/sanitize (gnu)
+mode  none      checks    sanitize
+fast  ok        FAIL      ok
+
+Failures:
+fast/checks (GNU Fortran (Ubuntu 13.4.0-6ubuntu1~24~ppa1) 13.4.0):
+  test test_symmetry: floating-point exception at test/test_symmetry.F90:21
+[exit status 1]

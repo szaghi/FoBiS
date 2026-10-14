@@ -176,6 +176,18 @@ def discover_tests(
 # ---------------------------------------------------------------------------
 
 
+def select_tests(tests: list[dict], suite_filter: str | None = None, name_filter: str | None = None) -> list[dict]:
+    """The tests of *suite_filter* (a suite tag) whose names match the glob *name_filter*."""
+    import fnmatch
+
+    return [
+        t
+        for t in tests
+        if (not suite_filter or t.get("suite") == suite_filter)
+        and (not name_filter or fnmatch.fnmatch(t["name"], name_filter))
+    ]
+
+
 class TestRunner:
     """
     Build and run discovered test programs.
@@ -323,15 +335,7 @@ class TestRunner:
         -------
         TestSuite
         """
-        # Apply filters
-        filtered = tests
-        if suite_filter:
-            filtered = [t for t in filtered if t.get("suite") == suite_filter]
-        if name_filter:
-            import fnmatch
-
-            filtered = [t for t in filtered if fnmatch.fnmatch(t["name"], name_filter)]
-
+        filtered = select_tests(tests, suite_filter, name_filter)
         suite = TestSuite()
         for test in filtered:
             if no_build:

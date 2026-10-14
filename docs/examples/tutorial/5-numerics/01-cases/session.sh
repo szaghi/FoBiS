@@ -1,0 +1,6 @@
+quiet 'git add -A && git commit -qm "area: the quantities to verify; bindings"'
+excerpt case fobos '[case:area]'
+show list 'fobis case list'
+show run 'fobis case run'
+show files 'ls .fobis/runs/area/default'
+measure provenance 'fobis provenance --mode release | sed "/^machine:/,\$d"'

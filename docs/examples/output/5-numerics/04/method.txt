@@ -1,0 +1,13 @@
+$ fobis kb show numerics:assessment#refinement-family | head -n 12
+## Assessing the numerical error of a result > Refinement family  [numerics:assessment#refinement-family]
+
+Run the case at three or more levels of a resolution parameter `h` (grid spacing, time step, tolerance) and
+measure how a scalar result converges. With levels 3 (coarse), 2, 1 (fine), refinement ratios `r21 = h2/h1`,
+`r32 = h3/h2` and differences `e21 = f2 - f1`, `e32 = f3 - f2`:
+
+- ratio `R = e21/e32`: `0 < R < 1` monotonic convergence, `-1 < R < 0` oscillatory, `|R| >= 1` divergent
+  (Stern et al. 2001);
+- observed order `p` by fixed-point iteration on `p = |ln|e32/e21| + q(p)| / ln r21`,
+  `q(p) = ln((r21^p - s)/(r32^p - s))`, `s = sign(e32/e21)` (Celik et al. 2008; with a constant ratio `q = 0`);
+- Richardson extrapolation `f_ext = (r21^p f1 - f2) / (r21^p - 1)` (Richardson 1911) and the error estimate
+  `|f_ext - f1|`;

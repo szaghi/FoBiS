@@ -257,13 +257,14 @@ def test_nsys_wrapper_names_reports_by_rank(tmp_path, monkeypatch):
 
     fake = tmp_path / "bin" / "nsys"
     fake.parent.mkdir()
-    fake.write_text('#!/bin/sh\necho "$@" > "$(pwd)/args.$$"\n')
+    fake.write_text('#!/bin/sh\necho "$TMPDIR $@" > "$(pwd)/args.$$"\n')
     fake.chmod(0o755)
     monkeypatch.setenv("PATH", f"{fake.parent}{os.pathsep}{os.environ['PATH']}")
     command = pf.wrap(["srun", "-n", "2", "./app", "-x"], ["./app"], ["-x"], pf.NSYS_WRAPPER)[3:]
     for env, rank in (({"SLURM_PROCID": "3"}, "3"), ({"OMPI_COMM_WORLD_RANK": "1"}, "1"), ({}, "0")):
         clean = {k: v for k, v in os.environ.items() if k not in ("SLURM_PROCID", "OMPI_COMM_WORLD_RANK", "PMI_RANK")}
-        subprocess.run(command, cwd=tmp_path, env={**clean, **env}, check=True)
+        subprocess.run(command, cwd=tmp_path, env={**clean, **env, "TMPDIR": str(tmp_path)}, check=True)
         written = [p for p in tmp_path.iterdir() if p.name.startswith("args.")]
+        assert written[0].read_text().startswith("/tmp ")  # never a TMPDIR on a network file system
         assert f"-o nsys-{rank} ./app -x" in written[0].read_text()
         written[0].unlink()

@@ -36,14 +36,20 @@ class GateConfig:
     """``[gate]``: stages (in order), skipped and advisory stages, base revision, mode, matrix subset."""
 
     stages: list[str] = field(default_factory=lambda: list(STAGES))
+    skipped: dict[str, str] = field(default_factory=dict)  # stage -> who skipped it ([gate] skip, --skip)
     advisory: set[str] = field(default_factory=set)
     base: str = ""
     mode: str = ""
     matrix_modes: list[str] = field(default_factory=list)
     matrix_shadows: list[str] = field(default_factory=lambda: ["none", "checks"])
 
+    def skip(self, names: list[str], by: str) -> None:
+        """Skip *names*: they stay in the report, skipped *by* the setting that asked for it."""
+        for name in names:
+            self.skipped.setdefault(name, f"by {by}")
+
     def check(self) -> None:
-        unknown = sorted((set(self.stages) | self.advisory) - set(STAGES))
+        unknown = sorted((set(self.stages) | set(self.skipped) | self.advisory) - set(STAGES))
         if unknown:
             raise GateError(f"unknown gate stage(s) {', '.join(unknown)} (stages: {', '.join(STAGES)})")
 
@@ -60,8 +66,7 @@ def load_config(fobos: Any) -> GateConfig:
         raise GateError(f"[gate]: unknown key(s) {', '.join(unknown)} (known: {', '.join(sorted(_KEYS))})")
     if items.get("stages", "").strip():
         config.stages = _names(items["stages"])
-    skip = set(_names(items.get("skip", "")))
-    config.stages = [s for s in config.stages if s not in skip]
+    config.skip(_names(items.get("skip", "")), "[gate] skip")
     config.advisory = set(_names(items.get("advisory", "")))
     config.base = items.get("base", "").strip()
     config.mode = items.get("mode", "").strip()
@@ -295,6 +300,9 @@ def run_gate(
     for name in config.stages:
         result = StageResult(name, "skipped", advisory=name in config.advisory)
         results.append(result)
+        if name in config.skipped:
+            result.fact = config.skipped[name]
+            continue
         if stop:
             result.fact = "not run: an earlier stage failed (--fail-fast)"
             continue

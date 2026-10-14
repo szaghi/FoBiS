@@ -1,0 +1,23 @@
+$ fobis profile fine --tool callgrind --top 6 2>/dev/null
+profile fine (callgrind): 756,982,530 instructions, 14.8% in the mode's sources
+  routines (self):
+     85.2%  644,679,162 Ir  __sin_fma (outside the sources: runtime, libraries)
+             called by integrands::sine (src/integrands.F90:10): 8,000,002 calls, 85.16%
+      5.8%  44,000,060 Ir  __quad_rules_MOD_simpson = quad_rules::simpson (src/quad_rules.F90:61)
+      5.8%  44,000,033 Ir  __quad_rules_MOD_trapezoid = quad_rules::trapezoid (src/quad_rules.F90:38)
+      3.2%  24,000,006 Ir  __integrands_MOD_sine = integrands::sine (src/integrands.F90:10)
+      0.0%  60,940 Ir  do_lookup_x (outside the sources: runtime, libraries)
+      0.0%  45,058 Ir  _dl_relocate_object (outside the sources: runtime, libraries)
+  project procedures (by their source lines, inlined code included):
+      5.8%  quad_rules::simpson
+      5.8%  quad_rules::trapezoid
+      3.2%  integrands::sine
+      0.0%  area
+  hottest lines:
+      5.0%  src/quad_rules.F90:56  s = s + f(a + i * h)
+      3.2%  src/integrands.F90:15  y = sin(x)
+      2.5%  src/quad_rules.F90:84  odd = odd + f(a + i * h)
+      2.5%  src/quad_rules.F90:88  even = even + f(a + i * h)
+      0.8%  src/quad_rules.F90:55  do i = 1, n - 1
+      0.4%  src/quad_rules.F90:83  do i = 1, n - 1, 2
+  note: instructions executed (Ir), not time: memory stalls, cache misses and vector width are not weighed

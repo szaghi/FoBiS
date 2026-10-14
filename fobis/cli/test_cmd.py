@@ -10,7 +10,7 @@ from typing import Annotated
 import typer
 
 from ._app import _ns, app
-from ._options import CompilerOpt, FciOpt, FobosOpt, JsonOpt, ModeOpt, RunnerOpt, ShadowOpt
+from ._options import CompilerOpt, FciOpt, FobosOpt, JsonOpt, ModeOpt, QuietOpt, RunnerOpt, ShadowOpt
 
 
 @app.command("test", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
@@ -58,6 +58,7 @@ def cmd_test(
         typer.Option("--explain-context", help="Like --explain, but print what the model would receive instead."),
     ] = False,
     runner: RunnerOpt = "local",
+    quiet: QuietOpt = False,
     json_output: JsonOpt = False,
 ):
     """Discover, build, and run Fortran test programs."""
@@ -81,5 +82,6 @@ def cmd_test(
         explain=explain or explain_context,
         explain_context=explain_context,
         runner=runner,
+        quiet=quiet,
         json_output=json_output,
     )

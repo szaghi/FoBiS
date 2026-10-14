@@ -1,0 +1,17 @@
+$ fobis gate
+gate: build: fobis build --json
+gate: review: fobis review --format json --exit-zero
+gate: test: fobis test --json
+gate: verify: fobis verify --json
+gate: diff-run: fobis diff-run HEAD --json
+gate: assess: fobis assess area --json
+gate: matrix: fobis matrix --json --modes fast --shadows none,checks --verify
+gate: PASS, 11.2 s
+  build     pass [0.2 s]
+  review    pass [0.1 s]
+  test      pass [0.8 s]
+  verify    pass [0.9 s]
+  diff-run  pass [2.0 s]
+  bench     skip: by [gate] skip
+  assess    pass [3.0 s]
+  matrix    pass [4.2 s]

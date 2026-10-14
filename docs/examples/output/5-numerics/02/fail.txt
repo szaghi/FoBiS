@@ -1,0 +1,13 @@
+$ fobis verify
+Verifying case area...
+area: FAIL
+  n: equal (1 value(s), exact)
+  trapezoid: equal (1 value(s), exact)
+  simpson: 1/1 out of tolerance (exact): max abs 0.0128925, max rel 0.00644619, L2 0.0128925
+    got 1.987124096496743, reference 2.000016591047936
+  changed since the reference:
+    git.diff_sha256: None -> '60db68284b8518a333f57e6eb3b297ec37d0570429844c4cb372d3fea5c01a5b'
+    git.dirty: False -> True
+
+0 of 1 case(s) verified.
+[exit status 1]

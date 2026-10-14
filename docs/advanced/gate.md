@@ -48,7 +48,8 @@ matrix_shadows = none checks
 ```
 
 Command-line `--stage`, `--skip`, `--advisory`, `--base`, `--mode` override the section; `--fail-fast` stops at the
-first blocking failure. Exit status 0 when the gate passes, 1 when a non-advisory stage fails or errs, 2 for a
+first blocking failure. A stage left out by `skip` or `--skip` is still listed, as `skip: by [gate] skip` (or
+`by --skip`), so the report shows what was not checked. Exit status 0 when the gate passes, 1 when a non-advisory stage fails or errs, 2 for a
 declaration error or an unknown base.
 
 ## Real runs

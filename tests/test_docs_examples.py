@@ -40,9 +40,14 @@ def test_compare_reports_drift_and_ignores_durations(tmp_path):
     (fresh / "t/01/c.txt").write_text("$ x\n")
     (fresh / "t/01/d.txt").write_text("$ git log --oneline -1\n4817230 feat: x\n")  # a hash of digits only
     (committed / "t/01/d.txt").write_text("$ git log --oneline -1\nc3b0b47 feat: x\n")
+    (fresh / "t/01/e.measured.txt").write_text("$ fobis bench\nmedian 1.2 ms\n")  # a measurement: never compared
+    (committed / "t/01/e.measured.txt").write_text("$ fobis bench\nmedian 3.4 ms\n[exit status 1]\n")
+    (fresh / "t/01/f.measured.txt").write_text("$ fobis bench --record\n")
+    (committed / "t/01/f.measured.txt").write_text("$ fobis bench\n")
     assert docs.compare(fresh, committed) == [
         "t/01/b.txt: differs (new 'new', committed 'old')",
         "t/01/c.txt: generated but not committed",
+        "t/01/f.measured.txt: another command ($ fobis bench --record)",
     ]
     (fresh / docs.MANIFEST).write_text('{"compiler": "GNU Fortran (Ubuntu 14.2.0) 14.2.0"}')  # another compiler
     (fresh / "t/01/b.txt").write_text("$ fobis build\nother\n[exit status 1]\n")

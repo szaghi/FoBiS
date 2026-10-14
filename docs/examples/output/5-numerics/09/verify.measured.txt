@@ -1,0 +1,26 @@
+$ fobis verify area --runner slurm
+Verifying case area...
+slurm: job 1356002 submitted (area)
+slurm: job 1356002: pending
+area: PASS
+  n: equal (1 value(s), ulp 4)
+  trapezoid: equal (1 value(s), ulp 4)
+  simpson: within tolerance (ulp 4): max abs 4.44089e-16, max rel 2.22043e-16, L2 4.44089e-16
+    got 2.0000165910479355, reference 2.000016591047936
+  changed since the reference (results unaffected):
+    compiler.path: '~/.local/bin/gfortran' -> '~/.local/bin/gfortran'
+    compiler.version: 'GNU Fortran (Ubuntu 13.4.0-6ubuntu1~24~ppa1) 13.4.0' -> 'GNU Fortran (GCC) 8.5.0 20210514 (Red Hat 8.5.0-20)'
+    environment.modules: [] -> ['intel/nvidia/cuda-12.3.2', 'intel/gcc-8.5.0/hwloc-2.10.0', 'intel/gcc-8.5.0/pmix-5.0.1', 'intel/gcc-8.5.0/ucx-1.15.0', 'intel/slurm', 'hpcx', 'intel/nvidia_hpc_sdk/nvhpc-hpcx-cuda12/25.5']
+    git.commit: 'b15eb6be644457b2e64c9cc90d3fb60599820baa' -> '8389043c4d874efcfa02f9ffc72ad038da4cc9b6'
+    git.diff_sha256: None -> '9a8afd220189bb3431217a4094d3d94e43a3e1e4112bf2b22173f3760402fc76'
+    git.dirty: False -> True
+    git.untracked_sources: None -> ['src/area_acc.F90']
+    machine.cores: 16 -> 1
+    machine.cpu: '13th Gen Intel(R) Core(TM) i9-13900KF' -> 'Intel(R) Xeon(R) Gold 6338 CPU @ 2.00GHz'
+    machine.os: 'Linux 6.18.33.2-microsoft-standard-WSL2' -> 'Linux 4.18.0-513.24.1.el8_9.x86_64'
+    machine.python: '3.12.6' -> '3.12.13'
+    scheduler.account: None -> 'myproject'
+    scheduler.kind: None -> 'slurm'
+    scheduler.partition: None -> 'gpu'
+
+1 of 1 case(s) verified.
