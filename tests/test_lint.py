@@ -198,6 +198,18 @@ CASES += [
         [],
     ),
     ("OMP001", _PLOOP + "!$omp parallel do default(private)\ndo i = 1, n\ntmp = a(i)\nend do\nend subroutine\n", []),
+    (  # a thread-number guard: one thread writes (a false positive before)
+        "OMP001",
+        _PLOOP + "!$omp parallel\nif (omp_get_thread_num() == 0) tmp = 1.0\nit = omp_get_thread_num()\n"
+        "if (it .eq. 0) then\ns = 2.0\nend if\n!$omp end parallel\nend subroutine\n",
+        [],
+    ),
+    (  # the else branch of the guard runs on every other thread
+        "OMP001",
+        _PLOOP + "!$omp parallel\nif (omp_get_thread_num() == 0) then\ntmp = 1.0\nelse\ns = 2.0\nend if\n"
+        "!$omp end parallel\nend subroutine\n",
+        [10],
+    ),
     (
         "OMP001",
         _PLOOP
@@ -719,6 +731,20 @@ CASES += [
         _RANK + "subroutine s()\nif (myrank == 0) then\nread(u, *) dt\nend if\nif (nproc > 1) then\n"
         "call mpi_bcast(dt, 1, mpi_real8, 0, comm, ierr)\nend if\nend subroutine\n",
         [],
+    ),
+    (  # every branch calls the same collectives: every rank reaches them (a false positive before)
+        "MPI004",
+        _RANK
+        + "subroutine s()\nif (myrank == 0) then\nread(u, *) dt\ncall mpi_bcast(dt, 1, mpi_real8, 0, comm, ierr)\n"
+        "else\ncall mpi_bcast(dt, 1, mpi_real8, 0, comm, ierr)\nend if\nselect case (myrank)\ncase (0)\n"
+        "call mpi_barrier(comm, ierr)\ncase default\ncall mpi_barrier(comm, ierr)\nend select\nend subroutine\n",
+        [],
+    ),
+    (  # no else: the ranks matching neither condition never call it
+        "MPI004",
+        _RANK + "subroutine s()\nif (myrank == 0) then\ncall mpi_barrier(comm, ierr)\nelse if (myrank == 1) then\n"
+        "call mpi_barrier(comm, ierr)\nend if\nend subroutine\n",
+        [6, 8],
     ),
     # MPI005 blocking-send-before-receive (opt-in)
     (

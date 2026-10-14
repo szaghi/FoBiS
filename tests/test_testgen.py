@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 
 import pytest
@@ -17,10 +18,12 @@ from fobis.ai.testgen import (
     checked_skeleton,
     coverage,
     find_module,
+    fit_lines,
     generate,
     local_declaration,
     parse_program,
     plan_cases,
+    private_hints,
     skeleton,
     type_bindings,
     wrap,
@@ -208,6 +211,22 @@ def test_no_local_declaration(decl, reason):
     assert local_declaration(decl, "v") == (None, reason)
 
 
+@pytest.mark.skipif(shutil.which("gfortran") is None, reason="gfortran")
+def test_fit_lines_makes_long_model_lines_compile_with_werror(tmp_path):
+    """coder-7b wrote lines over 132 columns for PENF and did not fix 'Line truncated' in 3 retries."""
+    long = "    print '(a,a,i0)', 'test_bctoi_i1p: failed, got ', 'a value that is long enough, really', " + ", ".join(
+        str(i) for i in range(30)
+    )
+    program = f"program p\nimplicit none\n{long}\nx = 1 ! a, b, c\nend program p\n"
+    fitted = fit_lines(program)
+    assert max(len(line) for line in fitted.splitlines()) <= 132 and "x = 1 ! a, b, c" in fitted
+    assert fitted.splitlines()[2].startswith("    print") and fitted.splitlines()[2].endswith("&")
+    (tmp_path / "p.f90").write_text(fitted.replace("x = 1 ! a, b, c", "! a, b, c"))
+    done = subprocess.run(["gfortran", "-Werror", "-Wall", "-c", "p.f90"], cwd=tmp_path, capture_output=True, text=True)
+    assert done.returncode == 0, done.stderr
+    assert fit_lines("short\n") == "short\n"
+
+
 def test_wrap_long_statements_outside_strings():
     statement = "call obj%name(" + ", ".join(f"arg{i}=value{i}" for i in range(12)) + ", tag='a, b')"
     lines = wrap(statement, width=60)
@@ -328,6 +347,24 @@ def test_generate_sends_errors_and_failures_back(project):
     assert feedback[2].startswith("The program builds and runs but is not a test yet:\n- the program checks nothing")
     assert [m["role"] for m in provider.calls[3].messages] == ["system", "user", *["assistant", "user"] * 3]
     assert provider.calls[0].schema["required"] == ["fortran_source_code", "notes"]
+
+
+def test_generate_names_the_generic_of_a_private_specific(project):
+    """coder-7b called PENF's private specifics by name; the compiler's 'no IMPLICIT type' did not tell it why."""
+    target = _target()
+    bad = (
+        "program test_shapes\nuse kinds, only: rk\nuse shapes\nimplicit none\nreal(rk) :: x\nx = 1.0_rk\n"
+        "call shift_r(x, 2.0_rk)\nif (x /= 3.0_rk) error stop 1\nend program test_shapes\n"
+    )
+    provider = FakeProvider([_answer(bad)] * 2)
+    with Sandbox(".", "src") as sandbox:
+        skel, _ = checked_skeleton(target, plan_cases(target, ["shift"]), sandbox)
+        result = generate(target, skel, sandbox, provider, build_bundle(target, skel), retries=1)
+    assert result.program is None
+    hint = "'shift_r' is private to the module: call it through its public generic 'shift' with the same arguments."
+    assert hint in provider.calls[1].messages[-1]["content"]
+    assert private_hints("call SHIFT_V(v, d)", {"shift_v": "shift", "shift_r": "shift"}).count("private") == 1
+    assert private_hints("call shift(x, d)", {"shift_r": "shift"}) == ""
 
 
 def test_generate_gives_up(project):

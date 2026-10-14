@@ -10,16 +10,16 @@ fobis ask "why does my MPI code hang when every rank sends first?"
 fobis ask --project src "where is the halo exchange done and which MPI calls does it use?"
 ```
 
-The answer has this shape (the wording depends on the model; the sources are the ones retrieved for this
-question):
+A real answer of coder-7b (the default managed model) on an NVIDIA A30, in 3.4 s with the server running:
 
 ```text
-- Standard-mode mpi_send may not return until the matching receive starts, so ranks that all send first can deadlock. [1]
-- Exchange with mpi_sendrecv, or with non-blocking calls completed by mpi_waitall. [1][2]
+- MPI code hangs when every rank sends first because mutual send-before-recv in standard mode can deadlock (buffering not guaranteed). Use `MPI_Sendrecv` or nonblocking communication instead. [1][2]
+- Relying on standard-mode buffering for correctness is not guaranteed; a program that 'works' may deadlock at larger message sizes. [3]
 
 Sources:
   [1] Cheatsheet — MPI 5.0 > Decision rules > Avoid deadlock - MPI 5.0: distilled reference  (mpi:cheatsheet#avoid-deadlock)
   [2] Chapter 3: Point-to-Point Communication > Code Examples - MPI 5.0: distilled reference  (mpi:ch03-point-to-point#code-examples)
+  [3] Chapter 3: Point-to-Point Communication > Anti-patterns - MPI 5.0: distilled reference  (mpi:ch03-point-to-point#anti-patterns)
 ```
 
 Read a cited section in full with `fobis kb show <id>`.

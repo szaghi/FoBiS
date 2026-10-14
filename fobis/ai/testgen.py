@@ -218,6 +218,21 @@ def wrap(statement: str, width: int = 100) -> list[str]:
     return [lines[0], *(f"  {line.strip()}" for line in lines[1:])]
 
 
+def fit_lines(program: str, limit: int = 132) -> str:
+    """*program* with its lines longer than *limit* (gfortran's default free-form length, an error with
+    ``-Werror``) continued at commas outside character literals, the indentation kept; lines holding a ``!`` are
+    left alone (a comma inside a comment must not become a continuation). The model's line length is fixed here,
+    deterministically: a 7B model asked three times to fix 'Line truncated' did not (PENF, coder-7b)."""
+    out = []
+    for line in program.splitlines():
+        if len(line) <= limit or "!" in line:
+            out.append(line)
+            continue
+        indent = line[: len(line) - len(line.lstrip())]
+        out.extend(indent + piece for piece in wrap(line.strip()))
+    return "\n".join(out) + ("\n" if program.endswith("\n") else "")
+
+
 @dataclass
 class Case:
     """One test procedure of the skeleton: the public name called and the specific procedure it resolves to.
@@ -757,6 +772,17 @@ def feedback(attempt: Attempt, problems: list[str] | None = None) -> str:
     )
 
 
+def private_hints(program: str, private: dict[str, str]) -> str:
+    """Hints for the specifics *program* calls by their private name (specific -> public generic): the compiler
+    only says 'no IMPLICIT type' or 'explicit interface', which did not lead coder-7b to the generic (PENF)."""
+    named = sorted(name for name in private if re.search(rf"\b{re.escape(name)}\b", program, re.IGNORECASE))
+    return "\n".join(
+        f"'{name}' is private to the module: call it through its public generic '{private[name]}' with the same "
+        "arguments."
+        for name in named
+    )
+
+
 def _reason(attempt: Attempt, problems: list[str]) -> str:
     if problems:
         return problems[0]
@@ -793,6 +819,9 @@ def generate(
     """Ask the model to complete *skel*; build, run and inspect its program, and send the failure back, at most
     *retries* times. The conversation is kept, so the model sees its previous attempts."""
     public = set(target.api) | {c.name for c in skel.cases}
+    private = {
+        c.specific.name: c.name for c in skel.cases if c.specific.name != c.name and c.specific.name not in public
+    }
     chat = messages(bundle.render(), system=load_prompt("testgen"))
     result = Generated(None)
     for number in range(retries + 1):
@@ -806,6 +835,7 @@ def generate(
             result.reason = "the answer holds no program"
             chat.append({"role": "user", "content": "Answer with the JSON object holding the whole program."})
             continue
+        program = fit_lines(program)
         result.last, result.notes = program, notes
         if not _PROGRAM_RE.search(program):  # FoBiS treats such a file as a library and hides its errors
             result.reason = "the answer is not a program (no program statement)"
@@ -822,8 +852,14 @@ def generate(
             result.program, result.reason, result.coverage = program, "", found
             return result
         result.reason = _reason(attempt, problems)
+        hints = private_hints(program, private) if attempt.stage == "build" and not attempt.ok else ""
         chat.append(
-            {"role": "user", "content": feedback(attempt, problems) + "\n\nReturn the whole corrected program."}
+            {
+                "role": "user",
+                "content": feedback(attempt, problems)
+                + (f"\n\n{hints}" if hints else "")
+                + "\n\nReturn the whole corrected program.",
+            }
         )
     return result
 

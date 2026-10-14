@@ -116,6 +116,21 @@ How much of a module the skeleton covers, on real libraries (gfortran 16, `--ske
 | FLAP `flap_command_line_interface_t` (type-bound) | 37 | 3: `class(*)` arguments |
 | FLAP `flap_utils_m` | 21 | 0 |
 
+## Real runs
+
+With coder-7b (the default managed model) on an NVIDIA A30, on two modules of PENF (`--mode tests-gnu`, which
+compiles with `-Werror`; 8 procedures each, the default `--max`):
+
+- `penf_b_size`: accepted at the first attempt in 20 s, 8 checks (`bit_size` of `'ab'` is 16, of a
+  `real(R16P)` 128; `byte_size` of an `integer(I2P)` 2, ...), all passing.
+- `penf_stringify`: accepted at the second attempt in 53 s, 8 checks through the generics `bcton` and `bstr`.
+
+Two deterministic corrections came from these runs. The model wrote lines longer than 132 columns, an error
+under `-Werror` it did not fix in three retries: FoBiS now continues such lines itself before building. And it
+called the module's private specific procedures (`bctoi_i1p`) by name: the compiler's "no IMPLICIT type" did not
+lead it to the generic in three retries, so the feedback now names the public generic of each private specific
+the program calls.
+
 ## Options
 
 See the [`testgen` reference](/reference/testgen).

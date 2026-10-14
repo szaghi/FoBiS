@@ -164,19 +164,31 @@ Nothing is hidden. A dismissed finding is still printed, with the model's reason
 in the exit status: the review informs you, it does not suppress. To silence a finding you agree is a false
 positive, suppress it in the code with a reason (`! fobis: ignore[OMP001] ...`) or record it in the baseline.
 
+A real answer of coder-7b (Qwen2.5-Coder-7B-Instruct Q4_K_M, the default managed model) on an NVIDIA A30, for a
+heat-equation step whose parallel loop lost its `private(flux) reduction(+:total)` clauses:
+
 ```text
 src/heat.f90:14: OMP001 [warning] 'flux' is shared and written by every thread (missing private?)
-    [llm] confirmed: flux is written at line 14 by every iteration and read at line 15, and it is not private. [1][2]
+    [llm] confirmed: The variable 'flux' is shared and written by every thread, leading to a data race. [1][2]
 src/heat.f90:16: OMP002 [warning] 'total' is accumulated by every thread: use reduction(+:total)
-    [llm] confirmed: total is updated at line 16 by all threads without a reduction clause. [1][3]
-
+    [llm] confirmed: The variable 'total' is accumulated by every thread without using a reduction clause, leading to incorrect results. [1][3]
 Sources cited by the review:
   [1] src/heat.f90 lines 12-17 (!$omp parallel do (line 12))  (code:src/heat.f90:12-17)
-  ...
+  [2] rule OMP001 shared-scalar-written-in-parallel-region  (rule:OMP001)
+  [3] rule OMP002 accumulation-without-reduction  (rule:OMP002)
 Review [llm]: 1 of 1 group(s); 2 confirmed, 0 dismissed, 0 uncertain. Dismissed findings are still reported and still count.
 ```
 
-(The shape of the output; the wording depends on the model.) `--format json` adds a `review` object to each
+**How much to trust the verdicts.** On a labelled set of 10 findings (7 real defects: a shared temporary, a sum
+without reduction, an `MPI_Isend` buffer written before the wait, a broadcast on rank 0 only, unreachable code, an
+imperfect nest under `collapse`, a reduction into a `declare create` allocatable; and 3 false alarms of the
+linter), coder-7b confirmed all 10: the 7 real ones with correct reasons, and the 3 false alarms too, restating
+the finding's message where the code contradicted it (both branches of the `if` broadcast; only thread 0 writes).
+A 7B model's verdict therefore adds no information about whether a finding is real; its value is the reasoning
+attached to real findings. The three false alarms were fixed in the linter itself. Use a larger model through
+`provider = openai` when the verdicts matter.
+
+`--format json` adds a `review` object to each
 reviewed finding and a top-level `review` (concerns, sources, counts); other formats are not annotated.
 
 `--ask "QUESTION" FILE:LINE` builds the same input for the region or procedure around that line, findings

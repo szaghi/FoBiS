@@ -85,18 +85,21 @@ real, intent(in) :: r
 real :: a
 ```
 
-The answer has this shape (the wording depends on the model):
+A real answer of coder-7b (the default managed model) on an NVIDIA A30, for the same file built with gfortran 12:
+gfortran lists the undeclared symbol of line 11 first, so that is the error the model receives, and the other
+three are listed after it:
 
 ```text
-semantic.f90:10: Type mismatch in argument ‘r’ at (1); passed INTEGER(4) to REAL(4)
+Explanation (fobis build --explain)
+src/semantic.f90:11: Symbol ‘undeclared’ at (1) has no IMPLICIT type
   Cause:
-    - Line 10 passes the integer literals 1 and 2 to area, whose dummy r is real. [1][2]
+    - The symbol 'undeclared' is used without being declared or implicitly typed. It is referenced on line 11, column 18. [1]
   Fix:
-    - Pass one real argument, as in area(1.0). [2]
+    - Declare the variable 'undeclared' before using it. For example: 'real :: undeclared'. [1]
 
   Sources:
-    [1] semantic.f90 lines 4-14  (code:semantic.f90:4-14)
-    [2] interface of function area (module geometry), geometry.f90:6  (fact:geometry.f90#area)
+    [1] src/semantic.f90 lines 5-14  (code:src/semantic.f90:5-14)
+  (3 more error(s) not explained: fix this one first, then rebuild)
 ```
 
 The model is configured as for every LLM feature (see [Local LLM Runtime](/ai/runtime)); without one, the

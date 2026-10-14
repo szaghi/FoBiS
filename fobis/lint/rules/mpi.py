@@ -71,6 +71,9 @@ _IF_THEN_RE = re.compile(r"^(?:\w+\s*:\s*)?if\s*\(")
 _END_IF_RE = re.compile(r"^end\s*if\b")
 _SELECT_RE = re.compile(r"^(?:\w+\s*:\s*)?select\s*case\s*\(")
 _END_SELECT_RE = re.compile(r"^end\s*select\b")
+_ELSE_RE = re.compile(r"^else\b(?!\s*if\b)")
+_ELSE_IF_RE = re.compile(r"^else\s*if\s*\(")
+_CASE_RE = re.compile(r"^case\s*(?:\(|default\b)")
 
 
 def _argument(args: list[str], position: int, keyword: str) -> str:
@@ -209,6 +212,45 @@ def _rank_conditions(unit: Unit, rank_names: set[str]) -> list[str | None]:
     return result
 
 
+def _balanced_collectives(unit: Unit, rank_names: set[str]) -> set[int]:
+    """Indices of the collective calls of rank-dependent constructs whose branches ALL call the same collectives in
+    the same order (an ``else``/``case default`` included): every rank reaches them, nothing hangs."""
+    rank_re = re.compile(r"(?<!\w)(" + "|".join(map(re.escape, sorted(rank_names))) + r")\b")
+    balanced: set[int] = set()
+    stack: list[dict] = []
+    for index, stmt in enumerate(unit.statements):
+        masked = stmt.masked.strip() if stmt.sentinel is None else ""
+        if _IF_THEN_RE.match(masked):
+            start = masked.index("(")
+            close = balanced_end(masked, start)
+            if re.match(r"^\s*then\s*$", masked[close:]):
+                rank = bool(rank_re.search(masked[start:close]))
+                stack.append({"rank": rank, "branches": [[]], "default": False})
+            continue
+        if _SELECT_RE.match(masked):
+            start = masked.index("(")
+            rank = bool(rank_re.search(masked[start : balanced_end(masked, start)]))
+            stack.append({"rank": rank, "branches": [], "default": False})
+            continue
+        if stack and (_ELSE_IF_RE.match(masked) or _ELSE_RE.match(masked) or _CASE_RE.match(masked)):
+            stack[-1]["branches"].append([])
+            stack[-1]["default"] |= bool(_ELSE_RE.match(masked)) or masked.startswith(("case default", "casedefault"))
+            continue
+        if stack and (_END_IF_RE.match(masked) or _END_SELECT_RE.match(masked)):
+            frame = stack.pop()
+            calls = [item for branch in frame["branches"] for item in branch]
+            sequences = [[name for _, name in branch] for branch in frame["branches"]]
+            if frame["rank"] and frame["default"] and len(sequences) > 1 and all(s == sequences[0] for s in sequences):
+                balanced.update(i for i, _ in calls)
+            if stack and stack[-1]["branches"]:
+                stack[-1]["branches"][-1].extend(calls)  # a nested construct's calls belong to the enclosing branch
+            continue
+        name = call_name(stmt)
+        if name in _COLLECTIVES and stack and stack[-1]["branches"]:
+            stack[-1]["branches"][-1].append((index, name))
+    return balanced
+
+
 @rule(
     "MPI004",
     "collective-in-rank-branch",
@@ -218,8 +260,9 @@ def _rank_conditions(unit: Unit, rank_names: set[str]) -> list[str | None]:
         `mpi_barrier`, ...), in the same order. Called inside `if (rank == 0)`, the other ranks never reach
         it and the program hangs, or matches it with a different collective and computes garbage. Move the
         collective out of the branch; if the branch selects exactly the members of a sub-communicator
-        passed to the call, suppress with a reason. The rank variables are those filled by `mpi_comm_rank`
-        anywhere in the project.
+        passed to the call, suppress with a reason. Not reported when every branch of the construct (an
+        `else` or `case default` included) calls the same collectives in the same order: every rank reaches
+        them. The rank variables are those filled by `mpi_comm_rank` anywhere in the project.
         """,
     bad="""
         if (myrank == 0) then
@@ -238,9 +281,10 @@ def check_collective_in_rank_branch(ctx: LintContext) -> Iterator[Hit]:
         return
     for unit in ctx.units.walk():
         conditions = _rank_conditions(unit, rank_names)
-        for stmt, rank in zip(unit.statements, conditions, strict=True):
+        balanced = _balanced_collectives(unit, rank_names)
+        for index, (stmt, rank) in enumerate(zip(unit.statements, conditions, strict=True)):
             name = call_name(stmt)
-            if rank and name in _COLLECTIVES:
+            if rank and name in _COLLECTIVES and index not in balanced:
                 yield ctx.hit(stmt, f"collective {name} inside a branch on '{rank}': the other ranks never call it")
 
 

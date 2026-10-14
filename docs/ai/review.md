@@ -105,15 +105,23 @@ The model answers cited claims of two kinds, **risks** (what the change could br
 check** (what to verify before merging). As everywhere in FoBiS, a claim that cites nothing is dropped.
 `--deep-context` prints the model's input and stops.
 
+A real answer of coder-7b on an NVIDIA A30, for a change that removed `private(flux) reduction(+:total)` from a
+parallel loop:
+
 ```text
 Risk summary [llm]:
 Risks:
-  - flux and total are now shared by all threads of the step loop: a data race and a wrong sum. [1][2]
-To check:
-  - Compare total with the serial result before merging. [1]
+  - A data race could occur in the parallel region of src/heat.f90:12-17 because the variable 'total' is shared and written by every thread. [1][2]
+  - The variable 'flux' is shared and written by every thread in the parallel region of src/heat.f90:12-17, which could lead to a data race. [1][2]
+  - The variable 'total' is accumulated by every thread in the parallel region of src/heat.f90:12-17 without a reduction clause, which could lead to incorrect results. [1][3]
+Sources:
+  [1] diff of src/heat.f90 (- removed, + added)  (diff:src/heat.f90)
+  [2] rule OMP001 shared-scalar-written-in-parallel-region  (rule:OMP001)
+  [3] rule OMP002 accumulation-without-reduction  (rule:OMP002)
 ```
 
-(The shape of the output; the wording depends on the model.) The summary adds to the text, markdown and json
+The risks are right and cite the diff; the 7B model repeated one of them and wrote no "to check" item.
+The summary adds to the text, markdown and json
 formats; it never changes the exit status.
 
 ## Limits

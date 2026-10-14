@@ -109,6 +109,42 @@ def _threadprivate(unit: Unit) -> set[str]:
     return names
 
 
+def _thread_guarded(statements: list[Statement], first: int, idx: int) -> bool:
+    """Whether statement *idx* runs on one thread only: inside an ``if`` comparing ``omp_get_thread_num()`` (or a
+    variable assigned from it in the region) with ``==``, the hand-written form of ``masked``/``master``."""
+    ids = {
+        m.group(1)
+        for s in statements[first:idx]
+        for m in [re.match(r"^\s*(\w+)\s*=\s*omp_get_thread_num\s*\(\s*\)\s*$", s.masked)]
+        if m
+    }
+    names = "|".join(["omp_get_thread_num\\s*\\(\\s*\\)", *map(re.escape, sorted(ids))])
+    guard = re.compile(rf"(?:\b(?:{names})\s*(?:==|\.eq\.))|(?:(?:==|\.eq\.)\s*(?:{names}))")
+
+    def condition(masked: str) -> tuple[str, str] | None:
+        found = re.match(r"^\s*(?:\w+\s*:\s*)?if\s*\(", masked)
+        if not found:
+            return None
+        start = masked.index("(", found.start())
+        close = balanced_end(masked, start)
+        return masked[start:close], masked[close:]
+
+    own = condition(statements[idx].masked)
+    if own and guard.search(own[0]):
+        return True  # a one-line if
+    stack: list[bool] = []
+    for stmt in statements[first:idx]:
+        masked = stmt.masked.strip()
+        test = condition(masked)
+        if test and re.match(r"^\s*then\s*$", test[1]):
+            stack.append(bool(guard.search(test[0])))
+        elif re.match(r"^else\b", masked) and stack:
+            stack[-1] = False  # the other threads
+        elif re.match(r"^end\s*if\b", masked) and stack:
+            stack.pop()
+    return any(stack)
+
+
 @dataclass(frozen=True)
 class _SharedWrite:
     unit: Unit
@@ -121,7 +157,8 @@ class _SharedWrite:
 def _shared_writes(ctx: LintContext) -> Iterator[_SharedWrite]:
     """The first assignment to each shared scalar in each OpenMP parallel region.
 
-    Writes inside serialising constructs (critical, atomic, single, ...) do not count. A write is an
+    Writes inside serialising constructs (critical, atomic, single, ...) or guarded by a thread-number test
+    (``if (omp_get_thread_num() == 0)``) do not count. A write is an
     accumulation when the variable's *first* write in the region reads it (``s = s + x``); a variable first
     assigned and then updated in the same iteration is a shared temporary, not an accumulation.
     """
@@ -144,6 +181,8 @@ def _shared_writes(ctx: LintContext) -> Iterator[_SharedWrite]:
             if subscripted or component or (outer.first, name) in seen:
                 continue
             if any(set(r.directive.construct.split()) & _SERIALISING for r in enclosing):
+                continue
+            if _thread_guarded(unit.statements, outer.first, idx):
                 continue
             if any(d in ("private", "firstprivate") for r in enclosing for d in r.directive.clauses.get("default", [])):
                 continue

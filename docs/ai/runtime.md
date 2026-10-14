@@ -152,3 +152,26 @@ git diff | fobis llm ask -                  # prompt from standard input
 Everything here works from `fobis.pyz` (`python3 fobis.pyz llm ...`): FoBiS adds no compiled Python
 dependency. For a cluster without internet access, prepare the LLM directory on a connected machine and copy
 it, as described for [models](/ai/models#clusters-without-internet-access); `FOBIS_LLM_DIR` points FoBiS to it.
+
+**Clusters with an older glibc.** The pinned release binaries are built on a recent Ubuntu: on a cluster running
+RHEL 8 (glibc 2.28) `llama-server` stops with ``version `GLIBC_2.34' not found`` (it needs glibc 2.38 and a
+recent libstdc++), and `fobis llm runtime install` warns that `--version` failed. Build the same pinned release
+from source on a compute node and point the configuration at it. On an NVIDIA A30 cluster (gcc 12 from
+`gcc-toolset-12`, CUDA 12.3, cmake 3.26) the build job took 4 minutes on 16 cores:
+
+```bash
+git clone --depth 1 --branch b11308 https://github.com/ggml-org/llama.cpp
+cmake -S llama.cpp -B llama.cpp/build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=80 -DLLAMA_CURL=OFF \
+  -DLLAMA_OPENSSL=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DCMAKE_BUILD_TYPE=Release
+cmake --build llama.cpp/build --target llama-server -j 16
+```
+
+```ini
+[llm]
+runtime      = /path/to/llama.cpp/build/bin/llama-server
+n_gpu_layers = 99
+```
+
+Run the LLM features inside a job on a GPU node (the login node usually has no GPU). There coder-7b started in
+8 s, generated 29 tokens/s, and answered `fobis ask` in 3.4 s with `fobis llm serve start` keeping the server up
+between commands; `fobis llm doctor` checks the whole chain.
