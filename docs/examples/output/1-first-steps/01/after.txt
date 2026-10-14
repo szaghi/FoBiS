@@ -1,0 +1,11 @@
+$ find . -type f | sort
+./integrate
+./mod/integrands.mod
+./mod/quad_rules.mod
+./obj/.fobis-compiler.json
+./obj/integrands.o
+./obj/integrate.o
+./obj/quad_rules.o
+./src/integrands.F90
+./src/integrate.F90
+./src/quad_rules.F90

@@ -1,0 +1,17 @@
+$ fobis coverage --mode coverage --format text --exclude "test/.*" && cat coverage/coverage.txt
+Collecting coverage data from 5 .gcda file(s)...
+Using backend: gcovr
+(INFO) Reading coverage data...
+(INFO) Writing coverage report...
+
+------------------------------------------------------------------------------
+                           GCC Code Coverage Report
+Directory: .
+------------------------------------------------------------------------------
+File                                       Lines    Exec  Cover   Missing
+------------------------------------------------------------------------------
+src/integrands.F90                             3       3   100%
+src/quad_rules.F90                            14      14   100%
+------------------------------------------------------------------------------
+TOTAL                                         17      17   100%
+------------------------------------------------------------------------------

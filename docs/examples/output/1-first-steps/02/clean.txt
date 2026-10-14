@@ -1,0 +1,4 @@
+$ fobis clean --mode debug
+Removing all *.(s)mod files into "build/debug/mod"
+Removing all *.o files into "build/debug/obj"
+Removing build/debug/integrate

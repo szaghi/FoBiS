@@ -1,0 +1,6 @@
+$ ls .fobis_deps && cat .fobis_deps/.deps_config.ini
+fobos.lock
+penf
+[deps]
+src = .fobis_deps/penf
+

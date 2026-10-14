@@ -48,11 +48,15 @@ def cmd_run(
         bool,
         typer.Option("--explain-context", help="Like --explain, but print what the model would receive instead."),
     ] = False,
+    program_args: Annotated[
+        list[str] | None,
+        typer.Option("--program-arg", hidden=True, help="An argument for the program (what follows --)."),
+    ] = None,
 ):
     """Build a target (if needed) and execute it."""
     ctx.ensure_object(dict)
-    # Extra args after -- are forwarded to the binary
-    extra_args = list(ctx.args)
+    # the words after -- are forwarded to the program (_normalize_args turns them into --program-arg options)
+    extra_args = [*(program_args or []), *ctx.args]
     ctx.obj["cliargs"] = _ns(
         which="run",
         fobos=fobos,

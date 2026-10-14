@@ -1,0 +1,7 @@
+$ fobis build --mode shared --quiet
+
+Building src/quad_rules.F90
+Compiling src/quad_rules.F90 serially
+Linking build/shared/libquad.so
+Target src/quad_rules.F90 has been successfully built
+Track building of src/quad_rules.F90

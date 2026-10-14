@@ -1,0 +1,9 @@
+$ touch src/quad_rules.F90 && fobis build --quiet
+[auto-discover] src not set; scanning: ./src
+
+Building src/integrate.F90
+Compiling src/quad_rules.F90 serially
+Compiling src/integrands.F90 serially
+Compiling src/integrate.F90 serially
+Linking ./integrate
+Target src/integrate.F90 has been successfully built

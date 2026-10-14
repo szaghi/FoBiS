@@ -1,0 +1,4 @@
+$ fobis test --list
+Discovered tests in 'test':
+  test_exactness                 test/test_exactness.F90
+  test_order                     test/test_order.F90

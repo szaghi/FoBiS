@@ -1,0 +1,7 @@
+quiet 'rm -rf obj mod integrate'
+show lmodes 'fobis build --lmodes'
+show debug 'fobis build'
+show release 'fobis build --mode release --quiet'
+show tree 'find build -type f | sort'
+show run 'fobis run --mode release'
+show clean 'fobis clean --mode debug'

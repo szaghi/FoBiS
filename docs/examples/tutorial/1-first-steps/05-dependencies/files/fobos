@@ -1,0 +1,57 @@
+[project]
+name    = quad
+version = 0.1.0
+authors = Ada Fortran
+
+[modes]
+modes = debug release static shared coverage
+
+[debug]
+help      = Checks on, no optimisation
+compiler  = gnu
+cflags    = -c -O0 -g -fcheck=all -Wall
+src       = ./src/ ./test/
+build_dir = ./build/debug/
+target    = src/integrate.F90
+
+[release]
+help      = Optimised
+compiler  = gnu
+cflags    = -c -O2
+src       = ./src/
+build_dir = ./build/release/
+target    = src/integrate.F90
+
+[static]
+help        = The library, static
+compiler    = gnu
+cflags      = -c -O2
+src         = ./src/
+build_dir   = ./build/static/
+target      = src/quad_rules.F90
+mklib       = static
+output      = libquad.a
+track_build = True
+
+[shared]
+help        = The library, shared
+compiler    = gnu
+cflags      = -c -O2 -fPIC
+src         = ./src/
+build_dir   = ./build/shared/
+target      = src/quad_rules.F90
+mklib       = shared
+output      = libquad.so
+track_build = True
+
+[coverage]
+help      = Instrumented for coverage
+compiler  = gnu
+cflags    = -c -O0 -g
+coverage  = True
+src       = ./src/ ./test/
+build_dir = ./build/coverage/
+target    = src/integrate.F90
+
+[dependencies]
+penf = https://github.com/szaghi/PENF :: tag=v2.0.1

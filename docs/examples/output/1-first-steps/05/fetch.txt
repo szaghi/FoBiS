@@ -1,0 +1,5 @@
+$ fobis fetch
+Cloning penf from https://github.com/szaghi/PENF
+Checking out v2.0.1 for penf
+Saved deps config to .fobis_deps/.deps_config.ini
+Saved lock file to .fobis_deps/fobos.lock

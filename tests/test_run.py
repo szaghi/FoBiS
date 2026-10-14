@@ -165,3 +165,58 @@ def test_run_binary_missing_after_build(tmp_path):
     assert exc_info.value.code == 1
     config.print_r.assert_called()
     assert any("not found" in str(c) or "Error" in str(c) for c in config.print_r.call_args_list)
+
+
+# ── real runs (gfortran) ─────────────────────────────────────────────────────
+
+
+@pytest.fixture
+def echo_project(tmp_path):
+    """A program printing its arguments, built into the project's root (``./echo``)."""
+    import shutil
+
+    if shutil.which("gfortran") is None:
+        pytest.skip("gfortran")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "echo.f90").write_text(
+        "program echo\ncharacter(32) :: word\ninteger :: i\nprint '(A)', 'program starts'\n"
+        "do i = 1, command_argument_count()\ncall get_command_argument(i, word)\nprint '(A)', trim(word)\nenddo\n"
+        "end program\n"
+    )
+    (tmp_path / "fobos").write_text("[default]\ncompiler = gnu\nsrc = ./src/\ntarget = src/echo.f90\n")
+    return tmp_path
+
+
+def _fobis(project, *args):
+    import subprocess
+    import sys
+
+    return subprocess.run(
+        [sys.executable, "-m", "fobis", *args], cwd=project, capture_output=True, text=True, check=False
+    )
+
+
+def test_run_forwards_the_words_after_the_separator_untouched(echo_project):
+    """What follows ``--`` is the program's: not the TARGET_NAME argument, no option-name normalisation; the
+    program in the current directory is found (``./echo``, not searched on PATH); the build's messages come before
+    the program's output on a pipe."""
+    result = _fobis(echo_project, "run", "--", "hello", "--my_flag", "-x")
+    assert result.returncode == 0, result.stderr
+    lines = result.stdout.splitlines()
+    assert lines[-4:] == ["program starts", "hello", "--my_flag", "-x"]
+    assert lines.index("program starts") > next(i for i, line in enumerate(lines) if "successfully built" in line)
+
+
+def test_run_named_target_then_program_arguments(echo_project):
+    result = _fobis(echo_project, "run", "echo", "--", "one")
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines()[-2:] == ["program starts", "one"]
+
+
+def test_clean_names_the_removed_program_with_its_directory(echo_project):
+    (echo_project / "fobos").write_text(
+        "[default]\ncompiler = gnu\nsrc = ./src/\nbuild_dir = ./build/\ntarget = src/echo.f90\n"
+    )
+    assert _fobis(echo_project, "build").returncode == 0
+    result = _fobis(echo_project, "clean")
+    assert "Removing build/echo" in result.stdout and not (echo_project / "build" / "echo").exists()

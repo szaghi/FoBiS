@@ -3,143 +3,99 @@ layout: home
 
 hero:
   name: FoBiS
-  text: Fortran Building System
-  tagline: Automatic dependency-resolving build tool for modern Fortran projects — no makefiles, no boilerplate. From one project to a whole ecosystem of interconnected repositories.
+  text: The Fortran Building System
+  tagline: Builds modern Fortran projects with no makefile, by reading the sources. Then tests them, checks their numerical results, lints and reviews them, and gives an AI assistant the facts to work on them, with every claim checked.
   actions:
     - theme: brand
-      text: Quick Start
-      link: /guide/quickstart
+      text: Tutorials
+      link: /tutorial/
     - theme: alt
-      text: Guide
-      link: /guide/
+      text: Install
+      link: /guide/installation
     - theme: alt
-      text: Ecosystem
-      link: /advanced/ecosystem
+      text: Reference
+      link: /reference/build
     - theme: alt
       text: View on GitHub
       link: https://github.com/szaghi/FoBiS
 
 features:
   - icon: ⚡
-    title: Zero-configuration builds
-    details: Drop FoBiS into any Fortran project and run `fobis build`. It scans sources, resolves all `use`, `include`, and module dependencies automatically, and compiles in the correct order — no makefiles, no boilerplate.
-    link: /guide/quickstart
-    linkText: Quick start
-  - icon: 📄
-    title: fobos — the FoBiS makefile
-    details: A concise INI-style configuration file replaces makefiles entirely. Define multiple build modes, templates, variables, and custom rules — all in one readable file.
-    link: /fobos/
-    linkText: fobos reference
-  - icon: 🌐
-    title: GitHub integration
-    details: Declare dependencies in a `[dependencies]` fobos section — `fobis fetch` clones, pins to branch/tag/rev, and pre-builds them; `fobis build` picks them up automatically. Install any GitHub-hosted FoBiS project directly with `fobis install user/repo`.
-    link: /advanced/fetch
-    linkText: Fetch deps & install
-  - icon: 🧭
-    title: Manage a whole ecosystem
-    details: Several libraries, each in its own repository, depending on each other? `fobis ecosystem` shows the state of all of them at a glance — releases due, CI, boilerplate drift, stale dependency pins — runs commands across them in dependency order, checks that a local change breaks nothing downstream before you release it, and releases them as a train.
-    link: /advanced/ecosystem
-    linkText: Ecosystem guide
+    title: Builds with no makefile
+    details: FoBiS parses every source for modules, uses and includes, and compiles in dependency order, incrementally, in parallel. A fobos file names the modes (debug, release, a library); its options are the command line's.
+    link: /tutorial/first-steps/01-first-build
+    linkText: A first build
+  - icon: 📦
+    title: Dependencies from GitHub
+    details: Declare FoBiS projects in [dependencies]; fobis fetch clones them at a tag, branch, commit or semver range and locks the commits. Build them with your sources, or as libraries with their own fobos.
+    link: /tutorial/first-steps/05-dependencies
+    linkText: Dependencies
+  - icon: 🧪
+    title: Tests, doctests, coverage
+    details: Every program in test/ is a test; checks in the documentation comments are doctests; an instrumented mode and fobis coverage give the report, and a threshold for CI.
+    link: /tutorial/first-steps/04-tests
+    linkText: Tests
+  - icon: 🎯
+    title: Verified numerical results
+    details: Declare cases and the quantities they print; compare them with references within tolerances, across compilers and checked builds, against the previous revision, with confidence intervals on timings and estimates of rounding and discretisation error.
+    link: /advanced/verify
+    linkText: Verification
   - icon: 🩺
-    title: Fortran linter that sees your build
-    details: "`fobis lint` reports bug-prone, obsolescent and non-portable constructs and parallel-code defects — OpenMP data races and missing reductions, OpenACC calls without `!$acc routine`, saved locals in GPU code, MPI requests never completed — analysing the code your fobos mode actually compiles (its `-D` defines decide every `#ifdef`), across the whole project. Inline suppressions with reasons, a baseline for existing codes, SARIF for GitHub code scanning, automatic fixes."
+    title: A linter that sees the build
+    details: Bug-prone, obsolescent and non-portable constructs, OpenMP data races, OpenACC and MPI defects, analysed with the defines of the mode you build. Baselines, inline suppressions with reasons, automatic fixes, SARIF, reviews of the lines a change touches.
     link: /ai/lint
-    linkText: Linting guide
-  - icon: 🔬
-    title: Introspective doctests
-    details: Embed micro-unit-tests directly inside Fortran comment docstrings. FoBiS generates, compiles, and runs volatile test programs automatically — inspired by Python's doctest module, no test harness needed.
-    link: /advanced/doctests
-    linkText: Doctests
+    linkText: Linting
   - icon: 🤖
-    title: JSON output & Claude Code skill
-    details: Pass `--json` to `fobis build`, `fobis clean`, or `fobis fetch` for machine-readable structured output — ideal for CI and AI agent workflows. Install the bundled `/fobis` Claude Code skill for expert AI assistance right in your editor.
-    link: /advanced/json-output
-    linkText: JSON output & Claude skill
-  - icon: 🆓
-    title: Free and open source
-    details: Released under the GNU GPL v3 license. Free to use, study, modify, and distribute. Contributions welcome — see the contributing guidelines on GitHub.
+    title: AI assistance on facts
+    details: Explanations of failed builds and crashes, answers cited from the standards and your sources, tests kept only when they build, run and check. Local open models; an MCP server gives any agent the same tools.
+    link: /ai/
+    linkText: Analysis and AI
+  - icon: 🧭
+    title: Many repositories as one
+    details: A dashboard of releases due, CI, drift and stale pins across your projects; commands in dependency order; a check of everything downstream before you release; the release train.
+    link: /advanced/ecosystem
+    linkText: Ecosystem
+  - icon: 🖥️
+    title: From a laptop to a cluster
+    details: The same cases, tests and benchmarks submitted through Slurm, with the node's facts in the provenance; profiles from gprof, callgrind and Nsight Systems mapped to your procedures. One offline file for air-gapped machines.
+    link: /advanced/scheduler
+    linkText: Clusters
 ---
 
-## Why FoBiS?
-
-Modern Fortran's module system is powerful — but tracking inter-module compilation order by hand in a makefile quickly becomes a nightmare as project size grows. Every time you add a module, rename a file, or restructure directories, the makefile needs manual updates.
-
-**FoBiS solves this completely.** It parses source files on every invocation, rebuilds the dependency graph from scratch, and compiles in the correct order — with no configuration required for simple projects.
+## Quick start
 
 ```bash
-# That's it. FoBiS finds all programs, resolves all dependencies, compiles.
+pip install FoBiS.py
+cd my-fortran-project
 fobis build
 ```
 
-For complex projects, a single `fobos` file in the project root replaces makefiles entirely:
+FoBiS finds the sources (in `src/`, `source/`, `app/`, or the current directory), resolves the modules every file
+uses, compiles them in order and links every program it found. The [first tutorial](/tutorial/first-steps/01-first-build)
+starts here; the [tutorials](/tutorial/) go on, track by track, to verified results, code review and AI assistance.
 
-```ini
-[modes]
-modes = debug release
-
-[debug]
-compiler  = gnu
-cflags    = -c -O0 -g -Wall
-build_dir = ./build/debug/
-
-[release]
-compiler  = gnu
-cflags    = -c -O3
-build_dir = ./build/release/
-```
-
-```bash
-fobis build -mode release
-```
-
-| **zero-configuration build** | **simplify complex dependency** |
+| **a first build** | **a project and its dependencies** |
 |:---:|:---:|
-| ![basic build](public/gifs/01_basic_build.gif) | ![complex dependancy](public/gifs/04_dependent_build.gif) |
-| **GH integration, project install** | **GH integration, dependancies fetch** |
-| ![project install](public/gifs/06_install.gif) | ![dependancies fetch](public/gifs/07_fetch.gif) |
-| **ecosystem: graph and dashboard** | **ecosystem: check before releasing** |
-| ![ecosystem dashboard](public/gifs/09_ecosystem_dashboard.gif) | ![ecosystem check](public/gifs/10_ecosystem_check.gif) |
+| ![basic build](/gifs/01_basic_build.gif) | ![dependent build](/gifs/04_dependent_build.gif) |
+| **fetching dependencies** | **an ecosystem's dashboard** |
+| ![fetch](/gifs/07_fetch.gif) | ![ecosystem dashboard](/gifs/09_ecosystem_dashboard.gif) |
 
-## Beyond a single project
+## Projects built with FoBiS
 
-Fortran libraries rarely live alone: a portability layer feeds a string library, which feeds a
-command-line parser, which feeds your application — each in its own repository, with its own tags,
-CI and boilerplate. Register them once and `fobis ecosystem` handles them as a whole:
-
-```bash
-fobis ecosystem add PENF FACE BeFoR64 StringiFor FLAP   # register the repositories
-fobis ecosystem dashboard                               # what needs a release, what is red, what is stale
-fobis ecosystem check PENF                              # does my local PENF break anything downstream?
-fobis ecosystem release                                 # release everything due, dependencies first
-```
-
-![ecosystem HTML dashboard](public/images/ecosystem-dashboard-dark.png)
-
-The release train plans each version from Conventional Commits, refuses to start while any project
-is blocked (dirty tree, failing CI, behind the remote), confirms with you, releases in dependency
-order and stops safely at the first failure with the command that resumes it.
-
-![ecosystem release train](public/gifs/11_ecosystem_release.gif)
-
-[Read the ecosystem guide →](/advanced/ecosystem)
-
-## Showcases
-
-> Projects using FoBiS:
-
-- **[ADAM](https://szaghi.github.io/adam/)** — Accelerated fluid Dynamics on Adaptive Mesh refinement grids &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/adam)
-- **[BeFoR64](https://szaghi.github.io/BeFoR64/)** — Base64 encoding/decoding library for Fortran &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/BeFoR64)
-- **[FACE](https://szaghi.github.io/FACE/)** — Fortran ANSI Colors and Escape sequences &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/FACE)
-- **[FiNeR](https://szaghi.github.io/FiNeR/)** — Fortran INI ParseR and generator &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/FiNeR)
-- **[FLAP](https://szaghi.github.io/FLAP/)** — Fortran command Line Arguments Parser &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/FLAP)
-- **[FUNDAL](https://szaghi.github.io/FUNDAL/)** — Fortran UNified Device Acceleration Library &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/FUNDAL)
-- **[FOSSIL](https://szaghi.github.io/FOSSIL/)** — FOrtran Stereo (si) Litography parser &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/FOSSIL)
-- **[MORTIF](https://szaghi.github.io/MORTIF/)** — MORTon Indexer (Z-order) Fortran environment &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/MORTIF)
-- **[MOTIOn](https://szaghi.github.io/MOTIOn/)** — Modular (HPC) Optimized Toolkit (for) IO (in fortra)n &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/MOTIOn)
-- **[PENF](https://szaghi.github.io/PENF/)** — Portability Environment for Fortran &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/PENF)
-- **[StringiFor](https://szaghi.github.io/StringiFor/)** — Strings Fortran Manipulator with steroids &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/StringiFor)
-- **[VecFor](https://szaghi.github.io/VecFor/)** — Vector algebra class for Fortran &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/VecFor)
-- **[VTKFortran](https://szaghi.github.io/VTKFortran/)** — pure Fortran VTK (XML) API &nbsp;|&nbsp; [GitHub](https://github.com/szaghi/VTKFortran)
+- **[ADAM](https://szaghi.github.io/adam/)** — Accelerated fluid Dynamics on Adaptive Mesh refinement grids
+- **[BeFoR64](https://szaghi.github.io/BeFoR64/)** — Base64 encoding/decoding library for Fortran
+- **[FACE](https://szaghi.github.io/FACE/)** — Fortran ANSI Colors and Escape sequences
+- **[FiNeR](https://szaghi.github.io/FiNeR/)** — Fortran INI ParseR and generator
+- **[FLAP](https://szaghi.github.io/FLAP/)** — Fortran command Line Arguments Parser
+- **[foresight](https://szaghi.github.io/foresight/)** — gnuplot-like interactive plots from pure Fortran
+- **[FUNDAL](https://szaghi.github.io/FUNDAL/)** — Fortran UNified Device Acceleration Library
+- **[FOSSIL](https://szaghi.github.io/FOSSIL/)** — FOrtran Stereo (si) Litography parser
+- **[MORTIF](https://szaghi.github.io/MORTIF/)** — MORTon Indexer (Z-order) Fortran environment
+- **[MOTIOn](https://szaghi.github.io/MOTIOn/)** — Modular (HPC) Optimized Toolkit (for) IO (in fortra)n
+- **[PENF](https://szaghi.github.io/PENF/)** — Portability Environment for Fortran
+- **[StringiFor](https://szaghi.github.io/StringiFor/)** — Strings Fortran Manipulator with steroids
+- **[VecFor](https://szaghi.github.io/VecFor/)** — Vector algebra class for Fortran
+- **[VTKFortran](https://szaghi.github.io/VTKFortran/)** — pure Fortran VTK (XML) API
 
 ## Author
 
@@ -147,4 +103,5 @@ order and stops safely at the first failure with the command that resumes it.
 
 ## Copyrights
 
-FoBiS.py is an open source project distributed under the [GPL v3](http://www.gnu.org/licenses/gpl-3.0.html) license. Anyone interested in using, developing, or contributing to FoBiS.py is welcome — see the [contributing guidelines](https://github.com/szaghi/FoBiS/blob/master/CONTRIBUTING.md).
+FoBiS.py is distributed under the [GPL v3](http://www.gnu.org/licenses/gpl-3.0.html) license. Contributions are
+welcome: see [Contributing](/guide/contributing).

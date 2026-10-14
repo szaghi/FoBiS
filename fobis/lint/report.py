@@ -29,7 +29,7 @@ from .rule import RULES, Rule
 
 FORMATS = ("text", "json", "sarif", "github")
 _SARIF_LEVEL = {"error": "error", "warning": "warning", "info": "note"}
-_DOCS_URL = "https://szaghi.github.io/FoBiS/rules/"
+_DOCS_URL = "https://szaghi.github.io/FoBiS/lint-rules/"  # one page per rule: docs/lint-rules/<ID>.md
 
 
 def render_text(result: LintResult, notes: dict[int, list[str]] | None = None, tail: list[str] | None = None) -> str:

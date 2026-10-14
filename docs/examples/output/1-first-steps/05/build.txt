@@ -1,0 +1,18 @@
+$ fobis build --mode release --quiet && ./build/release/integrate
+
+Building src/integrate.F90
+Compiling .fobis_deps/penf/src/lib/penf_global_parameters_variables.F90 serially
+Compiling .fobis_deps/penf/src/lib/penf_b_size.F90 serially
+Compiling .fobis_deps/penf/src/lib/penf_stringify.F90 serially
+Compiling .fobis_deps/penf/src/lib/penf_allocatable_memory.F90 serially
+Compiling .fobis_deps/penf/src/lib/penf.F90 serially
+Compiling src/integrate.F90 serially
+Linking build/release/integrate
+Target src/integrate.F90 has been successfully built
+     n   trapezoid error     simpson error
+     4        1.0388E-01        4.5598E-03
+     8        2.5768E-02        2.6917E-04
+    16        6.4297E-03        1.6591E-05
+    32        1.6066E-03        1.0334E-06
+    64        4.0161E-04        6.4530E-08
+Simpson, 64 intervals: 2.0000000645300013

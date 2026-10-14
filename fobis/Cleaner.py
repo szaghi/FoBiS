@@ -145,7 +145,7 @@ class Cleaner:
                 else:
                     exe = os.path.splitext(os.path.basename(self.target))[0]
             if os.path.exists(os.path.join(self.build_dir, exe)):
-                self.print_w("Removing " + self.build_dir + exe)
+                self.print_w("Removing " + os.path.join(self.build_dir, exe))
                 os.remove(os.path.join(self.build_dir, exe))
             if os.path.exists("build_" + os.path.splitext(os.path.basename(self.target))[0] + ".log"):
                 self.print_w("Removing build_" + os.path.splitext(os.path.basename(self.target))[0] + ".log")

@@ -1,0 +1,5 @@
+$ fobis install --mode static --prefix ~/opt/quad && find ~/opt -type f | sort
+Install "build/static/libquad.a" in "~/opt/quad/lib"
+Install "build/static/mod/quad_rules.mod" in "~/opt/quad/include"
+~/opt/quad/include/quad_rules.mod
+~/opt/quad/lib/libquad.a

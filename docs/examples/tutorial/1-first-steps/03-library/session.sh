@@ -1,0 +1,6 @@
+show static 'fobis build --mode static --quiet'
+show shared 'fobis build --mode shared --quiet'
+show tree 'find build/static build/shared -type f | sort'
+show install 'fobis install --mode static --prefix ~/opt/quad && find ~/opt -type f | sort'
+quiet 'cp -R "$DOCS_CHAPTER/consumer" ~/consumer'
+show consumer 'cd ~/consumer && fobis build --quiet && ./area'

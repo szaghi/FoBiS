@@ -1,0 +1,7 @@
+[default]
+compiler = gnu
+cflags   = -c -O2
+include  = ../opt/quad/include
+lib_dir  = ../opt/quad/lib
+ext_libs = quad
+target   = src/area.F90

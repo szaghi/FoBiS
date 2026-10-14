@@ -1,0 +1,3 @@
+$ fobis fetch --frozen
+Dependency penf already fetched (use --update to refresh)
+Saved deps config to .fobis_deps/.deps_config.ini

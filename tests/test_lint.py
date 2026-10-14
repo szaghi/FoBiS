@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 import textwrap
+from pathlib import Path
 
 import pytest
 
@@ -947,6 +948,9 @@ def test_render_sarif():
     assert first["ruleId"] == "COR020" and first["level"] == "warning"
     assert first["locations"][0]["physicalLocation"]["region"]["startLine"] == 2
     assert first["partialFingerprints"]["fobisLint/v1"]
+    for rule in run["tool"]["driver"]["rules"]:  # the help link is the rule's generated page
+        page = rule["helpUri"].split("/FoBiS/", 1)[1]
+        assert (Path(__file__).resolve().parent.parent / "docs" / f"{page}.md").is_file(), rule["helpUri"]
 
 
 def test_render_github():

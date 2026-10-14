@@ -68,9 +68,16 @@ def _normalize_args(args):
       → double-dash with hyphens (--build-dir, --cflags-heritage)
     - Single-char short options (-f, -m, -q), values, and negative numbers
       are left unchanged.
+    - What follows ``--`` belongs to the program (``fobis run``, ``fobis test``) and is left unchanged; for ``run``
+      it becomes ``--program-arg=WORD`` options, else Click takes its first word for the TARGET_NAME argument.
     """
     result = []
-    for arg in args:
+    for index, arg in enumerate(args):
+        if arg == "--":
+            tail = args[index + 1 :]
+            if result[:1] == ["run"]:
+                return result + [f"--program-arg={word}" for word in tail]
+            return result + args[index:]
         if _MULTI_CHAR_OPT.match(arg) and arg[1:].replace("_", "-") in _long_options():
             result.append("--" + arg[1:].replace("_", "-"))
         elif arg.startswith("--") and len(arg) > 2:

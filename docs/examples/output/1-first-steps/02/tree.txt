@@ -1,0 +1,15 @@
+$ find build -type f | sort
+build/debug/integrate
+build/debug/mod/integrands.mod
+build/debug/mod/quad_rules.mod
+build/debug/obj/.fobis-compiler.json
+build/debug/obj/integrands.o
+build/debug/obj/integrate.o
+build/debug/obj/quad_rules.o
+build/release/integrate
+build/release/mod/integrands.mod
+build/release/mod/quad_rules.mod
+build/release/obj/.fobis-compiler.json
+build/release/obj/integrands.o
+build/release/obj/integrate.o
+build/release/obj/quad_rules.o

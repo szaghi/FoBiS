@@ -1,0 +1,33 @@
+$ fobis run --mode release
+Builder options
+  Directories
+    Root of source files directory: "src"
+    Building directory: "build/release"
+    Compiled-objects .o   directory: "build/release/obj"
+    Compiled-objects .mod directory: "build/release/mod"
+  Compiler options
+    Vendor: "gnu"
+    Compiler command: "gfortran"
+    Module directory switch: "-J"
+    Compiling flags: "-c -O2"
+    Linking flags: ""
+    Preprocessing flags: ""
+    Coverage: False
+    Profile: False
+  Archiver: ar -rcs
+  Ranlib: ranlib
+  Preprocessor used: None
+  Preprocessor args: 
+  Preprocessor output directory: None
+  Preprocessor extensions processed: []
+
+Building src/integrate.F90
+Nothing to compile, all objects are up-to-date
+Linking build/release/integrate
+Target src/integrate.F90 has been successfully built
+     n   trapezoid error     simpson error
+     4        1.0388E-01        4.5598E-03
+     8        2.5768E-02        2.6917E-04
+    16        6.4297E-03        1.6591E-05
+    32        1.6066E-03        1.0334E-06
+    64        4.0161E-04        6.4530E-08

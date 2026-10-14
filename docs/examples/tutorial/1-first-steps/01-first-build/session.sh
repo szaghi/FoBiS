@@ -1,0 +1,7 @@
+show tree 'find . -type f | sort'
+show build 'fobis build'
+show after 'find . -type f | sort'
+show run './integrate'
+show rebuild 'fobis build'
+show touch 'touch src/quad_rules.F90 && fobis build --quiet'
+show clean 'fobis clean && find . -type f | sort'

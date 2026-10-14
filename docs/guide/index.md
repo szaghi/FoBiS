@@ -1,78 +1,37 @@
 # About FoBiS
 
-**FoBiS** is a KISS build tool for modern Fortran projects. It automatically resolves inter-module dependency hierarchies so you never have to track them manually in makefiles.
+**FoBiS** (the Fortran Building System, command `fobis`) builds modern Fortran projects without a makefile: it parses
+the sources, finds which module every file defines and uses, and compiles them in the order that follows. Around that
+core it has grown into a tool for the whole life of a Fortran code.
 
-## Why FoBiS?
+## What it does, by level
 
-![Basic build demo](/gifs/01_basic_build.gif)
+| Level | You get | Start with |
+|---|---|---|
+| Build | dependency-ordered, incremental, parallel builds of programs and libraries; modes in a fobos file; any of a dozen compilers | [First steps](/tutorial/first-steps/01-first-build) |
+| Project | dependencies fetched from GitHub and locked, tests, doctests, coverage, external libraries, fpm and Makefile export | [Tutorials](/tutorial/) |
+| Many projects | a dashboard of several repositories, commands across them in dependency order, checks downstream, a release train | [Ecosystem](/advanced/ecosystem) |
+| Code quality | a linter aware of the build's defines and of OpenMP, OpenACC and MPI; reviews of a change; queries on the code; verified modernisation | [Linting](/ai/lint) |
+| Verification | cases compared with references within tolerances, across compilers and checked builds; error and uncertainty assessment; differential runs; benchmarks; one gate verdict; clusters and profilers | [Verifying results](/advanced/verify) |
+| AI assistance | explanations of failures, cited answers, generated tests, merge proposals, on local models; an MCP server for agents | [Analysis and AI](/ai/) |
 
-## The problem it solves
+Each level uses the ones below it, and none is needed to use the others: a project that only wants `fobis build`
+never meets a model.
 
-Consider this project layout:
+## Design
 
-```
-└── src
-    ├── main.f90          ! program, uses nested_1
-    └── nested-1
-        ├── first_dep.f90 ! module nested_1, includes second_dep.inc
-        └── nested-2
-            └── second_dep.inc
-```
+- **The sources are the configuration.** Dependencies are read from the code on every run: renaming a file or adding a
+  module changes nothing to write.
+- **One vocabulary.** A fobos key is the command-line option with the same name; there is nothing else to learn.
+- **Facts before opinions.** Every check is deterministic and reproducible (the same code gives the same result); what
+  a language model adds is labelled as such, cites the facts it was given, and never fails a build on its own.
+- **Real outputs.** Machine-readable output (`--json`) for scripts and agents; every output in these pages is the one
+  the command printed.
 
-Writing a correct `Makefile` for this requires knowing the full compilation order, tracking which `.mod` files exist and where, and updating every rule whenever the dependency graph changes. As project size grows, this becomes error-prone and tedious.
+## How these pages are organised
 
-**FoBiS parses sources on every invocation, builds the complete dependency graph, and compiles in the correct order automatically:**
-
-```bash
-fobis build
-```
-
-That single command:
-
-1. Recursively scans `./` for all Fortran sources
-2. Parses each file for `module`, `use`, `include`, and `program` statements
-3. Resolves the full dependency hierarchy
-4. Compiles in the correct order, skipping up-to-date objects
-5. Links all programs found
-
-## Key capabilities
-
-- **Automatic dependency resolution** — parses `use` and `include` statements across the full source tree, regardless of nesting or file naming mismatches between modules and files
-- **Timestamp-based incremental builds** — only recompiles what changed
-- **Multi-compiler support** — GNU, Intel, AMD, IBM, NAG, PGI, NVIDIA, custom
-- **Parallel compilation** — independent translation units compiled concurrently with `-j N`
-- **fobos configuration file** — INI-style makefile replacement with modes, templates, variables, and custom rules
-- **Advanced auto-rebuild triggers** — recompile when flags change (`cflags_heritage`), when libraries change (volatile libs), or when upstream projects change (`dependon`)
-- **GitHub dependency fetching** — `fobis fetch` clones and builds external FoBiS projects declared in the fobos `[dependencies]` section
-- **Doctests** — introspective micro unit tests embedded in Fortran doc comments, Python-doctest style
-- **GNU Makefile export** — generate a standard `Makefile` from the resolved dependency graph
-- **Ecosystem management** — `fobis ecosystem` manages a set of interconnected repositories as a whole: a dashboard of their state (releases, CI, drift, dependency pins), commands run across all of them in dependency order, a pre-release check of the projects downstream, and a release train ([guide](/advanced/ecosystem))
-
-![GNU Makefile export demo](/gifs/08_makefile_export.gif)
-
-## How it works
-
-```
-CLI args + fobos file
-        │
-        ▼
-  FoBiSConfig      ← parses options, fobos modes, loads fetched deps
-        │
-        ▼
-  parse_files()    ← walks src dirs, parses each .f90/.F90/... file
-        │
-        ▼
-dependency_hiearchy()  ← resolves module/include graph, orders compilation
-        │
-        ▼
-  Builder.build()  ← parallel compile → link
-```
-
-## Design philosophy
-
-FoBiS follows the KISS principle throughout:
-
-- **Configuration-file-free by default** — `fobis build` works without any configuration for most projects
-- **INI-style fobos** — when configuration is needed, the fobos file uses a simple, human-readable format with no special syntax
-- **Same options everywhere** — fobos option names are identical to their CLI switch names; there is no separate concept to learn
-- **Composable** — fobos modes, templates, variables, and rules compose cleanly without hidden interactions
+- **Start here**: this page and [Installation](/guide/installation).
+- **[Tutorials](/tutorial/)**: one project, grown in tracks from a first build to AI-assisted development. Read them in
+  order.
+- **[Guides](/guide/topics)**: one page per feature, for when you know what you want.
+- **[Reference](/reference/build)**: every command and option, the fobos file, the lint rules.

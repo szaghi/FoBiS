@@ -1,0 +1,6 @@
+show fetch 'fobis fetch'
+show lock 'cat .fobis_deps/fobos.lock'
+show deps 'ls .fobis_deps && cat .fobis_deps/.deps_config.ini'
+show build 'fobis build --mode release --quiet && ./build/release/integrate'
+show tree 'fobis tree'
+show frozen 'fobis fetch --frozen'

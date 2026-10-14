@@ -1,0 +1,29 @@
+$ fobis build
+Builder options
+  Directories
+    Root of source files directory: "src"
+    Building directory: "build/debug"
+    Compiled-objects .o   directory: "build/debug/obj"
+    Compiled-objects .mod directory: "build/debug/mod"
+  Compiler options
+    Vendor: "gnu"
+    Compiler command: "gfortran"
+    Module directory switch: "-J"
+    Compiling flags: "-c -O0 -g -fcheck=all -Wall"
+    Linking flags: ""
+    Preprocessing flags: ""
+    Coverage: False
+    Profile: False
+  Archiver: ar -rcs
+  Ranlib: ranlib
+  Preprocessor used: None
+  Preprocessor args: 
+  Preprocessor output directory: None
+  Preprocessor extensions processed: []
+
+Building src/integrate.F90
+Compiling src/quad_rules.F90 serially
+Compiling src/integrands.F90 serially
+Compiling src/integrate.F90 serially
+Linking build/debug/integrate
+Target src/integrate.F90 has been successfully built

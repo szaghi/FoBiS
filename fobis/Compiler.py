@@ -30,7 +30,7 @@ import re
 
 from .utils import print_fake
 
-__regex_opts__ = re.compile(r"-O[0-9,s]")
+__regex_opts__ = re.compile(r"-O([1-9]|s|fast)\b")  # optimisation levels: -O0 and -Og keep coverage exact
 
 
 class Compiler:

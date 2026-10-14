@@ -1,0 +1,18 @@
+[modes]
+modes = debug release
+
+[debug]
+help      = Checks on, no optimisation
+compiler  = gnu
+cflags    = -c -O0 -g -fcheck=all -Wall
+src       = ./src/
+build_dir = ./build/debug/
+target    = src/integrate.F90
+
+[release]
+help      = Optimised
+compiler  = gnu
+cflags    = -c -O2
+src       = ./src/
+build_dir = ./build/release/
+target    = src/integrate.F90

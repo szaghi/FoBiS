@@ -1896,7 +1896,12 @@ def run_fobis_run(configuration):
         configuration.print_b("[run]    " + output_path + " " + " ".join(extra_args))
         return
 
-    # Execute
+    # Execute: the build's messages first (stdout is block-buffered when it is a pipe, the program writes to the
+    # same file directly)
+    sys.stdout.flush()
+    sys.stderr.flush()
+    if not os.path.dirname(output_path):  # a program in the current directory: not searched on PATH
+        output_path = os.path.join(".", output_path)
     if explain:
         returncode, errors = _run_tee([output_path, *extra_args])
         if returncode != 0:
@@ -4667,7 +4672,10 @@ def run_fobis_coverage(configuration):
     exclude = getattr(cliargs, "coverage_exclude", None) or fobos_config.get("exclude", [])
     fail_under = getattr(cliargs, "coverage_fail_under", None) or fobos_config.get("fail_under")
     tool = getattr(cliargs, "coverage_tool", None)
-    build_dir = getattr(cliargs, "build_dir", "./")
+    build_dir = getattr(cliargs, "build_dir", None)
+    if build_dir is None and fobos.fobos:  # `fobis test --coverage`: the test namespace has no build_dir
+        build_dir = fobos.get(option="build_dir", mode=getattr(cliargs, "mode", None), toprint=False)
+    build_dir = build_dir or "./"
 
     reporter = CoverageReporter(
         build_dir=build_dir,

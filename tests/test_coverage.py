@@ -164,3 +164,47 @@ def test_output_dir_created_if_missing():
         with patch("fobis.Coverage.syswork", return_value=(0, "")):
             reporter.run_gcovr(formats=["html"], output_dir=output_dir)
         assert os.path.isdir(output_dir)
+
+
+# ── where the data is, warnings ──────────────────────────────────────────────
+
+
+def test_test_coverage_reads_the_mode_build_dir(tmp_path, monkeypatch):
+    """``fobis test --coverage``: the test namespace has no build_dir, the report must look in the mode's (the
+    instrumented objects are there), not in ``./``."""
+    from argparse import Namespace
+    from unittest.mock import MagicMock
+
+    from fobis.fobis import run_fobis_coverage
+
+    seen = {}
+
+    class Reporter:
+        def __init__(self, build_dir, **_):
+            seen["build_dir"] = build_dir
+
+        def generate(self, **_):
+            return 0
+
+    monkeypatch.setattr("fobis.Coverage.CoverageReporter", Reporter)
+    configuration = MagicMock()
+    configuration.cliargs = Namespace(which="test", mode="coverage")
+    configuration.fobos.get_coverage_config.return_value = {}
+    configuration.fobos.get.side_effect = lambda option, mode, toprint: (
+        "./build/coverage/" if mode == "coverage" else ""
+    )
+    run_fobis_coverage(configuration)
+    assert seen["build_dir"] == "./build/coverage/"
+
+
+def test_no_optimisation_warning_for_O0_and_Og():
+    from fobis.Compiler import __regex_opts__
+
+    assert [bool(__regex_opts__.search(f)) for f in ("-c -O0 -g", "-c -Og", "-O2", "-Os", "-Ofast", "-O3 -g")] == [
+        False,
+        False,
+        True,
+        True,
+        True,
+        True,
+    ]

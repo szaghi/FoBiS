@@ -1,0 +1,8 @@
+$ fobis clean && find . -type f | sort
+Removing all *.(s)mod files into "mod"
+Removing all *.o files into "obj"
+./integrate
+./obj/.fobis-compiler.json
+./src/integrands.F90
+./src/integrate.F90
+./src/quad_rules.F90
