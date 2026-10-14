@@ -1,0 +1,26 @@
+$ fobis ecosystem release --yes --no-wait
+Release plan (dependencies first)
+   1. core  v1.0.0 -> v1.1.0        ready  (minor, 1 releasable commit(s))
+        ! CI at HEAD: unknown
+        ! not on GitHub: the GitHub release cannot be awaited
+
+==> core: ./scripts/release.sh v1.1.0
+  Current version : v1.0.0
+  New version     : v1.1.0
+Released v1.1.0!
+
+==> mathx: fobis fetch --update
+Updating core
+Saved deps config to third_party/.deps_config.ini
+Saved lock file to third_party/fobos.lock
+
+==> app: fobis fetch --update
+Updating mathx
+Updating core
+Saved deps config to third_party/.deps_config.ini
+Saved lock file to third_party/fobos.lock
+
+Project  Result        Time  Detail
+core     passed        0.0s  v1.1.0 pushed (GitHub release not awaited)
+
+1 passed, 0 failed

@@ -29,7 +29,8 @@ Usage::
     python docs/scripts/docs_examples.py --check    # regenerate in a scratch directory and compare
     python docs/scripts/docs_examples.py --track 1-first-steps
 
-``--check`` compares byte by byte (durations like ``0.01 s`` and backtrace addresses aside) when the compiler's major version is the recorded one; with another compiler only the
+``--check`` compares byte by byte (durations, backtrace addresses, timestamps, commit hashes and scratch
+directory names aside) when the compiler's major version is the recorded one; with another compiler only the
 exit status of every run is compared (compiler messages and numbers are not portable across versions).
 """
 
@@ -254,9 +255,13 @@ def generate(out_root: Path, track: str | None = None, keep: Path | None = None)
 
 # shown as measured, not compared: test timings, and the addresses of a backtrace (address-space randomisation)
 _VOLATILE = (
-    (re.compile(r"\b\d+\.\d+ s\b"), "N s"),
+    (re.compile(r"\b\d+\.\d+ ?s\b"), "N s"),
+    # commit hashes: the ecosystem demo's commits hold its scratch path (the scaffolded remote URL)
+    (re.compile(r"\b(?=[0-9a-f]*[a-f])(?=[0-9a-f]*\d)[0-9a-f]{7,64}\b"), "HASH"),
     (re.compile(r'"duration": [0-9.]+'), '"duration": N'),
     (re.compile(r"\b0x[0-9a-f]{6,}\b"), "0xADDRESS"),
+    (re.compile(r"\b\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(\.\d+)?\b"), "DATETIME"),  # "generated" stamps
+    (re.compile(r"(~/tmp/[\w.-]*?)[a-z0-9_]{8}\b"), r"\1RANDOM"),  # scratch directories (mkdtemp)
 )
 
 

@@ -1,0 +1,3 @@
+$ fobis ecosystem add core mathx app
+Registered core, mathx, app in ~/eco/.config/fobis/config.ini
+See where they sit: fobis ecosystem graph

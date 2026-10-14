@@ -61,10 +61,16 @@ def main():
     if sys.argv[1:2] in (["ecosystem"], ["mcp"], ["llm"]):
         from .cli import app as _app
 
-        _app(prog_name=os.path.basename(sys.argv[0]))
+        _app(prog_name=_prog_name())
         return
     run_fobis()
     sys.exit(0)
+
+
+def _prog_name():
+    """The command's name in usage lines: ``fobis`` under ``python -m fobis`` (argv[0] is then __main__.py)."""
+    name = os.path.basename(sys.argv[0])
+    return "fobis" if name in ("__main__.py", "-m", "") else name
 
 
 def run_fobis(fake_args=None):

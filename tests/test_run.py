@@ -220,3 +220,28 @@ def test_clean_names_the_removed_program_with_its_directory(echo_project):
     assert _fobis(echo_project, "build").returncode == 0
     result = _fobis(echo_project, "clean")
     assert "Removing build/echo" in result.stdout and not (echo_project / "build" / "echo").exists()
+
+
+def test_a_failed_compilation_is_reported_once(tmp_path):
+    """check_results printed the compiler's output, then wrote it to stderr again."""
+    import shutil
+    import subprocess
+    import sys
+
+    if shutil.which("gfortran") is None:
+        pytest.skip("gfortran")
+    (tmp_path / "bad.f90").write_text("program bad\ncall nothere(\nend program\n")
+    result = subprocess.run(
+        [sys.executable, "-m", "fobis", "build"], cwd=tmp_path, capture_output=True, text=True, check=False
+    )
+    assert result.returncode != 0
+    assert (result.stdout + result.stderr).count("bad.f90:2") == 1
+
+
+def test_usage_names_fobis_under_python_m(monkeypatch):
+    from fobis.fobis import _prog_name
+
+    monkeypatch.setattr("sys.argv", ["/x/fobis/__main__.py", "ecosystem"])
+    assert _prog_name() == "fobis"
+    monkeypatch.setattr("sys.argv", ["/usr/bin/FoBiS.py", "ecosystem"])
+    assert _prog_name() == "FoBiS.py"

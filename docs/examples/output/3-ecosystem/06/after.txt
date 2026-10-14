@@ -1,0 +1,6 @@
+$ fobis ecosystem dashboard --no-ci
+Project  Branch  Tree   Upstream  Version / tag    Unreleased          CI       Drift  Pins
+-------  ------  -----  --------  ---------------  ------------------  -------  -----  -------
+core     master  clean  in sync   v1.1.0 / v1.1.0  0                   unknown  0      -
+mathx    master  clean  in sync   v1.0.0 / v1.0.0  1, none to release  unknown  0      current
+app      master  clean  in sync   v1.0.0 / v1.0.0  0                   unknown  0      current

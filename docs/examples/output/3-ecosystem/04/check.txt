@@ -1,0 +1,28 @@
+$ fobis ecosystem check core
+Checking mathx, app against the local working copy of core
+
+==> mathx: (fobis build --quiet) && (./build/test_mathx)
+
+Building src/test_mathx.f90
+Compiling third_party/core/src/core_m.f90 serially
+Compiling src/mathx_m.f90 serially
+Compiling src/test_mathx.f90 serially
+Linking build/test_mathx
+Target src/test_mathx.f90 has been successfully built
+mathx: all tests passed
+
+==> app: (fobis build --quiet) && (./build/app)
+
+Building src/app.f90
+Compiling third_party/core/src/core_m.f90 serially
+Compiling third_party/mathx/src/mathx_m.f90 serially
+Compiling src/app.f90 serially
+Linking build/app
+Target src/app.f90 has been successfully built
+twice(3) =  6.0   quadruple(3) = 12.0
+
+Project  Result        Time  Detail
+mathx    passed        0.2s
+app      passed        0.3s
+
+2 passed, 0 failed

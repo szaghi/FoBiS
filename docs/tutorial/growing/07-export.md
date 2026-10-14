@@ -35,5 +35,5 @@ The exports are snapshots: generate them again when the fobos changes, for insta
 [Makefile export](/advanced/makefile).
 :::
 
-This is the end of the second track. The [third](../#tracks) leaves `quad` for a while: a family of projects that
+This is the end of the second track. The [third](../ecosystem/01-register) leaves `quad` for a while: a family of projects that
 depend on each other, managed together.

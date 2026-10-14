@@ -1,0 +1,9 @@
+$ fobis ecosystem scaffold status
+core: in sync
+  SKIPPED  scripts/release.sh (project-owned)
+mathx: 1 not in sync
+  OUTDATED .github/workflows/ci.yml
+  SKIPPED  scripts/release.sh (project-owned)
+app: in sync
+  SKIPPED  scripts/release.sh (project-owned)
+[exit status 1]

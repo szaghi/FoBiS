@@ -1,0 +1,34 @@
+$ fobis ecosystem exec -- fobis build --quiet
+
+==> core: fobis build --quiet
+
+Building src/test_core.f90
+Compiling src/core_m.f90 serially
+Compiling src/test_core.f90 serially
+Linking build/test_core
+Target src/test_core.f90 has been successfully built
+
+==> mathx: fobis build --quiet
+
+Building src/test_mathx.f90
+Compiling third_party/core/src/core_m.f90 serially
+Compiling src/mathx_m.f90 serially
+Compiling src/test_mathx.f90 serially
+Linking build/test_mathx
+Target src/test_mathx.f90 has been successfully built
+
+==> app: fobis build --quiet
+
+Building src/app.f90
+Compiling third_party/core/src/core_m.f90 serially
+Compiling third_party/mathx/src/mathx_m.f90 serially
+Compiling src/app.f90 serially
+Linking build/app
+Target src/app.f90 has been successfully built
+
+Project  Result        Time  Detail
+core     passed        0.2s
+mathx    passed        0.2s
+app      passed        0.2s
+
+3 passed, 0 failed

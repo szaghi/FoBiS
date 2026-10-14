@@ -1,0 +1,8 @@
+$ fobis ecosystem discover
+Unregistered FoBiS projects under ~/eco:
+  app
+  core
+  mathx
+
+Register the ones you want to manage (not necessarily all):
+  fobis ecosystem add app core mathx

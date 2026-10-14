@@ -120,7 +120,7 @@ output    = test_core
 skip = scripts/release.sh
 
 [ecosystem]
-check = fobis build
+check = fobis build --quiet
         ./build/test_core
 EOF
 echo "v1.0.0" > core/VERSION
@@ -177,7 +177,7 @@ output    = test_mathx
 skip = scripts/release.sh
 
 [ecosystem]
-check = fobis build
+check = fobis build --quiet
         ./build/test_mathx
 EOF
 echo "v1.0.0" > mathx/VERSION
@@ -222,7 +222,7 @@ output    = app
 skip = scripts/release.sh
 
 [ecosystem]
-check = fobis build
+check = fobis build --quiet
         ./build/app
 EOF
 echo "v1.0.0" > app/VERSION

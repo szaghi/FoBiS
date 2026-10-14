@@ -1,0 +1,15 @@
+$ fobis ecosystem impact core
+core: public API changes since v1.0.0
+           added   procedure core_m::double (src/core_m.f90:6)
+           added   procedure core_m::halve (src/core_m.f90:12)
+  BREAKING removed procedure core_m::twice (src/core_m.f90:6)
+
+mathx: affected
+  src/mathx_m.f90:2: use core_m, only: twice  [changed: twice]
+    src/mathx_m.f90:10: twice: y = twice(twice(x))
+app: affected
+  src/app.f90:2: use core_m, only: twice  [changed: twice]
+    src/app.f90:5: twice: print '(A,F5.1,A,F5.1)', "twice(3) =", twice(3.0), " quadruple(3) =", quadruple(3.0)
+
+1 breaking change(s); 2 of 2 dependent project(s) affected.
+[exit status 1]

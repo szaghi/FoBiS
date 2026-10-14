@@ -1,0 +1,20 @@
+$ cd mathx && fobis scaffold status
+  OUTDATED .github/workflows/ci.yml
+  OK       .github/workflows/docs.yml
+  OK       .github/workflows/install.yml
+  OK       .github/actions/setup-build-env/action.yml
+  OK       .github/actions/run-coverage-analysis/action.yml
+  SKIPPED  scripts/release.sh (project-owned: fobos [scaffold] skip)
+  OK       scripts/run_tests.sh
+  OK       scripts/install.sh
+  OK       scripts/compute-coverage.sh
+  OK       docs/package.json
+  OK       cliff.toml
+  OK       docs/guide/contributing.md
+  OK       CONTRIBUTING.md
+  OK       LICENSE.gpl3.md
+  OK       .github/workflows/release.yml
+  OK       docs/.vitepress/config.mts
+  OK       docs/ford.md
+  OK       fpm.toml
+  OK       fobos

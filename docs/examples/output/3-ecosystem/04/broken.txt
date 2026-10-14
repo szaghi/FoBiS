@@ -1,0 +1,55 @@
+$ fobis ecosystem check core
+Checking mathx, app against the local working copy of core
+
+==> mathx: (fobis build --quiet) && (./build/test_mathx)
+
+Building src/test_mathx.f90
+Compiling third_party/core/src/core_m.f90 serially
+Compiling src/mathx_m.f90 serially
+src/mathx_m.f90:2:19:
+
+    2 |   use core_m, only: twice
+      |                   1
+Error: Symbol 'twice' referenced at (1) not found in module 'core_m'
+src/mathx_m.f90:10:14:
+
+   10 |     y = twice(twice(x))
+      |              1
+Error: Function 'twice' at (1) has no IMPLICIT type
+src/mathx_m.f90:10:14:
+
+   10 |     y = twice(twice(x))
+      |              1
+Error: Reference to impure function 'twice' at (1) within a PURE procedure
+
+
+==> app: (fobis build --quiet) && (./build/app)
+
+Building src/app.f90
+Compiling third_party/core/src/core_m.f90 serially
+Compiling third_party/mathx/src/mathx_m.f90 serially
+third_party/mathx/src/mathx_m.f90:2:19:
+
+    2 |   use core_m, only: twice
+      |                   1
+Error: Symbol 'twice' referenced at (1) not found in module 'core_m'
+third_party/mathx/src/mathx_m.f90:10:14:
+
+   10 |     y = twice(twice(x))
+      |              1
+Error: Function 'twice' at (1) has no IMPLICIT type
+third_party/mathx/src/mathx_m.f90:10:14:
+
+   10 |     y = twice(twice(x))
+      |              1
+Error: Reference to impure function 'twice' at (1) within a PURE procedure
+
+
+Staged copies kept in ~/tmp/fobis-check-core-lsrgeosw
+
+Project  Result        Time  Detail
+mathx    failed        0.2s  exit 1
+app      failed        0.2s  exit 1
+
+0 passed, 2 failed: mathx, app
+[exit status 1]

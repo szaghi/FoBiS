@@ -1,0 +1,11 @@
+$ fobis ecosystem graph
+Release order (dependencies first)
+   1. core  (level 0)
+   2. mathx  (level 1)
+   3. app  (level 2)
+
+Dependency tree
+app
+|-- mathx
+|   `-- core
+`-- core

@@ -316,7 +316,8 @@ def check_results(results, log=None, print_w=None):
     if not all(v[0] == 0 for v in results):
         for result in results:
             if result[0] != 0:
-                sys.stderr.write(result[1])
+                if print_w is None:  # with a printer it was printed above: written again, every error appeared twice
+                    sys.stderr.write(result[1])
                 if log:
                     with open(log, "a") as logerror:
                         logerror.writelines(result[1])

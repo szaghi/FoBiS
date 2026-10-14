@@ -1,0 +1,4 @@
+$ git -C core diff --stat
+ src/core_m.f90    | 6 +++---
+ src/test_core.f90 | 4 ++--
+ 2 files changed, 5 insertions(+), 5 deletions(-)

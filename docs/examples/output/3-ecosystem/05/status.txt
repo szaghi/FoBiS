@@ -1,0 +1,7 @@
+$ fobis ecosystem scaffold status
+core: in sync
+  SKIPPED  scripts/release.sh (project-owned)
+mathx: in sync
+  SKIPPED  scripts/release.sh (project-owned)
+app: in sync
+  SKIPPED  scripts/release.sh (project-owned)

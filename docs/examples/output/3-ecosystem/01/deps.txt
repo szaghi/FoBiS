@@ -1,0 +1,6 @@
+$ cat app/fobos | sed -n "/dependencies/,/^$/p"
+[dependencies]
+deps_dir = third_party
+mathx    = https://github.com/demo/mathx
+core     = https://github.com/demo/core
+

@@ -40,6 +40,18 @@ const docs = [
           { text: '7. Other build systems',      link: '/tutorial/growing/07-export' },
         ],
       },
+      {
+        text: '3. Many repositories',
+        collapsed: false,
+        items: [
+          { text: '1. An ecosystem',             link: '/tutorial/ecosystem/01-register' },
+          { text: '2. The dashboard',            link: '/tutorial/ecosystem/02-dashboard' },
+          { text: '3. Acting on every project',  link: '/tutorial/ecosystem/03-exec' },
+          { text: '4. Before releasing',         link: '/tutorial/ecosystem/04-check' },
+          { text: '5. Shared boilerplate',       link: '/tutorial/ecosystem/05-scaffold' },
+          { text: '6. The release train',        link: '/tutorial/ecosystem/06-release' },
+        ],
+      },
     ],
   },
   {

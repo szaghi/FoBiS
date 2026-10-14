@@ -1,0 +1,19 @@
+$ fobis ecosystem fetch
+
+==> mathx: fobis fetch --update
+Updating core
+Saved deps config to third_party/.deps_config.ini
+Saved lock file to third_party/fobos.lock
+
+==> app: fobis fetch --update
+Updating mathx
+Updating core
+Saved deps config to third_party/.deps_config.ini
+Saved lock file to third_party/fobos.lock
+
+Project  Result        Time  Detail
+core     skipped             no dependencies
+mathx    passed        0.2s
+app      passed        0.2s
+
+2 passed, 0 failed

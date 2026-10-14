@@ -442,7 +442,7 @@ class Impact:
 
 
 def _change_line(c: ApiChange) -> str:
-    mark = "BREAKING" if c.breaking else "added"
+    mark = "BREAKING" if c.breaking else ""  # the change column says "added" already
     where = f" ({c.path}:{c.line})" if c.line else (f" ({c.path})" if c.path else "")
     if c.kind == "module":
         return f"  {mark:8} module {c.module} removed{where}"

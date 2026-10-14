@@ -256,3 +256,13 @@ def test_cli(eco, monkeypatch):
     deep = runner.invoke(app, ["ecosystem", "impact", "geom", "-c", cfg, "--deep"])
     assert "Summary [llm]:\nWhat breaks:\n  - app calls area with one argument. [1][2]" in deep.output
     assert len(provider.calls) == 1
+
+
+def test_change_lines_mark_only_breaking_changes():
+    """The first column says BREAKING or nothing: "added    added" repeated the change column."""
+    from fobis.ai.impact import ApiChange, _change_line
+
+    added = _change_line(ApiChange("m", "f", "procedure", "added", path="m.f90", line=3))
+    removed = _change_line(ApiChange("m", "g", "procedure", "removed", path="m.f90", line=5))
+    assert added.split() == ["added", "procedure", "m::f", "(m.f90:3)"]
+    assert removed.split()[:2] == ["BREAKING", "removed"]

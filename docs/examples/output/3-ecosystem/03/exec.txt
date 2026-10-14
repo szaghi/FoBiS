@@ -1,0 +1,17 @@
+$ fobis ecosystem exec -- git log --oneline -1
+
+==> core: git log --oneline -1
+c3b0b47 feat(core): add halve()
+
+==> mathx: git log --oneline -1
+fae4cf3 docs: explain quadruple()
+
+==> app: git log --oneline -1
+48ded4b feat(app): first release
+
+Project  Result        Time  Detail
+core     passed        0.0s
+mathx    passed        0.0s
+app      passed        0.0s
+
+3 passed, 0 failed

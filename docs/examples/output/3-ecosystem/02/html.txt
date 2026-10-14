@@ -1,0 +1,3 @@
+$ fobis ecosystem dashboard --no-ci --format html --no-open -o dashboard.html && ls -s --block-size=K dashboard.html
+Dashboard written to ~/eco/dashboard.html
+16K dashboard.html

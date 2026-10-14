@@ -1,0 +1,6 @@
+$ ls
+app
+core
+env.sh
+mathx
+remotes

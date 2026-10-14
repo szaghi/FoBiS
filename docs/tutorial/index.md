@@ -19,12 +19,12 @@ Every command output shown is the real one: the pages include what the commands 
 |---|---|---|
 | [1. First steps](./first-steps/01-first-build) | basic | build without configuration, a fobos with modes, a library, tests and coverage, dependencies |
 | [2. Growing a project](./growing/01-templates) | intermediate | templates and variables, build profiles and feature flags, external libraries (MPI, OpenMP), rules, the cache, CI with machine-readable output, fpm and Makefile export |
-| 3. Many repositories | intermediate | an ecosystem of projects: dashboard, commands across all of them, checking the projects downstream, the release train |
+| [3. Many repositories](./ecosystem/01-register) | intermediate | an ecosystem of projects: dashboard, commands across all of them, checking the projects downstream, the release train |
 | 4. Code quality | advanced | the linter, baselines and fixes, reviewing a change, querying the code, verified modernisation, C and Python bindings |
 | 5. Verified numerics | advanced | cases and references, shadow builds and the compiler matrix, error and uncertainty assessment, differential runs, benchmarks, the gate, clusters, profiling |
 | 6. AI-assisted development | expert | a local model, explained failures, questions answered from the sources, generated tests, merge conflicts, an agent working under the gate |
 
-Tracks 3 to 6 are being written; until then, the [guides](/guide/topics) cover their subjects.
+Tracks 4 to 6 are being written; until then, the [guides](/guide/topics) cover their subjects.
 
 ### 1. First steps
 
@@ -52,6 +52,17 @@ flowchart LR
 | [5. Rules](./growing/05-rules) | `[rule-NAME]`, `pre_build`/`post_build`, intrinsic rules, `--jobs` |
 | [6. Continuous integration](./growing/06-ci) | `fobis check`, `--json`, a CI workflow |
 | [7. Other build systems](./growing/07-export) | `fobis fpm export`, `--makefile` |
+
+### 3. Many repositories
+
+| Chapter | You learn |
+|---|---|
+| [1. An ecosystem](./ecosystem/01-register) | the registry, `discover`, `add`, `graph` |
+| [2. The dashboard](./ecosystem/02-dashboard) | releases due, CI, drift, stale pins; JSON and HTML |
+| [3. Acting on every project](./ecosystem/03-exec) | `exec`, `fetch`, in release order |
+| [4. Before releasing](./ecosystem/04-check) | `check` (dependents against a working copy), `impact` |
+| [5. Shared boilerplate](./ecosystem/05-scaffold) | `scaffold status` and `sync` |
+| [6. The release train](./ecosystem/06-release) | `release`: plan, pre-flight, release in order |
 
 ## Running the examples yourself
 

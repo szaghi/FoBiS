@@ -1,0 +1,7 @@
+$ fobis ecosystem release --dry-run --no-wait
+Release plan (dependencies first)
+   1. core  v1.0.0 -> v1.1.0        ready  (minor, 1 releasable commit(s))
+        ! CI at HEAD: unknown
+        ! not on GitHub: the GitHub release cannot be awaited
+
+Dry run: nothing released.
