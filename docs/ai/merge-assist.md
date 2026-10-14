@@ -69,6 +69,22 @@ the same pattern: one branch added an `!$omp` directive after an `!$acc` directi
 to the `!$acc` clause. The draft keeps both changes; the human also added the variable to the new `!$omp`
 clause. That last step is a judgement, which is why drafts go to the model and are never accepted by `--yes`.
 
+**The model on the same history.** `scripts/merge_replay.py --model` also sends every draft and every hunk the
+rules leave unresolved to the configured model, as `merge-assist` does, and compares its proposal with the
+committed resolution. With coder-7b (the default managed model) on the HPC solver above, on an NVIDIA A30 (26
+hunks, 7.5 minutes):
+
+| Hunks asked | Equal to the committed resolution | Drafts improved | Drafts made worse | Unresolved hunks solved | Unusable answers |
+|-------------|-----------------------------------|-----------------|-------------------|-------------------------|------------------|
+| 26 (15 drafts, 11 unresolved) | 3 | 0 of 14 | 0 | 2 of 11 | 0 |
+
+None of the 14 drafts became equal to the human resolution (which also adds the clause variable to the new
+`!$omp` directive), and the model rated all 26 of its proposals `high` confidence, right or wrong: its confidence
+carries no information. Exact equality is a strict
+measure (a human may also reformat or touch nearby lines), but the result agrees with the `lint --deep`
+evaluation: with a 7B model, review every proposal; the deterministic rules and the compile check are what can be
+trusted.
+
 ## Limits
 
 - Semantic conflicts that compile but are wrong (the two sides changing the same invariant in different places)

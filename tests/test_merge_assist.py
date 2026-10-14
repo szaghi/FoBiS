@@ -380,6 +380,33 @@ def test_replay_measures_the_pre_pass(conflict):
     assert os.path.isdir(conflict)
 
 
+def test_replay_with_the_model(conflict):
+    """The drafts and the unresolved hunks go to the model, as merge-assist sends them; each proposal is compared
+    with the committed resolution (improved draft, solved hunk, unusable answer)."""
+    resolved = SOLVER.replace("use kinds, only: rk", "use kinds, only: rk, ik\nuse iso_fortran_env, only: output_unit")
+    resolved = resolved.replace(ACC, "!$acc parallel loop firstprivate(n, dt)\n!$omp OMPLOOP firstprivate(n, dt)")
+    resolved = resolved.replace("  q(i) = q(i) * dt", "  q(i) = (q(i) + dt) * 0.5_rk")
+    (conflict / "solver.f90").write_text(resolved)
+    _git(conflict, "commit", "-q", "-am", "Merge branch amd")
+
+    def reply(text):
+        data = {"strategy": "custom", "merged_text": text, "rationale": "r", "confidence": "high", "risks": []}
+        return json.dumps({**data, "citations": ["S2", "S3"]})
+
+    human = [reply("!$acc parallel loop firstprivate(n, dt)\n!$omp OMPLOOP firstprivate(n, dt)")]
+    data = replay(str(conflict), provider=FakeProvider([*human, reply("  q(i) = (q(i) + dt) * 0.5_rk")])).as_dict()
+    model = data["model"]
+    assert (model["asked"], model["equal_to_human"], model["drafts_improved"], model["unresolved_solved"]) == (
+        2,
+        2,
+        1,
+        1,
+    )
+    assert [h["kind"] for h in model["hunks"]] == ["draft", "unresolved"] and model["drafts_spoiled"] == 0
+    data = replay(str(conflict), provider=FakeProvider(["not json", reply("  q(i) = q(i) * dt")])).as_dict()
+    assert (data["model"]["unusable"], data["model"]["equal_to_human"]) == (1, 0)
+
+
 def test_apply_to_a_block_git_coalesced_from_two_hunks():
     stages = (
         "<<<<<<< ours\nA1\n||||||| base\na\n=======\nA2\n>>>>>>> theirs\nmid\n"

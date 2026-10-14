@@ -877,9 +877,10 @@ class ReplayStats:
     drafts: int = 0
     drafts_exact: int = 0
     disagree: list[str] = field(default_factory=list)
+    model: list[dict] = field(default_factory=list)  # with a provider: each hunk the model was asked about
 
     def as_dict(self) -> dict:
-        return {
+        data = {
             "merges": self.merges,
             "conflicted_merges": self.conflicted,
             "hunks": self.hunks,
@@ -889,12 +890,26 @@ class ReplayStats:
             "drafts_equal_to_human": self.drafts_exact,
             "disagree": self.disagree,
         }
+        if self.model:
+            asked = self.model
+            data["model"] = {
+                "asked": len(asked),
+                "unusable": sum(m["strategy"] is None for m in asked),
+                "equal_to_human": sum(m["exact"] for m in asked),
+                "drafts_improved": sum(m["kind"] == "draft" and m["exact"] and not m["draft_exact"] for m in asked),
+                "drafts_spoiled": sum(m["kind"] == "draft" and m["draft_exact"] and not m["exact"] for m in asked),
+                "unresolved_solved": sum(m["kind"] == "unresolved" and m["exact"] for m in asked),
+                "hunks": asked,
+            }
+        return data
 
 
-def replay(repo: str, limit: int = 50) -> ReplayStats:
+def replay(repo: str, limit: int = 50, provider: Provider | None = None) -> ReplayStats:
     """Replay the last *limit* two-parent merges of *repo* (a clone): redo each merge in a temporary worktree,
-    run the pre-pass on its conflicts, and compare with the committed resolution. It adds and removes a worktree
-    in *repo*: use a clone, never a working tree you care about."""
+    run the pre-pass on its conflicts, and compare with the committed resolution. With *provider*, every draft and
+    every hunk the pre-pass leaves unresolved is also proposed by the model (as ``merge-assist`` does) and compared
+    with the committed resolution. It adds and removes a worktree in *repo*: use a clone, never a working tree you
+    care about."""
 
     def git_in(cwd: str) -> Git:
         def run_git(*args: str) -> str:
@@ -934,13 +949,25 @@ def replay(repo: str, limit: int = 50) -> ReplayStats:
                     for hunk in cf.hunks:
                         stats.hunks += 1
                         res = pre_pass(cf, hunk)
-                        if res is None:
+                        if res is None or res.confidence != "high":
+                            draft_exact = res is not None and "\n".join(res.lines) in final
+                            if res is not None:  # a draft: the model refines it, it is not final
+                                stats.drafts += 1
+                                stats.drafts_exact += draft_exact
+                            if provider is not None:
+                                proposal = propose(cf, hunk, operation(local), provider, local, draft=res)
+                                stats.model.append(
+                                    {
+                                        "hunk": f"{merge[:8]} {path} #{hunk.index + 1}",
+                                        "kind": "unresolved" if res is None else "draft",
+                                        "draft_exact": draft_exact,
+                                        "strategy": proposal.strategy if proposal else None,
+                                        "confidence": proposal.confidence if proposal else None,
+                                        "exact": bool(proposal) and "\n".join(proposal.lines) in final,
+                                    }
+                                )
                             continue
                         exact = "\n".join(res.lines) in final
-                        if res.confidence != "high":  # a draft: the model refines it, it is not final
-                            stats.drafts += 1
-                            stats.drafts_exact += exact
-                            continue
                         stats.resolved += 1
                         if exact:
                             stats.agree += 1
