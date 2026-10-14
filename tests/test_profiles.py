@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from fobis.Profiles import get_profile_flags, list_profiles
+import pytest
+
+from fobis.Profiles import PROFILES, get_profile_flags, list_profiles
 
 # ── Positive lookup ──────────────────────────────────────────────────────────
 
@@ -93,3 +95,49 @@ def test_list_profiles_output():
     assert "release" in output
     # Should show at least gnu/debug and intel/release
     assert "gnu" in output and "intel" in output
+
+
+def test_get_profile_of_another_family_never_gets_gfortran_flags():
+    """nvfortran has no asan profile (it rejects -fsanitize=address): no flags, not gfortran's -fsanitize."""
+    warnings = []
+    flags = get_profile_flags("nvfortran", "asan", print_w=warnings.append)
+    assert flags == {"cflags": "", "lflags": ""} and "no 'asan' profile" in warnings[0]
+
+
+# ── every profile flag is accepted by its compiler ───────────────────────────
+
+_COMMANDS = {
+    "gnu": "gfortran",
+    "intel": "ifort",
+    "intel_nextgen": "ifx",
+    "nvfortran": "nvfortran",
+    "nag": "nagfor",
+    "amd": "flang",
+    "lfortran": "lfortran",
+}
+_REFUSED = ("unknown switch", "not supported", "ignoring unknown option", "unrecognized", "unknown argument")
+
+
+@pytest.mark.parametrize("key", sorted(PROFILES), ids=lambda k: f"{k[0]}-{k[1]}")
+def test_profile_flags_are_accepted_by_the_compiler(key, tmp_path):
+    """A profile flag the compiler rejects breaks the build; one it ignores builds silently without the profile
+    (ifort and -fsanitize=address). Checked with every compiler on PATH: load the toolchains (module load
+    nvhpc, oneapi vars.sh) to check them all."""
+    import shutil
+    import subprocess
+
+    compiler, _ = key
+    command = shutil.which(_COMMANDS[compiler])
+    if command is None:
+        pytest.skip(f"{_COMMANDS[compiler]} not on PATH")
+    (tmp_path / "p.f90").write_text("program p\nprint *, 1\nend program\n")
+    flags = PROFILES[key]
+    result = subprocess.run(
+        [command, *flags["cflags"].split(), "p.f90", *flags["lflags"].split(), "-o", "p"],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    output = result.stdout + result.stderr
+    assert result.returncode == 0 and not any(r in output.lower() for r in _REFUSED), output

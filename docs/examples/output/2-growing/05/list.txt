@@ -1,0 +1,9 @@
+$ fobis rule --list
+The fobos file defines the following rules:
+  - "smoke" The last line of the program's output
+       Command => ./build/release/integrate | tail -n 1
+  - "errors" The table of errors, from the release build
+       Command => fobis run --mode release
+  - "dist" A source archive
+       Command => rm -f quad-0.1.0.tar.gz
+       Command => tar czf quad-0.1.0.tar.gz fobos src test

@@ -18,13 +18,13 @@ Every command output shown is the real one: the pages include what the commands 
 | Track | Level | You learn |
 |---|---|---|
 | [1. First steps](./first-steps/01-first-build) | basic | build without configuration, a fobos with modes, a library, tests and coverage, dependencies |
-| 2. Growing a project | intermediate | templates and variables, build profiles and feature flags, external libraries (MPI, OpenMP), rules, the cache, CI with machine-readable output, fpm and Makefile export |
+| [2. Growing a project](./growing/01-templates) | intermediate | templates and variables, build profiles and feature flags, external libraries (MPI, OpenMP), rules, the cache, CI with machine-readable output, fpm and Makefile export |
 | 3. Many repositories | intermediate | an ecosystem of projects: dashboard, commands across all of them, checking the projects downstream, the release train |
 | 4. Code quality | advanced | the linter, baselines and fixes, reviewing a change, querying the code, verified modernisation, C and Python bindings |
 | 5. Verified numerics | advanced | cases and references, shadow builds and the compiler matrix, error and uncertainty assessment, differential runs, benchmarks, the gate, clusters, profiling |
 | 6. AI-assisted development | expert | a local model, explained failures, questions answered from the sources, generated tests, merge conflicts, an agent working under the gate |
 
-Tracks 2 to 6 are being written; until then, the [guides](/guide/topics) cover their subjects.
+Tracks 3 to 6 are being written; until then, the [guides](/guide/topics) cover their subjects.
 
 ### 1. First steps
 
@@ -40,6 +40,18 @@ Tracks 2 to 6 are being written; until then, the [guides](/guide/topics) cover t
 flowchart LR
   A[1 first build] --> B[2 fobos] --> C[3 library] --> D[4 tests] --> E[5 dependencies]
 ```
+
+### 2. Growing a project
+
+| Chapter | You learn |
+|---|---|
+| [1. Templates and variables](./growing/01-templates) | `template`, `$variables`, `fobis introspect` |
+| [2. Build profiles and features](./growing/02-profiles) | `build_profile`, `[features]`, `cflags_heritage` |
+| [3. OpenMP and MPI](./growing/03-parallel) | `openmp = True`, `mpi = True` |
+| [4. A project that depends on quad](./growing/04-dependon) | `dependon`, interface changes followed |
+| [5. Rules](./growing/05-rules) | `[rule-NAME]`, `pre_build`/`post_build`, intrinsic rules, `--jobs` |
+| [6. Continuous integration](./growing/06-ci) | `fobis check`, `--json`, a CI workflow |
+| [7. Other build systems](./growing/07-export) | `fobis fpm export`, `--makefile` |
 
 ## Running the examples yourself
 

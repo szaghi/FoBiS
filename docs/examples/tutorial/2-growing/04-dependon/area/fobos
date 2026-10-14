@@ -1,0 +1,6 @@
+[default]
+compiler = gnu
+cflags   = -c -O2
+src      = ./src/
+target   = src/area.F90
+dependon = ../quad/fobos:static((direct))

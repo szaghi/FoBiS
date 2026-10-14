@@ -1,0 +1,11 @@
+$ fobis build --mode release --quiet
+
+Building src/integrate.F90
+Compiling src/quad_rules.F90 serially
+Compiling src/integrands.F90 serially
+Compiling src/integrate.F90 serially
+Linking build/release/integrate
+Target src/integrate.F90 has been successfully built
+Executing rule "smoke"
+   Command => ./build/release/integrate | tail -n 1
+Simpson, 64 intervals: 2.0000000645300013

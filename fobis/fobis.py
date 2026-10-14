@@ -38,6 +38,10 @@ def main():
     """
     Main function.
     """
+    # line by line on a pipe too (CI logs, | tee): block buffering put the compilers' messages, written to stderr,
+    # before FoBiS's own lines that preceded them
+    with contextlib.suppress(AttributeError, ValueError):
+        sys.stdout.reconfigure(line_buffering=True)
     # Typer/Click completion runs by setting _<PROG>_COMPLETE in the environment,
     # or by passing --install-completion / --show-completion.
     # FoBiSConfig uses CliRunner which isolates os.environ, so the completion env
@@ -201,6 +205,9 @@ def run_fobis_build_json(configuration):
     collector = _JsonCollector()
     configuration.print_b = collector.print_n
     configuration.print_r = collector.print_w
+    # the fobos printers too: its rules (pre_build/post_build) report on them, and their lines are not errors
+    configuration.fobos.print_n = collector.print_n
+    configuration.fobos.print_w = collector.print_w
 
     obj_dir = os.path.normpath(os.path.join(configuration.cliargs.build_dir, configuration.cliargs.obj_dir))
     pre_objects = _obj_files(obj_dir)
@@ -223,8 +230,9 @@ def run_fobis_build_json(configuration):
     objects_compiled = len(post_objects - pre_objects)
 
     errors = list(collector.warnings)
-    if stderr_text.strip():
-        errors.extend(stderr_text.strip().splitlines())
+    reported = "\n".join(errors)
+    # what reached stderr directly, unless it repeats a message already collected (the compiler's output)
+    errors.extend(line for line in stderr_text.strip().splitlines() if line.strip() and line not in reported)
 
     result = {
         "status": "ok" if exit_code == 0 else "error",
@@ -696,6 +704,13 @@ def run_fobis_build(configuration):
                         builder=builder,
                     )
                     build_succeeded = True
+
+    if cliargs.target and not cliargs.build_all and not build_succeeded:  # before: nothing built, exit status 0
+        configuration.print_r(
+            f'Error: the target "{cliargs.target}" is not among the sources of this build '
+            f"(src: {' '.join(cliargs.src)}): add its directory to the mode's src"
+        )
+        sys.exit(1)
 
     compiler_record()  # the build ended without a compile failure: its objects are the recorded compiler's
 
@@ -1491,41 +1506,30 @@ def save_makefile(configuration, pfiles, builder):
                 nomodlibs.append("$(DOBJ)" + pfile.basename.lower() + ".o")
         string = []
         string.append("\n#building rules\n")
-        # linking rules
+        # linking rules: the target only when the mode names one (it is make's default goal, and its output the
+        # executable's name); else every program, named after its file
+        target = configuration.cliargs.target
+        matched = [p for p in pfiles if target and os.path.basename(target) == os.path.basename(p.name)]
         for pfile in pfiles:
-            save_target_rule = False
-            if pfile.program:
-                save_target_rule = True
-            elif configuration.cliargs.target:
-                if os.path.basename(configuration.cliargs.target) == os.path.basename(pfile.name):
-                    save_target_rule = True
+            save_target_rule = pfile in matched if matched else pfile.program
+            if matched:  # the name fobis build gives it
+                name = configuration.cliargs.output or os.path.splitext(os.path.basename(pfile.name))[0]
+            else:
+                name = pfile.basename.upper()
             if save_target_rule:
                 if len(nomodlibs) > 0:
                     string.append(
-                        "$(DEXE)"
-                        + pfile.basename.upper()
-                        + ": $(MKDIRS) "
-                        + "$(DOBJ)"
-                        + pfile.basename.lower()
-                        + ".o \\"
-                        + "\n"
+                        "$(DEXE)" + name + ": $(MKDIRS) " + "$(DOBJ)" + pfile.basename.lower() + ".o \\" + "\n"
                     )
                     for nomod in nomodlibs[:-1]:
                         string.append("\t" + nomod + " \\" + "\n")
                     string.append("\t" + nomodlibs[-1] + "\n")
                 else:
-                    string.append(
-                        "$(DEXE)"
-                        + pfile.basename.upper()
-                        + ": $(MKDIRS) "
-                        + "$(DOBJ)"
-                        + pfile.basename.lower()
-                        + ".o\n"
-                    )
+                    string.append("$(DEXE)" + name + ": $(MKDIRS) " + "$(DOBJ)" + pfile.basename.lower() + ".o\n")
                 string.append("\t@rm -f $(filter-out $(DOBJ)" + pfile.basename.lower() + ".o,$(EXESOBJ))\n")
                 string.append("\t@echo $(LITEXT)\n")
                 string.append("\t@$(FC) $(OPTSL) $(DOBJ)*.o $(LIBS) -o $@\n")
-                string.append("EXES := $(EXES) " + pfile.basename.upper() + "\n")
+                string.append("EXES := $(EXES) " + name + "\n")
         return "".join(string)
 
     def _gnu_auxiliary_rules():
@@ -1563,9 +1567,9 @@ def save_makefile(configuration, pfiles, builder):
     string = []
     string.append("#!/usr/bin/make\n")
     string.append(_gnu_variables(builder=builder))
-    string.append(_gnu_building_rules(pfiles=pfiles))
+    string.append(_gnu_building_rules(pfiles=sorted(pfiles, key=lambda p: p.name)))
     string.append("\n#compiling rules\n")
-    for pfile in pfiles:
+    for pfile in sorted(pfiles, key=lambda p: p.name):  # by file name: not the directory listing's order
         string.append(pfile.gnu_make_rule(builder=builder))
     string.append(_gnu_auxiliary_rules())
     with open(configuration.cliargs.makefile, "w") as mk_file:

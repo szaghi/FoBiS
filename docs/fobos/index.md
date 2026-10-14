@@ -104,8 +104,8 @@ All CLI options accepted by `build` and `clean` are available in a fobos mode se
 | `cache_dir` | Build cache directory (default: `.fobis_cache`) |
 | `no_cache` | Disable build cache (`true`/`false`) |
 | `no_auto_discover` | Disable convention-based source discovery (`true`/`false`) |
-| `pre_build` | Shell command to run before the build |
-| `post_build` | Shell command to run after a successful build |
+| `pre_build` | Rule(s) to run before the build (names of `[rule-NAME]` sections) |
+| `post_build` | Rule(s) to run after a successful build (names of `[rule-NAME]` sections) |
 | `features` | Space-separated feature names to activate for this mode (see [Feature Flags](/advanced/features)) |
 | `varset` | Space-separated varset names to apply for this mode (see [Varsets](/advanced/varsets)) |
 | `intrinsic_modules` | Space-separated module names to treat as intrinsic — silently skipped from the dependency graph (see below) |

@@ -1,0 +1,29 @@
+$ fobis build --mode openmp
+Builder options
+  Directories
+    Root of source files directory: "src .fobis_deps/penf"
+    Building directory: "build/openmp"
+    Compiled-objects .o   directory: "build/openmp/obj"
+    Compiled-objects .mod directory: "build/openmp/mod"
+  Compiler options
+    Vendor: "gnu"
+    Compiler command: "gfortran"
+    Module directory switch: "-J"
+    Compiling flags: "-O3 -funroll-loops -c -fopenmp"
+    Linking flags: "-fopenmp"
+    Preprocessing flags: ""
+    Coverage: False
+    Profile: False
+  Archiver: ar -rcs
+  Ranlib: ranlib
+  Preprocessor used: None
+  Preprocessor args: 
+  Preprocessor output directory: None
+  Preprocessor extensions processed: []
+
+Building src/sweep.F90
+Compiling src/quad_rules.F90 serially
+Compiling src/integrands.F90 serially
+Compiling src/sweep.F90 serially
+Linking build/openmp/sweep
+Target src/sweep.F90 has been successfully built

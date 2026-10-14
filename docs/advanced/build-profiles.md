@@ -80,8 +80,11 @@ build_profile = debug
 
 ## Fallback behaviour
 
-- If the `(compiler, profile)` pair is not in the table, FoBiS falls back to the
-  `gnu` flags for that profile with a warning.
+- If the `(compiler, profile)` pair is not in the table, FoBiS warns and applies no flags for a compiler of another
+  family (Intel, NVIDIA, NAG, AMD, LFortran, IBM...): gfortran's options are not theirs. Missing on purpose, because
+  measured: ifort ignores `-fsanitize=address` (an `asan` build without the sanitizer), nvfortran rejects
+  `-fsanitize=address` and `--coverage`, ifx does not support `-prof-gen=srcpos`. A `custom` compiler still gets the
+  `gnu` flags, with a warning.
 - An entirely unknown profile name emits a warning and applies no extra flags.
 - If no profile is set, behaviour is unchanged from the pre-profile FoBiS.
 

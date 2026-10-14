@@ -1,0 +1,18 @@
+$ fobis introspect --compiler --buildoptions --mode shared
+{
+  "compiler": {
+    "name": "gnu",
+    "binary": "",
+    "cflags": "-c -O2 -fPIC",
+    "lflags": "",
+    "preproc": ""
+  },
+  "buildoptions": {
+    "mode": "shared",
+    "build_dir": "./build/shared/",
+    "obj_dir": "./obj/",
+    "mod_dir": "./mod/",
+    "mklib": "shared",
+    "jobs": 1
+  }
+}

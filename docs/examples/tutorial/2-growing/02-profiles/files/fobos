@@ -1,0 +1,71 @@
+[project]
+name    = quad
+version = 0.1.0
+authors = Ada Fortran
+
+[modes]
+modes = debug release static shared coverage
+
+[features]
+checks = -DQUAD_CHECKS
+
+[common-variables]
+$PROGRAM = src/integrate.F90
+$LIBRARY = src/quad_rules.F90
+$OPT     = -O2
+
+[template-gnu]
+compiler        = gnu
+src             = ./src/
+cflags_heritage = True
+
+[template-library]
+template    = template-gnu
+target      = $LIBRARY
+track_build = True
+
+[debug]
+help          = Checks on, no optimisation
+template      = template-gnu
+build_profile = debug
+features      = checks
+cflags        = -c
+src       = ./src/ ./test/
+build_dir = ./build/debug/
+target    = $PROGRAM
+
+[release]
+help          = Optimised
+template      = template-gnu
+build_profile = release
+cflags        = -c
+build_dir = ./build/release/
+target    = $PROGRAM
+
+[static]
+help      = The library, static
+template  = template-library
+cflags    = -c $OPT
+build_dir = ./build/static/
+mklib     = static
+output    = libquad.a
+
+[shared]
+help      = The library, shared
+template  = template-library
+cflags    = -c $OPT -fPIC
+build_dir = ./build/shared/
+mklib     = shared
+output    = libquad.so
+
+[coverage]
+help      = Instrumented for coverage
+template  = template-gnu
+cflags    = -c -O0 -g
+coverage  = True
+src       = ./src/ ./test/
+build_dir = ./build/coverage/
+target    = $PROGRAM
+
+[dependencies]
+penf = https://github.com/szaghi/PENF :: tag=v2.0.1

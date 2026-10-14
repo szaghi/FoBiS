@@ -27,6 +27,19 @@ const docs = [
           { text: '5. Dependencies',   link: '/tutorial/first-steps/05-dependencies' },
         ],
       },
+      {
+        text: '2. Growing a project',
+        collapsed: false,
+        items: [
+          { text: '1. Templates and variables',  link: '/tutorial/growing/01-templates' },
+          { text: '2. Profiles and features',    link: '/tutorial/growing/02-profiles' },
+          { text: '3. OpenMP and MPI',           link: '/tutorial/growing/03-parallel' },
+          { text: '4. A project using quad',     link: '/tutorial/growing/04-dependon' },
+          { text: '5. Rules',                    link: '/tutorial/growing/05-rules' },
+          { text: '6. Continuous integration',   link: '/tutorial/growing/06-ci' },
+          { text: '7. Other build systems',      link: '/tutorial/growing/07-export' },
+        ],
+      },
     ],
   },
   {

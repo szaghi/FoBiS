@@ -1,0 +1,42 @@
+$ fobis build --mode release --json
+{
+  "status": "error",
+  "target": "src/integrate.F90",
+  "objects_compiled": 0,
+  "errors": [
+    "warning: the file 'src/residual.F90' depends on 'quad_errors' that is unreachable",
+    "src/residual.F90:4:5:\n\n    4 | use quad_errors, only : R8P\n      |     1\nFatal Error: Cannot open module file 'quad_errors.mod' for reading at (1): No such file or directory\ncompilation terminated.\n"
+  ],
+  "diagnostics": [
+    {
+      "tool": "gnu",
+      "severity": "fatal",
+      "message": "Cannot open module file 'quad_errors.mod' for reading at (1): No such file or directory",
+      "file": "src/residual.F90",
+      "line": 4,
+      "column": 5
+    }
+  ],
+  "diagnoses": [
+    {
+      "kind": "missing-module",
+      "summary": "module quad_errors is not available when src/residual.F90 is compiled",
+      "diagnostic": {
+        "tool": "gnu",
+        "severity": "fatal",
+        "message": "Cannot open module file 'quad_errors.mod' for reading at (1): No such file or directory",
+        "file": "src/residual.F90",
+        "line": 4,
+        "column": 5
+      },
+      "facts": [
+        "no project source defines module quad_errors, and it is not a known library module."
+      ],
+      "advice": [
+        "declare the project that provides it in fobos `[dependencies]` and run `fobis fetch`, or add the directory of its .mod files to `cflags` (`-I...`)"
+      ],
+      "consequences": 0
+    }
+  ]
+}
+[exit status 1]

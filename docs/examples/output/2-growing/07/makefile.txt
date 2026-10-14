@@ -1,0 +1,32 @@
+$ fobis build --mode release --makefile Makefile --quiet && sed -n "1,30p" Makefile
+
+#!/usr/bin/make
+
+#main building variables
+DSRC    = src .fobis_deps/penf
+DOBJ    = build/release/obj/
+DMOD    = build/release/mod/
+DEXE    = build/release/
+LIBS    =
+FC      = gfortran
+OPTSC   = -O3 -funroll-loops -c -J build/release/mod
+OPTSL   =  -J build/release/mod
+VPATH   = $(DSRC) $(DOBJ) $(DMOD)
+MKDIRS  = $(DOBJ) $(DMOD) $(DEXE)
+LCEXES  = $(shell echo $(EXES) | tr '[:upper:]' '[:lower:]')
+EXESPO  = $(addsuffix .o,$(LCEXES))
+EXESOBJ = $(addprefix $(DOBJ),$(EXESPO))
+
+#auxiliary variables
+COTEXT  = "Compiling $(<F)"
+LITEXT  = "Assembling $@"
+
+#building rules
+$(DEXE)integrate: $(MKDIRS) $(DOBJ)integrate.o
+	@rm -f $(filter-out $(DOBJ)integrate.o,$(EXESOBJ))
+	@echo $(LITEXT)
+	@$(FC) $(OPTSL) $(DOBJ)*.o $(LIBS) -o $@
+EXES := $(EXES) integrate
+
+#compiling rules
+$(DOBJ)repro_b_read.o: .fobis_deps/penf/scripts/lfortran-bugs/repro_B_read.f90

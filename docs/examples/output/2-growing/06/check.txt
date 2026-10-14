@@ -1,0 +1,7 @@
+$ fobis check --json
+{
+  "status": "ok",
+  "files": 241,
+  "unresolved": [],
+  "warnings": []
+}

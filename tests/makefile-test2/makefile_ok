@@ -20,12 +20,12 @@ COTEXT  = "Compiling $(<F)"
 LITEXT  = "Assembling $@"
 
 #building rules
-$(DEXE)TEST: $(MKDIRS) $(DOBJ)test.o \
+$(DEXE)test: $(MKDIRS) $(DOBJ)test.o \
 	$(DOBJ)non_module_library.o
 	@rm -f $(filter-out $(DOBJ)test.o,$(EXESOBJ))
 	@echo $(LITEXT)
 	@$(FC) $(OPTSL) $(DOBJ)*.o $(LIBS) -o $@
-EXES := $(EXES) TEST
+EXES := $(EXES) test
 
 #compiling rules
 $(DOBJ)non_module_library.o: src/non_module_library.f90

@@ -37,13 +37,13 @@ from __future__ import annotations
 import json
 import os
 import subprocess
-import sys
 import urllib.parse
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import IO, Any
 
 from . import __version__
+from .utils import fobis_command
 
 PROTOCOL_VERSIONS = ("2025-06-18", "2025-03-26", "2024-11-05")
 STRUCTURED_SINCE = "2025-06-18"
@@ -54,17 +54,6 @@ _RESOURCE_NOT_FOUND = -32002
 RULE_URI, KB_URI = "fobis://rules/", "fobis://kb/"
 
 Runner = Callable[[list[str]], tuple[int, str, str]]
-
-
-def fobis_command() -> list[str]:
-    """Command line running this FoBiS: ``python -m fobis``, or ``python fobis.pyz`` from the zipapp."""
-    package = os.path.dirname(os.path.abspath(__file__))
-    if os.path.isdir(package):
-        return [sys.executable, "-m", "fobis"]
-    archive = package
-    while archive and not os.path.isfile(archive):
-        archive = os.path.dirname(archive)
-    return [sys.executable, archive]
 
 
 class ToolError(Exception):

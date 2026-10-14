@@ -1,0 +1,30 @@
+$ fobis build --mode debug --target test/odd_intervals.F90 --output odd
+Active features: checks
+Builder options
+  Directories
+    Root of source files directory: "src test .fobis_deps/penf"
+    Building directory: "build/debug"
+    Compiled-objects .o   directory: "build/debug/obj"
+    Compiled-objects .mod directory: "build/debug/mod"
+  Compiler options
+    Vendor: "gnu"
+    Compiler command: "gfortran"
+    Module directory switch: "-J"
+    Compiling flags: "-O0 -g -fcheck=all -fbacktrace -ffpe-trap=invalid,zero,overflow -Wall -Wextra -c -DQUAD_CHECKS"
+    Linking flags: ""
+    Preprocessing flags: ""
+    Coverage: False
+    Profile: False
+  Archiver: ar -rcs
+  Ranlib: ranlib
+  Preprocessor used: None
+  Preprocessor args: 
+  Preprocessor output directory: None
+  Preprocessor extensions processed: []
+
+Building test/odd_intervals.F90
+Compiling src/quad_rules.F90 serially
+Compiling test/polynomials.F90 serially
+Compiling test/odd_intervals.F90 serially
+Linking build/debug/odd
+Target test/odd_intervals.F90 has been successfully built

@@ -33,8 +33,8 @@ def test_compare_reports_drift_and_ignores_durations(tmp_path):
     for root in (fresh, committed):
         (root / "t" / "01").mkdir(parents=True)
         (root / docs.MANIFEST).write_text('{"compiler": "GNU Fortran (Ubuntu 13.4.0) 13.4.0"}')
-    (fresh / "t/01/a.txt").write_text("$ fobis test\n  PASS  x  (0.01 s)\n")
-    (committed / "t/01/a.txt").write_text("$ fobis test\n  PASS  x  (0.00 s)\n")
+    (fresh / "t/01/a.txt").write_text("$ fobis test\n  PASS  x  (0.01 s)\n#0  0x751502e28d14 in ???\n")
+    (committed / "t/01/a.txt").write_text("$ fobis test\n  PASS  x  (0.00 s)\n#0  0x7f0a12345678 in ???\n")
     (fresh / "t/01/b.txt").write_text("$ fobis build\nnew\n")
     (committed / "t/01/b.txt").write_text("$ fobis build\nold\n")
     (fresh / "t/01/c.txt").write_text("$ x\n")

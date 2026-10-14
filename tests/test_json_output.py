@@ -79,6 +79,30 @@ def test_check_json(project, capsys):
     assert code == 1 and data["unresolved"] == [{"file": "./test/t_bad.f90", "dependency": "nothere", "type": "module"}]
 
 
+def test_build_json_errors_are_errors_only(project, capsys):
+    """A post_build rule's log and its command's output are not errors; the compiler's message is listed once."""
+    (project / "fobos").write_text(
+        (project / "fobos").read_text() + "post_build = hello\n\n[rule-hello]\nrule = echo hello from a rule\n"
+    )
+    code, data = _json(["build", "--json", "--target", "src/m.f90"], capsys)
+    assert code == 0 and data["errors"] == []
+    (project / "src" / "p.f90").write_text("program p\nuse missing_mod\nimplicit none\nend program p\n")
+    code, data = _json(["build", "--json", "--target", "src/p.f90"], capsys)
+    assert code == 1 and sum("Cannot open module file" in e for e in data["errors"]) == 1
+
+
+def test_check_json_sees_the_fetched_dependencies(project, capsys):
+    """The modules of a fetched dependency (use=sources) are resolved, as by build."""
+    deps = project / ".fobis_deps"
+    (deps / "dep").mkdir(parents=True)
+    (deps / "dep" / "d.f90").write_text("module d\nend module d\n")
+    (deps / ".deps_config.ini").write_text("[deps]\nsrc = .fobis_deps/dep\n")
+    (project / "src" / "m.f90").write_text(MODULE.replace("implicit none", "use d\nimplicit none", 1))
+    (project / "fobos").write_text((project / "fobos").read_text().replace("src = ./", "src = ./src/ ./test/"))
+    code, data = _json(["check", "--json"], capsys)
+    assert code == 0 and data["unresolved"] == []
+
+
 def test_test_json(project, capsys):
     (project / "test" / "t_bad.f90").write_text("program t_bad\nuse nothere\nend program t_bad\n")
     code, data = _json(["test", "--json"], capsys)

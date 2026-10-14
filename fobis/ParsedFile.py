@@ -705,7 +705,9 @@ class ParsedFile:
         else:
             return [p.basename + ".o" for p in self.pfile_dep_all if not p.include]
 
-    def check_compile(self, obj_dir: str, force_compile: bool = False) -> None:
+    def check_compile(
+        self, obj_dir: str, force_compile: bool = False, external_mods: dict[str, float] | None = None
+    ) -> None:
         """
         Check if self must be compiled.
 
@@ -715,6 +717,9 @@ class ParsedFile:
           directory where compiled objects are saved
         force_compile : {False}
           flag for forcing (re-)compiling of all dependency
+        external_mods : {None}
+          mtimes of the ``.mod`` files of modules defined outside the project (``utils.external_module_times``): one
+          newer than self's object, used by self or by a file self depends on, makes self compile
         """
         if not self.include:
             # verifying if dependencies are up-to-date
@@ -747,6 +752,17 @@ class ParsedFile:
                             if os.path.getmtime(obj) < os.path.getmtime(dep.name):
                                 # found an include that is newer than self-compiled-object, thus self must be compiled
                                 self.to_compile = True
+            # verifying if a module of another project (a library, a dependon) changed its interface since
+            if external_mods and not self.to_compile:
+                obj = os.path.join(obj_dir, self.basename + ".o")
+                if os.path.exists(obj):
+                    stamp = os.path.getmtime(obj)
+                    self.to_compile = any(
+                        external_mods.get(dep.name.lower(), 0.0) > stamp
+                        for pfile in (self, *self.pfile_dep_all)
+                        for dep in pfile.dependencies
+                        if dep.type == "module" and not dep.file
+                    )
             # verifying if self is up-to-date
             if not self.to_compile:
                 obj = os.path.join(obj_dir, self.basename + ".o")

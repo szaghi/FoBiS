@@ -190,7 +190,10 @@ def test_test_outside_the_sources_is_not_run_stale(project, capsys):
     code, out, _ = _run(["test", "--json"], capsys)
     result = json.loads(out)["results"][0]
     assert code == 1 and result["status"] == "build-failed"
-    assert result["errors"] == ["test/test_uninit.f90 was not built: is it among the mode's sources (src)?"]
+    assert result["errors"] == [  # the build itself refuses a target outside the sources
+        'Error: the target "test/test_uninit.f90" is not among the sources of this build (src: src): '
+        "add its directory to the mode's src"
+    ]
 
 
 def test_runner_with_a_shadow(project):

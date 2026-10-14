@@ -1,0 +1,21 @@
+$ cd ~/area && fobis build --quiet
+Building dependency fobos into ../quad with mode static
+
+Building src/quad_rules.F90
+Compiling src/quad_rules.F90 serially
+Linking build/static/libquad.a
+Target src/quad_rules.F90 has been successfully built
+Track building of src/quad_rules.F90
+
+The following auxiliary paths have been added
+Include files search paths (include):
+- ../quad/build/static/mod
+Libraries search paths (lib_dir):
+Libraries paths:
+- (libs) ../quad/build/static/libquad.a
+
+Building src/area.F90
+Compiling src/curves.F90 serially
+Compiling src/area.F90 serially
+Linking ./area
+Target src/area.F90 has been successfully built

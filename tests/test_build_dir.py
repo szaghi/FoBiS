@@ -48,3 +48,16 @@ def test_explicit_build_dir_wins_over_the_mode(project, capsys):
     assert (project / "legacy" / "app").is_file()
     assert _run(["clean", "--build-dir", "scratch"], capsys) == 0
     assert not (project / "scratch" / "obj" / "app.o").exists()
+
+
+def test_target_outside_the_sources_is_an_error(project, capsys):
+    """Before: nothing built, nothing said, exit status 0."""
+    (project / "test").mkdir()
+    (project / "test" / "other.f90").write_text("program other\nend program\n")
+    try:
+        run_fobis(fake_args=["build", "--target", "test/other.f90"])
+        code = 0
+    except SystemExit as exc:
+        code = exc.code
+    out = capsys.readouterr()
+    assert code == 1 and 'the target "test/other.f90" is not among the sources' in out.out + out.err

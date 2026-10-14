@@ -1,0 +1,6 @@
+quiet 'cp -R "$DOCS_CHAPTER/area" ~/area'
+show build 'cd ~/area && fobis build'
+show uptodate 'cd ~/area && fobis build --quiet && ./area'
+show touch 'touch src/quad_rules.F90 && cd ~/area && fobis build --quiet'
+quiet 'cp "$DOCS_CHAPTER/midpoint/quad_rules.F90" src/quad_rules.F90'
+show interface 'cd ~/area && fobis build --quiet'

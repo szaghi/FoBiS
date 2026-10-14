@@ -1,0 +1,3 @@
+$ mpirun -np 2 ./build/mpi/integrate_mpi && mpirun -np 4 ./build/mpi/integrate_mpi
+2 processes x 64 intervals, error   4.0323E-09
+4 processes x 64 intervals, error   2.5200E-10

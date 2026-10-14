@@ -1,0 +1,27 @@
+$ fobis test --json 2> /dev/null
+{
+  "status": "ok",
+  "test_dir": "test",
+  "passed": 2,
+  "failed": 0,
+  "results": [
+    {
+      "name": "test_exactness",
+      "suite": "",
+      "exit_code": 0,
+      "duration": 0.001,
+      "stdout": "exact on polynomials of its degree",
+      "stderr": "",
+      "status": "passed"
+    },
+    {
+      "name": "test_order",
+      "suite": "",
+      "exit_code": 0,
+      "duration": 0.001,
+      "stdout": "observed orders: trapezoid  2.001, simpson  4.005",
+      "stderr": "",
+      "status": "passed"
+    }
+  ]
+}

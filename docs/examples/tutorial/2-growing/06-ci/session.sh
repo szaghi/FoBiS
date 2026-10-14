@@ -1,0 +1,6 @@
+show check 'fobis check --json'
+show build 'fobis build --mode release --json'
+show test 'fobis test --json 2> /dev/null'
+quiet 'cp "$DOCS_CHAPTER/broken/residual.F90" src/ && sed -i "s/use quad_rules, only : R8P, trapezoid, simpson/use quad_rules, only : R8P, trapezoid, simpson\nuse residual/" src/integrate.F90'
+show failed 'fobis build --mode release --json'
+quiet 'rm src/residual.F90 && sed -i "/^use residual$/d" src/integrate.F90'

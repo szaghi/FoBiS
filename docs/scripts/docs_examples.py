@@ -19,7 +19,9 @@ Layout::
 Every chapter starts from the previous chapter's final state, in a scratch directory: ``$HOME/<project>`` with a
 throwaway HOME, shown as ``~/<project>`` in the outputs. The environment is minimal and fixed (C locale, UTC, a git
 identity and fixed commit dates, so commit hashes are reproducible); ``fobis`` is this repository's FoBiS, ``gfortran``
-is ``$DOCS_FC`` (default ``gfortran-13``, the compiler of the CI, when installed).
+is ``$DOCS_FC`` (default ``gfortran-13``, the compiler of the CI, when installed). Variables named ``DOCS_*`` reach
+the sessions: ``DOCS_MPI_SETUP`` is the shell code that makes ``mpif90`` and ``mpirun`` available on this machine (for
+example ``source /usr/share/lmod/lmod/init/bash; module load openmpi``); without it the MPI chapters keep their outputs.
 
 Usage::
 
@@ -27,7 +29,7 @@ Usage::
     python docs/scripts/docs_examples.py --check    # regenerate in a scratch directory and compare
     python docs/scripts/docs_examples.py --track 1-first-steps
 
-``--check`` compares byte by byte (durations like ``0.01 s`` aside) when the compiler's major version is the recorded one; with another compiler only the
+``--check`` compares byte by byte (durations like ``0.01 s`` and backtrace addresses aside) when the compiler's major version is the recorded one; with another compiler only the
 exit status of every run is compared (compiler messages and numbers are not portable across versions).
 """
 
@@ -145,9 +147,9 @@ def _environment(home: Path, bin_dir: Path) -> dict[str, str]:
         "GIT_COMMITTER_DATE": GIT_DATE,
         "PYTHONDONTWRITEBYTECODE": "1",
     }
-    for name in ("LMOD_CMD", "MODULEPATH", "MODULESHOME"):  # chapters that `module load` a toolchain
-        if name in os.environ:
-            env[name] = os.environ[name]
+    for name, value in os.environ.items():  # DOCS_*: machine settings a session may use (DOCS_MPI_SETUP)
+        if name.startswith("DOCS_"):
+            env[name] = value
     return env
 
 
@@ -162,27 +164,28 @@ def run_chapter(track: str, chapter: Path, home: Path, project: Path, out: Path,
     """Run one chapter in *project*, writing its outputs to *out*; False when its outputs are kept."""
     files = chapter / "files"
     if files.is_dir():
-        shutil.copytree(files, project, dirs_exist_ok=True)
-    out.mkdir(parents=True, exist_ok=True)
-    for stale in out.glob("*.txt"):
-        stale.unlink()
-    (out / KEPT).unlink(missing_ok=True)
+        shutil.copytree(files, project, dirs_exist_ok=True, copy_function=shutil.copy)  # fresh mtimes: an edit
+    fresh = Path(tempfile.mkdtemp(prefix="out-", dir=home / "tmp"))
     session = chapter / "session.sh"
     script = PRELUDE + (session.read_text() if session.is_file() else "")
     result = subprocess.run(
         ["bash", "-c", script],
         cwd=project,
-        env={**env, "DOCS_OUT": str(out), "DOCS_CHAPTER": str(chapter)},
+        env={**env, "DOCS_OUT": str(fresh), "DOCS_CHAPTER": str(chapter)},
         capture_output=True,
         text=True,
         check=False,
     )
     if result.returncode != 0:
         raise ExamplesError(f"{chapter_key(track, chapter)}: session failed\n{result.stdout}{result.stderr}")
-    for txt in out.glob("*.txt"):
-        txt.write_text(txt.read_text(errors="replace").replace(str(home), "~"))
-    kept = (out / KEPT).exists()
-    (out / KEPT).unlink(missing_ok=True)
+    kept = (fresh / KEPT).exists()
+    out.mkdir(parents=True, exist_ok=True)
+    if not kept:  # the whole session ran: its outputs replace the chapter's
+        for stale in out.glob("*.txt"):
+            stale.unlink()
+    for txt in fresh.glob("*.txt"):  # a session stopped by `needs` overwrites only what ran
+        (out / txt.name).write_text(txt.read_text(errors="replace").replace(str(home), "~"))
+    shutil.rmtree(fresh)
     return not kept
 
 
@@ -245,11 +248,22 @@ def generate(out_root: Path, track: str | None = None, keep: Path | None = None)
     return done
 
 
-_DURATION = re.compile(r"\b\d+\.\d+ s\b")  # test timings: shown as measured, not compared
+# shown as measured, not compared: test timings, and the addresses of a backtrace (address-space randomisation)
+_VOLATILE = (
+    (re.compile(r"\b\d+\.\d+ s\b"), "N s"),
+    (re.compile(r'"duration": [0-9.]+'), '"duration": N'),
+    (re.compile(r"\b0x[0-9a-f]{6,}\b"), "0xADDRESS"),
+)
+
+
+def _normalised(text: str) -> str:
+    for pattern, replacement in _VOLATILE:
+        text = pattern.sub(replacement, text)
+    return text
 
 
 def _same(new: Path, old: Path) -> bool:
-    return _DURATION.sub("N s", new.read_text()) == _DURATION.sub("N s", old.read_text())
+    return _normalised(new.read_text()) == _normalised(old.read_text())
 
 
 def _status(text: str) -> str:

@@ -39,8 +39,8 @@ library by its own fobos, and linked.
 
 <<< @/examples/output/1-first-steps/05/build.txt{console}
 
-FoBiS compiled the five PENF modules the program needs, before the program; `quad_rules` and `integrands` were up to
-date.
+FoBiS compiled the five PENF modules the program needs before the program, and `quad_rules`, changed by the doctests
+of chapter 4, with `integrands`, which uses it. Files on the same line belong to the same level of the dependency tree.
 
 <<< @/examples/output/1-first-steps/05/tree.txt{console}
 
@@ -74,4 +74,4 @@ run without it and checks every dependency against it:
 :::
 
 This is the end of the first track: `quad` builds in two modes, as a library, with tests, doctests, coverage and a
-dependency. [Growing a project](../#tracks) takes it further.
+dependency. [Growing a project](../growing/01-templates) takes it further.

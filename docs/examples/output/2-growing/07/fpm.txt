@@ -1,0 +1,32 @@
+$ fobis fpm export --mode release --print
+name = "quad"
+version = "0.1.0"
+author = "Ada Fortran"
+
+[library]
+source-dir = "src"
+
+[build]
+auto-executables = false
+auto-tests = false
+auto-examples = false
+
+[dependencies]
+penf = { git = "https://github.com/szaghi/PENF", tag = "v2.0.1" }
+
+[[executable]]
+name = "integrate"
+source-dir = "src"
+main = "integrate.F90"
+
+[[executable]]
+name = "integrate_mpi"
+source-dir = "src"
+main = "integrate_mpi.F90"
+
+[[executable]]
+name = "sweep"
+source-dir = "src"
+main = "sweep.F90"
+note: fobos modes, templates, flags and rules are not exported: fpm uses its own profiles (debug, release)
+note: the library directory src also holds 3 program(s) (e.g. src/integrate.F90): fpm compiles every file of source-dir into the library; keep programs out of it

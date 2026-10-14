@@ -2067,10 +2067,12 @@ class Fobos:
                             self.print_n("   Command => " + self.fobos.get(rule_name, rul))
                         result = syswork(self.fobos.get(rule_name, rul), shell=True)
                         results.append(result)
-                if log:
-                    check_results(results=results, log="rules_errors.log", print_w=self.print_w)
-                else:
-                    check_results(results=results, print_w=self.print_w)
+                for result in results:  # a command's output is its result, not a warning (unless it failed)
+                    if result[0] == 0 and result[1]:
+                        self.print_n(result[1].rstrip("\n"))
+                failed = [result for result in results if result[0] != 0]
+                if failed:
+                    check_results(results=failed, log="rules_errors.log" if log else None, print_w=self.print_w)
             else:
                 self.print_w('Error: the rule "' + rule + '" is not defined into the fobos file. Defined rules are:')
                 self.rules_list(quiet=quiet)

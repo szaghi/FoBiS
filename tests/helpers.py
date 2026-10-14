@@ -53,9 +53,7 @@ def make_makefile(monkeypatch, directory):
     monkeypatch.chdir(os.path.join(TESTS_DIR, directory))
 
     run_fobis(fake_args=["build", "-f", "fobos", "-m", "makefile_check"])
-    make_ok = filecmp.cmp("makefile_check", "makefile_ok")
-    if not make_ok and os.path.exists("makefile_ok2"):
-        make_ok = filecmp.cmp("makefile_check", "makefile_ok2")
+    make_ok = filecmp.cmp("makefile_check", "makefile_ok")  # the rules are sorted by file: one golden file
     if not make_ok:
         with open("makefile_check") as mk_check:
             print("generated makefile:\n" + mk_check.read())

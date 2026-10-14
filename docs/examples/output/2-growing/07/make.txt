@@ -1,0 +1,11 @@
+$ rm -rf build/release && make && ./build/release/integrate | tail -n 1
+Compiling quad_rules.F90
+Compiling integrands.F90
+Compiling penf_global_parameters_variables.F90
+Compiling penf_b_size.F90
+Compiling penf_stringify.F90
+Compiling penf_allocatable_memory.F90
+Compiling penf.F90
+Compiling integrate.F90
+Assembling build/release/integrate
+Simpson, 64 intervals: 2.0000000645300013

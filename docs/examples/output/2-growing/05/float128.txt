@@ -1,0 +1,6 @@
+$ fobis rule --is-float128-kind-supported
+Building build/debug/float128_kind_introspection.f90
+Compiling build/debug/float128_kind_introspection.f90 serially
+Linking build/debug/float128_kind_introspection
+Target build/debug/float128_kind_introspection.f90 has been successfully built
+Compiler 'gnu' support float128 kind: True

@@ -45,6 +45,17 @@ def print_fake(input_obj, end="\n"):
     print(input_obj, end=end)
 
 
+def fobis_command() -> list[str]:
+    """Command line running this FoBiS: ``python -m fobis``, or ``python fobis.pyz`` from the zipapp."""
+    package = os.path.dirname(os.path.abspath(__file__))
+    if os.path.isdir(package):
+        return [sys.executable, "-m", "fobis"]
+    archive = package
+    while archive and not os.path.isfile(archive):
+        archive = os.path.dirname(archive)
+    return [sys.executable, archive]
+
+
 def syswork(cmd, shell=False):
     """
     Function for executing system command 'cmd': for compiling and linking files.
@@ -246,8 +257,28 @@ def dependency_hiearchy(builder, pfiles, print_w=None, force_compile=False):
     for parsed_file in pfiles:
         parsed_file.create_pfile_dep_all()
     # using the just created hiearchy for checking which files must be (re-)compiled
+    external_mods = external_module_times(pfiles, builder.dinc)
     for parsed_file in pfiles:
-        parsed_file.check_compile(obj_dir=builder.obj_dir, force_compile=force_compile)
+        parsed_file.check_compile(obj_dir=builder.obj_dir, force_compile=force_compile, external_mods=external_mods)
+
+
+def external_module_times(pfiles, include_dirs):
+    """Modification times of the ``.mod`` files, found in *include_dirs*, of the modules the project uses but does not
+    define (an installed library, a ``dependon`` project): {lower-case module name: newest mtime}.
+
+    gfortran rewrites a ``.mod`` only when the module's interface changes, so a ``.mod`` newer than an object means
+    the object was compiled against another interface.
+    """
+    names = {
+        dep.name.lower() for pfile in pfiles for dep in pfile.dependencies if dep.type == "module" and not dep.file
+    }
+    times = {}
+    for directory in include_dirs or []:
+        for name in names:
+            path = os.path.join(directory, name + ".mod")
+            if os.path.isfile(path):
+                times[name] = max(times.get(name, 0.0), os.path.getmtime(path))
+    return times
 
 
 def remove_other_main(builder, pfiles, myself):

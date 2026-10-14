@@ -1,0 +1,7 @@
+$ fobis build --mode release --json
+{
+  "status": "ok",
+  "target": "src/integrate.F90",
+  "objects_compiled": 0,
+  "errors": []
+}

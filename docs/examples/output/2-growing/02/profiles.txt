@@ -1,0 +1,7 @@
+$ fobis build --list-profiles | grep -E "compiler|----|gnu"
+  compiler     profile    cflags
+  --------     -------    ------
+  gnu          asan       -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer  [link: -fsanitize=address,undefined]
+  gnu          coverage   -O0 -g --coverage  [link: --coverage]
+  gnu          debug      -O0 -g -fcheck=all -fbacktrace -ffpe-trap=invalid,zero,overflow -Wall -Wextra
+  gnu          release    -O3 -funroll-loops

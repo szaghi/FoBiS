@@ -33,7 +33,7 @@ from .cli_parser import _normalize_args
 from .cli_parser import app as _fobis_app
 from .Colors import Colors
 from .Fobos import Fobos
-from .utils import syswork
+from .utils import fobis_command, syswork
 
 __appname__ = "FoBiS.py"
 __author__ = "Stefano Zaghi"
@@ -210,9 +210,9 @@ class FoBiSConfig:
 
         Reads .fobis_deps/.deps_config.ini (if present) and appends its dependon
         entries to cliargs.dependon so the existing interdependent build machinery
-        picks them up automatically.
+        picks them up automatically. ``check`` reads it too: without it the fetched modules were unresolved.
         """
-        if self.cliargs.which == "build":
+        if self.cliargs.which in ("build", "check"):
             deps_dir = self.fobos.get_deps_dir()
             config_file = os.path.join(deps_dir, ".deps_config.ini")
             if os.path.exists(config_file):
@@ -411,28 +411,31 @@ class FoBiSConfig:
                     if ":" in fobos_file:
                         mode = os.path.basename(fobos_file).split(":")[1]
                         fobos_file = os.path.basename(fobos_file).split(":")[0]
+                    # the dependency is built and queried by this FoBiS (not whatever FoBiS.py is on PATH)
+                    fobis = fobis_command()
+                    selection = ["-f", fobos_file] + (["--mode", mode] if mode else [])
                     old_pwd = os.getcwd()
                     os.chdir(os.path.join(old_pwd, fobos_path))
                     if mode != "":
                         self.print_b("Building dependency " + fobos_file + " into " + fobos_path + " with mode " + mode)
-                        result = syswork("FoBiS.py build -f " + fobos_file + " -mode " + mode)
-                        dbld = syswork("FoBiS.py rule -f " + fobos_file + " -mode " + mode + " -get build_dir")
-                        dmod = syswork("FoBiS.py rule -f " + fobos_file + " -mode " + mode + " -get mod_dir")
-                        output = syswork("FoBiS.py rule -f " + fobos_file + " -mode " + mode + " -get_output_name")
                     else:
                         self.print_b("Building dependency " + fobos_file + " into " + fobos_path + " with default mode")
-                        result = syswork("FoBiS.py build -f " + fobos_file)
-                        dbld = syswork("FoBiS.py rule -f " + fobos_file + " -get build_dir")
-                        dmod = syswork("FoBiS.py rule -f " + fobos_file + " -get mod_dir")
-                        output = syswork("FoBiS.py rule -f " + fobos_file + " -get_output_name")
+                    quiet = ["--quiet"] if getattr(self.cliargs, "quiet", False) else []
+                    result = syswork([*fobis, "build", *selection, *quiet])
+                    dbld = syswork([*fobis, "rule", *selection, "--get", "build_dir"])
+                    dmod = syswork([*fobis, "rule", *selection, "--get", "mod_dir"])
+                    output = syswork([*fobis, "rule", *selection, "--get-output-name"])
                     os.chdir(old_pwd)
                     self.print_b(result[1])
                     if result[0] != 0:
                         sys.exit(result[0])
+                    # a mode that does not set them uses build's defaults: before, the include path missed the mod/
+                    build_dir = dbld[1].strip("\n") or "./"
+                    mod_dir = dmod[1].strip("\n") or "./mod/"
                     add_paths.append(
                         [
-                            os.path.normpath(os.path.join(fobos_path, dbld[1].strip("\n"))),
-                            os.path.normpath(os.path.join(fobos_path, dbld[1].strip("\n"), dmod[1].strip("\n"))),
+                            os.path.normpath(os.path.join(fobos_path, build_dir)),
+                            os.path.normpath(os.path.join(fobos_path, build_dir, mod_dir)),
                             [os.path.normpath(os.path.join(fobos_path, output[1].strip("\n"))), linking],
                         ]
                     )

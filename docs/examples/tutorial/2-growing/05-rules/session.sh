@@ -1,0 +1,5 @@
+show list 'fobis rule --list'
+show release 'fobis build --mode release --quiet'
+show dist 'fobis rule --execute dist && tar tzf quad-0.1.0.tar.gz | sort'
+show float128 'fobis rule --is-float128-kind-supported'
+show jobs 'fobis build --mode release --force-compile --jobs 4 --quiet'

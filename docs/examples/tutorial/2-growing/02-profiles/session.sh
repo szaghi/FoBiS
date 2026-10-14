@@ -1,0 +1,6 @@
+show profiles 'fobis build --list-profiles | grep -E "compiler|----|gnu"'
+show debug 'fobis build --mode debug --target test/odd_intervals.F90 --output odd'
+show debug-run './build/debug/odd'
+show unchecked 'fobis build --mode debug --features -checks --target test/odd_intervals.F90 --output odd --quiet && ./build/debug/odd'
+show release 'fobis build --mode release --target test/odd_intervals.F90 --output odd --quiet'
+quiet 'rm test/odd_intervals.F90'

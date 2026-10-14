@@ -1,0 +1,15 @@
+$ fobis rule --execute dist && tar tzf quad-0.1.0.tar.gz | sort
+Executing rule "dist"
+   Command => rm -f quad-0.1.0.tar.gz
+   Command => tar czf quad-0.1.0.tar.gz fobos src test
+fobos
+src/
+src/integrands.F90
+src/integrate.F90
+src/integrate_mpi.F90
+src/quad_rules.F90
+src/sweep.F90
+test/
+test/polynomials.F90
+test/test_exactness.F90
+test/test_order.F90

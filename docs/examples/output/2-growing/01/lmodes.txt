@@ -1,0 +1,7 @@
+$ fobis build --lmodes
+The fobos file defines the following modes:
+  - "debug" Checks on, no optimisation
+  - "release" Optimised
+  - "static" The library, static
+  - "shared" The library, shared
+  - "coverage" Instrumented for coverage

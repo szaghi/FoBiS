@@ -1,0 +1,10 @@
+$ fobis build --mode debug --features -checks --target test/odd_intervals.F90 --output odd --quiet && ./build/debug/odd
+The present cflags are different from the heritages one: forcing to (re-)compile all
+
+Building test/odd_intervals.F90
+Compiling src/quad_rules.F90 serially
+Compiling test/polynomials.F90 serially
+Compiling test/odd_intervals.F90 serially
+Linking build/debug/odd
+Target test/odd_intervals.F90 has been successfully built
+integral of x**3 on [0, 2] (exact 4):   3.094650

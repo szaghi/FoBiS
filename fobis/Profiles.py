@@ -14,6 +14,10 @@ from collections.abc import Callable
 # Profile flag table
 # ---------------------------------------------------------------------------
 
+# Every flag here is accepted by its compiler (tests/test_profiles.py compiles each profile with the compilers on PATH).
+# Missing on purpose, measured: ifort ignores -fsanitize=address (warning #10006: an asan build without the sanitizer),
+# ifx does not support -ip nor -prof-gen=srcpos (warning #10148), nvfortran rejects -fsanitize=address and --coverage
+# ("Unknown switch").
 PROFILES: dict[tuple[str, str], dict[str, str]] = {
     # GNU / gfortran
     ("gnu", "debug"): {
@@ -41,10 +45,6 @@ PROFILES: dict[tuple[str, str], dict[str, str]] = {
         "cflags": "-O3 -ip -ipo",
         "lflags": "",
     },
-    ("intel", "asan"): {
-        "cflags": "-O1 -g -fsanitize=address",
-        "lflags": "-fsanitize=address",
-    },
     ("intel", "coverage"): {
         "cflags": "-O0 -g -prof-gen=srcpos",
         "lflags": "-prof-gen=srcpos",
@@ -54,16 +54,12 @@ PROFILES: dict[tuple[str, str], dict[str, str]] = {
         "lflags": "",
     },
     ("intel_nextgen", "release"): {
-        "cflags": "-O3 -ip -ipo",
+        "cflags": "-O3 -ipo",
         "lflags": "",
     },
     ("intel_nextgen", "asan"): {
         "cflags": "-O1 -g -fsanitize=address",
         "lflags": "-fsanitize=address",
-    },
-    ("intel_nextgen", "coverage"): {
-        "cflags": "-O0 -g -prof-gen=srcpos",
-        "lflags": "-prof-gen=srcpos",
     },
     # NVIDIA HPC / nvfortran
     ("nvfortran", "debug"): {
@@ -73,14 +69,6 @@ PROFILES: dict[tuple[str, str], dict[str, str]] = {
     ("nvfortran", "release"): {
         "cflags": "-O4 -fast",
         "lflags": "",
-    },
-    ("nvfortran", "asan"): {
-        "cflags": "-O1 -g -fsanitize=address",
-        "lflags": "-fsanitize=address",
-    },
-    ("nvfortran", "coverage"): {
-        "cflags": "-O0 -g --coverage",
-        "lflags": "--coverage",
     },
     # NAG
     ("nag", "debug"): {
@@ -113,6 +101,9 @@ PROFILES: dict[tuple[str, str], dict[str, str]] = {
 
 KNOWN_PROFILES = {"debug", "release", "asan", "coverage"}
 KNOWN_COMPILERS = {"gnu", "intel", "intel_nextgen", "nvfortran", "nag", "amd", "lfortran"}
+# compilers of another family: a profile missing from the table gives no flags, never gfortran's (a custom or unknown
+# compiler still gets the gnu fallback)
+OTHER_FAMILIES = {"intel", "intel_nextgen", "nvfortran", "pgi", "nag", "amd", "lfortran", "ibm", "g95"}
 
 
 def get_profile_flags(
@@ -123,9 +114,9 @@ def get_profile_flags(
     """
     Return ``{'cflags': str, 'lflags': str}`` for the (compiler, profile) pair.
 
-    Falls back to the ``gnu`` compiler flags with a warning if the specific
-    (compiler, profile) combination is not in the table. Returns empty strings
-    if ``profile`` is empty/None.
+    A pair not in the table gives a warning and the ``gnu`` flags, except for a compiler of another family
+    (``OTHER_FAMILIES``): a warning and no flags, gfortran's options are not another compiler's. Returns empty strings if
+    ``profile`` is empty/None.
 
     Parameters
     ----------
@@ -148,8 +139,11 @@ def get_profile_flags(
     if key in PROFILES:
         return dict(PROFILES[key])
 
-    # fallback: try gnu
     gnu_key = ("gnu", profile.lower())
+    if gnu_key in PROFILES and compiler.lower() in OTHER_FAMILIES:
+        if print_w:
+            print_w(f"Warning: no '{profile}' profile for compiler '{compiler}': no extra flags applied.")
+        return {"cflags": "", "lflags": ""}
     if gnu_key in PROFILES:
         if print_w:
             print_w(

@@ -1,0 +1,14 @@
+$ ./build/debug/odd
+ERROR STOP simpson: the number of intervals must be even
+
+Error termination. Backtrace:
+#0  0x70f618428d14 in ???
+#1  0x70f618429ab1 in ???
+#2  0x70f61842b1c8 in ???
+#3  0x6343151d0319 in __quad_rules_MOD_simpson
+	at src/quad_rules.F90:58
+#4  0x6343151d0704 in odd_intervals
+	at test/odd_intervals.F90:8
+#5  0x6343151d0786 in main
+	at test/odd_intervals.F90:4
+[exit status 1]

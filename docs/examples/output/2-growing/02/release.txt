@@ -1,0 +1,4 @@
+$ fobis build --mode release --target test/odd_intervals.F90 --output odd --quiet
+
+Error: the target "test/odd_intervals.F90" is not among the sources of this build (src: src .fobis_deps/penf): add its directory to the mode's src
+[exit status 1]
