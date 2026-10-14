@@ -6,9 +6,9 @@ Validate the project's dependency graph without compiling anything.
 fobis check [options]
 ```
 
-`fobis check` scans sources, resolves modules, and reports any dependency
-problems — missing modules, unresolved includes, circular dependencies — as
-structured diagnostics. Exit code 0 means no errors.
+`fobis check` scans the sources as `fobis build` would, resolves every `use` and `include`, and reports what
+cannot be built: a dependency nothing provides, or files that depend on each other in a cycle. Exit code 0 means
+neither was found.
 
 ## Options
 
@@ -16,7 +16,7 @@ structured diagnostics. Exit code 0 means no errors.
 |---|---|
 | `--src SRC` | Source directory (repeatable) |
 | `--strict` | Treat warnings as errors (exit 1 on any warning) |
-| `--json` | One JSON object on stdout: `status`, `files`, `unresolved` (file, dependency, type), `warnings` (see [JSON output](/advanced/json-output#fobis-check-json)) |
+| `--json` | One JSON object on stdout: `status`, `files`, `unresolved` (file, dependency, type), `cycles` (the files along each cycle), `warnings` (see [JSON output](/advanced/json-output#fobis-check-json)) |
 | `--varset NAMES` | Apply one or more `[varset:NAME]` sections' `$variable` bindings before validating. Comma- or space-separated; last write wins. See [Varsets](/advanced/varsets). |
 
 ## fobos options
@@ -27,24 +27,24 @@ structured diagnostics. Exit code 0 means no errors.
 | `--fci`, `--fobos-case-insensitive` | Case-insensitive fobos option parsing |
 | `--mode` | Select a fobos mode |
 
-## Diagnostics
+## What is reported
 
-| Code | Severity | Meaning |
+| Problem | Example | Status |
 |---|---|---|
-| `E001` | Error | `use` statement refers to a module that cannot be found in any source file or dependency |
-| `E002` | Error | Circular dependency detected between two or more source files |
-| `E003` | Error | `include` directive references a file that does not exist |
-| `W001` | Warning | `[dependencies]` section present but no `fobos.lock` — builds are not reproducible |
-| `W002` | Warning | A declared dependency directory is absent — run `fobis fetch` |
+| Unresolved `use` | a module no project file defines and no `.mod` in the include directories (`include`, `dependon` projects) provides | error |
+| Unresolved `include` | an included file that no source directory holds | error |
+| Circular dependency | `a.f90` uses a module of `b.f90`, which uses a module of `a.f90`: no compile order exists | error |
+| Other warnings of the dependency analysis | | error with `--strict` |
 
-Warnings become errors when `--strict` is passed.
+A module provided by a `.mod` file outside the project is resolved, not reported. `fobis build` stops on a circular
+dependency with the same message.
 
 ## Exit codes
 
 | Code | Meaning |
 |---|---|
 | `0` | No errors found |
-| `1` | One or more errors found (or warnings with `--strict`) |
+| `1` | An unresolved dependency or a circular dependency (or a warning, with `--strict`) |
 
 ## Examples
 
@@ -60,9 +60,8 @@ fobis check --src ./src
 ```
 
 ::: tip Use in CI
-Add `fobis check --strict` as a pre-build gate in CI. It runs in milliseconds
-(no compilation), catches unresolved modules before the compiler does, and
-reports missing lock files so your builds stay reproducible.
+Add `fobis check --strict` as a pre-build step in CI: it compiles nothing, and names a missing module or a
+dependency cycle before the compiler does.
 :::
 
 <!-- cli:begin -->

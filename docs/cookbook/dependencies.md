@@ -32,8 +32,11 @@ stdlib = https://github.com/fortran-lang/stdlib :: tag=v0.5.0 :: use=fobos :: mo
 
 ```bash
 fobis fetch --update     # move to the latest commit allowed by each pin
-fobis fetch --frozen     # in CI: fail when there is no lock file
+fobis fetch --frozen     # fail when the fetched dependencies differ from the lock
 ```
+
+The lock is `.fobis_deps/fobos.lock`, kept with the dependencies and not committed; pin with `tag=` or `rev=` for
+every checkout to fetch the same code.
 
 Guide: [the lock file](/advanced/lock-file).
 

@@ -81,9 +81,10 @@ export FOBIS_CACHE_DIR=/dev/null
 ```
 
 ::: warning Cache and reproducibility
-The cache does **not** replace `fobos.lock`. A cache hit restores artifacts
-built from a specific locked commit; the lock file is still required to
-guarantee which commit was used. Use both together for fully reproducible builds.
+The cache does **not** decide which dependency code is built: the
+dependencies' pins in the fobos (`tag=`, `rev=`) do, and `.fobis_deps/fobos.lock`
+records the commits this checkout fetched. A cache hit only restores artifacts
+already built from those sources.
 :::
 
 <!-- cli:begin -->

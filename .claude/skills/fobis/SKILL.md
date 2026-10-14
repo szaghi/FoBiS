@@ -571,7 +571,7 @@ Workflow:
 fobis fetch              # initial clone; pre-build use=fobos deps
 fobis fetch --update     # re-pull and re-build
 fobis fetch --no-build   # clone only
-fobis fetch --frozen     # enforce exact fobos.lock state; abort on drift or missing lock
+fobis fetch --frozen     # check deps out at <deps_dir>/fobos.lock commits; abort if no lock
 fobis build              # auto-reads .fobis_deps/.deps_config.ini — no extra flags
 ```
 

@@ -135,8 +135,12 @@ When `fobis build --json` fails, the object also holds:
 ```json
 {"status": "error", "files": 3,
  "unresolved": [{"file": "./test/t_bad.f90", "dependency": "nothere", "type": "module"}],
- "warnings": ["warning: the file './test/t_bad.f90' depends on 'nothere' that is unreachable"]}
+ "cycles": [],
+ "warnings": []}
 ```
+
+`cycles` lists each circular dependency as the files along it, the first repeated at the end. `warnings` holds the
+dependency analysis' other messages (an unresolved dependency or a cycle is reported in its own field).
 
 Exit code 1 when a dependency is unresolved.
 

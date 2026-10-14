@@ -15,7 +15,7 @@ After fetching, run `fobis build` as usual — it automatically picks up the fet
 | `--deps-dir DIR` | `.fobis_deps` | Directory where dependencies are cloned (overrides `deps_dir` in fobos `[dependencies]`) |
 | `--update` | `False` | Re-fetch (git pull / checkout) and rebuild existing dependencies |
 | `--no-build` | `False` | Clone only — skip building even for `use=fobos` dependencies |
-| `--frozen` | `False` | Abort if `fobos.lock` is missing; pin every dep to its locked commit (see [Lock File](/advanced/lock-file)) |
+| `--frozen` | `False` | Abort if `<deps_dir>/fobos.lock` is missing; check every dep out at its locked commit and keep the lock unchanged (see [Lock File](/advanced/lock-file)) |
 | `--no-cache` | `False` | Disable build cache when pre-building `use=fobos` deps |
 
 ## fobos options
@@ -91,7 +91,7 @@ stdlib = https://github.com/fortran-lang/stdlib :: semver=>=0.5,<1.0
 | `=1.5.0` | exact version |
 | `*` | any version |
 
-`fobis fetch` queries the remote tags, resolves the highest satisfying tag, clones at that tag, and writes the resolved version to `fobos.lock`. On subsequent non-`--update` runs the locked tag is used directly.
+`fobis fetch` queries the remote tags, resolves the highest satisfying tag, clones at that tag, and writes the resolved version to the lock, `<deps_dir>/fobos.lock`. On later non-`--update` runs in the same checkout the locked tag is used directly.
 
 See [Lock File & Semver](/advanced/lock-file) for the full workflow.
 
@@ -177,7 +177,7 @@ See the [Fetch Dependencies](/advanced/fetch) advanced guide for the full workfl
 | `--deps-dir` | TEXT |  | Directory for storing fetched dependencies [default: .fobis_deps or fobos [dependencies] setting] |
 | `--update` |  |  | Update already-fetched dependencies (git fetch + re-checkout) |
 | `--no-build` |  |  | Only fetch dependencies, do not build them |
-| `--frozen` |  |  | Enforce exact lockfile state; abort if fobos.lock is absent or any dep mismatches |
+| `--frozen` |  |  | Check every dependency out at the commit of &lt;deps_dir&gt;/fobos.lock; abort if the lock is absent |
 | `--no-cache` |  |  | Disable build artifact cache for fetched dependencies |
 | `--force-compile` |  |  | Force to (re-)compile all |
 | `--colors` |  |  | Activate colors in shell prints |

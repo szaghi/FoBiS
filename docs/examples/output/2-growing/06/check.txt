@@ -3,5 +3,6 @@ $ fobis check --json
   "status": "ok",
   "files": 241,
   "unresolved": [],
+  "cycles": [],
   "warnings": []
 }

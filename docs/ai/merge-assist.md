@@ -91,4 +91,3 @@ trusted.
   cannot be detected one hunk at a time. `merge-assist` ends by listing the procedures changed by both sides:
   test them (`fobis test`).
 - Binary files and conflicts without text (modify/delete of a whole file) are not handled.
-- A `fobos.lock` conflict should be resolved by regenerating the lock (`fobis fetch`), not by merging it.

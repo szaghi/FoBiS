@@ -44,6 +44,8 @@ class Dependency:
         self.type = dtype
         self.name = name
         self.file = dfile
+        # a module defined outside the project whose .mod file was found in an include directory
+        self.external = False
 
     def __str__(self):
         string = []

@@ -13,8 +13,8 @@ jobs:
         run: |
           sudo apt-get install -y gfortran
           pip install FoBiS.py gcovr
-      - name: Dependencies, locked
-        run: fobis fetch --frozen
+      - name: Dependencies, at the tags the fobos pins
+        run: fobis fetch
       - name: Build
         run: fobis build --mode release
       - name: Tests

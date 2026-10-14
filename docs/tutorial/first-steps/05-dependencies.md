@@ -48,8 +48,10 @@ of chapter 4, with `integrands`, which uses it. Files on the same line belong to
 
 <<< @/examples/output/1-first-steps/05/lock.txt{console}
 
-The lock records the commit each dependency resolved to, and a checksum of its files. `fobis fetch --frozen` refuses to
-run without it and checks every dependency against it:
+The lock lives with the dependencies, in `.fobis_deps/`, and like them it is not committed: it is this machine's
+record of the commit each dependency resolved to, and a checksum of its files. What makes another checkout fetch the
+same code is the specification in the fobos (`tag=`, `rev=`). `fobis fetch --frozen` refuses to run without the lock
+and checks every dependency against it:
 
 <<< @/examples/output/1-first-steps/05/frozen.txt{console}
 

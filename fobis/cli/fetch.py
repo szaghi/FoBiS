@@ -32,7 +32,7 @@ def cmd_fetch(
         bool,
         typer.Option(
             "--frozen",
-            help="Enforce exact lockfile state; abort if fobos.lock is absent or any dep mismatches",
+            help="Check every dependency out at the commit of <deps_dir>/fobos.lock; abort if the lock is absent",
         ),
     ] = False,
     no_cache: Annotated[

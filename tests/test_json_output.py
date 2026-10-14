@@ -73,10 +73,51 @@ def test_build_json_diagnoses_a_failure(project, capsys):
 
 def test_check_json(project, capsys):
     code, data = _json(["check", "--json"], capsys)
-    assert code == 0 and data == {"status": "ok", "files": 3, "unresolved": [], "warnings": []}
+    assert code == 0 and data == {"status": "ok", "files": 3, "unresolved": [], "cycles": [], "warnings": []}
     (project / "test" / "t_bad.f90").write_text("program t_bad\nuse nothere\nend program t_bad\n")
     code, data = _json(["check", "--json"], capsys)
     assert code == 1 and data["unresolved"] == [{"file": "./test/t_bad.f90", "dependency": "nothere", "type": "module"}]
+
+
+def test_check_and_build_report_a_circular_dependency(project, capsys):
+    """Two modules using each other: no compile order exists (it recursed until RecursionError)."""
+    (project / "src" / "a.f90").write_text("module a\nuse b\nend module a\n")
+    (project / "src" / "b.f90").write_text("module b\nuse a\nend module b\n")
+    code, data = _json(["check", "--json"], capsys)
+    assert code == 1 and data["status"] == "error" and data["unresolved"] == []
+    assert data["cycles"] == [["./src/a.f90", "./src/b.f90", "./src/a.f90"]] and data["warnings"] == []
+    with pytest.raises(SystemExit) as exit_info:
+        run_fobis(fake_args=["build", "--target", "src/a.f90"])
+    assert exit_info.value.code == 1
+    assert "circular dependency: ./src/a.f90 -> ./src/b.f90 -> ./src/a.f90" in capsys.readouterr().out
+
+
+def test_check_resolves_a_module_from_an_include_directory(project, capsys):
+    """A .mod found in an include directory (an installed library) resolves the use: it was reported unresolved."""
+    (project / "lib").mkdir()
+    (project / "lib" / "outside.mod").write_text("")
+    (project / "test" / "t_lib.f90").write_text("program t_lib\nuse outside\nend program t_lib\n")
+    code, data = _json(["check", "--json"], capsys)
+    assert code == 1 and [u["dependency"] for u in data["unresolved"]] == ["outside"]
+    (project / "fobos").write_text((project / "fobos").read_text() + "include = ./lib/\n")
+    code, data = _json(["check", "--json"], capsys)
+    assert code == 0 and data["unresolved"] == []
+
+
+def test_check_strict_fails_on_a_warning(project, capsys, monkeypatch):
+    import fobis.fobis as fobis_module
+
+    original = fobis_module.dependency_hiearchy
+
+    def warning(builder, pfiles, print_w=None, force_compile=False):
+        print_w("warning: something the analysis noticed")
+        return original(builder=builder, pfiles=pfiles, print_w=print_w, force_compile=force_compile)
+
+    monkeypatch.setattr(fobis_module, "dependency_hiearchy", warning)
+    code, data = _json(["check", "--json"], capsys)
+    assert code == 0 and data["warnings"] == ["warning: something the analysis noticed"]
+    code, data = _json(["check", "--json", "--strict"], capsys)
+    assert code == 1 and data["status"] == "error"
 
 
 def test_build_json_errors_are_errors_only(project, capsys):

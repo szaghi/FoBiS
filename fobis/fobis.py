@@ -1940,18 +1940,30 @@ def run_fobis_check(configuration):
     """
     Run FoBiS in check mode: validate the dependency graph without building.
 
-    With ``--json`` one object goes to stdout: ``status``, ``files`` (number scanned), ``unresolved`` (file,
-    dependency, type) and ``warnings`` (what the dependency analysis reported).
+    Reports the ``use``/``include`` dependencies no project file provides and the circular dependencies (no compile
+    order exists); exit 1 on either, and with ``--strict`` on any warning too. With ``--json`` one object goes to
+    stdout: ``status``, ``files`` (number scanned), ``unresolved`` (file, dependency, type), ``cycles`` (file names
+    along each cycle) and ``warnings`` (what the dependency analysis reported).
 
     Parameters
     ----------
     configuration : FoBiSConfig()
     """
+    from .utils import CircularDependency
+
     as_json = getattr(configuration.cliargs, "json_output", False)
+    strict = getattr(configuration.cliargs, "strict", False)
     warnings: list[str] = []
+    print_r = configuration.print_r
+
+    def collect(message, *args, **kwargs):
+        warnings.append(str(message))
+        if not as_json:
+            print_r(message, *args, **kwargs)
+
     if as_json:
         configuration.print_b = lambda *a, **k: None
-        configuration.print_r = lambda message, *a, **k: warnings.append(str(message))
+    configuration.print_r = collect
     pfiles = parse_files(configuration=configuration)
     # Create a dummy builder just to resolve includes
     builder = Builder(
@@ -1959,41 +1971,51 @@ def run_fobis_check(configuration):
         print_n=configuration.print_b,
         print_w=configuration.print_r,
     )
-    dependency_hiearchy(
-        builder=builder,
-        pfiles=pfiles,
-        print_w=configuration.print_r,
-        force_compile=False,
-    )
-    # Check for unresolved dependencies
+    cycles: list[list[str]] = []
+    try:
+        dependency_hiearchy(
+            builder=builder,
+            pfiles=pfiles,
+            print_w=configuration.print_r,
+            force_compile=False,
+        )
+    except CircularDependency as failure:
+        cycles = failure.cycles
+    configuration.print_r = print_r
+    # unresolved dependencies and cycles are reported on their own: the analysis' messages about them are not warnings
+    warnings = [w for w in warnings if w.strip() and "unreachable" not in w and "circular dependency" not in w]
     unresolved = [
         {"file": pfile.name, "dependency": dep.name, "type": dep.type}
         for pfile in pfiles
         for dep in pfile.dependencies
-        if not dep.file
+        if not dep.file and not getattr(dep, "external", False)  # a .mod found in an include directory resolves it
     ]
+    failed = bool(unresolved or cycles or (strict and warnings))
     if as_json:
         import json
 
         result = {
-            "status": "error" if unresolved else "ok",
+            "status": "error" if failed else "ok",
             "files": len(pfiles),
             "unresolved": unresolved,
-            "warnings": [w for w in warnings if w.strip()],
+            "cycles": cycles,
+            "warnings": warnings,
         }
         print(json.dumps(result, indent=2))
-        if unresolved:
+        if failed:
             sys.exit(1)
         return
     for item in unresolved:
         configuration.print_r(
             f"  Unresolved: '{item['file']}' depends on '{item['dependency']}' ({item['type']}) — not found"
         )
-    if unresolved:
-        configuration.print_r(f"\nDependency check: {len(unresolved)} unresolved dependency(-ies).")
+    if failed:
+        problems = [f"{len(unresolved)} unresolved dependency(-ies)"] if unresolved else []
+        problems += [f"{len(cycles)} circular dependency(-ies)"] if cycles else []
+        problems += [f"{len(warnings)} warning(s) (--strict)"] if strict and warnings else []
+        configuration.print_r(f"\nDependency check: {', '.join(problems)}.")
         sys.exit(1)
-    else:
-        configuration.print_b(f"Dependency check: OK ({len(pfiles)} files scanned, 0 errors)")
+    configuration.print_b(f"Dependency check: OK ({len(pfiles)} files scanned, 0 errors)")
 
 
 DEFAULT_LINT_BASELINE = ".fobis-lint-baseline.json"

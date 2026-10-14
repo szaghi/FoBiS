@@ -27,6 +27,50 @@ import subprocess
 import sys
 
 
+class CircularDependency(SystemExit):
+    """Files depend on each other in a cycle (modules using each other): no compile order exists. Exits with status 1.
+
+    Attributes
+    ----------
+    cycles : list of list of str
+        Each cycle as the file names along it, the first repeated at the end.
+    """
+
+    def __init__(self, cycles: list[list[str]]) -> None:
+        super().__init__(1)
+        self.cycles = cycles
+
+
+def dependency_cycles(pfiles) -> list[list[str]]:
+    """The cycles of the direct dependencies of *pfiles* (``pfile_dep``), each as file names, the first repeated at the
+    end; one cycle per set of files."""
+    cycles: list[list[str]] = []
+    seen: set[frozenset[str]] = set()
+    state: dict[int, int] = {}  # id -> 1 on the current path, 2 done
+    stack: list = []
+
+    def visit(pfile) -> None:
+        state[id(pfile)] = 1
+        stack.append(pfile)
+        for dep in pfile.pfile_dep:
+            if dep is pfile:
+                continue
+            if state.get(id(dep)) == 1:
+                cycle = [f.name for f in stack[stack.index(dep) :]]
+                if frozenset(cycle) not in seen:
+                    seen.add(frozenset(cycle))
+                    cycles.append([*cycle, dep.name])
+            elif id(dep) not in state:
+                visit(dep)
+        stack.pop()
+        state[id(pfile)] = 2
+
+    for pfile in pfiles:
+        if id(pfile) not in state:
+            visit(pfile)
+    return cycles
+
+
 class BuildFailed(SystemExit):
     """A compile or link step failed: exits with status 1 (as before) and keeps the failing outputs.
 
@@ -127,7 +171,7 @@ def traverse_recursive(parsed_file, path=None):
     path.append(parsed_file)
     yield path
     for dep in parsed_file.pfile_dep:
-        if dep != parsed_file:
+        if dep not in path:  # a cycle (reported by dependency_cycles) would recurse forever
             for path in traverse_recursive(dep, path):
                 yield path
     if path:
@@ -244,6 +288,7 @@ def dependency_hiearchy(builder, pfiles, print_w=None, force_compile=False):
                                 break
                         if fnum == 0:
                             break
+                    dep.external = fnum == 0
                     if fnum != 0:
                         print_wm(
                             "warning: the file '"
@@ -269,6 +314,11 @@ def dependency_hiearchy(builder, pfiles, print_w=None, force_compile=False):
                         "warning: the file '" + parsed_file.name + "' depends on '" + dep.name + "' that is unreachable"
                     )
                     # sys.exit(1)
+    cycles = dependency_cycles(pfiles)
+    if cycles:
+        for cycle in cycles:
+            print_wm("error: circular dependency: " + " -> ".join(cycle))
+        raise CircularDependency(cycles)
     # indirect dependency list
     for parsed_file in pfiles:
         parsed_file.create_pfile_dep_all()
