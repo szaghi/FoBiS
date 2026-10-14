@@ -14,7 +14,7 @@ Tutorial: [continuous integration](/tutorial/growing/06-ci).
 
 ```bash
 fobis build --json
-fobis test --json
+fobis test --json -j 4          # tests run four at a time; the document adds jobs and elapsed
 fobis check --json
 fobis verify --json
 ```

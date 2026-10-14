@@ -4386,6 +4386,15 @@ def _test_settings(configuration) -> tuple[str, str | None, float]:
     return config.get("test_dir", "test"), suite, float(timeout if timeout is not None else config.get("timeout", 60))
 
 
+def _test_jobs(configuration) -> int:
+    """Test programs running at once: ``--jobs``, else ``[test] jobs``, else 1."""
+    jobs = getattr(configuration.cliargs, "test_jobs", None)
+    if jobs:
+        return int(jobs)
+    fobos = configuration.fobos
+    return int(fobos.get_test_config().get("jobs", 1)) if fobos.fobos else 1
+
+
 def run_fobis_test(configuration):
     """
     Run FoBiS in test mode: discover, build, and run Fortran test programs.
@@ -4481,6 +4490,7 @@ def run_fobis_test(configuration):
         timeout=timeout,
         extra_args=extra_args,
         no_build=no_build,
+        jobs=_test_jobs(configuration),
     )
     configuration.print_b(runner.format_results(suite))
     if getattr(cliargs, "explain", False):
@@ -4569,6 +4579,7 @@ def _run_fobis_test_json(configuration, tests, test_dir):
             timeout=_test_settings(configuration)[2],
             extra_args=getattr(cliargs, "test_extra_args", []) or [],
             no_build=getattr(cliargs, "test_no_build", False),
+            jobs=_test_jobs(configuration),
         )
     context = None
     results = []
@@ -4616,6 +4627,9 @@ def _run_fobis_test_json(configuration, tests, test_dir):
         "failed": len(failed),
         "results": results,
     }
+    if suite.wall is not None:  # ran in parallel: the wall-clock time of the run phase
+        data["jobs"] = suite.jobs
+        data["elapsed"] = round(suite.wall, 3)
     print(json.dumps(data, indent=2))
     if failed:
         sys.exit(1)

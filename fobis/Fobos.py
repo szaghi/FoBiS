@@ -1978,6 +1978,7 @@ class Fobos:
             "compiler": "",
             "cflags": "",
             "launcher": "",
+            "jobs": 1,
         }
         if not self.fobos or not self.fobos.has_section("test"):
             return config
@@ -1987,6 +1988,9 @@ class Fobos:
         if self.fobos.has_option("test", "timeout"):
             with contextlib.suppress(ValueError):
                 config["timeout"] = int(self.fobos.get("test", "timeout"))
+        if self.fobos.has_option("test", "jobs"):
+            with contextlib.suppress(ValueError):
+                config["jobs"] = max(1, int(self.fobos.get("test", "jobs")))
         return config
 
     def get_lint_config(self) -> dict[str, Any]:

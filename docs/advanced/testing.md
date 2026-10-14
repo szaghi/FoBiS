@@ -50,6 +50,7 @@ are always included unless `--suite` filters them out.
 | `--quiet` | `False` | Build without printing the builder's settings for each test |
 | `--launcher CMD` | mode key `launcher`, else `[test] launcher` | Start every test through `CMD` (`mpirun -np {ranks}`, `valgrind ...`) |
 | `--ranks N` | `1` | Replace `{ranks}` in the launcher; alone, `mpirun -np N` |
+| `--jobs N`, `-j N` | `[test] jobs`, else `1` | Run up to `N` test programs at once (built first, one after the other) |
 
 ## `[test]` fobos section
 
@@ -61,7 +62,14 @@ test_dir = test
 suite    = unit
 timeout  = 120
 launcher = mpirun -np {ranks}
+jobs     = 4
 ```
+
+## Parallel tests
+
+`fobis test -j 4` runs four test programs at a time and reports them in the usual order. A test started with
+`--ranks R` takes `R` slots. Tests run in the current directory, so tests writing the same file need distinct file
+names or `-j 1`. See [parallel tests](/reference/test#parallel-tests).
 
 ## MPI tests, debuggers and checkers
 

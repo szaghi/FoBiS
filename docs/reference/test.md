@@ -20,6 +20,7 @@ fobis test [options] [-- EXTRA_ARGS...]
 | `--explain-context` | `False` | Like `--explain`, but print what the model would receive instead of running it |
 | `--runner local\|slurm` | `local` | Run the test programs locally or as Slurm jobs (see [Running on a cluster](/advanced/scheduler)) |
 | `--launcher CMD` | mode key `launcher`, else `[test] launcher` | Start every test program through `CMD`: `mpirun -np {ranks}`, `valgrind --error-exitcode=1` (see [launchers](/reference/run#launchers)) |
+| `--jobs N`, `-j N` | `[test] jobs`, else `1` | Run up to `N` test programs at once (see [parallel tests](#parallel-tests)) |
 | `--ranks N` | `1` | MPI ranks: replace `{ranks}` in the launcher; without a launcher, `mpirun -np {ranks}` (under `--runner slurm`: the `[scheduler]` launcher, `srun`, and `--ntasks=N` for the job) |
 | `--quiet`, `-q` | `False` | Build the tests without printing the builder's settings for each |
 | `--json` | `False` | Build and run silently, then one JSON object: each result with its status and, for a failure, the facts of `--explain` (see [JSON output](/advanced/json-output#fobis-test-json)) |
@@ -58,7 +59,20 @@ test_dir = tests        ; default: test
 suite    = unit         ; default suite for all tests in this dir
 timeout  = 120          ; global timeout (seconds)
 launcher = mpirun -np {ranks}   ; every test through MPI (a mode's own launcher wins)
+jobs     = 4            ; test programs running at once (--jobs overrides it)
 ```
+
+## Parallel tests
+
+`fobis test -j N` builds the selected tests first, one after the other (the builds share the mode's object and
+module directories), then runs up to `N` programs at once. The results are listed in discovery order, as in a
+serial run, with the same statuses; the summary adds the elapsed time, and `--json` adds `jobs` and `elapsed`
+(seconds). Each test keeps its own timeout.
+
+- A test started with `--ranks R` takes `R` of the `N` slots: `-j 8 --ranks 4` runs two MPI tests at a time.
+- Under `--runner slurm`, `N` is the number of jobs in the queue at once.
+- The tests run in the current directory, as in a serial run: tests that write the same file must not run in
+  parallel (give the files distinct names, or keep `-j 1`).
 
 ## Output format
 
@@ -108,6 +122,9 @@ fobis test --coverage
 # Pass extra args to every test binary
 fobis test -- --verbose
 
+# Four test programs at a time
+fobis test -j 4
+
 # MPI tests on 4 ranks; every test under valgrind
 fobis test --launcher "mpirun -np {ranks}" --ranks 4
 fobis test --launcher "valgrind --error-exitcode=1"
@@ -142,6 +159,7 @@ signal pass/fail (pFUnit, test-drive, FRUIT, etc.). No adaptor needed — just
 | `--runner` | TEXT | `local` | Where the programs run: local, or slurm (jobs submitted with sbatch; [scheduler] settings). |
 | `--launcher` | TEXT |  | Start the program through this command: an MPI launcher, a debugger, a checker ('mpirun -np {ranks}', 'gdb --args', 'valgrind'); {ranks} is replaced by --ranks [default: mode key launcher] |
 | `--ranks` | INTEGER |  | Number of MPI ranks: replaces {ranks} in the launcher (without a launcher: mpirun -np {ranks}) |
+| `--jobs`, `-j` | INTEGER |  | Test programs running at the same time (built first, one after the other); a test with --ranks takes as many [default: fobos [test] jobs, else 1] |
 | `--quiet`, `-q` |  |  | Less verbose output |
 | `--json` |  |  | Emit structured JSON to stdout instead of human-readable output (useful for scripting / agents) |
 

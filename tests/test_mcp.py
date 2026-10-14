@@ -413,5 +413,7 @@ def test_introspect_compile_commands(server, calls, reply):
 
 
 def test_test_tool_passes_the_launcher(server, calls):
-    _call(server, "test", {"launcher": "mpirun -np {ranks}", "ranks": 2, "filter": "t_*"})
-    assert calls[-1] == ["test", "--json", "--filter", "t_*", "--launcher", "mpirun -np {ranks}", "--ranks", "2"]
+    _call(server, "test", {"launcher": "mpirun -np {ranks}", "ranks": 2, "filter": "t_*", "jobs": 4})
+    assert calls[-1] == [
+        *["test", "--json", "--filter", "t_*", "--launcher", "mpirun -np {ranks}", "--ranks", "2", "--jobs", "4"]
+    ]

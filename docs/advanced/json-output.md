@@ -178,8 +178,9 @@ shortened:
 
 `status` per test: `passed`, `failed` (with the parsed `crash` and FoBiS's `notes`, the facts of
 [`test --explain`](/ai/explain#runtime-failures)), `build-failed` (with the build's `diagnostics` and
-`diagnoses`), `timeout`, `error`. With `--list`: `{"status": "listed", "tests": [...]}`. Exit code 1 when a
-test does not pass.
+`diagnoses`), `timeout`, `error`. With `--list`: `{"status": "listed", "tests": [...]}`. With `-j N` (more than
+one test at a time) the document adds `jobs` and `elapsed`, the wall-clock seconds of the run phase; the results
+keep the order of a serial run. Exit code 1 when a test does not pass.
 
 ### `fobis merge-assist --format json`
 

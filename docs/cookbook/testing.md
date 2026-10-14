@@ -36,6 +36,21 @@ timeout = 120       ; seconds per test; --timeout overrides it
 fobis test --suite slow
 ```
 
+## Run the tests in parallel
+
+```ini
+[test]
+jobs = 4            ; test programs at a time; --jobs/-j overrides it
+```
+
+```bash
+fobis test -j 8                                            # eight at a time
+fobis test -j 8 --launcher "mpirun -np {ranks}" --ranks 4  # two MPI tests at a time
+```
+
+Built one after the other, run in parallel, reported in the usual order. Tests writing the same file need distinct
+names or `-j 1`. Reference: [parallel tests](/reference/test#parallel-tests).
+
 ## Examples in the documentation that run
 
 A `!<` comment block with a Fortran example and its expected output is a doctest:

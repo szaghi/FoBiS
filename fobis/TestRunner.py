@@ -12,6 +12,7 @@ import re
 import subprocess
 import time
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -41,6 +42,8 @@ class TestSuite:
     """Aggregated results for all discovered tests."""
 
     results: list[TestResult] = field(default_factory=list)
+    wall: float | None = None  # wall-clock time of the run phase, when tests ran in parallel
+    jobs: int = 1
 
     @property
     def passed(self) -> int:
@@ -321,9 +324,14 @@ class TestRunner:
         timeout: float = 60.0,
         extra_args: list[str] | None = None,
         no_build: bool = False,
+        jobs: int = 1,
     ) -> TestSuite:
         """
         Build and run a list of test dicts.
+
+        Every selected test is built first, one after the other (the builds share the object and module
+        directories), then the programs run: one at a time, or up to *jobs* at once. A test started with ranks
+        (``self.ranks``) takes as many of the *jobs* slots. Results keep the order of the tests either way.
 
         Parameters
         ----------
@@ -335,31 +343,54 @@ class TestRunner:
         timeout : float
         extra_args : list[str], optional
         no_build : bool
+        jobs : int
+            Test programs running at the same time.
 
         Returns
         -------
         TestSuite
         """
         filtered = select_tests(tests, suite_filter, name_filter)
-        suite = TestSuite()
+        results: list[TestResult | None] = []
+        runnable: list[tuple[int, dict, str]] = []
         for test in filtered:
-            if no_build:
-                binary = os.path.join(self.build_dir, test["name"])
+            if no_build:  # where build_fn puts them
+                binary = os.path.join(self.build_dir, "test", test["name"])
             else:
                 binary = build_fn(test)
             if binary is None or not os.path.isfile(binary):
-                result = TestResult(
-                    name=test["name"],
-                    passed=False,
-                    exit_code=-3,
-                    duration=0.0,
-                    stderr="Build failed or binary not found",
-                    suite=test.get("suite", ""),
+                results.append(
+                    TestResult(
+                        name=test["name"],
+                        passed=False,
+                        exit_code=-3,
+                        duration=0.0,
+                        stderr="Build failed or binary not found",
+                        suite=test.get("suite", ""),
+                    )
                 )
-                suite.results.append(result)
                 continue
-            result = self.run_test(test, binary, timeout=timeout, extra_args=extra_args)
-            suite.results.append(result)
+            runnable.append((len(results), test, binary))
+            results.append(None)
+        workers = max(1, jobs // max(1, self.ranks))
+        suite = TestSuite(jobs=jobs)
+        if workers == 1 or len(runnable) < 2:
+            for index, test, binary in runnable:
+                results[index] = self.run_test(test, binary, timeout=timeout, extra_args=extra_args)
+        else:
+            start = time.monotonic()
+            pool = ThreadPoolExecutor(max_workers=workers)  # each test is a subprocess: threads only wait
+            try:
+                futures = {
+                    pool.submit(self.run_test, test, binary, timeout, extra_args): index
+                    for index, test, binary in runnable
+                }
+                for future in as_completed(futures):
+                    results[futures[future]] = future.result()
+            finally:
+                pool.shutdown(wait=True, cancel_futures=True)
+            suite.wall = time.monotonic() - start
+        suite.results = [r for r in results if r is not None]
         return suite
 
     @staticmethod
@@ -385,5 +416,6 @@ class TestRunner:
                         lines.append(f"        {line}")
         lines.append("")
         lines.append(f"  Results: {suite.passed} passed, {suite.failed} failed, 0 skipped")
-        lines.append(f"  Total:   {suite.duration:.2f} s")
+        wall = f" ({suite.wall:.2f} s elapsed with -j {suite.jobs})" if suite.wall is not None else ""
+        lines.append(f"  Total:   {suite.duration:.2f} s{wall}")
         return "\n".join(lines)

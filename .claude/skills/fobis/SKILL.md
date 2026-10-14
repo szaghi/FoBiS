@@ -41,6 +41,10 @@ fobis check              # validate the dependency graph without building
   `--ranks N` replaces `{ranks}` (default 1; `--ranks` alone = `mpirun -np N`). Precedence: `--launcher` > mode key
   `launcher` > `[test] launcher`. Not on PATH, or ranks on a `[scheduler] login_nodes` host -> exit 2 before
   building. `test --runner slurm`: launcher inside the job script, `--ranks` alone uses `srun` + `--ntasks`.
+- `test -j N` (`[test] jobs`): tests built one after the other, then up to N programs at once (a test with
+  `--ranks R` takes R slots); results in discovery order; summary/JSON add the elapsed time (`jobs`, `elapsed`).
+  Same working directory as serial runs: tests writing the same file need distinct names or `-j 1`.
+  `test --no-build` runs what a previous `fobis test` built (`<build_dir>/test/<name>`).
 - `coverage`: `--format html|xml|text|all` (repeatable, default html), `--output-dir`,
   `--source-dir`, `--exclude GLOB`, `--fail-under N`, `--tool gcovr|lcov`.
 - `check`: `--strict` (warnings → errors, exit 1), `--varset`, `--src`.

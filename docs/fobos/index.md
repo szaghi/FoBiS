@@ -366,6 +366,7 @@ test_dir = test     ; where the test programs are (default: test)
 suite    = unit     ; only run tests tagged with this suite (--suite overrides it)
 timeout  = 120      ; seconds per test (--timeout overrides it; default 60)
 launcher = mpirun -np {ranks}   ; start every test through it (--launcher, then a mode's launcher, win)
+jobs     = 4        ; test programs running at once (--jobs overrides it; default 1)
 ```
 
 ### `[coverage]` section

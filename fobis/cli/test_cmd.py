@@ -71,6 +71,16 @@ def cmd_test(
     runner: RunnerOpt = "local",
     launcher: LauncherOpt = None,
     ranks: RanksOpt = None,
+    jobs: Annotated[
+        int | None,
+        typer.Option(
+            "--jobs",
+            "-j",
+            min=1,
+            help="Test programs running at the same time (built first, one after the other); a test with --ranks "
+            "takes as many [default: fobos [test] jobs, else 1]",
+        ),
+    ] = None,
     quiet: QuietOpt = False,
     json_output: JsonOpt = False,
 ):
@@ -94,6 +104,7 @@ def cmd_test(
         test_extra_args=extra_args,
         test_launcher=launcher,
         test_ranks=ranks,
+        test_jobs=jobs,
         explain=explain or explain_context,
         explain_context=explain_context,
         runner=runner,

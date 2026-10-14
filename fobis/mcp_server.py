@@ -349,6 +349,8 @@ class Server:
             args += ["--launcher", arguments["launcher"]]
         if arguments.get("ranks"):
             args += ["--ranks", str(int(arguments["ranks"]))]
+        if arguments.get("jobs"):
+            args += ["--jobs", str(int(arguments["jobs"]))]
         return self._json(args)
 
     def _assess(self, arguments: dict) -> Reply:
@@ -711,6 +713,7 @@ class Server:
                             "'valgrind --error-exitcode=1'",
                         },
                         "ranks": {"type": "integer", "minimum": 1, "description": "MPI ranks, replaces {ranks}"},
+                        "jobs": {"type": "integer", "minimum": 1, "description": "test programs running at once"},
                     }
                 ),
                 self._test,
