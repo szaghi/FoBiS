@@ -54,3 +54,16 @@ def test_compare_reports_drift_and_ignores_durations(tmp_path):
     (fresh / docs.MANIFEST).write_text('{"compiler": "GNU Fortran (Ubuntu 14.2.0) 14.2.0"}')  # another compiler
     (fresh / "t/01/b.txt").write_text("$ fobis build\nother\n[exit status 1]\n")
     assert docs.compare(fresh, committed)[0] == "t/01/b.txt: [exit status 1] instead of [exit status 0]"
+
+
+def test_a_scratch_directory_with_a_hexadecimal_suffix_is_not_a_hash():
+    """mkdtemp suffixes are random: one made only of hex digits matched the hash rule first (a flaky CI failure)."""
+    docs = _load()
+    fresh = "modernize: base copy in ~/tmp/fobis-modernize-1a2b3c4d\n"
+    committed = "modernize: base copy in ~/tmp/fobis-modernize-q8x_kz2m\n"
+    assert (
+        docs._normalised(fresh)
+        == docs._normalised(committed)
+        == "modernize: base copy in ~/tmp/fobis-modernize-RANDOM\n"
+    )
+    assert docs._first_difference(fresh, committed) is None

@@ -326,6 +326,8 @@ def generate(out_root: Path, track: str | None = None, keep: Path | None = None)
 
 # shown as measured, not compared: test timings, and the addresses of a backtrace (address-space randomisation)
 _VOLATILE = (
+    # scratch directories (mkdtemp PREFIX-) first: a random suffix made of hex digits would be taken for a hash
+    (re.compile(r"(~/tmp/[\w.-]*-)[a-z0-9_]{8}(?!\w)"), r"\1RANDOM"),
     (re.compile(r"\b\d+\.\d+ ?s\b"), "N s"),
     # commit hashes: the ecosystem demo's commits hold its scratch path (the scaffolded remote URL)
     (re.compile(r"\b(?=[0-9a-f]*[a-f])(?=[0-9a-f]*\d)[0-9a-f]{7,64}\b"), "HASH"),
@@ -334,7 +336,6 @@ _VOLATILE = (
     (re.compile(r"GNU Fortran \([^)]*\) \d+\.\d+\.\d+"), "GNU Fortran VERSION"),
     (re.compile(r"\b0x[0-9a-f]{6,}\b"), "0xADDRESS"),
     (re.compile(r"\b\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(\.\d+)?\b"), "DATETIME"),  # "generated" stamps
-    (re.compile(r"(~/tmp/[\w.-]*-)[a-z0-9_]{8}(?!\w)"), r"\1RANDOM"),  # scratch directories (mkdtemp PREFIX-)
 )
 
 
