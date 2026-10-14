@@ -23,6 +23,7 @@ FoBiS.py, Fortran Building System
 import configparser
 import contextlib
 import os
+import re
 import shutil
 import sys
 
@@ -1074,7 +1075,14 @@ def parse_files(configuration, src_dir=None, is_doctest=False):
                                     intrinsic_modules=parse_intrinsic_modules,
                                 )
                             pfiles.append(pfile)
-    return pfiles
+    # by path, in natural order: not the directory listing's (it differs between file systems, so did the order of
+    # compilation and of the doctests)
+    return sorted(pfiles, key=lambda pfile: _natural_key(pfile.name))
+
+
+def _natural_key(text):
+    """Sort key putting `x-2` before `x-10`."""
+    return [int(part) if part.isdigit() else part for part in re.split(r"(\d+)", text)]
 
 
 def parse_doctests(configuration, pfiles, builder):
@@ -1100,7 +1108,7 @@ def parse_doctests(configuration, pfiles, builder):
                 doc_dir = pfile.doctest.save_volatile_programs(build_dir=builder.build_dir)
                 doctests_dirs.append(doc_dir)
     if len(doctests_dirs) > 0:
-        doctests_dirs = list(set(doctests_dirs))
+        doctests_dirs = sorted(set(doctests_dirs))
     for doc_dir in doctests_dirs:
         doctests += parse_files(configuration=configuration, src_dir=doc_dir, is_doctest=True)
     return doctests, doctests_dirs

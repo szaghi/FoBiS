@@ -61,3 +61,15 @@ def test_target_outside_the_sources_is_an_error(project, capsys):
         code = exc.code
     out = capsys.readouterr()
     assert code == 1 and 'the target "test/other.f90" is not among the sources' in out.out + out.err
+
+
+def test_sources_are_parsed_in_natural_path_order(project):
+    """Not the directory listing's order, which differs between file systems (the doctests ran 2 before 1 on one
+    machine and 1 before 2 on another)."""
+    from fobis.fobis import parse_files
+    from fobis.FoBiSConfig import FoBiSConfig
+
+    for name in ("m-10.f90", "m-2.f90", "a.f90"):
+        (project / "src" / name).write_text(f"module {name[:-4].replace('-', '_')}\nend module\n")
+    names = [p.name for p in parse_files(FoBiSConfig(fake_args=["build"]))]
+    assert names == ["src/a.f90", "src/app.f90", "src/m-2.f90", "src/m-10.f90"]

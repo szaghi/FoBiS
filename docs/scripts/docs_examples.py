@@ -182,9 +182,13 @@ def run_chapter(track: str, chapter: Path, home: Path, project: Path, out: Path,
     out.mkdir(parents=True, exist_ok=True)
     if not kept:  # the whole session ran: its outputs replace the chapter's
         for stale in out.glob("*.txt"):
-            stale.unlink()
+            if not (fresh / stale.name).exists():
+                stale.unlink()
     for txt in fresh.glob("*.txt"):  # a session stopped by `needs` overwrites only what ran
-        (out / txt.name).write_text(txt.read_text(errors="replace").replace(str(home), "~"))
+        text = txt.read_text(errors="replace").replace(str(home), "~")
+        target = out / txt.name
+        if not (target.is_file() and _normalised(target.read_text()) == _normalised(text)):  # no churn: addresses
+            target.write_text(text)
     shutil.rmtree(fresh)
     return not kept
 

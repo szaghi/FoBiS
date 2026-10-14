@@ -1,5 +1,5 @@
 $ fobis doctests --quiet
-executing doctest quad_rules-doctest-2
-doctest passed
 executing doctest quad_rules-doctest-1
+doctest passed
+executing doctest quad_rules-doctest-2
 doctest passed
