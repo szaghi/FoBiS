@@ -7,7 +7,7 @@ fobis doctests let you write micro-unit-tests directly inside Fortran comment do
 1. FoBiS.py scans source files for doctest snippets embedded in comments.
 2. For each snippet, a *volatile* Fortran program is generated, compiled, and executed.
 3. The program's standard output is compared to the expected result.
-4. The volatile program is deleted after the test (unless `-keep_volatile_doctests` is set).
+4. The volatile program is deleted after the test (unless `--keep-volatile-doctests` is set).
 
 ## Syntax
 
@@ -112,13 +112,13 @@ end module simple
 fobis doctests
 
 # Keep volatile programs for inspection
-fobis doctests -keep_volatile_doctests
+fobis doctests --keep-volatile-doctests
 
 # Store build output in ./build/
-fobis doctests -dbld ./build/
+fobis doctests --dbld ./build/
 
 # Use a fobos mode
-fobis doctests -f project.fobos -mode gnu
+fobis doctests -f project.fobos --mode gnu
 ```
 
 ## Output
@@ -134,7 +134,7 @@ doctest passed
 
 ## Volatile program structure
 
-With `-keep_volatile_doctests` and `-dbld ./build/`, the generated structure looks like:
+With `--keep-volatile-doctests` and `-dbld ./build/`, the generated structure looks like:
 
 ```
 build/

@@ -13,10 +13,10 @@ fobis test
 fobis test --suite physics
 
 # Run only tests whose names match a glob pattern
-fobis test --name "test_*_rk8"
+fobis test --filter "test_*_rk8"
 
-# Build tests without running them
-fobis test --no-run
+# List the tests found, without building or running them
+fobis test --list
 ```
 
 ## How discovery works
@@ -42,11 +42,12 @@ are always included unless `--suite` filters them out.
 
 | Option | Default | Description |
 |---|---|---|
-| `--suite NAME` | (all) | Run only tests belonging to this suite |
-| `--name GLOB` | (all) | Run only tests whose program name matches this glob |
-| `--no-run` | `False` | Compile tests but do not execute them |
-| `--timeout N` | `60` | Seconds before a single test is considered failed |
-| `--jobs N` | `1` | Number of parallel compile jobs |
+| `--suite NAME` | `[test] suite`, else all | Run only tests tagged `! fobis: suite=NAME` |
+| `--filter GLOB` | (all) | Run only tests whose name matches this glob |
+| `--timeout N` | `[test] timeout`, else `60` | Seconds before a single test is considered failed |
+| `--no-build` | `False` | Run the test binaries already built |
+| `--list` | `False` | List the tests found, without building or running them |
+| `--quiet` | `False` | Build without printing the builder's settings for each test |
 
 ## `[test]` fobos section
 
@@ -54,9 +55,9 @@ Set defaults in the fobos file so you never have to type them:
 
 ```ini
 [test]
-suite   = unit
-timeout = 120
-jobs    = 4
+test_dir = test
+suite    = unit
+timeout  = 120
 ```
 
 ## Output format

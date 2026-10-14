@@ -5,18 +5,18 @@ Besides user-defined rules, FoBiS.py ships four built-in *intrinsic rules* acces
 | Rule | Description |
 |---|---|
 | `-get <option>` | Print the value of any fobos option |
-| `-get_output_name` | Print the final output file path |
+| `--get-output-name` | Print the final output file path |
 | `-ford <project-file>` | Build FORD documentation |
 | `-gcov_analyzer <dir> [summary]` | Analyse gcov coverage files |
 
-## `-get` — retrieve a fobos option
+## `--get` — retrieve a fobos option
 
 Print the value of any option defined in the selected mode:
 
 ```bash
-fobis rule -get build_dir
-fobis rule -mode release -get build_dir
-fobis rule -f my_fobos -get obj_dir
+fobis rule --get build_dir
+fobis rule --mode release --get build_dir
+fobis rule -f my_fobos --get obj_dir
 ```
 
 This is useful in shell scripts that need to locate build artefacts:
@@ -26,23 +26,23 @@ BUILD=$(fobis rule -mode release -get build_dir)
 echo "Build directory: $BUILD"
 ```
 
-## `-get_output_name` — retrieve the output file path
+## `--get-output-name` — retrieve the output file path
 
 Print the full path of the final output (executable or library):
 
 ```bash
-fobis rule -get_output_name
-fobis rule -mode release -get_output_name
+fobis rule --get-output-name
+fobis rule --mode release --get-output-name
 ```
 
 The path is constructed from `build_dir` + `output` (or derived from `target` + `mklib`) as defined in the fobos mode.
 
-## `-ford` — FORD documentation
+## `--ford` — FORD documentation
 
 Run the [FORD](https://github.com/Fortran-FOSS-Programmers/ford) documentation generator on a project file:
 
 ```bash
-fobis rule -ford doc/ford-project.md
+fobis rule --ford doc/ford-project.md
 ```
 
 Equivalent to `ford doc/ford-project.md` but integrated into the fobos workflow. Combine with a user rule for a one-command build + document workflow:
@@ -54,16 +54,16 @@ quiet = True
 rule  = fobis rule -ford doc/ford-project.md
 ```
 
-## `-gcov_analyzer` — coverage analysis
+## `--gcov-analyzer` — coverage analysis
 
 Parse all `.gcov` files found under the current directory, generate a Markdown report for each, and optionally write a summary:
 
 ```bash
 # Reports saved to ./reports/, no summary
-fobis rule -gcov_analyzer reports/
+fobis rule --gcov-analyzer reports/
 
 # Reports + summary Markdown file
-fobis rule -gcov_analyzer reports/ coverage-summary
+fobis rule --gcov-analyzer reports/ --gcov-analyzer coverage-summary
 ```
 
 The analyser generates:
@@ -74,7 +74,7 @@ The analyser generates:
 
 ```bash
 # 1. Build with coverage instrumentation
-fobis build -coverage
+fobis build --coverage
 
 # 2. Run the program (generates .gcov data)
 ./myapp
@@ -83,5 +83,5 @@ fobis build -coverage
 gcov -o obj/ src/*.f90
 
 # 4. Analyse
-fobis rule -gcov_analyzer reports/ summary
+fobis rule --gcov-analyzer reports/ --gcov-analyzer summary
 ```

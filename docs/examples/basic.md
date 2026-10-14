@@ -42,7 +42,7 @@ src/
 ## Step 2: Custom directories
 
 ```bash
-fobis build -dobj my-objs -dmod my-mods -dbld my-build
+fobis build --dobj my-objs --dmod my-mods --dbld my-build
 ```
 
 The `obj` and `mod` directories are always placed **relative to the build directory**:
@@ -58,7 +58,7 @@ src/
 ## Step 3: Specify compiler and flags
 
 ```bash
-fobis build -compiler gnu -cflags " -c -O2 -Wall" -j 4
+fobis build --compiler gnu --cflags " -c -O2 -Wall" -j 4
 ```
 
 Note the leading space before `-c` — this avoids an `argparse` quirk with quoted strings that start with `-`.
@@ -80,14 +80,14 @@ fobis clean
 Removes `obj/`, `mod/`, and the built executable. If you used custom directories, pass them again:
 
 ```bash
-fobis clean -dobj my-objs -dmod my-mods -dbld my-build
+fobis clean --dobj my-objs --dmod my-mods --dbld my-build
 ```
 
 Or clean selectively:
 
 ```bash
-fobis clean -only_obj      # remove objects, keep executable
-fobis clean -only_target   # remove executable, keep objects
+fobis clean --only-obj      # remove objects, keep executable
+fobis clean --only-target   # remove executable, keep objects
 ```
 
 ## Using a fobos file
@@ -122,9 +122,9 @@ cflags_heritage = True
 ```
 
 ```bash
-fobis build -mode debug
-fobis build -mode release
-fobis clean -mode release
+fobis build --mode debug
+fobis build --mode release
+fobis clean --mode release
 ```
 
 ## Excluding files
@@ -146,5 +146,5 @@ exclude = ./src/experimental.f90
 Generate a graphviz `.dot` file to visualise dependencies:
 
 ```bash
-fobis build -graph
+fobis build --graph
 ```

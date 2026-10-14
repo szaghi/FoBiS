@@ -107,7 +107,7 @@ By default FoBiS.py parses files with these extensions:
 Add custom include extensions (tab-completable):
 
 ```bash
-fobis build --inc .cmn .icp
+fobis build --inc .cmn --inc .icp
 ```
 
 ## Selecting a specific target

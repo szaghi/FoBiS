@@ -8,7 +8,7 @@ Worked examples demonstrating FoBiS.py features from simple to advanced.
 |---|---|
 | [Basic Build](/examples/basic) | Auto-discovery, module dependency resolution, custom directories |
 | [Library](/examples/library) | Building static and shared Fortran libraries |
-| [Interdependent Projects](/examples/interdependent) | Auto-rebuilding dependent libraries with `-dependon` |
+| [Interdependent Projects](/examples/interdependent) | Auto-rebuilding dependent libraries with `--dependon` |
 | [PreForM Preprocessing](/examples/preform) | Template preprocessing with PreForM.py |
 
 ## Structure of each example

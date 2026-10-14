@@ -267,3 +267,31 @@ def test_quiet_builds_and_the_count_of_selected_tests(tmp_path):
     assert result.returncode == 0, result.stdout + result.stderr
     assert "Building test suite (1 target(s))" in result.stdout and "PASS  t_a" in result.stdout
     assert "Builder options" not in result.stdout and "t_b.f90" not in result.stdout
+
+
+@pytest.mark.skipif(shutil.which("gfortran") is None, reason="gfortran")
+def test_fobos_test_section_sets_timeout_and_suite(tmp_path):
+    """``[test] timeout`` and ``suite`` are the defaults (the command line's --timeout used to always win with 60)."""
+    (tmp_path / "test").mkdir()
+    (tmp_path / "fobos").write_text(
+        "[default]\ncompiler = gnu\ncflags = -c\nsrc = ./test/\n\n[test]\ntimeout = 1\nsuite = slow\n"
+    )
+    (tmp_path / "test" / "t_slow.f90").write_text(
+        "! fobis: suite=slow\nprogram t_slow\ncall execute_command_line('sleep 3')\nend program\n"
+    )
+    (tmp_path / "test" / "t_fast.f90").write_text("! fobis: suite=fast\nprogram t_fast\nend program\n")
+
+    def test(*args):
+        return subprocess.run(
+            [sys.executable, "-m", "fobis", "test", "--quiet", *args],
+            cwd=tmp_path,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    result = test()
+    assert result.returncode == 1 and "t_fast" not in result.stdout  # suite slow only, timed out after 1 s
+    assert "Building test suite (1 target(s))" in result.stdout
+    assert test("--timeout", "10").returncode == 0  # the command line wins
+    assert test("--suite", "fast").returncode == 0

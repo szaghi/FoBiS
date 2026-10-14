@@ -139,8 +139,6 @@ netcdf = /opt/netcdf                              ; explicit prefix: /opt/netcdf
 test_dir = tests                                  ; directory scanned for test programs
 suite    = unit                                   ; only run tests tagged ! fobis: suite=unit
 timeout  = 120                                    ; seconds before a test is killed
-compiler = gnu                                    ; override compiler for test builds
-cflags   = -c -O0 -g                             ; extra cflags for test compilation
 
 # ─────────────────────────────────────────────────────────────────────────────
 # [coverage]  — defaults for `fobis coverage`.

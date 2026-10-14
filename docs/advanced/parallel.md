@@ -41,10 +41,10 @@ The pool is not dynamically balanced based on file count — it simply submits a
 
 ```bash
 # Debug build, single job (default)
-fobis build -compiler gnu -cflags "-c -O0 -g"
+fobis build --compiler gnu --cflags "-c -O0 -g"
 
 # Release build, parallel
-fobis build -compiler gnu -cflags "-c -O3" -j 8
+fobis build --compiler gnu --cflags "-c -O3" -j 8
 ```
 
 With a fobos file:
@@ -65,6 +65,6 @@ jobs     = 8
 ```
 
 ```bash
-fobis build -mode debug
-fobis build -mode release
+fobis build --mode debug
+fobis build --mode release
 ```

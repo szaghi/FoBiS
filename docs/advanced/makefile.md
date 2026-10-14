@@ -17,7 +17,7 @@ The project is **not** actually compiled — only the Makefile is written. All t
 Combine `-m` with a fobos file to translate from fobos syntax to GNU Make syntax:
 
 ```bash
-fobis build -m makefile -f project.fobos -mode release
+fobis build -m makefile -f project.fobos --mode release
 ```
 
 This is a convenient workflow for distributing a project: maintain the build configuration in a concise fobos file and generate the Makefile on demand.
@@ -42,14 +42,14 @@ rule = fobis build -m makefile
 Then:
 
 ```bash
-fobis rule -ex genmakefile
+fobis rule --ex genmakefile
 ```
 
 ## Example
 
 ```bash
 # Inspect build settings in fobos, generate a Makefile
-fobis build -m Makefile -f project.fobos -mode release
+fobis build -m Makefile -f project.fobos --mode release
 
 # Hand the Makefile to a user without FoBiS.py
 make

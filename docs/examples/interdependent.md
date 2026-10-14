@@ -1,6 +1,6 @@
 # Interdependent Projects
 
-This example shows how to manage a multi-repository Fortran project where a main program depends on two separately-built libraries, using the `-dependon` feature.
+This example shows how to manage a multi-repository Fortran project where a main program depends on two separately-built libraries, using the `--dependon` feature.
 
 ## Project layout
 
@@ -91,12 +91,12 @@ dependon  = ./libs/lib_math/fobos:gnu ./libs/lib_io/fobos:gnu
 
 ```bash
 # From project/
-fobis build -mode gnu
+fobis build --mode gnu
 ```
 
 FoBiS.py:
-1. Enters `libs/lib_math/`, runs `fobis build -f fobos -mode gnu` — builds `libmath.a` if needed.
-2. Enters `libs/lib_io/`, runs `fobis build -f fobos -mode gnu` — builds `libio.a` if needed.
+1. Enters `libs/lib_math/`, runs `fobis build -f fobos --mode gnu` — builds `libmath.a` if needed.
+2. Enters `libs/lib_io/`, runs `fobis build -f fobos --mode gnu` — builds `libio.a` if needed.
 3. Returns to `project/`, compiles `main.f90` with both libraries linked, and produces `build/myapp`.
 
 If neither library has changed since the last build, step 1 and 2 are no-ops.
@@ -104,7 +104,7 @@ If neither library has changed since the last build, step 1 and 2 are no-ops.
 ## Cleaning
 
 ```bash
-fobis clean -mode gnu
+fobis clean --mode gnu
 ```
 
 Cleans only the main project artefacts. To also clean the libraries, run `fobis clean` in each library directory, or add a fobos rule:
@@ -145,7 +145,7 @@ lib_io   = https://github.com/user/lib_io   :: branch=main :: mode=gnu
 
 ```bash
 fobis fetch
-fobis build -mode gnu
+fobis build --mode gnu
 ```
 
 See [Fetch Dependencies](/advanced/fetch) for details.

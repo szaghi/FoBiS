@@ -8,7 +8,7 @@ This section covers FoBiS.py's more powerful features for large or complex Fortr
 |---|---|
 | [Parallel Compiling](/advanced/parallel) | Speed up builds with `-j` on multi-core machines |
 | [External Libraries](/advanced/libraries) | Link static and shared libraries by path or name |
-| [Interdependent Projects](/advanced/interdependent) | Auto-rebuild dependencies with `-dependon` |
+| [Interdependent Projects](/advanced/interdependent) | Auto-rebuild dependencies with `--dependon` |
 | [Volatile Libraries](/advanced/volatile-libs) | Trigger rebuilds when linked libraries change |
 | [Flag Heritage](/advanced/cflags-heritage) | Force full rebuild when compiler flags change |
 | [PreForM Preprocessing](/advanced/preform) | Integrate the PreForM.py template preprocessor |

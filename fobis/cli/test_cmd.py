@@ -30,9 +30,9 @@ def cmd_test(
         typer.Option("--filter", help="Run only tests whose name matches this glob pattern"),
     ] = None,
     timeout: Annotated[
-        float,
-        typer.Option("--timeout", help="Per-test timeout in seconds [default: 60]"),
-    ] = 60.0,
+        float | None,
+        typer.Option("--timeout", help="Per-test timeout in seconds [default: fobos [test] timeout, else 60]"),
+    ] = None,
     no_build: Annotated[
         bool,
         typer.Option("--no-build", help="Skip (re-)compilation; run existing test binaries"),

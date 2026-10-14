@@ -13,6 +13,9 @@ hero:
       text: Install
       link: /guide/installation
     - theme: alt
+      text: Cookbook
+      link: /cookbook/
+    - theme: alt
       text: Reference
       link: /reference/build
     - theme: alt

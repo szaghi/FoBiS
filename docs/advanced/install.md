@@ -53,10 +53,10 @@ fobis install szaghi/FLAP --rev a1b2c3d --prefix ~/.local/
 
 ## Selecting a fobos build mode
 
-If the target project's `fobos` file defines multiple build modes, pass `-mode` to choose one:
+If the target project's `fobos` file defines multiple build modes, pass `--mode` to choose one:
 
 ```bash
-fobis install szaghi/FLAP --tag v20210301 -mode gnu --prefix ~/.local/
+fobis install szaghi/FLAP --tag v20210301 --mode gnu --prefix ~/.local/
 ```
 
 ## Keeping up to date
@@ -93,7 +93,7 @@ Under the hood, `fobis install <repo>` calls:
 
 1. `git clone <url> ~/.fobis/<name>/` — or skips if already present.
 2. `git checkout <branch|tag|rev>` — if a revision was specified.
-3. `fobis build --track_build [-mode X]` inside the cloned directory.
+3. `fobis build --track-build [--mode X]` inside the cloned directory.
 4. Scans all `.track_build` files for artifact paths.
 5. Copies executables to `<prefix>/<bin>/`, libraries to `<prefix>/<lib>/`, and `.mod` files to `<prefix>/<include>/`.
 
@@ -105,7 +105,7 @@ The target repository **must** contain a `fobos` file. The `.track_build` mechan
 |---|---|---|
 | Purpose | One-off install of a single project | Declarative multi-dep management for a project |
 | Configuration | CLI flags | `[dependencies]` section in fobos |
-| Install destination | `--prefix` (default `./`) | Stays in `.fobis_deps/`; wired via `-dependon` |
+| Install destination | `--prefix` (default `./`) | Stays in `.fobis_deps/`; wired via `--dependon` |
 | Multiple repos | One at a time | All at once |
 | Best for | Installing tools/libraries for your own use | Adding build-time deps to a Fortran project |
 

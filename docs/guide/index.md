@@ -33,5 +33,6 @@ never meets a model.
 - **Start here**: this page and [Installation](/guide/installation).
 - **[Tutorials](/tutorial/)**: one project, grown in tracks from a first build to AI-assisted development. Read them in
   order.
+- **[Cookbook](/cookbook/)**: short recipes by task ("how do I ...?"), each linking to its tutorial chapter and guide.
 - **[Guides](/guide/topics)**: one page per feature, for when you know what you want.
 - **[Reference](/reference/build)**: every command and option, the fobos file, the lint rules.

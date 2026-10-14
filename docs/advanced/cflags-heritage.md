@@ -9,9 +9,9 @@ By default, FoBiS.py uses file timestamps to decide whether to recompile an obje
 ### Command line
 
 ```bash
-fobis build --cflags_heritage -cflags "-c -O1"
+fobis build --cflags-heritage --cflags "-c -O1"
 # or the short form
-fobis build -ch -cflags "-c -O1"
+fobis build --ch --cflags "-c -O1"
 ```
 
 ### fobos file
@@ -49,7 +49,7 @@ src/
 **First build** — flags `-c -O1`:
 
 ```bash
-fobis build -ch -cflags "-c -O1"
+fobis build --ch --cflags "-c -O1"
 ```
 
 FoBiS.py compiles everything and writes `-c -O1` to `.cflags.heritage`.
@@ -57,7 +57,7 @@ FoBiS.py compiles everything and writes `-c -O1` to `.cflags.heritage`.
 **Second build** — flags unchanged:
 
 ```bash
-fobis build -ch -cflags "-c -O1"
+fobis build --ch --cflags "-c -O1"
 ```
 
 FoBiS.py reads `.cflags.heritage`, sees no change, and skips recompilation (timestamps are also up to date).
@@ -65,7 +65,7 @@ FoBiS.py reads `.cflags.heritage`, sees no change, and skips recompilation (time
 **Third build** — flags changed to `-c -O3`:
 
 ```bash
-fobis build -ch -cflags "-c -O3"
+fobis build --ch --cflags "-c -O3"
 ```
 
 FoBiS.py reads `.cflags.heritage`, detects the difference, forces a full recompile, and updates the heritage file to contain `-c -O3`.
@@ -73,13 +73,13 @@ FoBiS.py reads `.cflags.heritage`, detects the difference, forces a full recompi
 **Fourth build** — heritage disabled:
 
 ```bash
-fobis build -cflags "-c -O1"
+fobis build --cflags "-c -O1"
 ```
 
-Without `-ch`, FoBiS.py checks only timestamps. Since all objects are up to date with respect to sources, nothing is recompiled and the heritage file is **not** updated.
+Without `--ch`, FoBiS.py checks only timestamps. Since all objects are up to date with respect to sources, nothing is recompiled and the heritage file is **not** updated.
 
 ## Notes
 
 - Leading and trailing whitespace in the flags string is ignored during comparison.
 - The heritage file is always updated after a successful build (when heritage is enabled).
-- Combine with `-force_compile` to unconditionally rebuild regardless of flags or timestamps.
+- Combine with `--force-compile` to unconditionally rebuild regardless of flags or timestamps.

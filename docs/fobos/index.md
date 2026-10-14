@@ -49,15 +49,15 @@ build_dir = ./build/release/
 |---|---|
 | Default name and location | Loaded automatically |
 | Custom name or path | `fobis build -f /path/to/my_fobos` |
-| Select a specific mode | `fobis build -mode release` |
-| List available modes | `fobis build -lmodes` |
+| Select a specific mode | `fobis build --mode release` |
+| List available modes | `fobis build --lmodes` |
 
 ## Case sensitivity
 
 By default fobos option names are case-sensitive. To make them case-insensitive:
 
 ```bash
-fobis build -fci
+fobis build --fci
 ```
 
 Or in the fobos file itself, this is implicit for the option names (values remain as written).
@@ -273,9 +273,9 @@ Sets defaults for `fobis test`:
 
 ```ini
 [test]
-suite   = unit     ; only run tests tagged with this suite
-timeout = 120      ; seconds per test
-jobs    = 4        ; parallel compile jobs
+test_dir = test     ; where the test programs are (default: test)
+suite    = unit     ; only run tests tagged with this suite (--suite overrides it)
+timeout  = 120      ; seconds per test (--timeout overrides it; default 60)
 ```
 
 ### `[coverage]` section

@@ -33,3 +33,16 @@ def test_short_options_and_numbers_are_kept():
     """Single-char options and negative numbers are left unchanged."""
     args = ["build", "-f", "fobos", "-j", "-1"]
     assert _normalize_args(args) == args
+
+
+def test_preprocessor_without_a_value_means_preform():
+    """The argparse CLI took ``-preprocessor`` alone for PreForM.py (nargs='?'); the Typer CLI required a value."""
+    assert _normalize_args(["build", "--preprocessor"]) == ["build", "--preprocessor", "PreForM.py"]
+    assert _normalize_args(["build", "-preprocessor", "-app", "-DX"]) == [
+        "build",
+        "--preprocessor",
+        "PreForM.py",
+        "--app",
+        "-DX",
+    ]
+    assert _normalize_args(["build", "--preprocessor", "fpp"]) == ["build", "--preprocessor", "fpp"]

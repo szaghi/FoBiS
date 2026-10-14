@@ -98,6 +98,21 @@ const docs = [
     ],
   },
   {
+    text: 'Cookbook',
+    collapsed: false,
+    items: [
+      { text: 'All recipes',             link: '/cookbook/' },
+      { text: 'Building',                link: '/cookbook/build' },
+      { text: 'Dependencies',            link: '/cookbook/dependencies' },
+      { text: 'Testing',                 link: '/cookbook/testing' },
+      { text: 'Verifying results',       link: '/cookbook/verification' },
+      { text: 'Code analysis',           link: '/cookbook/analysis' },
+      { text: 'AI assistance',           link: '/cookbook/ai' },
+      { text: 'Continuous integration',  link: '/cookbook/ci' },
+      { text: 'HPC and clusters',        link: '/cookbook/hpc' },
+    ],
+  },
+  {
     text: 'Guides',
     items: [
       { text: 'All guides', link: '/guide/topics' },
@@ -303,6 +318,7 @@ export default defineConfig({
       { text: 'Home', link: '/' },
       { text: 'Start here', link: '/guide/', activeMatch: '^/guide/(index|installation|shell-completion)?$' },
       { text: 'Tutorials', link: '/tutorial/', activeMatch: '^/tutorial/' },
+      { text: 'Cookbook', link: '/cookbook/', activeMatch: '^/cookbook/' },
       { text: 'Guides', link: '/guide/topics', activeMatch: '^/(advanced|ai)/|^/guide/topics' },
       { text: 'Reference', link: '/reference/build', activeMatch: '^/(reference|fobos|lint-rules)/' },
     ],

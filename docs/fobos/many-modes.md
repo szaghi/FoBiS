@@ -1,6 +1,6 @@
 # Many-mode fobos
 
-A many-mode fobos file bundles multiple build configurations into a single file. Each configuration is a *mode*, selected at build time with `-mode`.
+A many-mode fobos file bundles multiple build configurations into a single file. Each configuration is a *mode*, selected at build time with `--mode`.
 
 ## Structure
 
@@ -32,16 +32,16 @@ build_dir = ./build/debug-intel/
 ## Selecting a mode
 
 ```bash
-fobis build -mode release-gnu
-fobis clean -mode release-gnu
+fobis build --mode release-gnu
+fobis clean --mode release-gnu
 ```
 
-If `-mode` is omitted, the **first mode listed** in `[modes]` is used.
+If `--mode` is omitted, the **first mode listed** in `[modes]` is used.
 
 ## Listing modes
 
 ```bash
-fobis build -lmodes
+fobis build --lmodes
 ```
 
 Output:
@@ -56,7 +56,7 @@ The fobos file defines the following modes:
 ## Invalid mode error
 
 ```bash
-fobis build -mode unknown-mode
+fobis build --mode unknown-mode
 ```
 
 ```

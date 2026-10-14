@@ -12,22 +12,22 @@ When a library is declared volatile, FoBiS.py:
 
 The hash file is saved as `.<library-filename>.md5` in the build directory.
 
-## Full-path volatile libraries (`-vlibs`)
+## Full-path volatile libraries (`--vlibs`)
 
-Use `-vlibs` for libraries referenced by their full path:
+Use `--vlibs` for libraries referenced by their full path:
 
 ```bash
-fobis build -vlibs /path/to/libmylib.a -cflags "-c -O2"
+fobis build --vlibs /path/to/libmylib.a --cflags "-c -O2"
 ```
 
 On the first build, `.libmylib.a.md5` is created. If `libmylib.a` is replaced (e.g. rebuilt by a CI system), the next `fobis build` detects the change and recompiles everything.
 
-## Name-based volatile libraries (`-ext_vlibs`)
+## Name-based volatile libraries (`--ext-vlibs`)
 
-Use `-ext_vlibs` together with `-dlib` for libraries linked by name:
+Use `--ext-vlibs` together with `--dlib` for libraries linked by name:
 
 ```bash
-fobis build -ext_vlibs mylib -dlib /path/to/libs/ -cflags "-c -O2"
+fobis build --ext-vlibs mylib --dlib /path/to/libs/ --cflags "-c -O2"
 ```
 
 The actual library file (`libmylib.[a|so]`) must exist under the specified `lib_dir`.
@@ -49,18 +49,18 @@ A common scenario: your project links against a library that is rebuilt nightly 
 
 ```bash
 fobis build \
-  -vlibs /shared/ci/libfoo.a \
+  --vlibs /shared/ci/libfoo.a \
   -i /shared/ci/mod/ \
-  -cflags "-c -O2"
+  --cflags "-c -O2"
 ```
 
 Every morning, when `libfoo.a` is refreshed, running `fobis build` automatically triggers a full recompile.
 
-## Comparison with `-libs`
+## Comparison with `--libs`
 
 | Option | Rebuild on change? | How |
 |---|---|---|
-| `-libs` | No | Timestamp check only (library has no source) |
-| `-vlibs` | Yes | MD5 hash comparison |
-| `-ext_libs` | No | Timestamp check only |
-| `-ext_vlibs` | Yes | MD5 hash comparison |
+| `--libs` | No | Timestamp check only (library has no source) |
+| `--vlibs` | Yes | MD5 hash comparison |
+| `--ext-libs` | No | Timestamp check only |
+| `--ext-vlibs` | Yes | MD5 hash comparison |

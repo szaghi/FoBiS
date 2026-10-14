@@ -73,7 +73,7 @@ fobis rule --mode release --get-output-name
 fobis rule --ford doc/ford-project.md
 
 # Analyse coverage files and write a summary
-fobis rule --gcov-analyzer reports/ coverage-summary
+fobis rule --gcov-analyzer reports/ --gcov-analyzer coverage-summary
 ```
 
 ### Shell script integration

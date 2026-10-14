@@ -62,7 +62,7 @@ This is the natural mode for small, source-distributed Fortran projects. No `fob
 
 ### `use=fobos`
 
-The dependency is built as a **separate library** using its own fobos file, and your project links against the result. This uses the `-dependon` mechanism internally.
+The dependency is built as a **separate library** using its own fobos file, and your project links against the result. This uses the `--dependon` mechanism internally.
 
 ```ini
 [dependencies]
@@ -70,7 +70,7 @@ jsonfort = https://github.com/jacobwilliams/json-fortran :: branch=main :: use=f
 ```
 
 - **`fobis fetch`**: clone + `fobis build` inside the dep directory
-- **`fobis build`**: dep's fobos path is added to `-dependon`; the dep directory is added to `exclude_dirs` automatically to prevent source-scan overlap; the dep's `mod_dir` and built library are added to your project's include and link paths
+- **`fobis build`**: dep's fobos path is added to `--dependon`; the dep directory is added to `exclude_dirs` automatically to prevent source-scan overlap; the dep's `mod_dir` and built library are added to your project's include and link paths
 
 The target repository **must** contain a `fobos` file.
 
@@ -119,7 +119,7 @@ dependon = .fobis_deps/jsonfort/fobos:gnu
 src      = .fobis_deps/penf
 ```
 
-`fobis build` reads this file: `dependon` entries are fed into the `-dependon` machinery (with the dep dir added to `exclude_dirs`); `src` entries are appended to the source search paths.
+`fobis build` reads this file: `dependon` entries are fed into the `--dependon` machinery (with the dep dir added to `exclude_dirs`); `src` entries are appended to the source search paths.
 
 ## `fetch` options
 
@@ -152,7 +152,7 @@ fobis fetch --deps-dir vendor/
 `fobis build` calls `_load_fetched_deps()` during initialisation. If `.deps_config.ini` exists:
 
 - **`src` entries** are appended to `cliargs.src` when the dep directory is not already covered by an existing source path. The recursive scanner then finds and compiles the dep's Fortran files as part of your build.
-- **`dependon` entries** are appended to `cliargs.dependon`, and the dep directory is added to `cliargs.exclude_dirs` to prevent the source scanner from also picking up those files. The `-dependon` machinery then rebuilds the dep if needed, adds its `mod_dir` to the include path, and links the built library.
+- **`dependon` entries** are appended to `cliargs.dependon`, and the dep directory is added to `cliargs.exclude_dirs` to prevent the source scanner from also picking up those files. The `--dependon` machinery then rebuilds the dep if needed, adds its `mod_dir` to the include path, and links the built library.
 
 ## Error cases
 

@@ -2,15 +2,15 @@
 
 When a program depends on one or more separately-managed library projects, FoBiS.py can automatically rebuild those libraries before building the main program.
 
-## The `-dependon` option
+## The `--dependon` option
 
 ```bash
 fobis build -t program.f90 \
-  -dependon ./libs/foo/fobos:static ./libs/bar/fobos:static \
+  --dependon ./libs/foo/fobos:static --dependon ./libs/bar/fobos:static \
   -o myprogram
 ```
 
-Each `-dependon` entry has the form:
+Each `--dependon` entry has the form:
 
 ```
 relative/path/to/fobos[:mode][((direct|indirect))]
@@ -25,9 +25,9 @@ relative/path/to/fobos[:mode][((direct|indirect))]
 
 ## Direct vs indirect linking
 
-**Direct linking** (`((direct))`, the default) is equivalent to passing the full path of the built library to `-libs`. The `mod_dir` from the dependency's fobos is automatically added to the include search path.
+**Direct linking** (`((direct))`, the default) is equivalent to passing the full path of the built library to `--libs`. The `mod_dir` from the dependency's fobos is automatically added to the include search path.
 
-**Indirect linking** (`((indirect))`) is equivalent to passing the library base-name to `-ext_libs` and its `build_dir` to `-lib_dir`. Again, `mod_dir` is automatically included.
+**Indirect linking** (`((indirect))`) is equivalent to passing the library base-name to `--ext-libs` and its `build_dir` to `--lib-dir`. Again, `mod_dir` is automatically included.
 
 ## fobos syntax
 
@@ -58,7 +58,7 @@ dependon = ./path_to_lib/fobos((direct)):static
 
 ## How it works
 
-For each dependency listed in `-dependon`:
+For each dependency listed in `--dependon`:
 
 1. FoBiS.py changes to the directory containing the dependency fobos file.
 2. FoBiS.py runs itself against that fobos file and mode, rebuilding the dependency if necessary.
@@ -99,8 +99,8 @@ output   = myprogram
 dependon = ./libs/lib_a/fobos:gnu ./libs/lib_b/fobos:gnu
 ```
 
-Running `fobis build -mode gnu` from `project/` builds `lib_a`, then `lib_b`, then links `myprogram` against both.
+Running `fobis build --mode gnu` from `project/` builds `lib_a`, then `lib_b`, then links `myprogram` against both.
 
 ## Relationship with `fetch`
 
-The [`fetch` command](/advanced/fetch) automates the process of obtaining and building external dependencies from GitHub and then wires them in via the same `-dependon` mechanism. For dependencies you manage manually in the repo, use `-dependon` directly.
+The [`fetch` command](/advanced/fetch) automates the process of obtaining and building external dependencies from GitHub and then wires them in via the same `--dependon` mechanism. For dependencies you manage manually in the repo, use `--dependon` directly.

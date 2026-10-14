@@ -4311,6 +4311,17 @@ def run_fobis_lint(configuration):
         sys.exit(1)
 
 
+def _test_settings(configuration) -> tuple[str, str | None, float]:
+    """Test directory, suite and per-test timeout: the command line's, else the fobos ``[test]`` section's
+    (``test_dir``, ``suite``, ``timeout``), else ``test``, all suites, 60 s."""
+    cliargs = configuration.cliargs
+    fobos = configuration.fobos
+    config = fobos.get_test_config() if fobos.fobos else {}
+    suite = getattr(cliargs, "test_suite", None) or config.get("suite") or None
+    timeout = getattr(cliargs, "test_timeout", None)
+    return config.get("test_dir", "test"), suite, float(timeout if timeout is not None else config.get("timeout", 60))
+
+
 def run_fobis_test(configuration):
     """
     Run FoBiS in test mode: discover, build, and run Fortran test programs.
@@ -4322,16 +4333,8 @@ def run_fobis_test(configuration):
     from .TestRunner import TestRunner, discover_tests, select_tests
 
     cliargs = configuration.cliargs
-    fobos = configuration.fobos
-
-    # Read [test] fobos section for defaults
-    test_config = fobos.get_test_config() if fobos.fobos else {}
-    test_dir = test_config.get("test_dir", "test")
-    default_timeout = float(test_config.get("timeout", 60))
-
-    suite_filter = getattr(cliargs, "test_suite", None)
+    test_dir, suite_filter, timeout = _test_settings(configuration)
     filter_pattern = getattr(cliargs, "test_filter", None)
-    timeout = getattr(cliargs, "test_timeout", default_timeout)
     no_build = getattr(cliargs, "test_no_build", False)
     list_only = getattr(cliargs, "test_list", False)
     extra_args = getattr(cliargs, "test_extra_args", []) or []
@@ -4491,9 +4494,9 @@ def _run_fobis_test_json(configuration, tests, test_dir):
         suite = runner.run_suite(
             tests=tests,
             build_fn=build_test,
-            suite_filter=getattr(cliargs, "test_suite", None),
+            suite_filter=_test_settings(configuration)[1],
             name_filter=getattr(cliargs, "test_filter", None),
-            timeout=getattr(cliargs, "test_timeout", 60.0),
+            timeout=_test_settings(configuration)[2],
             extra_args=getattr(cliargs, "test_extra_args", []) or [],
             no_build=getattr(cliargs, "test_no_build", False),
         )

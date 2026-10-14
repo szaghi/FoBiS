@@ -51,16 +51,16 @@ $:VECTOR_TYPE('real32', 'real(kind=4)')
 
 ```bash
 # Preprocess all files, delete intermediates after compilation
-fobis build -preprocessor
+fobis build --preprocessor
 
 # Keep preprocessed sources in ./preprocessed/
-fobis build -preprocessor -dpp ./preprocessed/
+fobis build --preprocessor --dpp ./preprocessed/
 
 # Preprocess only .pfm files, pass the rest directly to the compiler
-fobis build -preprocessor -dpp ./preprocessed/ -epp .pfm
+fobis build --preprocessor --dpp ./preprocessed/ --epp .pfm
 
 # Pass extra flags to PreForM.py
-fobis build -preprocessor -app "-DNDEBUG"
+fobis build --preprocessor --app "-DNDEBUG"
 ```
 
 ## fobos configuration
@@ -84,14 +84,14 @@ preprocessor_ext = .pfm .F90
 ```
 
 ```bash
-fobis build -mode gnu
+fobis build --mode gnu
 ```
 
 ## What happens
 
 1. FoBiS.py scans sources and builds the dependency graph.
 2. For each `.pfm` (and `.F90`) file, `PreForM.py` is called first to expand templates.
-3. The expanded source is saved to `./build/preprocessed/` (or discarded if `-dpp` is not set).
+3. The expanded source is saved to `./build/preprocessed/` (or discarded if `--dpp` is not set).
 4. The expanded source is compiled by gfortran.
 
 ## Keeping preprocessed files for distribution
@@ -128,10 +128,10 @@ preprocessor_ext = .pfm
 
 ```bash
 # Build without preprocessing
-fobis build -mode gnu
+fobis build --mode gnu
 
 # Build with preprocessing
-fobis build -mode gnu-preform
+fobis build --mode gnu-preform
 ```
 
 ## Preprocessor option reference
@@ -139,10 +139,10 @@ fobis build -mode gnu-preform
 | Option | Description |
 |---|---|
 | `-preprocessor [CMD]` | Enable preprocessing; optional custom command |
-| `-dpp DIR`, `--preprocessor_dir` | Store preprocessed files in `DIR` |
-| `-epp EXT…`, `--preprocessor_ext` | Only preprocess files with these extensions |
-| `-app FLAGS`, `--preprocessor_args` | Extra flags for the preprocessor |
+| `-dpp DIR`, `--preprocessor-dir` | Store preprocessed files in `DIR` |
+| `-epp EXT…`, `--preprocessor-ext` | Only preprocess files with these extensions |
+| `-app FLAGS`, `--preprocessor-args` | Extra flags for the preprocessor |
 | `-p FLAGS`, `--preproc` | Preprocessor flags for the main compiler |
-| `-npp`, `--preprocessor_no_o` | Omit `-o` from the preprocessor command |
+| `--npp`, `--preprocessor-no-o` | Omit `-o` from the preprocessor command |
 
 See [PreForM Preprocessing](/advanced/preform) for the full guide.

@@ -55,6 +55,11 @@ def _long_options():
     return _LONG_OPTIONS
 
 
+# options whose value may be omitted (the argparse ``nargs='?'`` of FoBiS 3.7 and earlier): alone, or followed by
+# another option, they take this value
+OPTIONAL_VALUES = {"--preprocessor": "PreForM.py"}
+
+
 def _normalize_args(args):
     """
     Normalise FoBiS legacy single-dash long options for Click/Typer.
@@ -68,6 +73,8 @@ def _normalize_args(args):
       → double-dash with hyphens (--build-dir, --cflags-heritage)
     - Single-char short options (-f, -m, -q), values, and negative numbers
       are left unchanged.
+    - An option of ``OPTIONAL_VALUES`` given without its value (alone, or followed by another option) gets its
+      default (``--preprocessor`` -> ``--preprocessor PreForM.py``, as in the argparse CLI).
     - What follows ``--`` belongs to the program (``fobis run``, ``fobis test``) and is left unchanged; for ``run``
       it becomes ``--program-arg=WORD`` options, else Click takes its first word for the TARGET_NAME argument.
     """
@@ -76,8 +83,8 @@ def _normalize_args(args):
         if arg == "--":
             tail = args[index + 1 :]
             if result[:1] == ["run"]:
-                return result + [f"--program-arg={word}" for word in tail]
-            return result + args[index:]
+                return _optional_values(result) + [f"--program-arg={word}" for word in tail]
+            return _optional_values(result) + args[index:]
         if _MULTI_CHAR_OPT.match(arg) and arg[1:].replace("_", "-") in _long_options():
             result.append("--" + arg[1:].replace("_", "-"))
         elif arg.startswith("--") and len(arg) > 2:
@@ -88,6 +95,17 @@ def _normalize_args(args):
                 result.append("--" + arg[2:].replace("_", "-"))
         else:
             result.append(arg)
+    return _optional_values(result)
+
+
+def _optional_values(args):
+    """Insert the default value of an ``OPTIONAL_VALUES`` option given without one."""
+    result = []
+    for index, arg in enumerate(args):
+        result.append(arg)
+        following = args[index + 1] if index + 1 < len(args) else None
+        if arg in OPTIONAL_VALUES and (following is None or following.startswith("-")):
+            result.append(OPTIONAL_VALUES[arg])
     return result
 
 

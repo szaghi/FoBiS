@@ -126,7 +126,7 @@ fobis build --coverage
 After running the program, analyze `.gcov` files with the intrinsic rule:
 
 ```bash
-fobis rule --gcov-analyzer reports/ summary
+fobis rule --gcov-analyzer reports/ --gcov-analyzer summary
 ```
 
 ### Profiling
