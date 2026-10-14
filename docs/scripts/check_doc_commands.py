@@ -83,9 +83,13 @@ def _tokens(command: str) -> list[str]:
     return found
 
 
+def _is_group(node) -> bool:
+    return isinstance(getattr(node, "commands", None), dict)
+
+
 def check(command: str, root) -> str | None:
-    """Why *command* is wrong for the click group *root*, or None."""
-    import click
+    """Why *command* is wrong for the click group *root*, or None. No ``import click``: Typer 0.27 no longer installs
+    it (the CI has none); groups, options and arguments are told apart by their attributes."""
 
     if "legacy" in command:  # an example of the legacy syntax, labelled as such
         return None
@@ -93,7 +97,7 @@ def check(command: str, root) -> str | None:
     if "..." in words or "…" in words:  # an abridged command
         return None
     node, path = root, ["fobis"]
-    while words and isinstance(node, click.Group):
+    while words and _is_group(node):
         name = words[0]
         if name.startswith("-") or not re.fullmatch(r"[a-z][a-z0-9-]*", name):
             break  # an option, or a placeholder (<cmd>, ...)
@@ -110,9 +114,9 @@ def check(command: str, root) -> str | None:
     for param in node.params:
         opts = [*getattr(param, "opts", []), *getattr(param, "secondary_opts", [])]
         names.update(opts)
-        if isinstance(param, click.Option) and not param.is_flag and not param.count:
+        if param.param_type_name == "option" and not param.is_flag and not param.count:
             takes_value.update(getattr(param, "opts", []))
-        elif isinstance(param, click.Argument):
+        elif param.param_type_name == "argument":
             arguments += 10**6 if param.nargs == -1 else param.nargs
     if getattr(node, "context_settings", {}).get("allow_extra_args"):
         arguments = 10**6
@@ -175,15 +179,13 @@ _SECTION = re.compile(r"^\[([^\]]+)\]\s*(;.*|#.*)?$")
 
 def option_keys(root) -> set[str]:
     """Every option name of every command, as a fobos key (``--build-dir`` -> ``build_dir``)."""
-    import click
-
     keys: set[str] = set()
     stack = [root]
     while stack:
         node = stack.pop()
         for param in node.params:
             keys.update(o.lstrip("-").replace("-", "_") for o in getattr(param, "opts", []) if o.startswith("--"))
-        if isinstance(node, click.Group):
+        if _is_group(node):
             stack.extend(node.commands.values())
     return keys
 
