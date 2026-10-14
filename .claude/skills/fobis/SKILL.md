@@ -825,7 +825,8 @@ Add custom include extensions: `fobis build --inc .cmn`.
 Full documentation at **https://szaghi.github.io/FoBiS/**:
 
 - [fobos reference](https://szaghi.github.io/FoBiS/fobos/) · [Complete example](https://szaghi.github.io/FoBiS/fobos/complete-example)
-- [Command reference](https://szaghi.github.io/FoBiS/reference/build) (all 16 subcommands)
+- [Tutorials](https://szaghi.github.io/FoBiS/tutorial/) · [Cookbook](https://szaghi.github.io/FoBiS/cookbook/) · [Concepts](https://szaghi.github.io/FoBiS/concepts/build)
+- [Command reference](https://szaghi.github.io/FoBiS/reference/) (every command and option)
 - [Ecosystem guide](https://szaghi.github.io/FoBiS/advanced/ecosystem) · [ecosystem reference](https://szaghi.github.io/FoBiS/reference/ecosystem)
 - [Feature flags](https://szaghi.github.io/FoBiS/advanced/features) · [Build profiles](https://szaghi.github.io/FoBiS/advanced/build-profiles) · [Varsets](https://szaghi.github.io/FoBiS/advanced/varsets)
 - [External libraries](https://szaghi.github.io/FoBiS/advanced/externals) · [Build cache](https://szaghi.github.io/FoBiS/advanced/cache) · [Auto-discovery](https://szaghi.github.io/FoBiS/advanced/auto-discovery)

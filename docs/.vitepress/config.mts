@@ -204,6 +204,14 @@ const docs = [
     ],
   },
   {
+    text: 'Concepts',
+    items: [
+      { text: 'How a build works',      link: '/concepts/build' },
+      { text: 'The verification model', link: '/concepts/verification' },
+      { text: 'The AI design',          link: '/concepts/ai' },
+    ],
+  },
+  {
     text: 'Reference',
     items: [
       {
@@ -272,7 +280,6 @@ const docs = [
       { text: 'MCP Tools',    link: '/ai/mcp' },
       { text: 'Lint Rules',   link: '/lint-rules/' },
       { text: 'Compilers',    link: '/guide/compilers' },
-      { text: 'Architecture', link: '/advanced/architecture' },
     ],
   },
   {
@@ -280,6 +287,7 @@ const docs = [
     items: [
       { text: 'Changelog',    link: '/guide/changelog' },
       { text: 'Contributing', link: '/guide/contributing' },
+      { text: 'Architecture', link: '/advanced/architecture' },
     ],
   },
 ]
@@ -310,6 +318,18 @@ export default defineConfig({
       }
     },
   },
+  // A moved page leaves a stub whose front matter says `redirect: /new/path`: the browser is sent on, and search
+  // engines are told where the page lives now (tests/test_doc_links.py checks every target exists)
+  transformPageData(pageData, { siteConfig }) {
+    const target = pageData.frontmatter.redirect
+    if (!target) return
+    const url = siteConfig.site.base.replace(/\/$/, '') + target
+    pageData.frontmatter.head = [
+      ...(pageData.frontmatter.head ?? []),
+      ['meta', { 'http-equiv': 'refresh', content: `0; url=${url}` }],
+      ['link', { rel: 'canonical', href: url }],
+    ]
+  },
   vite: {
     // An explicit modern target: Vite's default (es2020) makes esbuild down-level the syntax mermaid 11.16+
     // ships, which it refuses to do, and the build dies (same setting as StringiFor and PENF).
@@ -324,6 +344,7 @@ export default defineConfig({
       { text: 'Tutorials', link: '/tutorial/', activeMatch: '^/tutorial/' },
       { text: 'Cookbook', link: '/cookbook/', activeMatch: '^/cookbook/' },
       { text: 'Guides', link: '/guide/topics', activeMatch: '^/(advanced|ai)/|^/guide/topics' },
+      { text: 'Concepts', link: '/concepts/build', activeMatch: '^/concepts/' },
       { text: 'Reference', link: '/reference/', activeMatch: '^/(reference|fobos|lint-rules)/' },
     ],
 

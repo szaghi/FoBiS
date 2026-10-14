@@ -15,6 +15,7 @@ features use that knowledge in layers.
 A finding from a rule is reproducible: the same code always gives the same result, every rule has
 documentation and test cases, and rule findings can fail a CI job. Anything produced by a language model
 is advisory: it is labelled as such and never fails a build unless you explicitly ask for it.
+[The AI design](/concepts/ai) explains how every model answer is grounded, cited and checked.
 
 ## Commands available today
 

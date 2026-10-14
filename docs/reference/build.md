@@ -179,7 +179,7 @@ a `pkg-config` `.pc` file for your own project.
 fobis build
 
 # Build with GNU gfortran, parallel, debug flags
-fobis build --compiler gnu --cflags " -c -O0 -g" -j 4
+fobis build --compiler gnu --cflags "-c -O0 -g" -j 4
 
 # Build a specific target
 fobis build -t src/solver.f90 -o solver

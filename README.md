@@ -19,7 +19,7 @@
 <div>
 <table>
 <tr>
-<td><b>⚡ Zero-configuration builds</b><br><sub>Drop FoBiS into any Fortran project and run <code>fobis build</code>. It scans sources, resolves all <code>use</code>, <code>include</code>, and module dependencies automatically, and compiles in the correct order — no makefiles, no boilerplate. Convention-based discovery finds <code>src/</code>, <code>source/</code>, and <code>app/</code> directories automatically. <a href="https://szaghi.github.io/FoBiS/guide/quickstart">Quick start</a></sub></td>
+<td><b>⚡ Zero-configuration builds</b><br><sub>Drop FoBiS into any Fortran project and run <code>fobis build</code>. It scans sources, resolves all <code>use</code>, <code>include</code>, and module dependencies automatically, and compiles in the correct order — no makefiles, no boilerplate. Convention-based discovery finds <code>src/</code>, <code>source/</code>, and <code>app/</code> directories automatically. <a href="https://szaghi.github.io/FoBiS/tutorial/first-steps/01-first-build">First tutorial</a></sub></td>
 <td><b>📄 fobos — the FoBiS makefile</b><br><sub>A concise INI-style configuration file replaces makefiles entirely. Define multiple build modes, templates, variables, custom rules, feature flags, multi-target sections, and hooks — all in one readable file. <a href="https://szaghi.github.io/FoBiS/fobos/">fobos reference</a></sub></td>
 </tr>
 <tr>
@@ -42,10 +42,17 @@
 <td><b>🧭 Ecosystem dashboard</b><br><sub>Register your interconnected repositories once; <code>fobis ecosystem dashboard</code> shows them all at a glance — releases due (bump suggested from Conventional Commits), CI at HEAD, scaffold drift, dependency pins behind the upstream heads — in the terminal or as a themed HTML page with a live dependency diagram. <a href="https://szaghi.github.io/FoBiS/advanced/ecosystem">Ecosystem guide</a></sub></td>
 <td><b>🚂 Check &amp; release train</b><br><sub><code>fobis ecosystem check LIB</code> builds and tests every project downstream against your local, unreleased working copy. <code>fobis ecosystem release</code> releases everything due, dependencies first, refusing to start while any project is blocked and stopping safely at the first failure. <a href="https://szaghi.github.io/FoBiS/reference/ecosystem">ecosystem reference</a></sub></td>
 </tr>
+<tr>
+<td><b>🔎 Code quality</b><br><sub><code>fobis lint</code> checks the sources with rules for bug-prone, obsolescent and non-portable code and for OpenMP, OpenACC and MPI defects; <code>fobis review</code> reports only on the lines a change touches; <code>fobis query</code> answers who calls, writes or offloads what; <code>fobis modernize</code> applies fixes only when builds, tests and cases are unchanged. <a href="https://szaghi.github.io/FoBiS/tutorial/quality/01-lint">Code quality track</a></sub></td>
+<td><b>📐 Verified numerics</b><br><sub>Declare cases and the quantities they compute; <code>fobis verify</code> compares them with accepted references within declared tolerances, <code>fobis matrix</code> across compilers and checked builds, <code>fobis assess</code> estimates the digits you can trust, <code>fobis diff-run</code> and <code>fobis bench</code> compare two revisions, <code>fobis gate</code> runs them all, locally or under Slurm. <a href="https://szaghi.github.io/FoBiS/tutorial/numerics/01-cases">Verified numerics track</a></sub></td>
+</tr>
+<tr>
+<td colspan="2"><b>🧠 AI assistance, grounded</b><br><sub>Local open models managed by FoBiS explain build failures and crashes, answer questions about the code with citations, generate tests that must build and pass, review changes and propose merge resolutions checked by the compiler; <code>fobis mcp</code> serves the same facts to AI agents. Facts first, model last. <a href="https://szaghi.github.io/FoBiS/concepts/ai">The AI design</a></sub></td>
+</tr>
 </table>
 </div>
 
-**[Full documentation](https://szaghi.github.io/FoBiS/)**
+**[Full documentation](https://szaghi.github.io/FoBiS/)**: [tutorials](https://szaghi.github.io/FoBiS/tutorial/) · [cookbook](https://szaghi.github.io/FoBiS/cookbook/) · [reference](https://szaghi.github.io/FoBiS/reference/)
 
 </div>
 

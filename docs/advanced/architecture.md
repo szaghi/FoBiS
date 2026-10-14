@@ -40,7 +40,7 @@ flowchart TD
 
 ### Step-by-step
 
-1. **`FoBiSConfig`** merges CLI flags with any matching fobos section into a single `cliargs` `argparse.Namespace`. CLI flags always win over fobos values.
+1. **`FoBiSConfig`** merges CLI flags with the selected fobos mode into a single `cliargs` `argparse.Namespace`. A key the mode sets replaces the CLI's value, except `cflags`/`lflags`/`preproc` (the CLI's are appended) and an explicit `--target`/`--build-dir` (see [how a build works](/concepts/build#_1-settings-the-command-line-then-the-mode)).
 2. **Source scan** — `FoBiSConfig.parse_files()` walks every directory in `cliargs.src`, creates a `ParsedFile` per source file, and calls `ParsedFile.parse()` on each.
 3. **`ParsedFile.parse()`** applies regex patterns to extract:
    - `module <name>` / `submodule (<parent>) <name>` definitions

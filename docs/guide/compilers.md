@@ -182,7 +182,7 @@ documentation for details.
 Override the default flags for the selected compiler:
 
 ```bash
-fobis build --cflags " -c -O3 -march=native" --lflags " -O3"
+fobis build --cflags "-c -O3 -march=native" --lflags "-O3"
 ```
 
 Or in fobos:
@@ -193,16 +193,12 @@ cflags = -c -O3 -march=native
 lflags = -O3
 ```
 
-::: tip Flag prefixing
-Prepend a space to flag strings to avoid the parser misinterpreting flags that start with `-`. See the [Quick Start](/guide/quickstart#quoted-string-arguments) note.
-:::
-
 ## Preprocessor flags
 
 Pass flags to the compiler's built-in preprocessor (e.g. `-D` macros):
 
 ```bash
-fobis build --preproc " -DDEBUG -DUSE_MPI"
+fobis build --preproc "-DDEBUG -DUSE_MPI"
 ```
 
 In fobos:
