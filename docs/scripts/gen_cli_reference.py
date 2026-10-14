@@ -59,7 +59,11 @@ OTHER_KEYS = {
     "pkgconfig_url": "URL in the `.pc` file",
     "pkgconfig_req": "`Requires:` line of the `.pc` file",
     "pkgconfig_req_priv": "`Requires.private:` line of the `.pc` file",
+    "launcher": "Start the mode's programs through this command (`mpirun -np {ranks}`, `gdb --args`, `valgrind`); "
+    "`--launcher` wins, `[test] launcher` applies when the mode has none",
 }
+# the commands reading a key of OTHER_KEYS, when not build
+OTHER_KEY_COMMANDS = {"launcher": ["run", "test"]}
 
 
 def mode_keys() -> dict[str, tuple[str, list[str]]]:
@@ -92,7 +96,7 @@ def mode_keys() -> dict[str, tuple[str, list[str]]]:
         finally:
             os.chdir(cwd)
     for key, text in OTHER_KEYS.items():
-        found.setdefault(key, (text, ["build"]))
+        found.setdefault(key, (text, OTHER_KEY_COMMANDS.get(key, ["build"])))
     return dict(sorted(found.items()))
 
 

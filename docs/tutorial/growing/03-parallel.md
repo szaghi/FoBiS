@@ -60,6 +60,12 @@ With `mpi = True` FoBiS compiles with the MPI wrapper of the compiler (`mpif90` 
 Two processes with 64 intervals each make 128 intervals over the whole range: the error is the one `sweep` printed for
 128 intervals.
 
+`fobis run` starts the mode's program through a launcher: `{ranks}` is replaced by `--ranks`. A mode can keep its
+launcher in the fobos (`launcher = mpirun -np {ranks}`), and `fobis test` takes the same options, so MPI tests run
+with one command:
+
+<<< @/examples/output/2-growing/03/launcher.txt{console}
+
 ::: info MPI outputs
 The MPI outputs were recorded with Open MPI 5.0 and gfortran 15 (the documentation's CI has no MPI); the rest of the
 page, with gfortran 13.

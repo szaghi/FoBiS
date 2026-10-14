@@ -154,6 +154,7 @@ Generated from the settings of the commands that read a mode.
 | `intrinsic_modules` | build |  |
 | `jobs` | all | Number of concurrent compilation jobs [default: 1] |
 | `keep_volatile_doctests` | doctests | Keep the volatile doctests programs |
+| `launcher` | run, test | Start the mode's programs through this command (`mpirun -np {ranks}`, `gdb --args`, `valgrind`); `--launcher` wins, `[test] launcher` applies when the mode has none |
 | `lflags` | build, clean, doctests, rule | Link flags |
 | `lib` | install | Sub-directory for libraries [default: lib/] |
 | `lib_dir` | build, clean, doctests, rule | Directories searched for libraries |
@@ -364,6 +365,7 @@ Sets defaults for `fobis test`:
 test_dir = test     ; where the test programs are (default: test)
 suite    = unit     ; only run tests tagged with this suite (--suite overrides it)
 timeout  = 120      ; seconds per test (--timeout overrides it; default 60)
+launcher = mpirun -np {ranks}   ; start every test through it (--launcher, then a mode's launcher, win)
 ```
 
 ### `[coverage]` section

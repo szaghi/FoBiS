@@ -32,7 +32,6 @@ import hashlib
 import json
 import os
 import re
-import shlex
 import shutil
 import signal
 import subprocess
@@ -41,7 +40,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from . import provenance as prov
-from .case import DEFAULT_LAUNCHER, Case
+from .case import DEFAULT_LAUNCHER, Case, launcher_words
 from .probes import Quantity, RunOutput, extract
 
 TAIL_LINES = 40
@@ -326,7 +325,7 @@ class LocalRunner:
         return rundir
 
     def command(self, case: Case, program: list[str]) -> list[str]:
-        launcher = shlex.split(self.launcher.replace("{ranks}", str(case.ranks))) if case.ranks else []
+        launcher = launcher_words(self.launcher, case.ranks) if case.ranks else []
         return [*launcher, *program, *case.args]
 
     def run(

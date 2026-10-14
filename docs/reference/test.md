@@ -19,6 +19,8 @@ fobis test [options] [-- EXTRA_ARGS...]
 | `--explain` | `False` | Explain each failed test (see [Explaining failures](/ai/explain#runtime-failures)); the model is asked for the first one only |
 | `--explain-context` | `False` | Like `--explain`, but print what the model would receive instead of running it |
 | `--runner local\|slurm` | `local` | Run the test programs locally or as Slurm jobs (see [Running on a cluster](/advanced/scheduler)) |
+| `--launcher CMD` | mode key `launcher`, else `[test] launcher` | Start every test program through `CMD`: `mpirun -np {ranks}`, `valgrind --error-exitcode=1` (see [launchers](/reference/run#launchers)) |
+| `--ranks N` | `1` | MPI ranks: replace `{ranks}` in the launcher; without a launcher, `mpirun -np {ranks}` (under `--runner slurm`: the `[scheduler]` launcher, `srun`, and `--ntasks=N` for the job) |
 | `--quiet`, `-q` | `False` | Build the tests without printing the builder's settings for each |
 | `--json` | `False` | Build and run silently, then one JSON object: each result with its status and, for a failure, the facts of `--explain` (see [JSON output](/advanced/json-output#fobis-test-json)) |
 
@@ -55,8 +57,7 @@ test to a named suite for filtering.
 test_dir = tests        ; default: test
 suite    = unit         ; default suite for all tests in this dir
 timeout  = 120          ; global timeout (seconds)
-compiler = gnu          ; compiler override for test builds
-cflags   = -g -fcheck=all
+launcher = mpirun -np {ranks}   ; every test through MPI (a mode's own launcher wins)
 ```
 
 ## Output format
@@ -106,6 +107,10 @@ fobis test --coverage
 
 # Pass extra args to every test binary
 fobis test -- --verbose
+
+# MPI tests on 4 ranks; every test under valgrind
+fobis test --launcher "mpirun -np {ranks}" --ranks 4
+fobis test --launcher "valgrind --error-exitcode=1"
 ```
 
 ::: tip Framework integration
@@ -135,6 +140,8 @@ signal pass/fail (pFUnit, test-drive, FRUIT, etc.). No adaptor needed — just
 | `--explain` |  |  | When the program fails, explain why: from facts (location, declarations, debug mode to use, known compiler bugs), then with the LLM (cited cause and fix) when the location can be trusted. |
 | `--explain-context` |  |  | Like --explain, but print what the model would receive instead. |
 | `--runner` | TEXT | `local` | Where the programs run: local, or slurm (jobs submitted with sbatch; [scheduler] settings). |
+| `--launcher` | TEXT |  | Start the program through this command: an MPI launcher, a debugger, a checker ('mpirun -np {ranks}', 'gdb --args', 'valgrind'); {ranks} is replaced by --ranks [default: mode key launcher] |
+| `--ranks` | INTEGER |  | Number of MPI ranks: replaces {ranks} in the launcher (without a launcher: mpirun -np {ranks}) |
 | `--quiet`, `-q` |  |  | Less verbose output |
 | `--json` |  |  | Emit structured JSON to stdout instead of human-readable output (useful for scripting / agents) |
 

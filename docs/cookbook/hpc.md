@@ -24,6 +24,24 @@ build_dir = ./build/mpi/
 
 `mpi = True` compiles with the compiler's MPI wrapper: `mpif90`, or `mpiifort` for Intel (`mpiifort -fc=ifx` for ifx). Tutorial: [OpenMP and MPI](/tutorial/growing/03-parallel).
 
+## Run under MPI, a debugger or a checker
+
+```ini
+[mpi]
+compiler = gnu
+mpi      = True
+launcher = mpirun -np {ranks}
+```
+
+```bash
+fobis run  --mode mpi --ranks 4                     # mpirun -np 4 ./program
+fobis test --mode mpi --ranks 2                     # every test on 2 ranks
+fobis run  --launcher "gdb --args" -- input.nml     # under the debugger
+fobis test --launcher "valgrind --error-exitcode=1" # every test under valgrind
+```
+
+Tutorial: [OpenMP and MPI](/tutorial/growing/03-parallel). Reference: [launchers](/reference/run#launchers).
+
 ## A GPU build
 
 ```ini

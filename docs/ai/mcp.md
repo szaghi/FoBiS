@@ -64,7 +64,7 @@ Tools that write:
 | Tool | Returns | Arguments |
 |------|---------|-----------|
 | `build` | `build --json`: on failure the parsed compiler messages and FoBiS's diagnoses (missing module, not linked, wrong runtime, duplicate symbol) | `mode`, `shadow`, `target` |
-| `test` | `test --json`: each result with its status; a failed build with its diagnoses, a crash with its location, kind and FoBiS's notes (trusted location, debug mode, known compiler bugs) | `mode`, `shadow`, `suite`, `filter`, `list` |
+| `test` | `test --json`: each result with its status; a failed build with its diagnoses, a crash with its location, kind and FoBiS's notes (trusted location, debug mode, known compiler bugs) | `mode`, `shadow`, `suite`, `filter`, `list`, `launcher`, `ranks` |
 | `case_run` | Build and run [cases](/advanced/cases): per run its status, quantities, output tails and provenance | `names`, `mode`, `shadow` |
 | `verify` | [Cases compared with their references](/advanced/verify): per quantity pass/fail, errors, worst point, provenance changes; `repeat` checks non-determinism; never writes references | `names`, `mode`, `shadow`, `repeat` |
 | `matrix` | [Every mode x shadow](/advanced/matrix) built, tested and verified: per cell status, compiler version, first problem, failed tests with crash facts, rechecks; quantities that disagree between cells. Slow: one full build per cell | `modes`, `shadows`, `compilers`, `verify`, `recheck` |

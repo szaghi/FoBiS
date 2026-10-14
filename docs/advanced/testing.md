@@ -48,6 +48,8 @@ are always included unless `--suite` filters them out.
 | `--no-build` | `False` | Run the test binaries already built |
 | `--list` | `False` | List the tests found, without building or running them |
 | `--quiet` | `False` | Build without printing the builder's settings for each test |
+| `--launcher CMD` | mode key `launcher`, else `[test] launcher` | Start every test through `CMD` (`mpirun -np {ranks}`, `valgrind ...`) |
+| `--ranks N` | `1` | Replace `{ranks}` in the launcher; alone, `mpirun -np N` |
 
 ## `[test]` fobos section
 
@@ -58,7 +60,14 @@ Set defaults in the fobos file so you never have to type them:
 test_dir = test
 suite    = unit
 timeout  = 120
+launcher = mpirun -np {ranks}
 ```
+
+## MPI tests, debuggers and checkers
+
+A launcher starts every test program: `fobis test --launcher "mpirun -np {ranks}" --ranks 4` runs each test on 4
+MPI ranks, `fobis test --launcher "valgrind --error-exitcode=1"` under valgrind. The order of precedence is
+`--launcher`, then the mode's `launcher` key, then `[test] launcher`. See [launchers](/reference/run#launchers).
 
 ## Output format
 

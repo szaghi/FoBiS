@@ -1977,10 +1977,11 @@ class Fobos:
             "timeout": 60,
             "compiler": "",
             "cflags": "",
+            "launcher": "",
         }
         if not self.fobos or not self.fobos.has_section("test"):
             return config
-        for key in ("test_dir", "suite", "compiler", "cflags"):
+        for key in ("test_dir", "suite", "compiler", "cflags", "launcher"):
             if self.fobos.has_option("test", key):
                 config[key] = self.fobos.get("test", key).strip()
         if self.fobos.has_option("test", "timeout"):

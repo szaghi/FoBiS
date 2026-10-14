@@ -1,0 +1,2 @@
+$ fobis run --mode mpi --no-build --launcher "mpirun -np {ranks}" --ranks 4
+4 processes x 64 intervals, error   2.5200E-10

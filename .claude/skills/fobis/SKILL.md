@@ -37,6 +37,10 @@ fobis check              # validate the dependency graph without building
   `--example NAME`. Args after `--` are forwarded to the executed binary.
 - `test`: `--suite NAME`, `--filter GLOB`, `--timeout SEC` (default 60), `--no-build`, `--list`,
   `--coverage`. Args after `--` forwarded to test binaries.
+- `run`/`test` launcher: `--launcher "mpirun -np {ranks}"` (or `"gdb --args"`, `"valgrind --error-exitcode=1"`),
+  `--ranks N` replaces `{ranks}` (default 1; `--ranks` alone = `mpirun -np N`). Precedence: `--launcher` > mode key
+  `launcher` > `[test] launcher`. Not on PATH, or ranks on a `[scheduler] login_nodes` host -> exit 2 before
+  building. `test --runner slurm`: launcher inside the job script, `--ranks` alone uses `srun` + `--ntasks`.
 - `coverage`: `--format html|xml|text|all` (repeatable, default html), `--output-dir`,
   `--source-dir`, `--exclude GLOB`, `--fail-under N`, `--tool gcovr|lcov`.
 - `check`: `--strict` (warnings → errors, exit 1), `--varset`, `--src`.

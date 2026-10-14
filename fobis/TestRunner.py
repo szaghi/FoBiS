@@ -207,10 +207,14 @@ class TestRunner:
         print_w: Callable[..., None] | None = None,
         scheduler: Any = None,
         jobs_dir: str = os.path.join(".fobis", "runs", "test-jobs"),
+        launcher: list[str] | None = None,
+        ranks: int = 0,
     ) -> None:
         self.build_dir = build_dir
         self.scheduler = scheduler  # a verification.scheduler.SlurmScheduler: tests run as batch jobs
         self.jobs_dir = jobs_dir
+        self.launcher = list(launcher or [])  # words put before every test program (mpirun -np 4, valgrind, ...)
+        self.ranks = ranks  # MPI ranks a job asks the scheduler for
         self.print_n = print_n if print_n is not None else print_fake
         self.print_w = print_w if print_w is not None else print_fake
 
@@ -241,7 +245,7 @@ class TestRunner:
         start = time.monotonic()
         try:
             proc = subprocess.run(
-                args,
+                [*self.launcher, *args],
                 capture_output=True,
                 text=True,
                 timeout=timeout,
@@ -287,8 +291,9 @@ class TestRunner:
 
         job = Job(
             name=test["name"],
-            command=[os.path.abspath(args[0]), *args[1:]],
+            command=[*self.launcher, os.path.abspath(args[0]), *args[1:]],
             rundir=os.path.abspath(os.path.join(self.jobs_dir, test["name"])),
+            ranks=self.ranks,
             timeout=timeout,
         )
         try:

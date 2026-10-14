@@ -10,7 +10,7 @@ from typing import Annotated
 import typer
 
 from ._app import _ns, app
-from ._options import FciOpt, FobosOpt, ModeOpt, ShadowOpt
+from ._options import FciOpt, FobosOpt, LauncherOpt, ModeOpt, RanksOpt, ShadowOpt
 
 
 # no ignore_unknown_options: an unknown option is an error (it became the TARGET_NAME); program options go after --
@@ -49,6 +49,8 @@ def cmd_run(
         bool,
         typer.Option("--explain-context", help="Like --explain, but print what the model would receive instead."),
     ] = False,
+    launcher: LauncherOpt = None,
+    ranks: RanksOpt = None,
     program_args: Annotated[
         list[str] | None,
         typer.Option("--program-arg", hidden=True, help="An argument for the program (what follows --)."),
@@ -70,6 +72,8 @@ def cmd_run(
         run_dry_run=dry_run,
         run_extra_args=extra_args,
         run_example=example,
+        run_launcher=launcher,
+        run_ranks=ranks,
         explain=explain or explain_context,
         explain_context=explain_context,
     )

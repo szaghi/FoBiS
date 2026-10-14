@@ -58,6 +58,22 @@ VariantCflagsOpt = Annotated[
 VariantLflagsOpt = Annotated[
     str | None, typer.Option("--variant-lflags", hidden=True, help="Link flags appended for the variant.")
 ]
+LauncherOpt = Annotated[
+    str | None,
+    typer.Option(
+        "--launcher",
+        help="Start the program through this command: an MPI launcher, a debugger, a checker ('mpirun -np "
+        "{ranks}', 'gdb --args', 'valgrind'); {ranks} is replaced by --ranks [default: mode key launcher]",
+    ),
+]
+RanksOpt = Annotated[
+    int | None,
+    typer.Option(
+        "--ranks",
+        min=1,
+        help="Number of MPI ranks: replaces {ranks} in the launcher (without a launcher: mpirun -np {ranks})",
+    ),
+]
 RunnerOpt = Annotated[
     str,
     typer.Option(

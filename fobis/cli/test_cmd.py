@@ -10,7 +10,18 @@ from typing import Annotated
 import typer
 
 from ._app import _ns, app
-from ._options import CompilerOpt, FciOpt, FobosOpt, JsonOpt, ModeOpt, QuietOpt, RunnerOpt, ShadowOpt
+from ._options import (
+    CompilerOpt,
+    FciOpt,
+    FobosOpt,
+    JsonOpt,
+    LauncherOpt,
+    ModeOpt,
+    QuietOpt,
+    RanksOpt,
+    RunnerOpt,
+    ShadowOpt,
+)
 
 
 @app.command("test", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
@@ -58,6 +69,8 @@ def cmd_test(
         typer.Option("--explain-context", help="Like --explain, but print what the model would receive instead."),
     ] = False,
     runner: RunnerOpt = "local",
+    launcher: LauncherOpt = None,
+    ranks: RanksOpt = None,
     quiet: QuietOpt = False,
     json_output: JsonOpt = False,
 ):
@@ -79,6 +92,8 @@ def cmd_test(
         test_list=list_tests,
         test_coverage=coverage,
         test_extra_args=extra_args,
+        test_launcher=launcher,
+        test_ranks=ranks,
         explain=explain or explain_context,
         explain_context=explain_context,
         runner=runner,

@@ -1884,6 +1884,7 @@ def run_fobis_run(configuration):
         build_mode = mode
 
     explain = getattr(cliargs, "explain", False)
+    launcher, _ = _program_launcher(configuration, "run")  # checked before building
     shadow = getattr(cliargs, "shadow", None)
     if shadow and output_path and not target_name:  # the shadow's program is in the shadow's build directory
         mode_build_dir = fobos.get(option="build_dir", mode=mode, toprint=False) or "./"
@@ -1918,7 +1919,7 @@ def run_fobis_run(configuration):
         sys.exit(1)
 
     if dry_run:
-        configuration.print_b("[run]    " + output_path + " " + " ".join(extra_args))
+        configuration.print_b("[run]    " + " ".join([*launcher, output_path, *extra_args]))
         return
 
     # Execute: the build's messages first (stdout is block-buffered when it is a pipe, the program writes to the
@@ -1928,11 +1929,11 @@ def run_fobis_run(configuration):
     if not os.path.dirname(output_path):  # a program in the current directory: not searched on PATH
         output_path = os.path.join(".", output_path)
     if explain:
-        returncode, errors = _run_tee([output_path, *extra_args])
+        returncode, errors = _run_tee([*launcher, output_path, *extra_args])
         if returncode != 0:
             _explain_crash(configuration, errors, returncode, "run", mode=build_mode)
         sys.exit(_exit_status(returncode))
-    result = subprocess.run([output_path, *extra_args])
+    result = subprocess.run([*launcher, output_path, *extra_args])
     sys.exit(_exit_status(result.returncode))
 
 
@@ -2274,6 +2275,41 @@ def _scratch_parent(cliargs):
         return None
     os.makedirs(os.path.join(".fobis", "scratch"), exist_ok=True)
     return os.path.abspath(os.path.join(".fobis", "scratch"))
+
+
+def _program_launcher(configuration, command: str) -> tuple[list[str], int]:
+    """The words starting the programs of ``fobis run``/``fobis test`` and the MPI ranks.
+
+    The launcher is ``--launcher``, else the mode's ``launcher`` key, else (test) the ``[test]`` section's, else
+    ``mpirun -np {ranks}`` when ``--ranks`` is given; ``{ranks}`` is replaced by ``--ranks`` (1 by default). Under
+    ``--runner slurm`` a test without a launcher but with ranks uses the scheduler's (``srun``). Locally, a launcher
+    that is not on PATH, or ranks on a declared login node, stop before anything is built (exit 2).
+    """
+    from .verification.case import DEFAULT_LAUNCHER, launcher_words
+    from .verification.scheduler import guard_message, on_login_node
+
+    cliargs = configuration.cliargs
+    fobos = configuration.fobos
+    ranks = getattr(cliargs, f"{command}_ranks", None) or 0
+    launcher = getattr(cliargs, f"{command}_launcher", None) or ""
+    if not launcher and fobos.fobos:
+        launcher = fobos.get(option="launcher", mode=getattr(cliargs, "mode", None), toprint=False)
+    if not (launcher and isinstance(launcher, str)) and command == "test" and fobos.fobos:
+        launcher = fobos.get_test_config().get("launcher", "")
+    launcher = launcher if isinstance(launcher, str) else ""
+    slurm = getattr(cliargs, "runner", "local") == "slurm"
+    if not launcher and ranks:
+        launcher = _scheduler_config(configuration).launcher if slurm else DEFAULT_LAUNCHER
+    words = launcher_words(launcher, ranks)
+    if not slurm:
+        if words and shutil.which(words[0]) is None:
+            configuration.print_r(f"Error: the launcher {words[0]!r} ({launcher}) is not on PATH")
+            sys.exit(2)
+        host = on_login_node(_scheduler_config(configuration)) if ranks else ""
+        if host:
+            configuration.print_r("Error: " + guard_message(host).replace("an MPI or GPU case", "an MPI program"))
+            sys.exit(2)
+    return words, ranks
 
 
 def _test_scheduler(configuration):
@@ -4397,11 +4433,14 @@ def run_fobis_test(configuration):
         return
 
     build_dir = getattr(cliargs, "build_dir", "build")
+    launcher, ranks = _program_launcher(configuration, "test")
     runner = TestRunner(
         build_dir=build_dir,
         print_n=configuration.print_b,
         print_w=configuration.print_r,
         scheduler=_test_scheduler(configuration),
+        launcher=launcher,
+        ranks=ranks,
     )
 
     selected = len(select_tests(tests, suite_filter, filter_pattern))
@@ -4512,11 +4551,14 @@ def _run_fobis_test_json(configuration, tests, test_dir):
         return binary
 
     quiet = io.StringIO()
+    launcher, ranks = _program_launcher(configuration, "test")
     runner = TestRunner(
         build_dir=build_dir,
         print_n=lambda *a, **k: None,
         print_w=lambda *a, **k: None,
         scheduler=_test_scheduler(configuration),
+        launcher=launcher,
+        ranks=ranks,
     )
     with contextlib.redirect_stdout(quiet):
         suite = runner.run_suite(

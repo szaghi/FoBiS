@@ -345,6 +345,10 @@ class Server:
                 args += [f"--{key}", arguments[key]]
         if arguments.get("list"):
             args.append("--list")
+        if arguments.get("launcher"):
+            args += ["--launcher", arguments["launcher"]]
+        if arguments.get("ranks"):
+            args += ["--ranks", str(int(arguments["ranks"]))]
         return self._json(args)
 
     def _assess(self, arguments: dict) -> Reply:
@@ -694,7 +698,20 @@ class Server:
                 "its facts: the parsed build errors and diagnoses, or the parsed crash (kind, message, location, "
                 "frames) and FoBiS's notes on it (trusted location, debug mode to rebuild with, known compiler bugs).",
                 _schema(
-                    {"mode": _MODE, "runner": _RUNNER, "shadow": _SHADOW, "suite": _STR, "filter": _STR, "list": _BOOL}
+                    {
+                        "mode": _MODE,
+                        "runner": _RUNNER,
+                        "shadow": _SHADOW,
+                        "suite": _STR,
+                        "filter": _STR,
+                        "list": _BOOL,
+                        "launcher": {
+                            **_STR,
+                            "description": "start each test through this command, e.g. 'mpirun -np {ranks}', "
+                            "'valgrind --error-exitcode=1'",
+                        },
+                        "ranks": {"type": "integer", "minimum": 1, "description": "MPI ranks, replaces {ranks}"},
+                    }
                 ),
                 self._test,
                 read_only=False,

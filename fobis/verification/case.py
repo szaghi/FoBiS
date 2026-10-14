@@ -47,6 +47,13 @@ from .probes import Probe, ProbeError, parse_probes
 
 SECTION_PREFIX = "case:"
 DEFAULT_LAUNCHER = "mpirun -np {ranks}"
+
+
+def launcher_words(launcher: str, ranks: int | None) -> list[str]:
+    """The words of *launcher* with ``{ranks}`` replaced by *ranks* (1 when not given); [] for an empty launcher."""
+    return shlex.split(launcher.replace("{ranks}", str(ranks or 1))) if launcher and launcher.strip() else []
+
+
 DEFAULT_RUNS_DIR = ".fobis/runs"
 DEFAULT_TIMEOUT = 600.0
 _KEYS = {

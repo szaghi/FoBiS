@@ -410,3 +410,8 @@ def test_introspect_compile_commands(server, calls, reply):
     assert result["structuredContent"]["compile_commands"][0]["file"] == "/p/a.f90"
     text, error = _call(server, "introspect", {"sections": ["compile-commands", "sources"]})
     assert error and "alone" in text
+
+
+def test_test_tool_passes_the_launcher(server, calls):
+    _call(server, "test", {"launcher": "mpirun -np {ranks}", "ranks": 2, "filter": "t_*"})
+    assert calls[-1] == ["test", "--json", "--filter", "t_*", "--launcher", "mpirun -np {ranks}", "--ranks", "2"]

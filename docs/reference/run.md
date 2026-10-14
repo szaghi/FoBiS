@@ -19,6 +19,26 @@ Arguments after `--` are forwarded verbatim to the binary.
 | `--example NAME` | — | Run a `[[example.NAME]]` target from the fobos file |
 | `--explain` | `False` | When the program fails, explain why (see [Explaining failures](/ai/explain#runtime-failures)); also passed to the build |
 | `--explain-context` | `False` | Like `--explain`, but print what the model would receive instead of running it |
+| `--launcher CMD` | mode key `launcher` | Start the program through `CMD` (see [launchers](#launchers)) |
+| `--ranks N` | `1` | MPI ranks: replace `{ranks}` in the launcher; without a launcher, `mpirun -np {ranks}` |
+
+## Launchers
+
+A launcher is a command put in front of the program: an MPI launcher, a debugger, a memory checker.
+
+```bash
+fobis run --launcher "mpirun -np {ranks}" --ranks 4
+fobis run --launcher "gdb --args" -- input.nml
+fobis run --launcher "valgrind --error-exitcode=1"
+fobis run --ranks 2                     # mpirun -np 2
+```
+
+- `{ranks}` is replaced by `--ranks` (1 when not given). `--ranks` without a launcher means `mpirun -np {ranks}`.
+- A mode can keep its launcher: `launcher = mpirun -np {ranks}`. `--launcher` wins over it.
+- The program's exit status is the launcher's (an MPI launcher returns its processes' failure).
+- A launcher that is not on PATH stops `fobis run` before building (exit 2). On a login node declared in the
+  [`[scheduler]` configuration](/advanced/scheduler), `--ranks` is refused (exit 2): run through Slurm instead.
+- `--dry-run` prints the command with its launcher.
 
 ## fobos options
 
@@ -79,5 +99,7 @@ Arguments: `TARGET_NAME`
 | `--example` | TEXT |  | Build and run a named [[example.*]] target |
 | `--explain` |  |  | When the program fails, explain why: from facts (location, declarations, debug mode to use, known compiler bugs), then with the LLM (cited cause and fix) when the location can be trusted. |
 | `--explain-context` |  |  | Like --explain, but print what the model would receive instead. |
+| `--launcher` | TEXT |  | Start the program through this command: an MPI launcher, a debugger, a checker ('mpirun -np {ranks}', 'gdb --args', 'valgrind'); {ranks} is replaced by --ranks [default: mode key launcher] |
+| `--ranks` | INTEGER |  | Number of MPI ranks: replaces {ranks} in the launcher (without a launcher: mpirun -np {ranks}) |
 
 <!-- cli:end -->
