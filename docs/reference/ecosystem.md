@@ -397,12 +397,15 @@ Keys a project can set in its own `fobos`:
 
 ```ini
 [ecosystem]
-check           = fobis build --mode tests-gnu      ; `check` commands, one per line
+; `check` commands, one per line
+check           = fobis build --mode tests-gnu
                   ./scripts/run_tests.sh
-release_exclude = docs/* .github/* *.md scripts/*   ; changes that call for no release
+; changes that call for no release
+release_exclude = docs/* .github/* *.md scripts/*
 
 [scaffold]
-skip = scripts/release.sh                           ; customised files never written by scaffold
+; customised files never written by scaffold
+skip = scripts/release.sh
 ```
 
 | Section | Key | Used by | Default |

@@ -23,13 +23,18 @@ mode       = gnu-release
 quantities = stdout
 
 [bench:sod]
-warmup   = 1          ; runs discarded first (caches, page faults, device initialisation)
+; runs discarded first (caches, page faults, device initialisation)
+warmup   = 1
 min_runs = 10
 max_runs = 50
-target   = 0.02       ; stop when the median's 95% interval is within +-2% of it
-max_time = 600        ; seconds of measuring per side, at most
-time     = wall       ; or a quantity of the case: a time the program measures itself, in seconds
-work     = 1.6e7 cells  ; work per run: a throughput (cells/s) is reported
+; stop when the median's 95% interval is within +-2% of it
+target   = 0.02
+; seconds of measuring per side, at most
+max_time = 600
+; or a quantity of the case: a time the program measures itself, in seconds
+time     = wall
+; work per run: a throughput (cells/s) is reported
+work     = 1.6e7 cells
 ```
 
 Without names, `fobis bench` runs the cases with a `[bench:]` section (all cases when none has one).

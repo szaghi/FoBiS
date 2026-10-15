@@ -13,11 +13,16 @@ explicit installation prefix:
 
 ```ini
 [externals]
-mpi    = auto            ; probe mpifort/mpif90/mpiifx wrappers
-hdf5   = auto            ; pkg-config hdf5_fortran, or h5pfc/h5fc -show
-netcdf = auto            ; nf-config / nc-config, or pkg-config netcdf
-fftw   = auto            ; pkg-config fftw3
-blas   = /opt/openblas   ; explicit prefix → /opt/openblas/{include,lib}
+; probe mpifort/mpif90/mpiifx wrappers
+mpi    = auto
+; pkg-config hdf5_fortran, or h5pfc/h5fc -show
+hdf5   = auto
+; nf-config / nc-config, or pkg-config netcdf
+netcdf = auto
+; pkg-config fftw3
+fftw   = auto
+; explicit prefix → /opt/openblas/{include,lib}
+blas   = /opt/openblas
 ```
 
 Declaring a library in `[externals]` does not activate it. A mode opts in with the
@@ -28,7 +33,8 @@ Declaring a library in `[externals]` does not activate it. A mode opts in with t
 compiler  = gnu
 cflags    = -c -O2
 src       = ./src/
-externals = mpi hdf5     ; only these two are resolved and linked for this mode
+; only these two are resolved and linked for this mode
+externals = mpi hdf5
 ```
 
 FoBiS resolves `mpi` and `hdf5`, then appends the resulting include dirs and compile flags
@@ -88,12 +94,17 @@ src                = ./src/
 mklib              = static
 output             = libmylib.a
 
-pkgconfig          = true                     ; enable .pc generation
-pkgconfig_name     = mylib                    ; defaults to [project] name
-pkgconfig_desc     = My Fortran library       ; defaults to [project] summary
+; enable .pc generation
+pkgconfig          = true
+; defaults to [project] name
+pkgconfig_name     = mylib
+; defaults to [project] summary
+pkgconfig_desc     = My Fortran library
 pkgconfig_url      = https://github.com/example/mylib
-pkgconfig_req      = hdf5                      ; → Requires:
-pkgconfig_req_priv = zlib                      ; → Requires.private:
+; → Requires:
+pkgconfig_req      = hdf5
+; → Requires.private:
+pkgconfig_req_priv = zlib
 ```
 
 Only `pkgconfig = true` is required; every other field falls back to the corresponding
@@ -128,6 +139,8 @@ hdf5 = auto
 [default]
 compiler  = gnu
 cflags    = -c
-features  = hdf5         ; adds -DUSE_HDF5
-externals = hdf5         ; adds the HDF5 include + link flags
+; adds -DUSE_HDF5
+features  = hdf5
+; adds the HDF5 include + link flags
+externals = hdf5
 ```

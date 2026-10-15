@@ -669,6 +669,30 @@ def render_tree(nodes: list[DepNode], prefix: str = "") -> str:
     return "\n".join(l for l in lines if l)
 
 
+_INLINE_COMMENT = re.compile(r"\s[;#]")
+# values that are shell commands: there ` ; ` separates commands and ` #` is a shell comment, both on purpose
+SHELL_KEYS = frozenset({"setup", "check"})  # [scheduler]/[verification] setup, [ecosystem] check: run by bash
+
+
+def inline_comments(config: configparser.RawConfigParser) -> list[tuple[str, str, str]]:
+    """
+    Return ``(section, key, text)`` for every value holding what looks like an inline comment.
+
+    A fobos keeps an inline ``; comment`` or ``# comment`` in the value (no ``inline_comment_prefixes``), so
+    ``utils = path=../utils ; mine`` names a directory that does not exist. Shell commands are skipped: the
+    ``[rule-*]`` sections and the ``SHELL_KEYS``.
+    """
+    found = []
+    for section in config.sections():
+        if section.startswith("rule-"):
+            continue
+        for key, value in config.items(section, raw=True):
+            match = _INLINE_COMMENT.search(value or "")
+            if match and key not in SHELL_KEYS:
+                found.append((section, key, value[match.start() :].strip()))
+    return found
+
+
 class Fobos:
     """
     Fobos is an object that handles fobos file, its attributes and methods.
@@ -720,6 +744,12 @@ class Fobos:
                 print_w=self.print_w,
                 case_insensitive=cliargs.fobos_case_insensitive,
             )
+            for section, key, text in inline_comments(self.fobos):
+                shown = text if len(text) <= 40 else text[:37] + "..."
+                self.print_w(
+                    f'warning: fobos [{section}] {key}: "{shown}" is part of the value (a fobos keeps inline '
+                    "comments): put the comment on a line of its own"
+                )
             self._set_cliargs(cliargs=cliargs)
         return
 

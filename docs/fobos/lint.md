@@ -5,8 +5,10 @@ developer and the CI apply the same rules.
 
 ```ini
 [lint]
-select   = COR, OBS                 ; rule ids or prefixes; default: the rules enabled by default
-ignore   = COR040, OBS011           ; rule ids or prefixes to skip
+; rule ids or prefixes; default: the rules enabled by default
+select   = COR, OBS
+; rule ids or prefixes to skip
+ignore   = COR040, OBS011
 baseline = .fobis-lint-baseline.json
 ```
 

@@ -52,6 +52,20 @@ build_dir = ./build/release/
 | Select a specific mode | `fobis build --mode release` |
 | List available modes | `fobis build --lmodes` |
 
+## Comments
+
+A line starting with `#` or `;` is a comment. A comment **after a value** is not: the fobos keeps it as part of the
+value, so `compiler = gnu ; my laptop` names a compiler `gnu ; my laptop`. Put comments on lines of their own:
+
+```ini
+[default]
+; my laptop
+compiler = gnu
+```
+
+FoBiS warns when a value contains a `;` or `#` after a space. The exceptions are the shell commands run by bash,
+where these characters have their shell meaning: the `[rule-*]` sections and the `setup` and `check` keys.
+
 ## Case sensitivity
 
 By default fobos option names are case-sensitive. To make them case-insensitive:
@@ -229,12 +243,14 @@ Defines named compile-time option sets that map to flags:
 
 ```ini
 [features]
-default = release mpi             ; active when none are explicitly requested
+; active when none are explicitly requested
+default = release mpi
 release = -O3 -DNDEBUG
 debug   = -g -O0 -fcheck=all
 mpi     = -DUSE_MPI
 hdf5    = -DUSE_HDF5 -I/opt/hdf5/include
-omp_defs = -DUSE_OMP              ; define only — pair with --features openmp
+; define only — pair with --features openmp
+omp_defs = -DUSE_OMP
 
 # Composite features: prefix a name with @ to reference another feature.
 # Activating `prod` pulls in `release`, `mpi`, and `hdf5`.
@@ -269,14 +285,18 @@ sibling sections:
 
 ```ini
 [feature:hdf5]
-requires = mpi                            ; auto-pulls mpi when hdf5 is active
+; auto-pulls mpi when hdf5 is active
+requires = mpi
 
 [feature:static]
-conflicts = shared                        ; hard error if both active
+; hard error if both active
+conflicts = shared
 
 [feature-group:precision]
-members = single double quad              ; at most one active at a time
-default = double                          ; auto-activated when group is empty
+; at most one active at a time
+members = single double quad
+; auto-activated when group is empty
+default = double
 ```
 
 `requires` cascades transitively (cycle-safe). `conflicts` and group violations
@@ -291,7 +311,8 @@ between modes is a handful of paths or numeric parameters:
 
 ```ini
 [varsets]
-default = local                              ; applied when --varset is omitted
+; applied when --varset is omitted
+default = local
 
 [varset:local]
 $HDF5_PREFIX = lib/hdf5/develop/nvf/26.1
@@ -371,11 +392,16 @@ Sets defaults for `fobis test`:
 
 ```ini
 [test]
-test_dir = test     ; where the test programs are (default: test)
-suite    = unit     ; only run tests tagged with this suite (--suite overrides it)
-timeout  = 120      ; seconds per test (--timeout overrides it; default 60)
-launcher = mpirun -np {ranks}   ; start every test through it (--launcher, then a mode's launcher, win)
-jobs     = 4        ; test programs running at once (--jobs overrides it; default 1)
+; where the test programs are (default: test)
+test_dir = test
+; only run tests tagged with this suite (--suite overrides it)
+suite    = unit
+; seconds per test (--timeout overrides it; default 60)
+timeout  = 120
+; start every test through it (--launcher, then a mode's launcher, win)
+launcher = mpirun -np {ranks}
+; test programs running at once (--jobs overrides it; default 1)
+jobs     = 4
 ```
 
 ### `[coverage]` section
@@ -397,8 +423,10 @@ Knobs of [`fobis scaffold`](/reference/scaffold):
 
 ```ini
 [scaffold]
-apt_packages = libopenmpi-dev openmpi-bin   ; extra system packages in the CI build environment
-skip         = scripts/release.sh           ; managed files this project owns: never written by scaffold
+; extra system packages in the CI build environment
+apt_packages = libopenmpi-dev openmpi-bin
+; managed files this project owns: never written by scaffold
+skip         = scripts/release.sh
 ```
 
 `skip` takes space-separated globs. The files it matches are reported as `SKIPPED`, are not counted
@@ -411,9 +439,11 @@ How [`fobis ecosystem`](/advanced/ecosystem) treats the project when it is part 
 
 ```ini
 [ecosystem]
-check           = fobis build --mode tests-gnu      ; commands of `fobis ecosystem check`, one per line
+; commands of `fobis ecosystem check`, one per line
+check           = fobis build --mode tests-gnu
                   ./scripts/run_tests.sh
-release_exclude = docs/* .github/* *.md scripts/*   ; changes that call for no release
+; changes that call for no release
+release_exclude = docs/* .github/* *.md scripts/*
 ```
 
 | Key | Default | Description |
@@ -476,7 +506,8 @@ Lines beginning with `#` are ignored:
 ```ini
 [default]
 # This is a comment
-compiler = gnu  # inline comments are also supported
+# inline comments are also supported
+compiler = gnu
 cflags   = -c -O2
 ```
 

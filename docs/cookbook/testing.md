@@ -28,8 +28,10 @@ program test_convergence
 
 ```ini
 [test]
-suite   = fast      ; the default selection; --suite overrides it
-timeout = 120       ; seconds per test; --timeout overrides it
+; the default selection; --suite overrides it
+suite   = fast
+; seconds per test; --timeout overrides it
+timeout = 120
 ```
 
 ```bash
@@ -40,7 +42,8 @@ fobis test --suite slow
 
 ```ini
 [test]
-jobs = 4            ; test programs at a time; --jobs/-j overrides it
+; test programs at a time; --jobs/-j overrides it
+jobs = 4
 ```
 
 ```bash

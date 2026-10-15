@@ -19,13 +19,19 @@ Cases are fobos sections `[case:NAME]`:
 ```ini
 [case:harmonic]
 description = harmonic sums of 1/i
-target      = src/sim.f90            ; built with the mode, then run
-mode        = gnu                    ; default: the fobos default mode
+; built with the mode, then run
+target      = src/sim.f90
+; default: the fobos default mode
+mode        = gnu
 args        = input/sim.nml
-inputs      = input/sim.nml input/mesh/   ; copied into the run directory (files or directories)
-threads     = 2                      ; OMP_NUM_THREADS
-ranks       = 4                      ; MPI ranks, through the launcher below
-timeout     = 600                    ; seconds (default 600)
+; copied into the run directory (files or directories)
+inputs      = input/sim.nml input/mesh/
+; OMP_NUM_THREADS
+threads     = 2
+; MPI ranks, through the launcher below
+ranks       = 4
+; seconds (default 600)
+timeout     = 600
 env         = SIM_DEBUG=0
 quantities  =
     stdout
@@ -36,8 +42,10 @@ quantities  =
     status   : exit
 
 [verification]
-launcher = mpirun -np {ranks}        ; default; srun, mpiexec ... also work
-runs_dir = .fobis/runs               ; default
+; default; srun, mpiexec ... also work
+launcher = mpirun -np {ranks}
+; default
+runs_dir = .fobis/runs
 ```
 
 | Key | Meaning |

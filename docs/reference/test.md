@@ -55,11 +55,16 @@ test to a named suite for filtering.
 
 ```ini
 [test]
-test_dir = tests        ; default: test
-suite    = unit         ; default suite for all tests in this dir
-timeout  = 120          ; global timeout (seconds)
-launcher = mpirun -np {ranks}   ; every test through MPI (a mode's own launcher wins)
-jobs     = 4            ; test programs running at once (--jobs overrides it)
+; default: test
+test_dir = tests
+; default suite for all tests in this dir
+suite    = unit
+; global timeout (seconds)
+timeout  = 120
+; every test through MPI (a mode's own launcher wins)
+launcher = mpirun -np {ranks}
+; test programs running at once (--jobs overrides it)
+jobs     = 4
 ```
 
 ## Parallel tests

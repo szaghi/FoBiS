@@ -17,16 +17,22 @@ nodes) and then from the fobos (the project), key by key:
 
 ```ini
 [scheduler]
-kind        = slurm                 ; the only kind so far
+; the only kind so far
+kind        = slurm
 partition   = gpu
 account     = myproject
 qos         = normal
-launcher    = srun                  ; how a case with ranks is launched inside the job ({ranks} replaced)
-options     = --exclusive           ; more #SBATCH options, one per line
+; how a case with ranks is launched inside the job ({ranks} replaced)
+launcher    = srun
+; more #SBATCH options, one per line
+options     = --exclusive
               --mem=32G
-setup       = module load nvhpc/26  ; shell lines run in the job before the program
-poll        = 10                    ; seconds between squeue polls
-login_nodes = login* frontend       ; host-name patterns of the login nodes
+; shell lines run in the job before the program
+setup       = module load nvhpc/26
+; seconds between squeue polls
+poll        = 10
+; host-name patterns of the login nodes
+login_nodes = login* frontend
 ```
 
 The case gives the rest: `ranks` -> `--ntasks`, `threads` -> `--cpus-per-task` and `OMP_NUM_THREADS`, `gpus` ->

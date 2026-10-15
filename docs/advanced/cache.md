@@ -27,7 +27,8 @@ with `--cache-dir` or the `cache_dir` fobos key:
 ```ini
 [default]
 compiler  = gnu
-cache_dir = ~/.cache/fobis   # shared across projects
+# shared across projects
+cache_dir = ~/.cache/fobis
 ```
 
 ## `fobis cache` subcommands

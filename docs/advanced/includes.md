@@ -69,7 +69,8 @@ override file that's git-ignored:
 ```ini
 # fobos (committed)
 [include]
-paths = defaults.fobos          ; required — error if missing
+; required — error if missing
+paths = defaults.fobos
         ?fobos.local            ; optional — present only on dev machines
 
 [modes]
@@ -89,7 +90,8 @@ override paths without touching the committed file.
 
 ```ini
 [include]
-paths = a.fobos b.fobos             ; space-separated
+; space-separated
+paths = a.fobos b.fobos
         c.fobos                     ; or newline-continued
         ${HOME}/.fobis/local.fobos  ; env-vars expand
         ~/.fobis/global.fobos       ; ~ expands

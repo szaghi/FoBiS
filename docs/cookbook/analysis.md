@@ -13,7 +13,8 @@ fobis lint --format sarif > lint.sarif
 
 ```ini
 [lint]
-ignore = STY        ; rules or families never reported
+; rules or families never reported
+ignore = STY
 ```
 
 Tutorial: [the linter](/tutorial/quality/01-lint). Rules: [lint rules](/lint-rules/).

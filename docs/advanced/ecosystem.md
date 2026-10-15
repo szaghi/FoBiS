@@ -557,23 +557,30 @@ fobis ecosystem release --dry-run          # exit 1 when a planned release is bl
 
 ```ini
 [ecosystem]
-root     = ~/fortran                      ; where the projects live
-projects = PENF FACE BeFoR64 StringiFor   ; names under root, or paths
+; where the projects live
+root     = ~/fortran
+; names under root, or paths
+projects = PENF FACE BeFoR64 StringiFor
            FLAP                           ; (continuation lines are fine)
-theme    = catppuccin                     ; HTML dashboard palette
-mode     = auto                           ; auto | light | dark
+; HTML dashboard palette
+theme    = catppuccin
+; auto | light | dark
+mode     = auto
 ```
 
 **Per project** (its `fobos`):
 
 ```ini
 [ecosystem]
-check           = fobis build --mode tests-gnu      ; check commands, one per line
+; check commands, one per line
+check           = fobis build --mode tests-gnu
                   ./scripts/run_tests.sh
-release_exclude = docs/* .github/* *.md scripts/*   ; changes that call for no release
+; changes that call for no release
+release_exclude = docs/* .github/* *.md scripts/*
 
 [scaffold]
-skip = scripts/release.sh                           ; customised files scaffold never writes
+; customised files scaffold never writes
+skip = scripts/release.sh
 ```
 
 ## Safety guarantees

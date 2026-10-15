@@ -35,9 +35,12 @@ modes = debug release
 #              contains the version string (relative to the git repo root).
 # ─────────────────────────────────────────────────────────────────────────────
 [project]
-name       = myproject                            ; short machine-readable name
-version    = 1.2.0                                ; or: src/version.inc
-summary    = A modern Fortran solver library      ; one-line description
+; short machine-readable name
+name       = myproject
+; or: src/version.inc
+version    = 1.2.0
+; one-line description
+summary    = A modern Fortran solver library
 authors    = Alice Smith
              Bob Jones                            ; one author per line
 repository = https://github.com/example/myproject
@@ -55,16 +58,22 @@ year       = 2026
 #   through the compiler table automatically.
 # ─────────────────────────────────────────────────────────────────────────────
 [features]
-default  = release mpi                            ; active by default
-release  = -O3 -DNDEBUG                           ; -D → cflags
-debug    = -g -O0 -fcheck=all                    ; -fcheck=all → cflags
+; active by default
+default  = release mpi
+; -D → cflags
+release  = -O3 -DNDEBUG
+; -fcheck=all → cflags
+debug    = -g -O0 -fcheck=all
 mpi      = -DUSE_MPI
-hdf5     = -DUSE_HDF5 -I/opt/hdf5/include        ; -I → cflags
+; -I → cflags
+hdf5     = -DUSE_HDF5 -I/opt/hdf5/include
 netcdf   = -DUSE_NETCDF -I/opt/netcdf/include
-omp_defs = -DUSE_OMP                              ; define only; use --features openmp for the compiler flag
+; define only; use --features openmp for the compiler flag
+omp_defs = -DUSE_OMP
 
 # Composite features compose other features via @-references.
-prod     = @release @mpi @hdf5                   ; activating prod pulls in 3 leaves
+; activating prod pulls in 3 leaves
+prod     = @release @mpi @hdf5
 dev      = @debug @mpi
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -74,11 +83,14 @@ dev      = @debug @mpi
 #   conflicts = space-separated names that cannot coexist (hard error if both active)
 # ─────────────────────────────────────────────────────────────────────────────
 [feature:hdf5]
-requires = mpi                                    ; activating hdf5 auto-activates mpi
+; activating hdf5 auto-activates mpi
+requires = mpi
 
 [feature:static]
-flags     = -static                               ; flags here instead of [features]
-conflicts = shared                                ; --features static,shared → exit 1
+; flags here instead of [features]
+flags     = -static
+; --features static,shared → exit 1
+conflicts = shared
 
 # ─────────────────────────────────────────────────────────────────────────────
 # [feature-group:NAME]  — mutually-exclusive set of features (optional).
@@ -88,7 +100,8 @@ conflicts = shared                                ; --features static,shared →
 # ─────────────────────────────────────────────────────────────────────────────
 [feature-group:precision]
 members = single double quad
-default = double                                  ; fills the group if empty
+; fills the group if empty
+default = double
 
 # ─────────────────────────────────────────────────────────────────────────────
 # [varsets] + [varset:NAME]  — named bundles of $variable bindings selected
@@ -97,7 +110,8 @@ default = double                                  ; fills the group if empty
 #   [varsets] default = NAME ...   — fobos-declared fallback (optional)
 # ─────────────────────────────────────────────────────────────────────────────
 [varsets]
-default = local                                   ; applied when --varset is omitted
+; applied when --varset is omitted
+default = local
 
 [varset:local]
 $HDF5_PREFIX = lib/hdf5/develop/nvf/26.1
@@ -133,26 +147,36 @@ mylib    = path=../mylib
 #   Activate per mode with `externals = name1 name2` (see the mode section below).
 # ─────────────────────────────────────────────────────────────────────────────
 [externals]
-mpi    = auto                                     ; probe mpifort/mpif90 -show
-hdf5   = auto                                     ; pkg-config hdf5_fortran or h5fc -show
-netcdf = /opt/netcdf                              ; explicit prefix: /opt/netcdf/{include,lib}
+; probe mpifort/mpif90 -show
+mpi    = auto
+; pkg-config hdf5_fortran or h5fc -show
+hdf5   = auto
+; explicit prefix: /opt/netcdf/{include,lib}
+netcdf = /opt/netcdf
 
 # ─────────────────────────────────────────────────────────────────────────────
 # [test]  — defaults for `fobis test`.
 # ─────────────────────────────────────────────────────────────────────────────
 [test]
-test_dir = tests                                  ; directory scanned for test programs
-suite    = unit                                   ; only run tests tagged ! fobis: suite=unit
-timeout  = 120                                    ; seconds before a test is killed
+; directory scanned for test programs
+test_dir = tests
+; only run tests tagged ! fobis: suite=unit
+suite    = unit
+; seconds before a test is killed
+timeout  = 120
 
 # ─────────────────────────────────────────────────────────────────────────────
 # [coverage]  — defaults for `fobis coverage`.
 # ─────────────────────────────────────────────────────────────────────────────
 [coverage]
-output_dir = coverage/                            ; where HTML/XML report is written
-source_dir = src/                                 ; filter coverage to this directory
-fail_under = 75                                   ; exit 1 if line coverage < N %
-exclude    = tests/*                              ; glob patterns to exclude (one per line)
+; where HTML/XML report is written
+output_dir = coverage/
+; filter coverage to this directory
+source_dir = src/
+; exit 1 if line coverage < N %
+fail_under = 75
+; glob patterns to exclude (one per line)
+exclude    = tests/*
              examples/*
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -162,86 +186,152 @@ exclude    = tests/*                              ; glob patterns to exclude (on
 
 # ── shared template (inherited by debug and release via template = base) ──────
 [base]
-compiler               = gnu                      ; gnu intel intel_nextgen nvfortran nag ibm amd pgi g95 custom
-fc                     = gfortran                 ; compiler executable (required for custom)
-modsw                  = -J                       ; module directory switch (required for custom)
-src                    = ./src/                   ; source root (space-separated list)
-build_dir              = ./build/                 ; where executables are placed
-obj_dir                = ./obj/                   ; compiled object files
-mod_dir                = ./mod/                   ; Fortran .mod interface files
-lib_dir                = /usr/local/lib           ; external library search paths (space-sep)
-include                = /usr/local/include       ; include file search paths (space-sep)
-exclude_dirs           = ./vendor/                ; directories excluded from source scan
-disable_recursive_search = false                  ; do not recurse into subdirectories
-target                 = src/main.F90             ; specific source file to build
-output                 = myapp                    ; output executable name
-exclude                = src/scratch.F90          ; source files to skip (space-separated)
-libs                   = /opt/mylib/libfoo.a      ; external libraries (full paths)
-vlibs                  = /opt/mylib/libvolatile.a ; volatile libs — rebuild when changed
-ext_libs               = lapack blas              ; library names (passed as -l to linker)
-ext_vlibs              = myvolatile               ; volatile library names
-dependon               = ../otherlib/fobos:release ; interdependent fobos files (path:mode)
-inc                    = .inc .INC .h .H          ; include file extensions (space-sep)
-extensions             = .F90 .f90 .F .f          ; Fortran source extensions to scan
-build_all              = false                    ; compile all parsed sources, not just programs
-mklib                  = static                   ; build a library: static or shared
-ar                     = ar                       ; archiver executable
-arflags                = -rcs                     ; archiver flags
-ranlib                 = ranlib                   ; ranlib executable; set to empty to skip
-mpi                    = false                    ; use MPI compiler wrapper
-openmp                 = false                    ; enable OpenMP
-openmp_offload         = false                    ; enable OpenMP offload
-coarray                = false                    ; enable coarrays
-coverage               = false                    ; coverage instrumentation (--coverage)
-profile                = false                    ; profiling instrumentation (-pg)
-cflags_heritage        = false                    ; force full rebuild when cflags change
-track_build            = false                    ; save build info for `fobis install`
-preprocessor           = PreForM.py               ; source preprocessor executable
-preproc                = -DSOME_MACRO             ; preprocessor macro flags
-preprocessor_args      = --output-dir .preproc    ; extra flags passed to the preprocessor
-preprocessor_no_o      = false                    ; omit -o from the preprocessor command
-preprocessor_dir       = .preproc                 ; keep preprocessed sources in this dir
-preprocessor_ext       = .pf .PF                  ; file extensions to preprocess
-build_profile          = debug                    ; named flag preset: debug release asan coverage
-features               = release mpi              ; space- or comma-separated features active in this mode
-varset                 = local                    ; named [varset:NAME] applied for this mode (see Varsets)
-intrinsic_modules      = hdf5 hdf5_hl             ; modules to skip from "unreachable" warnings (see Compilers)
-no_auto_discover       = false                    ; disable src/source/app/ auto-detection
-no_cache               = false                    ; disable the build artifact cache
-cache_dir              = .fobis_cache             ; override default cache directory
-pre_build              = gen_version              ; rule(s) to run before compilation
-post_build             = run_tests                ; rule(s) to run after successful link
-externals              = hdf5 netcdf              ; entries from [externals] to apply
-pkgconfig              = false                    ; generate a .pc file on build
-pkgconfig_name         = myproject                ; package name in the .pc file
-pkgconfig_desc         = My Fortran library       ; description in the .pc file
+; gnu intel intel_nextgen nvfortran nag ibm amd pgi g95 custom
+compiler               = gnu
+; compiler executable (required for custom)
+fc                     = gfortran
+; module directory switch (required for custom)
+modsw                  = -J
+; source root (space-separated list)
+src                    = ./src/
+; where executables are placed
+build_dir              = ./build/
+; compiled object files
+obj_dir                = ./obj/
+; Fortran .mod interface files
+mod_dir                = ./mod/
+; external library search paths (space-sep)
+lib_dir                = /usr/local/lib
+; include file search paths (space-sep)
+include                = /usr/local/include
+; directories excluded from source scan
+exclude_dirs           = ./vendor/
+; do not recurse into subdirectories
+disable_recursive_search = false
+; specific source file to build
+target                 = src/main.F90
+; output executable name
+output                 = myapp
+; source files to skip (space-separated)
+exclude                = src/scratch.F90
+; external libraries (full paths)
+libs                   = /opt/mylib/libfoo.a
+; volatile libs — rebuild when changed
+vlibs                  = /opt/mylib/libvolatile.a
+; library names (passed as -l to linker)
+ext_libs               = lapack blas
+; volatile library names
+ext_vlibs              = myvolatile
+; interdependent fobos files (path:mode)
+dependon               = ../otherlib/fobos:release
+; include file extensions (space-sep)
+inc                    = .inc .INC .h .H
+; Fortran source extensions to scan
+extensions             = .F90 .f90 .F .f
+; compile all parsed sources, not just programs
+build_all              = false
+; build a library: static or shared
+mklib                  = static
+; archiver executable
+ar                     = ar
+; archiver flags
+arflags                = -rcs
+; ranlib executable; set to empty to skip
+ranlib                 = ranlib
+; use MPI compiler wrapper
+mpi                    = false
+; enable OpenMP
+openmp                 = false
+; enable OpenMP offload
+openmp_offload         = false
+; enable coarrays
+coarray                = false
+; coverage instrumentation (--coverage)
+coverage               = false
+; profiling instrumentation (-pg)
+profile                = false
+; force full rebuild when cflags change
+cflags_heritage        = false
+; save build info for `fobis install`
+track_build            = false
+; source preprocessor executable
+preprocessor           = PreForM.py
+; preprocessor macro flags
+preproc                = -DSOME_MACRO
+; extra flags passed to the preprocessor
+preprocessor_args      = --output-dir .preproc
+; omit -o from the preprocessor command
+preprocessor_no_o      = false
+; keep preprocessed sources in this dir
+preprocessor_dir       = .preproc
+; file extensions to preprocess
+preprocessor_ext       = .pf .PF
+; named flag preset: debug release asan coverage
+build_profile          = debug
+; space- or comma-separated features active in this mode
+features               = release mpi
+; named [varset:NAME] applied for this mode (see Varsets)
+varset                 = local
+; modules to skip from "unreachable" warnings (see Compilers)
+intrinsic_modules      = hdf5 hdf5_hl
+; disable src/source/app/ auto-detection
+no_auto_discover       = false
+; disable the build artifact cache
+no_cache               = false
+; override default cache directory
+cache_dir              = .fobis_cache
+; rule(s) to run before compilation
+pre_build              = gen_version
+; rule(s) to run after successful link
+post_build             = run_tests
+; entries from [externals] to apply
+externals              = hdf5 netcdf
+; generate a .pc file on build
+pkgconfig              = false
+; package name in the .pc file
+pkgconfig_name         = myproject
+; description in the .pc file
+pkgconfig_desc         = My Fortran library
 pkgconfig_url          = https://github.com/example/myproject
-pkgconfig_req          = hdf5                     ; Requires: line in the .pc file
-pkgconfig_req_priv     = zlib                     ; Requires.private: line in the .pc file
-colors                 = false                    ; coloured terminal output
-log                    = false                    ; write a build log file
-graph                  = false                    ; write a graphviz dependency graph
-quiet                  = false                    ; suppress informational output
-verbose                = false                    ; maximum diagnostic verbosity
-jobs                   = 4                        ; parallel compile jobs
+; Requires: line in the .pc file
+pkgconfig_req          = hdf5
+; Requires.private: line in the .pc file
+pkgconfig_req_priv     = zlib
+; coloured terminal output
+colors                 = false
+; write a build log file
+log                    = false
+; write a graphviz dependency graph
+graph                  = false
+; suppress informational output
+quiet                  = false
+; maximum diagnostic verbosity
+verbose                = false
+; parallel compile jobs
+jobs                   = 4
 
 # ── local variables — reused via $name substitution ──────────────────────────
 $opt_flags             = -O2 -march=native        ; define once, reference as $opt_flags
 
 # ── debug mode ───────────────────────────────────────────────────────────────
 [debug]
-template               = base                     ; inherit all options from [base]
+; inherit all options from [base]
+template               = base
 cflags                 = -c -O0 -g -Wall -Wextra
-lflags                 =                          ; no extra link flags
-build_profile          = debug                    ; prepends: -fcheck=all -fbacktrace -ffpe-trap=...
+; no extra link flags
+lflags                 =
+; prepends: -fcheck=all -fbacktrace -ffpe-trap=...
+build_profile          = debug
 build_dir              = ./build/debug/
 
 # ── release mode ─────────────────────────────────────────────────────────────
 [release]
 template               = base
-cflags                 = -c $opt_flags            ; $opt_flags substituted from variable above
+; $opt_flags substituted from variable above
+cflags                 = -c $opt_flags
 lflags                 =
-build_profile          = release                  ; prepends: -O3 -funroll-loops
+; prepends: -O3 -funroll-loops
+build_profile          = release
 build_dir              = ./build/release/
 
 # ─────────────────────────────────────────────────────────────────────────────

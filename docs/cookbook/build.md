@@ -120,7 +120,8 @@ command line). Guide: [feature flags](/advanced/features).
 [release]
 compiler         = gnu
 cflags           = -c -O2
-compile_commands = True      ; <build_dir>/compile_commands.json, linked as ./compile_commands.json
+; <build_dir>/compile_commands.json, linked as ./compile_commands.json
+compile_commands = True
 ```
 
 ```bash

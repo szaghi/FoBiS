@@ -46,7 +46,8 @@ Declare dependencies in your fobos file using the `[dependencies]` section:
 
 ```ini
 [dependencies]
-deps_dir = .fobis_deps                          # optional — same as --deps-dir
+# optional — same as --deps-dir
+deps_dir = .fobis_deps
 penf     = https://github.com/szaghi/PENF :: tag=v1.5.0
 stdlib   = https://github.com/fortran-lang/stdlib :: tag=v0.5.0 :: use=fobos :: mode=gnu
 jsonfort = https://github.com/jacobwilliams/json-fortran :: branch=main :: use=fobos

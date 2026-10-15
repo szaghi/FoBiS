@@ -38,9 +38,11 @@ of `HEAD` and `REF`, the uncommitted edits included (`fobis review --base REF --
 
 ```ini
 [gate]
-stages         = build review test verify diff-run bench   ; order and selection (default: all)
+; order and selection (default: all)
+stages         = build review test verify diff-run bench
 skip           = assess
-advisory       = bench                                      ; reported, never failing
+; reported, never failing
+advisory       = bench
 base           = origin/master
 mode           = gnu-debug
 matrix_modes   = gnu-debug nvf-debug

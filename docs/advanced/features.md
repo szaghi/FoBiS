@@ -12,11 +12,14 @@ automatically):
 
 ```ini
 [features]
-default = mpi                     ; features active when none are explicitly requested
+; features active when none are explicitly requested
+default = mpi
 
-mpi    = -DUSE_MPI                ; pure define — goes to cflags
+; pure define — goes to cflags
+mpi    = -DUSE_MPI
 hdf5   = -DUSE_HDF5 -I/opt/hdf5/include
-omp    = -DUSE_OMP -fopenmp       ; -fopenmp goes to lflags, -DUSE_OMP to cflags
+; -fopenmp goes to lflags, -DUSE_OMP to cflags
+omp    = -DUSE_OMP -fopenmp
 netcdf = -DUSE_NETCDF
 
 [default]
@@ -182,8 +185,10 @@ release  = -O3 -DNDEBUG
 debug    = -g -O0 -fcheck=all
 hdf5     = -DUSE_HDF5 -I/opt/hdf5/include
 
-prod     = @release @hdf5            ; bundle of two leaves
-dev-mpi  = @debug @mpi -DEXTRA_LOG   ; mix references and own flags
+; bundle of two leaves
+prod     = @release @hdf5
+; mix references and own flags
+dev-mpi  = @debug @mpi -DEXTRA_LOG
 ```
 
 Activating `prod` is equivalent to activating `release` and `hdf5`. Activating

@@ -473,18 +473,24 @@ flags are prepended so your explicit `cflags` win. `fobis build --list-profiles`
 
 ```ini
 [features]
-default = prod                 ; reserved key: the default feature set
-hdf5    = -DUSE_HDF5            ; leaf feature → flags
-prod    = -DNDEBUG @hdf5        ; @hdf5 composes another feature (recursive, cycle-safe)
+; reserved key: the default feature set
+default = prod
+; leaf feature → flags
+hdf5    = -DUSE_HDF5
+; @hdf5 composes another feature (recursive, cycle-safe)
+prod    = -DNDEBUG @hdf5
 
 [feature:gpu]                  ; Tier-2 block with constraints
 flags     = -DUSE_GPU
-requires  = openmp_offload     ; auto-pulls prerequisites
-conflicts = debug              ; hard error if both active
+; auto-pulls prerequisites
+requires  = openmp_offload
+; hard error if both active
+conflicts = debug
 
 [feature-group:precision]      ; mutual exclusivity
 members = single double
-default = double               ; with default → exactly-one; without → at-most-one
+; with default → exactly-one; without → at-most-one
+default = double
 ```
 
 Resolution order: `[features] default` (unless `--no-default-features`) → mode `features = ...` →
@@ -562,7 +568,8 @@ The `fetch` command pulls GitHub-hosted Fortran libraries declared in `[dependen
 
 ```ini
 [dependencies]
-deps_dir = .fobis_deps     ; optional clone dir (default .fobis_deps)
+; optional clone dir (default .fobis_deps)
+deps_dir = .fobis_deps
 
 penf     = https://github.com/szaghi/PENF :: tag=v1.5.0
 ; user/repo shorthand (no inline comments: fobos keeps them in the value)
@@ -607,17 +614,25 @@ runs into HTML/XML/text reports. Both read optional fobos sections:
 
 ```ini
 [test]
-test_dir = tests          ; directory scanned for test programs (default test)
-suite    = unit           ; only run tests tagged ! fobis: suite=unit
-timeout  = 120            ; seconds before a test is killed (default 60)
-compiler = gnu            ; override compiler for test builds
+; directory scanned for test programs (default test)
+test_dir = tests
+; only run tests tagged ! fobis: suite=unit
+suite    = unit
+; seconds before a test is killed (default 60)
+timeout  = 120
+; override compiler for test builds
+compiler = gnu
 cflags   = -c -O0 -g
 
 [coverage]
-format     = html         ; html xml text (list; default html)
-output_dir = coverage     ; report directory (default coverage)
-fail_under = 75           ; exit 1 if line coverage < N%
-exclude    = tests/*      ; glob(s) to exclude
+; html xml text (list; default html)
+format     = html
+; report directory (default coverage)
+output_dir = coverage
+; exit 1 if line coverage < N%
+fail_under = 75
+; glob(s) to exclude
+exclude    = tests/*
 ```
 
 `fobis test --coverage` runs the suite then generates the report. `fobis test --list` shows discovered
@@ -665,9 +680,12 @@ fobis llm ask "question"              # quick question to the configured model
 ```ini
 [ecosystem]
 root     = ~/fortran
-projects = PENF FACE BeFoR64 StringiFor FLAP   ; names under root, or paths
-theme    = github                              ; HTML dashboard palette
-mode     = auto                                ; auto | light | dark
+; names under root, or paths
+projects = PENF FACE BeFoR64 StringiFor FLAP
+; HTML dashboard palette
+theme    = github
+; auto | light | dark
+mode     = auto
 ```
 
 Edges come from each project's own fobos `[dependencies]` (a dep is an ecosystem dep when its key or
@@ -699,7 +717,8 @@ check           = fobis build --mode tests-gnu   ; `check` commands, one per lin
 release_exclude = docs/* .github/* *.md scripts/*
 
 [scaffold]
-skip = scripts/release.sh                        ; project-owned managed files
+; project-owned managed files
+skip = scripts/release.sh
 ```
 
 Pins: `current`, `stale` (run `fobis ecosystem fetch`), `ahead`, `diverged`, `unlocked` (never

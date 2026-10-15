@@ -157,9 +157,8 @@ _INI_KEY = re.compile(r"^([A-Za-z_][\w-]*)\s*[=:]")
 _SECTION = re.compile(r"^\[([^\]]+)\]\s*(;.*|#.*)?$")
 
 
-def fobos_snippets(text: str) -> Iterator[tuple[int, str, str]]:
-    """``(line, section, key)`` for every key of the ini blocks of a markdown text, except the blocks whose first
-    line is a comment naming another file (``# fobos.lock ...``, ``# ~/.config/fobis/config.ini``)."""
+def ini_blocks(text: str) -> Iterator[list[tuple[int, str]]]:
+    """The ``(line number, line)`` lists of the ini code blocks of a markdown text."""
     block: list[tuple[int, str]] | None = None
     for number, line in enumerate(text.splitlines(), 1):
         if _FENCE.match(line):
@@ -167,11 +166,37 @@ def fobos_snippets(text: str) -> Iterator[tuple[int, str, str]]:
                 block = []
                 continue
             if block is not None:
-                yield from _ini_keys(block)
+                yield block
             block = None
             continue
         if block is not None:
             block.append((number, line))
+
+
+def fobos_snippets(text: str) -> Iterator[tuple[int, str, str]]:
+    """``(line, section, key)`` for every key of the ini blocks of a markdown text, except the blocks whose first
+    line is a comment naming another file (``# fobos.lock ...``, ``# ~/.config/fobis/config.ini``)."""
+    for block in ini_blocks(text):
+        yield from _ini_keys(block)
+
+
+def inline_comments(text: str) -> Iterator[tuple[int, str]]:
+    """``(line, key)`` for every value of the ini blocks holding an inline ``;``/``#`` comment: a fobos keeps it in
+    the value. Shell commands (``[rule-*]`` sections, ``fobis.Fobos.SHELL_KEYS``) are skipped, as FoBiS does."""
+    from fobis.Fobos import _INLINE_COMMENT, SHELL_KEYS
+
+    for block in ini_blocks(text):
+        section = ""
+        for number, line in block:
+            head = _SECTION.match(line.strip())
+            if head:
+                section = head.group(1).strip()
+                continue
+            key = _INI_KEY.match(line)
+            if not key or section.startswith("rule-") or key.group(1) in SHELL_KEYS:
+                continue
+            if _INLINE_COMMENT.search(line.partition("=")[2]):
+                yield number, key.group(1)
 
 
 def _ini_keys(block: list[tuple[int, str]]) -> Iterator[tuple[int, str, str]]:
@@ -230,6 +255,8 @@ def problems(docs: Path = DOCS) -> list[Problem]:
                 rule_id = rule_id[0] or rule_id[1]
                 if rule_id not in rules:
                     found.append(Problem(relative, number, rule_id, "no such lint rule"))
+        for number, key in inline_comments(text):
+            found.append(Problem(relative, number, key, "inline comment: a fobos keeps it in the value"))
         for number, section, key in fobos_snippets(text):
             is_mode = section.startswith("mode:") or not OTHER_SECTIONS.fullmatch(section)
             if is_mode and key not in known and not key.startswith("$"):

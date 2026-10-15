@@ -24,9 +24,12 @@ Where to submit is a property of the machine, not of the project: it goes in the
 kind        = slurm
 partition   = gpu
 account     = myproject
-setup       = module load nvhpc        ; run in every job before the program
-login_nodes = login*                   ; where MPI and GPU runs are refused
-options     = --mem=32G                ; more #SBATCH lines
+; run in every job before the program
+setup       = module load nvhpc
+; where MPI and GPU runs are refused
+login_nodes = login*
+; more #SBATCH lines
+options     = --mem=32G
 ```
 
 ## A GPU version

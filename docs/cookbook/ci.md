@@ -37,7 +37,8 @@ fobis gate --base origin/main
 
 ```ini
 [gate]
-skip           = bench          ; timings on a shared runner are noise
+; timings on a shared runner are noise
+skip           = bench
 matrix_modes   = debug
 matrix_shadows = none checks
 ```
