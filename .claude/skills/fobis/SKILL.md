@@ -125,6 +125,7 @@ fobis bench [CASE...] [--compare REF [--feedback]] [--record] [--runs N]  # run 
 fobis gate [--base REF] [--stage S] [--skip S] [--advisory S] [--fail-fast]  # one verdict: every check, first failing fact
 fobis verify|test|case run|assess|bench|diff-run --runner slurm  # runs as Slurm jobs ([scheduler]), builds stay local
 fobis profile CASE [--tool gprof|callgrind] [--top N]  # time/instructions mapped to procedures and source lines
+fobis new NAME [--lib] [--name N] [--compiler C] [--scaffold] [--no-git]  # a ready-to-build project
 fobis fpm import|export [--print] [--force]  # fpm.toml <-> fobos (notes for what does not translate)
 fobis bindings [MODULE...] [-o DIR] [--print]  # bind(c) shims + C header + Python ctypes wrapper
 fobis modernize [--select RULES] [--apply] [--unverified]  # lint fixes kept only if build, tests, cases agree

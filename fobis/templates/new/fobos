@@ -1,0 +1,29 @@
+[project]
+name    = @@NAME@@
+version = 0.1.0
+@@AUTHORS@@
+[modes]
+modes = debug release
+
+[debug]
+help          = Checks on, no optimisation: the program and the tests
+compiler      = @@COMPILER@@
+build_profile = debug
+cflags        = -c
+src           = ./src/ ./app/ ./test/
+build_dir     = ./build/debug/
+target        = app/main.f90
+output        = @@NAME@@
+
+[release]
+help          = Optimised
+compiler      = @@COMPILER@@
+build_profile = release
+cflags        = -c
+src           = ./src/ ./app/
+build_dir     = ./build/release/
+target        = app/main.f90
+output        = @@NAME@@
+
+[test]
+test_dir = test

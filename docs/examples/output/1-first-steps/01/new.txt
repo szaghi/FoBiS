@@ -1,0 +1,8 @@
+$ cd ~ && fobis new demo
+Created project demo in demo/ (git: initialised)
+  src/demo.f90
+  app/main.f90
+  test/test_demo.f90
+  fobos
+  .gitignore
+Next: cd demo && fobis build && fobis test

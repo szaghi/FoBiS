@@ -28,6 +28,7 @@ reads from the project, the [user configuration](./configuration) those of the m
 
 | Command | What it does |
 |---|---|
+| [`new`](./new) | Create a project: a module in src/, a program in app/, a test in test/, a fobos with debug and release modes and a [test] section, a .gitignore and a git repository (nothing committed). An existing file is never overwritten. |
 | [`fetch`](./fetch) | Fetch and build GitHub-hosted Fortran dependencies listed in the fobos [dependencies] section. |
 | [`fpm`](./fpm) | Interoperate with the Fortran Package Manager: fpm.toml to fobos and back. |
 | [`scaffold`](./scaffold) | Manage project boilerplate via bundled scaffold templates. |

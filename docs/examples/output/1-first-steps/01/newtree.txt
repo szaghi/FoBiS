@@ -1,0 +1,6 @@
+$ cd ~/demo && find . -type f -not -path "./.git/*" | sort
+./.gitignore
+./app/main.f90
+./fobos
+./src/demo.f90
+./test/test_demo.f90

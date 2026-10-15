@@ -4,6 +4,25 @@ title: 1. A first build
 
 # 1. A first build
 
+## Starting from scratch
+
+`fobis new` writes a project that builds and tests at once: a module, a program, a test, a fobos with a debug and a
+release mode, a `.gitignore` and a git repository (nothing committed). It never overwrites a file.
+
+<<< @/examples/output/1-first-steps/01/new.txt{console}
+
+<<< @/examples/output/1-first-steps/01/newtree.txt{console}
+
+<<< @/examples/output/1-first-steps/01/newbuild.txt{console}
+
+`--lib` makes a library (no program, static and shared library modes), `fobis new .` fills the current directory,
+`--scaffold` adds CI, documentation and release scripts. Reference: [`new`](/reference/new).
+
+The rest of this track builds `quad`, a project written by hand, to show what FoBiS does with no configuration and
+how a fobos grows from there.
+
+## The quad project
+
 `quad` is a small library of quadrature rules, and a program that uses it. It has no build script: FoBiS reads the
 sources and works out the rest.
 

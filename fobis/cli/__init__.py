@@ -45,6 +45,7 @@ from . import (  # noqa: F401
     mcp,
     merge_assist,
     modernize,
+    new,
     query,
     review,
     rule,

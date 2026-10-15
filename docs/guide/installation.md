@@ -103,3 +103,15 @@ run_fobis(fake_args=['build', '--mode', 'release'])
 ```
 
 The `fake_args` list accepts any arguments that would appear on the command line (both `--option` and legacy `-option` single-dash forms are accepted).
+
+## Next step
+
+A first project, built and tested:
+
+```bash
+fobis new demo
+cd demo
+fobis build && fobis test
+```
+
+Then the tutorial: [1. A first build](/tutorial/first-steps/01-first-build).

@@ -1,0 +1,5 @@
+# fobis: build products, fetched dependencies, run directories and caches
+/build/
+/.fobis_deps/
+/.fobis/
+/compile_commands.json

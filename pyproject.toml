@@ -115,4 +115,5 @@ include = ["fobis*"]
   "kb/packs/*/NOTICE",
   "kb/packs/*/index.json",
   "ai/prompts/*.md",
+  "templates/new/*",
 ]

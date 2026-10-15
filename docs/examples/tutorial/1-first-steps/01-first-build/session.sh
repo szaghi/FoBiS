@@ -1,3 +1,6 @@
+show new 'cd ~ && fobis new demo'
+show newtree 'cd ~/demo && find . -type f -not -path "./.git/*" | sort'
+show newbuild 'cd ~/demo && fobis build --quiet && ./build/debug/demo && fobis test --quiet'
 show tree 'find . -type f | sort'
 show build 'fobis build'
 show after 'find . -type f | sort'

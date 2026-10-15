@@ -1,0 +1,39 @@
+[project]
+name    = @@NAME@@
+version = 0.1.0
+@@AUTHORS@@
+[modes]
+modes = debug release shared
+
+[debug]
+help          = Checks on, no optimisation: the library's sources and the tests
+compiler      = @@COMPILER@@
+build_profile = debug
+cflags        = -c
+src           = ./src/ ./test/
+build_dir     = ./build/debug/
+
+[release]
+help          = The library, static and optimised
+compiler      = @@COMPILER@@
+build_profile = release
+cflags        = -c
+src           = ./src/
+build_dir     = ./build/release/
+target        = src/@@NAME@@.f90
+mklib         = static
+output        = lib@@NAME@@.a
+
+[shared]
+help          = The library, shared and optimised
+compiler      = @@COMPILER@@
+build_profile = release
+cflags        = -c -fPIC
+src           = ./src/
+build_dir     = ./build/shared/
+target        = src/@@NAME@@.f90
+mklib         = shared
+output        = lib@@NAME@@.so
+
+[test]
+test_dir = test

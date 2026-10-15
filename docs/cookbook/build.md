@@ -4,6 +4,18 @@ title: Building
 
 # Building
 
+## Start a new project
+
+```bash
+fobis new demo && cd demo && fobis build && fobis test
+fobis new kit --lib                 # a library: lib<name>.a in release, .so in shared
+fobis new . --name my_tool          # fill the current directory
+```
+
+A module, a program and a test, a fobos with `debug` and `release` modes (build profiles: any compiler family), a
+`.gitignore` and a git repository, nothing committed; an existing file is never overwritten. Reference:
+[`new`](/reference/new).
+
 ## Debug and release builds of the same sources
 
 One mode per configuration, the common settings in a template:
