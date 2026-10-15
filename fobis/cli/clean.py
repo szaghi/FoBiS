@@ -5,7 +5,7 @@ from typing import Annotated
 import typer
 
 from ._app import _ns, app
-from ._constants import __extensions_inc__, __extensions_parsed__
+from ._constants import __extensions_build__, __extensions_inc__
 from ._options import *
 
 
@@ -122,7 +122,7 @@ def cmd_clean(
         ext_vlibs=ext_vlibs or [],
         dependon=dependon or [],
         inc=inc or list(__extensions_inc__),
-        extensions=extensions or list(__extensions_parsed__),
+        extensions=extensions or list(__extensions_build__),
         build_all=build_all,
         force_compile=force_compile,
         colors=colors,

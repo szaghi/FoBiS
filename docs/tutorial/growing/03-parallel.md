@@ -66,6 +66,28 @@ with one command:
 
 <<< @/examples/output/2-growing/03/launcher.txt{console}
 
+## A timer in C
+
+`sweep` could time each grid with `clock_gettime`, which Fortran reaches only through C. A C file among the sources
+is enough:
+
+```c
+/* src/clock.c */
+#define _POSIX_C_SOURCE 199309L
+#include <time.h>
+
+double wall_seconds(void) {
+  struct timespec now;
+  clock_gettime(CLOCK_MONOTONIC, &now);
+  return (double)now.tv_sec + 1.0e-9 * (double)now.tv_nsec;
+}
+```
+
+with an interface `function wall_seconds() bind(c, name="wall_seconds")` returning `real(c_double)` in a module.
+FoBiS compiles `clock.c` with the family's C compiler (`gcc` here, `nvc` for nvfortran, `icx` for ifx) and links it
+into every program; `c_cflags` holds its flags, since the Fortran `cflags` are not C's. Guide:
+[mixed-language projects](/advanced/mixed-language).
+
 ::: info MPI outputs
 The MPI outputs were recorded with Open MPI 5.0 and gfortran 15 (the documentation's CI has no MPI); the rest of the
 page, with gfortran 13.

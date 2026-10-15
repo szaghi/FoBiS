@@ -104,7 +104,7 @@ from subprocess import STDOUT, CalledProcessError, check_output
 
 from .Dependency import Dependency
 from .Doctest import Doctest
-from .utils import traverse_recursive, unique_seq
+from .utils import is_c_header, is_c_source, traverse_recursive, unique_seq
 
 # definition of regular expressions
 __str_apex__ = r"('|" + r'")'
@@ -200,6 +200,8 @@ __regex_use_intrinsic_modules__ = [
     __regex_use_mod_intrinsic__,
 ]
 __regex_mpifh__ = re.compile(__str_mpifh__)
+# a C file's dependencies: the project headers it includes with quotes (<...> ones are the system's)
+__regex_c_include__ = re.compile(r'^\s*#\s*include\s*"(?P<name>[^"]+)"')
 
 # Universal intrinsic modules — recognised by every supported Fortran
 # compiler.  Names are lowercased; the parser's lookup also lowercases the
@@ -450,6 +452,11 @@ class ParsedFile:
         self.is_doctest = is_doctest
         self.basename = os.path.splitext(os.path.basename(self.name))[0]
         self.extension = os.path.splitext(os.path.basename(self.name))[1]
+        # C files: a .c source (compiled with the C compiler, linked like a file without modules) or a C header
+        self.c_source = is_c_source(self.name)
+        self.c_header = is_c_header(self.name)
+        if self.c_source:  # objects are <basename>.o: timer.c.o, so a timer.f90 next to it keeps its timer.o
+            self.basename = os.path.basename(self.name)
         self.timestamp = os.path.getmtime(self.name)
         self.order = 0
         self.pfile_dep = None
@@ -506,6 +513,10 @@ class ParsedFile:
         self.module_names = []
         self.submodule_names = []
         self.dependencies = []
+
+        if self.c_source or self.c_header:
+            self._parse_c()
+            return
 
         if _needs_preprocessing(self.extension, inc):
             preprocessor_exist = False
@@ -600,6 +611,20 @@ class ParsedFile:
             if os.path.splitext(os.path.basename(self.name))[1] not in inc:
                 self.nomodlib = True
 
+    def _parse_c(self) -> None:
+        """A C file is read for its ``#include "..."`` lines only (every one, whatever ``#if`` it is under: an extra
+        dependency costs a recompile, a missing one a stale object); a source is linked like a file without modules,
+        a header is an include file."""
+        with openReader(self.name) as handle:
+            for line in handle:
+                matching = __regex_c_include__.match(line)
+                if matching:
+                    self.dependencies.append(Dependency(dtype="include", name=matching.group("name")))
+        if self.c_source:
+            self.nomodlib = True
+        else:
+            self.include = True
+
     def save_build_log(self, builder: Any) -> None:
         """
         Save a log file containing information about the building options used.
@@ -673,7 +698,8 @@ class ParsedFile:
             else:
                 string.append("$(DOBJ)" + target + ".o:" + "".join([" " + dep for dep in deps]) + "\n")
             string.append("\t@echo $(COTEXT)\n")
-            string.append("\t@$(FC) $(OPTSC) " + "".join(["-I" + i + " " for i in builder.dinc]) + " $< -o $@\n")
+            compiler = "\t@$(CC) $(OPTSCC) " if self.c_source else "\t@$(FC) $(OPTSC) "
+            string.append(compiler + "".join(["-I" + i + " " for i in builder.dinc]) + " $< -o $@\n")
             string.append("\n")
         return "".join(string)
 

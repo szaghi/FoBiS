@@ -78,6 +78,21 @@ src           = ./src/
 build_dir     = ./build/nvf-release/
 ```
 
+## C files with the Fortran ones
+
+```ini
+[release]
+compiler  = gnu
+cflags    = -c -O2
+c_cflags  = -c -O2 -std=c11
+src       = ./src/
+```
+
+`.c` files among the sources are compiled with the family's C compiler (`gcc`, `icx`, `nvc`; `cc` sets another)
+and linked into every program and library; a project header they `#include "..."` recompiles them when it changes.
+The Fortran `cflags` never reach C: `c_cflags` (default `-c`) and `c_preproc` do. Guide:
+[mixed-language projects](/advanced/mixed-language).
+
 ## Compile in parallel
 
 ```bash

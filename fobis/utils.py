@@ -90,6 +90,14 @@ def print_fake(input_obj, end="\n"):
     print(input_obj, end=end)
 
 
+C_SOURCE_EXTENSIONS = (".c",)
+
+
+def is_c_source(path: str) -> bool:
+    """A C source file (``.c``): compiled with the C compiler, never parsed as Fortran."""
+    return os.path.splitext(path)[1] in C_SOURCE_EXTENSIONS
+
+
 _C_MARKERS_RE = re.compile(r"/\*|\btypedef\b|\bextern\b|^\s*#\s*include\s*<", re.MULTILINE)
 
 
@@ -135,6 +143,9 @@ def syswork(cmd, shell=False):
     except subprocess.CalledProcessError as err:
         error = err.returncode
         output = err.output
+    except FileNotFoundError:  # the compiler is not on PATH (icx, nvc of another toolchain): the shell's status
+        error = 127
+        output = f"{args[0]}: command not found (is its toolchain loaded?)\n".encode()
     output = str(output, encoding="UTF-8")
     return [error, str(output)]
 
@@ -237,8 +248,12 @@ def include_is_in(pfiles, include):
     """
     file_name = ""
     number = -1
+    # "sub/x.h" (a C include with a directory) matches a file whose path ends with it
+    suffix = os.sep + os.path.normpath(include) if os.sep in include or "/" in include else None
     for fnum, parsed_file in enumerate(pfiles):
-        if os.path.basename(parsed_file.name) == include:
+        if os.path.basename(parsed_file.name) == include or (
+            suffix and (os.sep + os.path.normpath(parsed_file.name)).endswith(suffix)
+        ):
             file_name = parsed_file.name
             number = fnum
             break
@@ -307,8 +322,12 @@ def dependency_hiearchy(builder, pfiles, print_w=None, force_compile=False):
                         pfiles[fnum].nomodlib = False
                         pfiles[fnum].include = True
                         parsed_file.pfile_dep.append(pfiles[fnum])
-                        if os.path.dirname(pfiles[fnum].name) not in builder.dinc:
-                            builder.dinc.append(os.path.dirname(pfiles[fnum].name))
+                        # the directory the include is relative to: "sub/x.h" found as src/sub/x.h -> src
+                        directory = os.path.dirname(pfiles[fnum].name)
+                        for _ in range(os.path.normpath(dep.name).count(os.sep)):
+                            directory = os.path.dirname(directory)
+                        if directory not in builder.dinc:
+                            builder.dinc.append(directory)
                 else:
                     print_wm(
                         "warning: the file '" + parsed_file.name + "' depends on '" + dep.name + "' that is unreachable"

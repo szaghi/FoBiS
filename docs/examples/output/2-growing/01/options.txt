@@ -5,7 +5,9 @@ $ fobis introspect --compiler --buildoptions --mode shared
     "binary": "",
     "cflags": "-c -O2 -fPIC",
     "lflags": "",
-    "preproc": ""
+    "preproc": "",
+    "cc": "gcc",
+    "c_cflags": "-c"
   },
   "buildoptions": {
     "mode": "shared",

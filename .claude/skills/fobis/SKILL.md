@@ -449,6 +449,7 @@ matches a `build`-command option (underscored form).
 | `cflags_heritage` | Persist cflags; force full rebuild when they change |
 | `track_build` | Record built artifacts for `install` |
 | `build_profile` | Named flag preset: `debug`, `release`, `asan`, `coverage` |
+| `cc` / `c_cflags` / `c_preproc` | C compiler of the `.c` sources (default the family's: gcc, icx, nvc...) / their flags (default `-c`; the Fortran `cflags` never apply) / their `-D` flags |
 | `features` / `no_default_features` | Activate feature flags / suppress `[features] default` |
 | `varset` | Apply named `[varset:NAME]` bindings |
 | `externals` | Space-separated external library names to auto-resolve (from `[externals]`) |
@@ -467,7 +468,19 @@ matches a `build`-command option (underscored form).
 Built-in compiler-flag presets, selected with `build_profile = NAME` (fobos) or `--build-profile NAME`
 (CLI). Profiles: `debug`, `release`, `asan`, `coverage`. Tuned per compiler (gnu, intel, intel_nextgen,
 nvfortran, nag, amd, lfortran); unknown compiler falls back to the gnu preset with a warning. Profile
-flags are prepended so your explicit `cflags` win. `fobis build --list-profiles` prints the full table.
+flags are prepended so your explicit `cflags` win. `fobis build --list-profiles` prints the full table. Each
+profile has C flags too (`[C: ...]`), put before the mode's `c_cflags`.
+
+### C sources (mixed-language projects)
+
+`.c` files among the sources are compiled with the family's C compiler (gnu -> `gcc`, intel/intel_nextgen ->
+`icx`, nvfortran -> `nvc`, amd -> `amdclang`, `--mpi` -> `mpicc`/`mpiicx`) and linked like Fortran files without
+modules: into every program and every library (a `bind(c)` call is not a `use`). Objects are `NAME.c.o` (a
+`NAME.f90` beside keeps `NAME.o`). A C file's `#include "..."` headers are its dependencies (a changed header
+recompiles it); C headers (`.h` with C markers) are never read as Fortran. A C compile error fails the build and is
+a `build --json` diagnostic with `tool: "c"`. Keys `cc`, `c_cflags` (default `-c`, `-c` added when missing; a shared
+library needs `-fPIC` there too), `c_preproc`; the Fortran `cflags`/`preproc` never reach C. Lint/query/`--explain`/
+shadow modes skip C. Guide: https://szaghi.github.io/FoBiS/advanced/mixed-language
 
 ### Feature flags (conditional compilation)
 
@@ -834,6 +847,7 @@ changed sources recompile.
 - Modern Fortran: `.f90 .F90 .f95 .F95 .f03 .F03 .f08 .F08 .f2k .F2K`
 - Legacy: `.f .F .for .FOR .fpp .FPP .fortran .f77 .F77`
 - Include: `.inc .INC .h .H`
+- C (compiled with the C compiler, never parsed as Fortran): `.c`
 
 Add custom include extensions: `fobis build --inc .cmn`.
 

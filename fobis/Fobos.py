@@ -1707,11 +1707,14 @@ class Fobos:
         compiler = getattr(cliargs, "compiler", "gnu") or "gnu"
         flags = get_profile_flags(compiler, build_profile, print_w=self.print_w)
         if flags["cflags"]:
-            existing = getattr(cliargs, "cflags", "") or ""
+            # no cflags: the compiler's default (-c), or the profile's flags alone would compile and link each file
+            existing = getattr(cliargs, "cflags", "") or "-c"
             cliargs.cflags = (flags["cflags"] + " " + existing).strip()
         if flags["lflags"]:
             existing = getattr(cliargs, "lflags", "") or ""
             cliargs.lflags = (flags["lflags"] + " " + existing).strip()
+        # kept apart from c_cflags: the Compiler puts them before the mode's, and a profile alone is not a C setting
+        cliargs.c_profile_cflags = flags.get("c_cflags", "")
 
     # ------------------------------------------------------------------
     # External library detection (issue #169)

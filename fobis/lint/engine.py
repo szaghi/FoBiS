@@ -28,6 +28,7 @@ from dataclasses import dataclass, field
 
 from ..analysis import FileUnits, SourceFile, Suppression, build_units, lex, read_source
 from ..analysis.project import ProjectIndex, build_index
+from ..utils import C_SOURCE_EXTENSIONS
 from .feedback import FeedbackMessage, attribute, parse_log
 from .rule import RULES, Finding, Hit, LintContext, Rule, rule
 
@@ -237,7 +238,7 @@ def discover_files(
 
     Directories named in `DEFAULT_EXCLUDED_DIRS` (fetched dependencies, VCS metadata) are always skipped.
     """
-    extensions = set(extensions)
+    extensions = set(extensions) - set(C_SOURCE_EXTENSIONS)  # C sources (a mode's extensions may list them)
     excluded_names = {os.path.basename(e) for e in exclude}
     exclude_dirs = [os.path.normpath(d) for d in exclude_dirs if d]
     found: set[str] = set()
@@ -251,7 +252,8 @@ def discover_files(
 
     for path in paths:
         if os.path.isfile(path):
-            found.add(os.path.normpath(path))
+            if os.path.splitext(path)[1] not in C_SOURCE_EXTENSIONS:
+                found.add(os.path.normpath(path))
         elif os.path.isdir(path) and not recursive:
             found.update(os.path.normpath(os.path.join(path, n)) for n in os.listdir(path) if wanted(n))
         elif os.path.isdir(path):

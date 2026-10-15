@@ -1,0 +1,9 @@
+c_error.c: In function ‘c_twice’:
+c_error.c:3:41: error: ‘y’ undeclared (first use in this function)
+    3 | double c_twice(double x) { return 2.0 * y; }
+      |                                         ^
+c_error.c:3:41: note: each undeclared identifier is reported only once for each function it appears in
+c_error.c: At top level:
+c_error.c:2:12: warning: ‘unused’ defined but not used [-Wunused-variable]
+    2 | static int unused;
+      |            ^~~~~~

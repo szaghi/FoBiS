@@ -66,6 +66,11 @@ Excerpt:
 
 Supported compilers: `gnu`, `intel`, `intel_nextgen`, `nvfortran`, `nag`, `amd`.
 
+Each profile has flags for the C files of the project too (`c_cflags`, shown after `[C: ...]` by
+`--list-profiles`), for the family's C compiler: `gnu` + `debug` gives gcc `-O0 -g -Wall -Wextra`, `nvfortran` +
+`release` gives nvc `-O4 -fast`. They come before the mode's `c_cflags`. See
+[mixed-language projects](/advanced/mixed-language#build-profiles).
+
 ## Flag ordering
 
 Profile flags are **prepended** before your own `cflags`, so your explicit flags
@@ -77,6 +82,8 @@ cflags        = -c -DDEBUG
 build_profile = debug
 # effective cflags: -O0 -g -fcheck=all ... -c -DDEBUG
 ```
+
+A mode without `cflags` keeps the compiler's default `-c` after the profile's flags.
 
 ## Fallback behaviour
 

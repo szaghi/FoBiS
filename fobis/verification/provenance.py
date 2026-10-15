@@ -75,7 +75,7 @@ def _first_line(args: list[str], env: dict | None = None) -> str:
     return lines[0] if code == 0 and lines else ""
 
 
-SOURCE_EXTENSIONS = (".f", ".for", ".fpp", ".f77", ".f90", ".f95", ".f03", ".f08", ".inc", ".h", ".fi", ".cuf")
+SOURCE_EXTENSIONS = (".f", ".for", ".fpp", ".f77", ".f90", ".f95", ".f03", ".f08", ".inc", ".h", ".fi", ".cuf", ".c")
 
 
 def _is_source(path: str) -> bool:

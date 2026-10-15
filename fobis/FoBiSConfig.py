@@ -32,6 +32,7 @@ from .Builder import Builder
 from .cli_parser import _normalize_args
 from .cli_parser import app as _fobis_app
 from .Colors import Colors
+from .Compiler import Compiler
 from .Fobos import Fobos
 from .utils import fobis_command, syswork
 
@@ -113,6 +114,9 @@ class FoBiSConfig:
         if self.cliargs.which == "build" or self.cliargs.which == "rule":
             if self.cliargs.cflags_heritage:
                 cflags = Builder.get_cflags(cliargs=self.cliargs)
+                c_compiler = Compiler(cliargs=self.cliargs)
+                if c_compiler.c_explicit:  # the C settings, when the mode has any: a heritage file stays as it was
+                    cflags += "\n" + c_compiler.compile_cmd_c()
                 if self.cliargs.target:
                     her_file = os.path.join(
                         self.cliargs.build_dir, "." + os.path.basename(self.cliargs.target) + ".cflags.heritage"

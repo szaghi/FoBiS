@@ -101,6 +101,11 @@ CompilerOpt = Annotated[
 FcOpt = Annotated[str | None, typer.Option("--fc", help="Fortran compiler statement (for --compiler custom)")]
 CflagsOpt = Annotated[str | None, typer.Option("--cflags", help="Compile flags")]
 LflagsOpt = Annotated[str | None, typer.Option("--lflags", help="Link flags")]
+CcOpt = Annotated[
+    str | None, typer.Option("--cc", help="C compiler for the .c sources (default: the compiler family's, e.g. gcc)")
+]
+CCflagsOpt = Annotated[str | None, typer.Option("--c-cflags", help="Compile flags of the .c sources (default -c)")]
+CPreprocOpt = Annotated[str | None, typer.Option("--c-preproc", help="Preprocessor flags of the .c sources")]
 ModswOpt = Annotated[str | None, typer.Option("--modsw", help="Module search path switch (for --compiler custom)")]
 MpiOpt = Annotated[bool, typer.Option("--mpi", help="Use MPI enabled version of compiler")]
 OpenmpOpt = Annotated[bool, typer.Option("--openmp", help="Use OpenMP pragmas")]

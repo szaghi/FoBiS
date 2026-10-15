@@ -75,13 +75,15 @@ def test_sources_are_parsed_in_natural_path_order(project):
     assert names == ["src/a.f90", "src/app.f90", "src/m-2.f90", "src/m-10.f90"]
 
 
-def test_a_c_header_next_to_the_sources_is_not_scanned(project):
+def test_a_c_header_next_to_the_sources_is_read_as_c(project):
     """`.h` is an include extension: the words of a C header's comments became dependencies (``fobis bindings``
-    writes one next to the shim)."""
+    writes one next to the shim). A C header is read as C: its quoted includes only, never compiled."""
     from fobis.fobis import parse_files
     from fobis.FoBiSConfig import FoBiSConfig
 
     (project / "src" / "api.h").write_text("/* use like the library */\n#include <stdint.h>\nvoid f(int32_t *n);\n")
-    (project / "src" / "inc.h").write_text("integer, parameter :: n = 3\n")  # a Fortran include file: kept
-    names = [p.name for p in parse_files(FoBiSConfig(fake_args=["build"]))]
-    assert "src/api.h" not in names and "src/inc.h" in names
+    (project / "src" / "inc.h").write_text("integer, parameter :: n = 3\n")  # a Fortran include file
+    pfiles = {p.name: p for p in parse_files(FoBiSConfig(fake_args=["build"]))}
+    api = pfiles["src/api.h"]
+    assert api.c_header and api.include and not api.nomodlib and api.dependencies == []
+    assert not pfiles["src/inc.h"].c_header

@@ -132,6 +132,7 @@ const docs = [
           { text: 'Parallel Compiling',      link: '/advanced/parallel' },
           { text: 'Build Cache',             link: '/advanced/cache' },
           { text: 'Source Discovery',        link: '/advanced/auto-discovery' },
+          { text: 'Mixed-Language Projects', link: '/advanced/mixed-language' },
           { text: 'PreForM',                 link: '/advanced/preform' },
           { text: 'GNU Makefile Export',     link: '/advanced/makefile' },
           { text: 'fpm',                     link: '/advanced/fpm' },

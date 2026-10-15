@@ -1,0 +1,11 @@
+"c_error.c", line 3: error: identifier "y" is undefined
+  double c_twice(double x) { return 2.0 * y; }
+                                          ^
+
+"c_error.c", line 2: warning: variable "unused" was declared but never referenced [declared_but_not_referenced]
+  static int unused;
+             ^
+
+Remark: individual warnings can be suppressed with "--diag_suppress <warning-name>"
+
+1 error detected in the compilation of "c_error.c".

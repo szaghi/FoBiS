@@ -12,7 +12,7 @@ from ._completions import (
     _complete_fobos_target,
     _complete_fobos_varset,
 )
-from ._constants import __extensions_inc__, __extensions_parsed__
+from ._constants import __extensions_build__, __extensions_inc__
 from ._options import *
 
 
@@ -37,6 +37,9 @@ def cmd_build(
     fc: FcOpt = None,
     cflags: CflagsOpt = None,
     lflags: LflagsOpt = None,
+    cc: CcOpt = None,
+    c_cflags: CCflagsOpt = None,
+    c_preproc: CPreprocOpt = None,
     modsw: ModswOpt = None,
     mpi: MpiOpt = False,
     openmp: OpenmpOpt = False,
@@ -217,6 +220,9 @@ def cmd_build(
         fc=fc,
         cflags=cflags,
         lflags=lflags,
+        cc=cc,
+        c_cflags=c_cflags,
+        c_preproc=c_preproc,
         modsw=modsw,
         mpi=mpi,
         openmp=openmp,
@@ -263,7 +269,7 @@ def cmd_build(
         ext_vlibs=ext_vlibs or [],
         dependon=dependon or [],
         inc=inc or list(__extensions_inc__),
-        extensions=extensions or list(__extensions_parsed__),
+        extensions=extensions or list(__extensions_build__),
         build_all=build_all,
         preprocessor=preprocessor,
         preproc=preproc,

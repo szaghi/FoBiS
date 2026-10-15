@@ -129,6 +129,7 @@ class Builder:
         self.ranlib = cliargs.ranlib
 
         self.cmd_comp = self.compiler.compile_cmd(mod_dir=self.mod_dir)
+        self.cmd_comp_c = self.compiler.compile_cmd_c()
         self.cmd_link = self.compiler.link_cmd(mod_dir=self.mod_dir)
         return
 
@@ -324,7 +325,7 @@ class Builder:
         preprocessor_output = ""
         preprocessor_remove = False
         to_preprocess = False
-        if self.preprocessor:
+        if self.preprocessor and not file_to_compile.c_source:  # the preprocessor (PreForM.py) is a Fortran one
             if len(self.preprocessor_ext) > 0:
                 if file_to_compile.extension in self.preprocessor_ext:
                     to_preprocess = True
@@ -385,6 +386,19 @@ class Builder:
         """
         preprocessor_cmd, preprocessor_output, preprocessor_remove = self._compile_preprocessor(file_to_compile)
         include_cmd = self._compile_include()
+
+        if file_to_compile.c_source:
+            return [
+                (
+                    self.cmd_comp_c
+                    + " "
+                    + include_cmd
+                    + file_to_compile.name
+                    + " -o "
+                    + os.path.join(self.obj_dir, file_to_compile.basename + ".o"),
+                    None,
+                )
+            ]
 
         if preprocessor_cmd != "":
             compile_cmd = (
@@ -592,7 +606,7 @@ class Builder:
                             self.print_n("Executing: " + str(steps))
                     result = syswork_steps(steps)
                     results.append(result)
-            if not file_to_build.nomodlib:
+            if not file_to_build.nomodlib or file_to_build.c_source:  # a C file that does not compile fails the build
                 if log:
                     check_results(results=results, log="building-errors.log", print_w=self.print_w)
                 else:
@@ -609,9 +623,9 @@ class Builder:
                     )
         return build_ok
 
-    def gnu_make(self) -> str:
+    def gnu_make(self, c_sources: bool = False) -> str:
         """
-        Return the builder options formated as GNU Make variables
+        Return the builder options formated as GNU Make variables (``CC``/``OPTSCC`` too with ``c_sources``)
 
         Returns
         -------
@@ -638,6 +652,9 @@ class Builder:
         else:
             string.append("LIBS    =\n")
         string.append("FC      = " + self.compiler.fcs + "\n")
+        if c_sources:
+            string.append("CC      = " + self.compiler.ccs + "\n")
+            string.append("OPTSCC  = " + self.compiler.c_cflags + "\n")
         string.append("OPTSC   = " + self.compiler.cflags + " " + self.compiler.modsw + self.mod_dir + "\n")
         string.append("OPTSL   = " + self.compiler.lflags + " " + self.compiler.modsw + self.mod_dir + "\n")
         return "".join(string)

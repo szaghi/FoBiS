@@ -98,6 +98,9 @@ See the [Doctests](/advanced/doctests) advanced guide for the full syntax refere
 | `--fc` | TEXT |  | Fortran compiler statement (for --compiler custom) |
 | `--cflags` | TEXT |  | Compile flags |
 | `--lflags` | TEXT |  | Link flags |
+| `--cc` | TEXT |  | C compiler for the .c sources (default: the compiler family's, e.g. gcc) |
+| `--c-cflags` | TEXT |  | Compile flags of the .c sources (default -c) |
+| `--c-preproc` | TEXT |  | Preprocessor flags of the .c sources |
 | `--modsw` | TEXT |  | Module search path switch (for --compiler custom) |
 | `--mpi` |  |  | Use MPI enabled version of compiler |
 | `--openmp` |  |  | Use OpenMP pragmas |

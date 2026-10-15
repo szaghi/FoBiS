@@ -32,6 +32,23 @@ from .utils import print_fake
 
 __regex_opts__ = re.compile(r"-O([1-9]|s|fast)\b")  # optimisation levels: -O0 and -Og keep coverage exact
 
+# The C compiler of each family, for the ``.c`` sources: (command, command with --mpi, OpenMP, coverage, profiling
+# flags). Every flag is accepted by its compiler (tests/test_c_sources.py compiles with those on PATH).
+C_COMPILERS = {
+    "gnu": ("gcc", "mpicc", "-fopenmp", "-ftest-coverage -fprofile-arcs", "-pg"),
+    "opencoarrays-gnu": ("gcc", "mpicc", "-fopenmp", "-ftest-coverage -fprofile-arcs", "-pg"),
+    "g95": ("gcc", "mpicc", "", "", ""),
+    "nag": ("gcc", "mpicc", "-fopenmp", "", "-pg"),
+    "intel": ("icx", "mpiicc -cc=icx", "-qopenmp", "", ""),
+    "intel_nextgen": ("icx", "mpiicx", "-qopenmp", "", ""),
+    "nvfortran": ("nvc", "mpicc", "-mp", "", "-pg"),
+    "pgi": ("pgcc", "mpicc", "-mp", "", "-pg"),
+    "ibm": ("xlc_r", "mpicc", "-qsmp=omp", "", "-pg"),
+    "amd": ("amdclang", "mpicc", "-fopenmp", "", "-pg"),
+    "lfortran": ("cc", "mpicc", "", "", ""),
+    "custom": ("cc", "mpicc", "", "", ""),
+}
+
 
 class Compiler:
     """
@@ -107,6 +124,7 @@ class Compiler:
         self._coverage = None
         self._profile = None
         self.compiler = cliargs.compiler
+        family = (self.compiler or "gnu").lower()
         if self.compiler:
             if self.compiler.lower() == "gnu":
                 self._gnu()
@@ -154,7 +172,31 @@ class Compiler:
         self._set_fcs()
         self._set_cflags()
         self._set_lflags(mklib=cliargs.mklib)
+        self._set_c(cliargs, family)
         return
+
+    def _set_c(self, cliargs, family):
+        """Set the C compiler of the ``.c`` sources: the family's (``C_COMPILERS``, gcc for an unknown one) unless the
+        mode or the command line names one; its flags are ``c_cflags`` (default ``-c``, which is always kept) plus the
+        family's OpenMP/coverage/profiling flags when those switches are on, plus ``c_preproc``. The Fortran ``cflags``
+        and ``preproc`` are never applied to C."""
+        cc, mpi_cc, openmp, coverage, profile = C_COMPILERS.get(family, C_COMPILERS["gnu"])
+        self.c_explicit = any(getattr(cliargs, key, None) for key in ("cc", "c_cflags", "c_preproc"))
+        self.ccs = getattr(cliargs, "cc", None) or (mpi_cc if self.mpi else cc)
+        # the build profile's C flags first (Fobos._apply_build_profile), so the mode's c_cflags override them
+        flags = (getattr(cliargs, "c_profile_cflags", "") or "") + " " + (getattr(cliargs, "c_cflags", None) or "-c")
+        if "-c" not in flags.split():
+            flags = "-c " + flags
+        if self.coverage and coverage:
+            flags += " " + coverage
+        if self.profile and profile:
+            flags += " " + profile
+        if (self.openmp or self.openmp_offload) and openmp:
+            flags += " " + openmp
+        self.c_preproc = getattr(cliargs, "c_preproc", None) or ""
+        if self.c_preproc:
+            flags += " " + self.c_preproc
+        self.c_cflags = re.sub(r" +", " ", flags).strip()
 
     def __str__(self):
         return self.pprint()
@@ -420,6 +462,10 @@ class Compiler:
         """
         return self.fcs + " " + self.cflags + " " + self.modsw + mod_dir + " -I" + mod_dir
 
+    def compile_cmd_c(self):
+        """The compile command of the ``.c`` sources (no module directory: C has none)."""
+        return self.ccs + " " + self.c_cflags
+
     def link_cmd(self, mod_dir):
         """
         Method returning the compile command accordingly to the compiler options.
@@ -447,6 +493,9 @@ class Compiler:
         string += prefix + '  Compiling flags: "' + self.cflags.strip() + '"\n'
         string += prefix + '  Linking flags: "' + self.lflags.strip() + '"\n'
         string += prefix + '  Preprocessing flags: "' + self.preproc.strip() + '"\n'
+        if self.c_explicit:  # only when set: the block is in every build's output
+            string += prefix + '  C compiler command: "' + self.ccs.strip() + '"\n'
+            string += prefix + '  C compiling flags: "' + self.c_cflags.strip() + '"\n'
         string += prefix + "  Coverage: " + str(self.coverage) + "\n"
         if self.coverage:
             string += prefix + "    Coverage compile and link flags: " + str(self._coverage) + "\n"

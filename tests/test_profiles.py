@@ -75,13 +75,13 @@ def test_get_profile_unknown_profile_returns_empty():
 def test_get_profile_empty_profile_returns_empty():
     """Empty profile string → empty flags, no warning."""
     flags = get_profile_flags("gnu", "")
-    assert flags == {"cflags": "", "lflags": ""}
+    assert flags == {"cflags": "", "lflags": "", "c_cflags": ""}
 
 
 def test_get_profile_none_profile_returns_empty():
     """None profile → empty flags."""
     flags = get_profile_flags("gnu", None)
-    assert flags == {"cflags": "", "lflags": ""}
+    assert flags == {"cflags": "", "lflags": "", "c_cflags": ""}
 
 
 # ── list_profiles() ──────────────────────────────────────────────────────────
@@ -101,7 +101,7 @@ def test_get_profile_of_another_family_never_gets_gfortran_flags():
     """nvfortran has no asan profile (it rejects -fsanitize=address): no flags, not gfortran's -fsanitize."""
     warnings = []
     flags = get_profile_flags("nvfortran", "asan", print_w=warnings.append)
-    assert flags == {"cflags": "", "lflags": ""} and "no 'asan' profile" in warnings[0]
+    assert flags == {"cflags": "", "lflags": "", "c_cflags": ""} and "no 'asan' profile" in warnings[0]
 
 
 # ── every profile flag is accepted by its compiler ───────────────────────────
@@ -134,6 +134,31 @@ def test_profile_flags_are_accepted_by_the_compiler(key, tmp_path):
     flags = PROFILES[key]
     result = subprocess.run(
         [command, *flags["cflags"].split(), "p.f90", *flags["lflags"].split(), "-o", "p"],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    output = result.stdout + result.stderr
+    assert result.returncode == 0 and not any(r in output.lower() for r in _REFUSED), output
+
+
+@pytest.mark.parametrize("key", sorted(k for k in PROFILES if PROFILES[k].get("c_cflags")), ids=lambda k: "-".join(k))
+def test_profile_c_flags_are_accepted_by_the_c_compiler(key, tmp_path):
+    """The profile's ``c_cflags`` compile with the family's C compiler (``Compiler.C_COMPILERS``), when it is on
+    PATH (amdclang is not on the maintainer's machine: its flags are the plain Clang ones)."""
+    import shutil
+    import subprocess
+
+    from fobis.Compiler import C_COMPILERS
+
+    command = shutil.which(C_COMPILERS[key[0]][0])
+    if command is None:
+        pytest.skip(f"{C_COMPILERS[key[0]][0]} not on PATH")
+    (tmp_path / "p.c").write_text('#include <stdio.h>\nint main(void) { printf("1\\n"); return 0; }\n')
+    flags = PROFILES[key]
+    result = subprocess.run(
+        [command, "-c", *flags["c_cflags"].split(), "p.c", "-o", "p.o"],  # FoBiS links with the Fortran compiler
         cwd=tmp_path,
         capture_output=True,
         text=True,

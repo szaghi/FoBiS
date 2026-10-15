@@ -11,7 +11,7 @@ import typer
 
 from ._app import _ns, app
 from ._completions import _complete_fobos_varset
-from ._constants import __extensions_inc__, __extensions_parsed__
+from ._constants import __extensions_build__, __extensions_inc__
 from ._options import FciOpt, FobosOpt, JsonOpt, ModeOpt, SrcOpt
 
 
@@ -65,7 +65,7 @@ def cmd_check(
         ext_vlibs=[],
         dependon=[],
         inc=list(__extensions_inc__),
-        extensions=list(__extensions_parsed__),
+        extensions=list(__extensions_build__),
         build_all=False,
         compiler="gnu",
         fc=None,

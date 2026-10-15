@@ -61,6 +61,16 @@ _LD_MULTIPLE = re.compile(
     r"^(?:(?P<file>[^:\s][^:]*?):(?:(?P<line>\d+):)?\([^)]*\): )?multiple definition of [`'](?P<sym>[^'`]+)';"
     r"\s*(?P<first>.*?)(?::\([^)]*\))?: first defined here"
 )
+# C compilers (the .c sources): GCC and Clang (icx, amdclang) "file:line:col: error: msg" + an excerpt of "N | ..."
+# lines; nvc (EDG) '"file", line N: error: msg' + an indented excerpt
+_C_GCC = re.compile(
+    r"^(?P<file>[^\s:][^:]*):(?P<line>\d+):(?P<col>\d+): (?P<sev>fatal error|error|warning|note): (?P<msg>.*)$"
+)
+_C_EXCERPT = re.compile(r"^\s*\d*\s*\|")
+_C_EDG = re.compile(
+    r'^"(?P<file>[^"]+)", line (?P<line>\d+): (?P<sev>catastrophic error|error|warning|remark): (?P<msg>.*)$'
+)
+_C_SEVERITY = {"fatal error": "fatal", "catastrophic error": "fatal", "note": "info", "remark": "info"}
 _LLD_UNDEFINED = re.compile(r"^error: undefined symbol: (?P<sym>\S+)")
 _ICE = re.compile(r"internal compiler error", re.IGNORECASE)
 
@@ -74,8 +84,8 @@ class Diagnostic:
     Attributes
     ----------
     tool : str
-        ``gnu``, ``intel``, ``nvfortran``, ``lfortran``, ``linker`` or ``compiler`` (a crash message of
-        unknown origin).
+        ``gnu``, ``intel``, ``nvfortran``, ``lfortran``, ``c`` (a C compiler: gcc, Clang-based icx/amdclang, nvc),
+        ``linker`` or ``compiler`` (a crash message of unknown origin).
     severity : str
         ``error``, ``fatal``, ``warning``, ``info`` or ``ice`` (internal compiler error).
     message : str
@@ -190,6 +200,29 @@ def parse_diagnostics(output: str) -> list[Diagnostic]:
             diagnostic, i = _gnu_block(lines, i, head)
             if diagnostic is not None:
                 found.append(diagnostic)
+            continue
+        c_message = _C_GCC.match(line) or _C_EDG.match(line)
+        if c_message:
+            block = [line]
+            edg = c_message.re is _C_EDG
+            while i < len(lines) and (
+                lines[i].startswith(" ") and lines[i].strip() if edg else _C_EXCERPT.match(lines[i])
+            ):
+                block.append(lines[i])
+                i += 1
+            sev = c_message.group("sev")
+            message = c_message.group("msg").strip()
+            found.append(
+                Diagnostic(
+                    "c",
+                    "ice" if _ICE.search(message) else _C_SEVERITY.get(sev, sev),
+                    message,
+                    c_message.group("file"),
+                    int(c_message.group("line")),
+                    None if edg else int(c_message.group("col")),
+                    text="\n".join(block),
+                )
+            )
             continue
         intel = _INTEL.match(line)
         if intel:

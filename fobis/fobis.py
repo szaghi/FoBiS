@@ -33,7 +33,7 @@ from .Cleaner import Cleaner
 from .FoBiSConfig import FoBiSConfig
 from .Gcov import Gcov, _mermaid_pie
 from .ParsedFile import ParsedFile
-from .utils import BuildFailed, dependency_hiearchy, is_c_header, remove_other_main, safe_mkdir, syswork
+from .utils import BuildFailed, dependency_hiearchy, remove_other_main, safe_mkdir, syswork
 
 
 def main():
@@ -668,11 +668,13 @@ def run_fobis_build(configuration):
                 sys.exit(1)
 
         # The compiler record is per object directory: checked once, before any target is built
-        compiler_record = _compiler_guard(
-            configuration, Builder(cliargs=cliargs, print_n=lambda *a, **k: None, print_w=configuration.print_r)
-        )
         # Scan source files once for all targets
         pfiles_all = parse_files(configuration=configuration)
+        compiler_record = _compiler_guard(
+            configuration,
+            Builder(cliargs=cliargs, print_n=lambda *a, **k: None, print_w=configuration.print_r),
+            c_sources=any(p.c_source for p in pfiles_all),
+        )
         configuration.build_trace = {"pfiles": pfiles_all}
         database: list[dict] = []  # the compilation database of all the targets
         for t_dict in all_build_targets:
@@ -719,8 +721,8 @@ def run_fobis_build(configuration):
     # Standard (single-target) build path
     builder = Builder(cliargs=cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
     configuration.print_b(builder.verbose(quiet=cliargs.quiet))
-    compiler_record = _compiler_guard(configuration, builder)
     pfiles = parse_files(configuration=configuration)
+    compiler_record = _compiler_guard(configuration, builder, c_sources=any(p.c_source for p in pfiles))
     configuration.build_trace = {"pfiles": pfiles}
     dependency_hiearchy(
         builder=builder, pfiles=pfiles, print_w=configuration.print_r, force_compile=cliargs.force_compile
@@ -798,33 +800,26 @@ def run_fobis_build(configuration):
 COMPILER_RECORD = ".fobis-compiler.json"
 
 
-def _compiler_guard(configuration, builder):
+def _compiler_guard(configuration, builder, c_sources=False):
     """Force a full rebuild when the compiler behind the mode's command changed since the last build in this object
     directory (another path, or another ``--version``: a module swap keeps the command name, and FoBiS's timestamps
     alone would link objects of two compilers, or reuse ``.mod`` files the new one cannot read).
 
     The record (``<obj_dir>/.fobis-compiler.json``) is written by the returned function, called once the build has
-    compiled without failure; without a record (first build, or objects of an older FoBiS) nothing is forced.
+    compiled without failure; without a record (first build, or objects of an older FoBiS) nothing is forced. With
+    ``c_sources`` the C compiler is recorded too (``c_path``/``c_version``), and compared only when the record has it.
     """
     import json
-    import shlex
 
-    from .verification.provenance import compiler_version
-
-    words = shlex.split(builder.cmd_comp or "")
-    command = words[:1] + [w for w in words[1:3] if w.startswith(("-fc=", "-f90=", "-compiler="))]
-    current = {}
-    if command:
-        current = {
-            "command": " ".join(command),
-            "path": shutil.which(command[0]) or command[0],
-            "version": compiler_version(command[0]) if len(command) == 1 else _wrapped_version(command),
-        }
+    current = _compiler_identity(builder.cmd_comp)
+    if current and c_sources:
+        current.update({"c_" + k: v for k, v in _compiler_identity(builder.cmd_comp_c).items()})
     path = os.path.join(builder.obj_dir, COMPILER_RECORD)
     recorded = {}
     with contextlib.suppress(OSError, ValueError), open(path, encoding="utf-8") as handle:
         recorded = json.load(handle)
-    changed = [k for k in ("path", "version") if recorded and current and recorded.get(k) != current.get(k)]
+    keys = ("path", "version", "c_path", "c_version")
+    changed = [k for k in keys if recorded and current and k in recorded and k in current and recorded[k] != current[k]]
     if changed and not configuration.cliargs.force_compile:
         configuration.cliargs.force_compile = True
         detail = "; ".join(f"{k} {recorded.get(k)!r} -> {current.get(k)!r}" for k in changed)
@@ -836,6 +831,24 @@ def _compiler_guard(configuration, builder):
                 json.dump(current, handle, indent=1)
 
     return write
+
+
+def _compiler_identity(compile_command: str) -> dict:
+    """{command, path, version} of the compiler running *compile_command* (its first word, plus the option of a wrapper
+    that selects its compiler: ``mpiifort -fc=ifx``, ``mpiicc -cc=icx``); empty without a command."""
+    import shlex
+
+    from .verification.provenance import compiler_version
+
+    words = shlex.split(compile_command or "")
+    command = words[:1] + [w for w in words[1:3] if w.startswith(("-fc=", "-f90=", "-cc=", "-compiler="))]
+    if not command:
+        return {}
+    return {
+        "command": " ".join(command),
+        "path": shutil.which(command[0]) or command[0],
+        "version": compiler_version(command[0]) if len(command) == 1 else _wrapped_version(command),
+    }
 
 
 def _wrapped_version(command: list[str]) -> str:
@@ -1149,7 +1162,6 @@ def parse_files(configuration, src_dir=None, is_doctest=False):
                             pfiles.append(pfile)
     # by path, in natural order: not the directory listing's (it differs between file systems, so did the order of
     # compilation and of the doctests)
-    pfiles = [pfile for pfile in pfiles if not is_c_header(pfile.name)]  # C headers next to the sources
     return sorted(pfiles, key=lambda pfile: _natural_key(pfile.name))
 
 
@@ -1292,6 +1304,9 @@ def _explain_build_failure(configuration, failure):
     if not remaining:
         return
     first = remaining[0]
+    if first.tool == "c":  # the prompt, the facts and the packs are Fortran's: the C compiler's message is the answer
+        say(f"  {first.where}: the first error is in a C source; --explain explains Fortran errors only")
+        return
     bundle = build_bundle(first, facts, _knowledge_base())
     answered = _model_explanation(configuration, bundle, "explain", explain, f"{first.where}: {first.message}")
     if answered and len(remaining) > 1:
@@ -1554,7 +1569,7 @@ def save_makefile(configuration, pfiles, builder):
         string = []
         string.append("\n#main building variables\n")
         string.append("DSRC    = " + " ".join(configuration.cliargs.src) + "\n")
-        string.append(builder.gnu_make())
+        string.append(builder.gnu_make(c_sources=any(p.c_source for p in pfiles)))
         string.append("VPATH   = $(DSRC) $(DOBJ) $(DMOD)" + "\n")
         string.append("MKDIRS  = $(DOBJ) $(DMOD) $(DEXE)" + "\n")
         string.append("LCEXES  = $(shell echo $(EXES) | tr '[:upper:]' '[:lower:]')\n")
@@ -4833,6 +4848,11 @@ def run_fobis_introspect(configuration):
             "lflags": getattr(cliargs, "lflags", "") or "",
             "preproc": _merged_preproc_flags(cliargs),
         }
+        from .Compiler import Compiler
+
+        with contextlib.suppress(AttributeError):  # the C compiler of the .c sources, resolved for the mode
+            c = Compiler(cliargs=cliargs)
+            data["compiler"].update({"cc": c.ccs, "c_cflags": c.c_cflags})
 
     # Source files
     if getattr(cliargs, "introspect_sources", False):
@@ -4843,6 +4863,7 @@ def run_fobis_introspect(configuration):
                 "modules": list(pf.module_names) if pf.module_names else [],
                 "uses": [d.name for d in pf.dependencies if d.type == "module"],
                 "program": pf.program,
+                "language": "c" if pf.c_source or pf.c_header else "fortran",
             }
             for pf in pfiles
         ]

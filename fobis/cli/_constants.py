@@ -22,10 +22,15 @@ backward compatibility.
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
 
+from ..utils import C_SOURCE_EXTENSIONS
+
 __extensions_inc__ = [".inc", ".INC", ".h", ".H"]
 __extensions_old__ = [".f", ".F", ".for", ".FOR", ".fpp", ".FPP", ".fortran", ".f77", ".F77"]
 __extensions_modern__ = [".f90", ".F90", ".f95", ".F95", ".f03", ".F03", ".f08", ".F08", ".f2k", ".F2K"]
 __extensions_parsed__ = __extensions_inc__ + __extensions_old__ + __extensions_modern__
+# C sources: compiled with the C compiler and linked with the Fortran objects; never analysed as Fortran (lint, query)
+__extensions_c__ = list(C_SOURCE_EXTENSIONS)
+__extensions_build__ = __extensions_parsed__ + __extensions_c__
 __compiler_supported__ = (
     "gnu",
     "intel",

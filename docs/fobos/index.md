@@ -139,7 +139,10 @@ Generated from the settings of the commands that read a mode.
 | `build_all` | build, clean, doctests, rule | Build all sources parsed |
 | `build_dir` | all | Directory containing built objects [default: ./]; given here, it wins over the mode's build_dir |
 | `build_profile` | build | Named build profile: debug, release, asan, coverage |
+| `c_cflags` | build, doctests, rule | Compile flags of the .c sources (default -c) |
+| `c_preproc` | build, doctests, rule | Preprocessor flags of the .c sources |
 | `cache_dir` | build | Override the default cache directory |
+| `cc` | build, doctests, rule | C compiler for the .c sources (default: the compiler family's, e.g. gcc) |
 | `cflags` | build, clean, doctests, rule | Compile flags |
 | `cflags_heritage` | build, clean, doctests, rule | Store cflags for heritage checking; re-compile all if they change |
 | `coarray` | build, clean, doctests, rule | Use coarrays |
