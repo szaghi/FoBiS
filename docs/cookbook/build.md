@@ -155,3 +155,17 @@ fobis build --mode release --makefile Makefile
 ```
 
 Tutorial: [other build systems](/tutorial/growing/07-export). `fobis fpm export` writes an `fpm.toml`.
+
+## Build an fpm package with FoBiS
+
+```bash
+fobis fpm import                        # fpm.toml -> fobos, fpm's flags for gfortran
+fobis fpm import --compiler intel_nextgen --output fobos.ifx --force
+fobis build --mode gnu-debug            # one mode per fpm profile: gnu-debug, gnu-release, gnu-<profile>...
+fobis test --mode gnu-debug
+fobis build --mode lib-static           # [library] type: lib-static, lib-shared
+```
+
+Each fpm feature becomes a `[feature:NAME]` section with its flags for the chosen compiler, each profile a mode
+listing its features; the flags are fpm's own, checked file by file against `fpm build`. The notes name what does
+not translate and the features that have flags for other compilers. Guide: [fpm interoperability](/advanced/fpm).

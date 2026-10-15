@@ -1,0 +1,29 @@
+name = "mixed"
+version = "0.2.0"
+description = "fixture of fobis fpm import: features, profiles, C, a path dependency, two library kinds"
+
+[library]
+type = ["static", "shared"]
+
+[dependencies]
+tools = { path = "crate/tools" }
+openmp = "*"
+
+[preprocess.cpp]
+macros = ["MIXED_MAJOR={version}", "MIXED_SCALE=3"]
+
+[features]
+# all compilers, then gfortran only, then linux only
+checks.flags = "-g"
+checks.gfortran.flags = "-fcheck=bounds"
+checks.linux.preprocess.cpp.macros = "ON_LINUX"
+fast.flags = "-O2"
+fast.gfortran.flags = "-funroll-loops"
+fast.c-flags = "-O2"
+fast.ifx.flags = "-xHost"
+baseline.preprocess.cpp.macros = "BASELINE"
+
+[profiles]
+default = ["baseline"]
+quick = ["fast"]
+careful = ["checks", "fast"]

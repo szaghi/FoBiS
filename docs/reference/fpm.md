@@ -43,13 +43,13 @@ Write an fpm.toml for the project: metadata, the library directory (where the mo
 
 ### `fobis fpm import`
 
-Write a fobos for an fpm package: sources, debug/release modes (FoBiS build profiles), a library mode when a module is named after the package, tests, git dependencies, macros, libraries; notes for the rest.
+Write a fobos for an fpm package: sources, one mode per profile with fpm's flags for the compiler (features as [feature:NAME] sections), lib-static/lib-shared modes, tests, git, path and dev dependencies, macros, libraries; notes for the rest.
 
 | Option | Value | Default | Description |
 |---|---|---|---|
 | `--fpm` | TEXT | `fpm.toml` | The fpm manifest to read. |
 | `--output`, `-o` | TEXT | `fobos` | The fobos to write. |
-| `--compiler` | TEXT | `gnu` | FoBiS compiler of the generated modes. |
+| `--compiler` | TEXT | `gnu` | FoBiS compiler of the generated modes: fpm's flags for it are translated. |
 | `--force` |  |  | Overwrite the output file when it exists. |
 | `--print` |  |  | Print the translation; write nothing. |
 | `--json` |  |  | Emit structured JSON to stdout instead of human-readable output (useful for scripting / agents) |

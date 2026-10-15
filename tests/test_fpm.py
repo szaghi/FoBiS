@@ -1,7 +1,9 @@
 """Tests for ``fobis fpm`` (phase V12 of PLAN-verification.md): the stdlib TOML reader against ``tomllib`` on REAL
 manifests (``tests/fpm/``: StringiFor, FLAP, VTKFortran — dotted tables, inline tables, arrays of tables, multi-line
 strings with line-ending backslashes) and on the syntax corners, fpm.toml -> fobos (library mode from the module
-named after the package, path dependency, metapackages, links, macros, notes), fobos -> fpm.toml (library directory
+named after the package, path dependencies followed, dev dependencies, metapackages, links, macros, notes; features
+and profiles resolved as fpm does, checked against the GENUINE compile commands of fpm 0.13.0 on tests/fpm/packages/
+mixed), fobos -> fpm.toml (library directory
 from the modules, tests and executables from the programs, unique names, dependencies, the version file outside a
 git repository), the CLI (no overwrite without --force, --print, --json) and a round trip built with gfortran."""
 
@@ -9,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import sys
 
 import pytest
@@ -72,7 +75,8 @@ def _write(root, files):
             handle.write(text)
 
 
-def test_fobos_from_fpm(tmp_path):
+def test_fobos_from_fpm(tmp_path, monkeypatch):
+    monkeypatch.setattr("fobis.fpm.current_os", lambda: "linux")
     project = tmp_path / "demo"
     _write(
         project,
@@ -80,29 +84,163 @@ def test_fobos_from_fpm(tmp_path):
             "src/demo.f90": "module demo\nuse helper\nend module demo\n",
             "app/main.f90": "program main\nend program main\n",
             "test/check.f90": "program check\nend program check\n",
-            "../dep/fpm.toml": 'name = "dep"\n[library]\nsource-dir = "lib"\n',
+            "../dep/fpm.toml": 'name = "dep"\n[library]\nsource-dir = "lib"\n[dependencies]\ninner = { path = "inner" }\n',
+            "../dep/inner/fpm.toml": 'name = "inner"\n',
         },
     )
     manifest = parse_toml(
         'name = "demo"\nversion = "1.2.0"\nauthor = ["A", "B"]\ndescription = "d"\n'
         '[build]\nlink = ["lapack", "blas"]\nexternal-modules = ["netcdf"]\n'
-        '[preprocess.cpp]\nmacros = ["USE_X", "N=4"]\n[fortran]\nimplicit-typing = false\n'
+        '[preprocess.cpp]\nmacros = ["USE_X", "N=4", "V={version}"]\n[fortran]\nimplicit-typing = true\n'
         '[features]\nwarn = "-Wall"\n'
         '[dependencies]\npenf = { git = "https://github.com/szaghi/PENF", tag = "v1.5.0" }\nmpi = "*"\n'
         'stdlib = "*"\nhelper = { path = "../dep" }\n[dev-dependencies]\ntest-drive = { git = "https://x/td" }\n'
+        'fixtures = { path = "../dep/inner" }\n'
     )
     translation = fobos_from_fpm(manifest, str(project), "gnu")
     text = translation.text
-    assert "modes = gnu-debug gnu-release lib-gnu" in text and "target = src/demo.f90" in text
-    assert "src = ./src/ ./app/ ./test/ ./../dep/lib/" in text and "authors = A, B" in text
-    assert "preproc = -DUSE_X -DN=4" in text and "ext_libs = lapack blas" in text and "mpi = True" in text
-    assert "penf = https://github.com/szaghi/PENF :: tag=v1.5.0" in text and "test-drive = https://x/td" in text
-    assert "build_profile = debug" in text and "[test]\ntest_dir = test" in text
+    assert "modes = gnu-debug gnu-release lib-static" in text and "target = src/demo.f90" in text
+    assert "src = ./src/ ./app/ ./test/\n" in text and "authors = A, B" in text
+    assert "preproc = -DUSE_X -DN=4 -DV=1.2.0" in text and "ext_libs = lapack blas" in text and "mpi = True" in text
+    # implicit-typing = true: no -fimplicit-none; implicit externals stay errors; free form; cpp for the macros
+    assert "cflags = -c -cpp -Werror=implicit-interface -ffree-form\n" in text
+    assert "penf = https://github.com/szaghi/PENF :: tag=v1.5.0" in text and "test-drive = https://x/td :: dev" in text
+    # a path dependency is its library directory; its own path dependency follows (the dev one is seen there first)
+    assert "helper = path=../dep/lib\ninner = path=../dep/inner/src\n" in text and "fixtures" not in text
+    assert "features = debug\n" in text and "[feature:debug]\nflags = -Wall -Wextra -Wimplicit-interface" in text
+    assert "[test]\ntest_dir = test" in text
     notes = "\n".join(translation.notes)
-    for expected in ("stdlib", "external-modules", "implicit-typing", "[features]", "dev-dependencies", "helper"):
+    for expected in ("stdlib", "external-modules", "[features] warn", "a feature must be a table"):
         assert expected in notes
+    assert "dev-dependencies" not in notes and "helper" not in notes and "implicit-typing" not in notes
     plain = fobos_from_fpm({"name": "other"}, str(project), "intel")
-    assert "lib-intel" not in plain.text and any("no module named 'other'" in n for n in plain.notes)
+    assert "lib-static" not in plain.text and any("no module named 'other'" in n for n in plain.notes)
+    assert "cflags = -c -free -fPIC\n" in plain.text  # fpm's Intel flags: free form, -fPIC always
+
+
+FEATURES = """
+name = "feat"
+version = "0.1.0"
+[library]
+type = ["shared", "static"]
+[features]
+# all compilers, then gfortran, then linux, then both
+checks.flags = "-g"
+checks.gfortran.flags = "-fcheck=all"
+checks.linux.preprocess.cpp.macros = "ON_LINUX"
+checks.linux.gfortran.flags = "-fbacktrace"
+checks.windows.flags = "-Ox"
+checks.ifx.flags = "-check all"
+checks.requires = ["base"]
+base.preprocess.cpp.macros = ["BASE", "VER={version}"]
+base.link-time-flags = "-Wl,--as-needed"
+base.c-flags = "-std=c11"
+parallel.dependencies.openmp = "*"
+openmp.flags = "-DOWN_OPENMP"
+odd.executable = [{ name = "x", source-dir = "x" }]
+debug.flags = "-g3"
+[profiles]
+default = ["base"]
+careful = ["checks", "parallel"]
+broken = ["missing"]
+old = { gfortran = { flags = "-O" } }
+"""
+
+
+def test_features_and_profiles(tmp_path, monkeypatch):
+    """fpm's merge: the base first, then each variant for this compiler and OS in the manifest's order; profiles are
+    lists of features; ``default`` goes first in debug and release only; a manifest ``debug`` feature replaces fpm's."""
+    monkeypatch.setattr("fobis.fpm.current_os", lambda: "linux")
+    _write(tmp_path, {"src/feat.f90": "module feat\nend module feat\n", "src/clock.c": "int f(void) { return 1; }\n"})
+    translation = fobos_from_fpm(parse_toml(FEATURES), str(tmp_path), "gnu")
+    text = translation.text
+    assert "[feature:checks]\nflags = -g -fcheck=all -fbacktrace -DON_LINUX\nrequires = base\n" in text
+    assert "[feature:base]\nflags = -DBASE -DVER=0.1.0\n" in text
+    assert "[feature:parallel]\nflags = @openmp\n" in text and "[feature:fpm-openmp]\nflags = -DOWN_OPENMP\n" in text
+    assert "[feature:debug]\nflags = -g3\n" in text and "[feature:release]\nflags = -O3 -Wimplicit-interface" in text
+    assert "modes = gnu-debug gnu-release gnu-careful gnu-broken lib-shared lib-static" in text
+    assert "[gnu-debug]\ntemplate = template-common\nfeatures = base debug\n" in text
+    assert "[gnu-careful]\ntemplate = template-common\nfeatures = checks parallel\n" in text
+    # C: the features' C flags and macros, the template's macros; link-time flags in the mode
+    assert "c_cflags = -c -std=c11 -O3 -fPIC -fmax-errors=1 -funroll-loops\n" in text
+    assert "c_preproc = -DBASE -DVER=0.1.0\nlflags = -Wl,--as-needed\n" in text
+    assert "[lib-shared]" in text and "mklib = shared" in text and "output = libfeat.so" in text
+    assert "cflags = -c -cpp -fimplicit-none -Werror=implicit-interface -ffree-form -fPIC\n" in text
+    notes = translation.notes
+    assert "feature openmp is named fpm-openmp in the fobos: openmp is a FoBiS feature already" in notes
+    assert "feature odd: executable not translated" in notes
+    assert "features checks have flags for ifx too: import again with --compiler intel_nextgen" in notes
+    assert "feature checks has flags for windows, not for linux" in notes
+    assert "profile broken: no feature missing" in notes
+    assert "[profiles] old: not a list of features (an older fpm syntax), not translated" in notes
+    intel = fobos_from_fpm(parse_toml(FEATURES), str(tmp_path), "intel_nextgen").text
+    assert "[feature:checks]\nflags = -g -check all -DON_LINUX\n" in intel and "-fpp" in intel
+    nvidia = fobos_from_fpm(parse_toml(FEATURES), str(tmp_path), "nvfortran").text
+    assert "[feature:release]\nflags = -Mbackslash\n" in nvidia  # fpm's own release for nvfortran
+
+
+def test_feature_tables_errors(tmp_path, monkeypatch):
+    monkeypatch.setattr("fobis.fpm.current_os", lambda: "linux")
+    with pytest.raises(FpmError, match="must be a table"):
+        fobos_from_fpm(parse_toml('name = "x"\n[features]\nf.linux = 1\n'), str(tmp_path), "gnu")
+    same = tmp_path / "same"
+    _write(same, {"src/a/util.f90": "module a\nend module a\n", "src/b/util.f90": "module b\nend module b\n"})
+    notes = fobos_from_fpm(parse_toml('name = "same"\n'), str(same), "gnu").notes
+    assert any("files named alike in several directories (util.f90)" in n for n in notes)
+
+
+def _fpm_lines(profile):
+    """The genuine compile commands of fpm 0.13.0 for the ``mixed`` fixture: {file: flags}."""
+    lines = {}
+    with open(os.path.join(HERE, "mixed-fpm-0.13.0.txt"), encoding="utf-8") as handle:
+        for line in handle:
+            if line.startswith(profile + " "):
+                where, command = line[len(profile) + 1 :].split(": ", 1)
+                lines[where] = command
+    return lines
+
+
+def _flags(command):
+    words = command.split()
+    return {w for w in words if w.startswith("-") and w not in ("-c", "-o") and not w.startswith(("-I", "-J"))}
+
+
+@pytest.mark.skipif(sys.platform != "linux" or shutil.which("gcc") is None, reason="recorded on linux with gcc")
+@pytest.mark.parametrize("profile", ["debug", "release", "quick", "careful"])
+def test_imported_modes_compile_with_fpm_flags(tmp_path, monkeypatch, capsys, profile):
+    """``tests/fpm/packages/mixed`` imported and built: every file of the package is compiled with the flags fpm 0.13.0
+    used (``tests/fpm/mixed-fpm-0.13.0.txt``); a dependency compiled with the project gets the project's macros too."""
+    shutil.copytree(os.path.join(HERE, "packages", "mixed"), tmp_path / "mixed")
+    monkeypatch.chdir(tmp_path / "mixed")
+    assert _run(["fpm", "import"], capsys)[0] == 0
+    code, out, _ = _run(["build", "--mode", f"gnu-{profile}", "--verbose"], capsys)
+    assert code == 0, out
+    commands = {}
+    for line in out.splitlines():
+        if line.startswith("Executing: [('"):
+            command = line[len("Executing: [('") :].split("', None")[0]
+            commands[command.split()[-3]] = command  # ... SOURCE -o OBJECT
+    for where, command in _fpm_lines(profile).items():
+        ours = _flags(commands[where])
+        if where.startswith("crate/"):
+            ours = {f for f in ours if not f.startswith("-D")}
+        assert ours == _flags(command), where
+    import subprocess
+
+    printed = subprocess.run([f"build/{profile}/main"], capture_output=True, text=True, check=True).stdout.split()
+    assert printed == (["baseline", "3", "6"] if profile in ("debug", "release") else ["3", "6"])
+
+
+@pytest.mark.skipif(shutil.which("gcc") is None, reason="gcc")
+def test_imported_package_tests_and_libraries(tmp_path, monkeypatch, capsys):
+    shutil.copytree(os.path.join(HERE, "packages", "mixed"), tmp_path / "mixed")
+    monkeypatch.chdir(tmp_path / "mixed")
+    assert _run(["fpm", "import"], capsys)[0] == 0
+    code, out, _ = _run(["test", "--mode", "gnu-careful", "--json"], capsys)
+    assert code == 0 and json.loads(out)["passed"] == 1
+    for mode, library in (("lib-static", "build/lib/libmixed.a"), ("lib-shared", "build/lib-shared/libmixed.so")):
+        assert _run(["build", "--mode", mode], capsys)[0] == 0
+        assert (tmp_path / "mixed" / library).is_file()
 
 
 # ── the commands ───────────────────────────────────────────────────────────────
@@ -141,7 +279,7 @@ def test_import_round_trip(package, capsys):
     assert code == 0 and "fobos written" in out + err and (package / "fobos").is_file()
     assert _run(["fpm", "import"], capsys)[0] == 2  # no overwrite
     assert _run(["fpm", "import", "--force", "--json"], capsys)[0] == 0
-    assert _run(["build", "--mode", "lib-gnu"], capsys)[0] == 0
+    assert _run(["build", "--mode", "lib-static"], capsys)[0] == 0
     assert (package / "build" / "lib" / "libkit.a").is_file()
     code, out, _ = _run(["test", "--mode", "gnu-debug", "--json"], capsys)
     assert code == 0 and json.loads(out)["passed"] == 1

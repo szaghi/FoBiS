@@ -26,13 +26,17 @@ def cmd_fpm_import(
     ctx: typer.Context,
     manifest: Annotated[str, typer.Option("--fpm", help="The fpm manifest to read.")] = "fpm.toml",
     output: Annotated[str, typer.Option("--output", "-o", help="The fobos to write.")] = "fobos",
-    compiler: Annotated[str, typer.Option("--compiler", help="FoBiS compiler of the generated modes.")] = "gnu",
+    compiler: Annotated[
+        str,
+        typer.Option("--compiler", help="FoBiS compiler of the generated modes: fpm's flags for it are translated."),
+    ] = "gnu",
     force: _ForceOpt = False,
     print_only: _PrintOpt = False,
     json_output: JsonOpt = False,
 ):
-    """Write a fobos for an fpm package: sources, debug/release modes (FoBiS build profiles), a library mode when a
-    module is named after the package, tests, git dependencies, macros, libraries; notes for the rest."""
+    """Write a fobos for an fpm package: sources, one mode per profile with fpm's flags for the compiler (features as
+    [feature:NAME] sections), lib-static/lib-shared modes, tests, git, path and dev dependencies, macros, libraries;
+    notes for the rest."""
     ctx.ensure_object(dict)
     ctx.obj["cliargs"] = lint_namespace(
         which="fpm",

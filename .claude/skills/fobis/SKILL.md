@@ -194,8 +194,15 @@ fobis test --explain     # the same for every failed test (LLM for the first one
   from what kinds resolve to (selected_int_kind/selected_real_kind/iso_* names); assumed-shape arrays get extent
   args; private generic specifics are called through the generic. Not bound (reason reported): character, complex,
   derived types, optional/allocatable/pointer, assumed size/rank, quad precision, non-literal array results.
-- `fpm import`: fpm.toml -> fobos (debug/release modes from FoBiS build profiles, lib mode when a module is named
-  after the package, git deps, path deps into src, mpi/openmp metapackages -> mode keys). `fpm export`: library
+- `fpm import [--compiler X]`: fpm.toml -> fobos with fpm's OWN flags for that compiler on this OS: one mode
+  `<compiler>-<profile>` per fpm profile (+ debug/release; `default` profile first in those) with `features = ...`,
+  every fpm feature a `[feature:NAME]` (base flags, then the compiler/OS variants in manifest order; macros -> `-D`,
+  `openmp`/`mpi` metapackages -> `@openmp`/`@mpi`; a feature named like a FoBiS one -> `fpm-NAME`), fpm's built-in
+  debug/release flags where the manifest has none, the `[fortran]` flags (gfortran default
+  `-fimplicit-none -Werror=implicit-interface -ffree-form`, `-cpp` when cpp is used), `lib-static`/`lib-shared`
+  from `[library] type`, path deps (and theirs) -> `path=<dir>/<source-dir>`, dev deps -> `:: dev`, C files ->
+  `c_cflags`/`c_preproc`. Checked flag for flag against fpm 0.13.0. Notes: features for other compilers (with the
+  `--compiler` to use), same-named files in several directories (objects collide). `fpm export`: library
   source-dir from where the modules are, [[test]]/[[executable]] from the programs, git deps, macros. No overwrite
   without --force.
 - `profile`: gprof (case rebuilt with -pg as a variant; sampled self time + exact calls; MPI ranks -> per-process
