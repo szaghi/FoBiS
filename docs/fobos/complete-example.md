@@ -111,14 +111,19 @@ $ARCH        = cc80
 # [dependencies]  — GitHub-hosted build dependencies fetched by `fobis fetch`.
 #   deps_dir = local directory for cloned repositories (default: .fobis_deps)
 #   Each entry: name = URL [:: branch=X | tag=X | rev=X | semver=X]
-#                          [:: mode=X] [:: use=sources|fobos]
+#                          [:: mode=X] [:: use=sources|fobos] [:: dev]
+#           or: name = path=DIR [:: mode=X] [:: use=sources|fobos] [:: dev]
 # ─────────────────────────────────────────────────────────────────────────────
 [dependencies]
-deps_dir = .fobis_deps                            ; where to clone (same as --deps-dir)
+; where to clone (same as --deps-dir)
+deps_dir = .fobis_deps
 penf     = https://github.com/szaghi/PENF :: tag=v1.5.0
 stdlib   = https://github.com/fortran-lang/stdlib :: semver=>=0.5,<1.0 :: use=fobos :: mode=gnu
 jsonfort = https://github.com/jacobwilliams/json-fortran :: branch=main :: use=fobos
-utils    = szaghi/fortran-utils :: rev=a1b2c3d    ; user/repo shorthand resolves to GitHub
+; user/repo shorthand resolves to GitHub
+utils    = szaghi/fortran-utils :: rev=a1b2c3d
+; a local directory, relative to this fobos: no fetch, no pin
+mylib    = path=../mylib
 
 # ─────────────────────────────────────────────────────────────────────────────
 # [externals]  — system library resolution. Each entry is `name = auto | /prefix`.

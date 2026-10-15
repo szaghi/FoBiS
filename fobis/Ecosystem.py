@@ -205,6 +205,8 @@ class Project:
         Absolute path of the directory ``fobis fetch`` clones the dependencies into.
     fobos_deps : dict[str, str]
         ``{dependency name: URL}`` from the fobos ``[dependencies]`` section.
+    path_deps : dict[str, str]
+        ``{dependency name: absolute directory}`` of the path dependencies (``path=DIR``).
     deps : list[str]
         Names of the ecosystem projects this one depends on (filled by ``Ecosystem``).
     dep_keys : dict[str, str]
@@ -222,6 +224,7 @@ class Project:
     slug: str = ""
     deps_dir: str = ""
     fobos_deps: dict[str, str] = field(default_factory=dict)
+    path_deps: dict[str, str] = field(default_factory=dict)
     deps: list[str] = field(default_factory=list)
     dep_keys: dict[str, str] = field(default_factory=dict)
     external: list[str] = field(default_factory=list)
@@ -255,6 +258,11 @@ class Project:
         try:
             fobos = _read_fobos(fobos_path)
             project.fobos_deps = {name: spec.split("::")[0].strip() for name, spec in fobos.get_dependencies().items()}
+            project.path_deps = {
+                name: os.path.normpath(os.path.join(path, os.path.expanduser(head.partition("=")[2].strip())))
+                for name, head in project.fobos_deps.items()
+                if head.startswith("path=")
+            }
             project.deps_dir = os.path.normpath(os.path.join(path, fobos.get_deps_dir()))
             if fobos.fobos is not None and fobos.fobos.has_option("ecosystem", "release_exclude"):
                 project.release_exclude = fobos.fobos.get("ecosystem", "release_exclude").split()
@@ -280,13 +288,15 @@ class Pin:
 
     ``state`` is one of ``current`` (lock at the dependency's remote head), ``stale`` (lock behind
     it), ``ahead`` (lock newer than the known head: fetch the dependency), ``diverged``,
-    ``unlocked`` (no lock entry: run ``fobis fetch``) and ``unknown`` (no remote head).
+    ``unlocked`` (no lock entry: run ``fobis fetch``) and ``unknown`` (no remote head). A path dependency
+    (``path=DIR``) is ``path``, with ``path`` its directory relative to the project: it pins no commit.
     """
 
     dep: str
     locked: str
     head: str
     state: str
+    path: str = ""
 
 
 @dataclass
@@ -354,13 +364,16 @@ class Ecosystem:
     def _link(self) -> None:
         """Resolve each project's fobos dependencies against the ecosystem projects."""
         by_key: dict[str, str] = {}
+        by_path = {project.path: project.name for project in self.projects.values()}
         for project in self.projects.values():
             by_key[project.name.lower()] = project.name
             if project.slug:
                 by_key.setdefault(project.slug.split("/")[1].lower(), project.name)
         for project in self.projects.values():
             for dep_name, url in project.fobos_deps.items():
-                target = by_key.get(dep_name.lower()) or by_key.get(_repo_name(url).lower())
+                target = by_path.get(project.path_deps.get(dep_name, "")) or (  # a path dependency: by its directory
+                    by_key.get(dep_name.lower()) or by_key.get(_repo_name(url).lower())
+                )
                 if target and target != project.name:
                     if target not in project.deps:
                         project.deps.append(target)
@@ -502,6 +515,10 @@ class Ecosystem:
         locks = project.lock()
         for dep in project.deps:
             key = self.dep_key(project.name, dep)
+            if key in project.path_deps:  # used as it is in its directory: nothing pinned
+                local = os.path.relpath(project.path_deps[key], project.path)
+                status.pins.append(Pin(dep, "", "", "path", path=local))
+                continue
             locked = locks.get(key) or next((c for k, c in locks.items() if k.lower() == key.lower()), "")
             status.pins.append(_pin(dep, locked, heads.get(dep), self.projects[dep].path))
         status.state = status.overall_state()
@@ -908,6 +925,16 @@ def stage_dependent(eco: Ecosystem, dependent: str, changed: str, workdir: str) 
     changed_key = project.dep_keys.get(changed)
     for key in project.fobos_deps:
         target = os.path.join(staged_deps, key)
+        if key in project.path_deps:  # staged at the same relative place, so the copy's path= still finds it
+            source = eco.projects[changed].path if key == changed_key else project.path_deps[key]
+            target = os.path.normpath(os.path.join(stage, os.path.relpath(project.path_deps[key], project.path)))
+            if os.path.commonpath([os.path.abspath(workdir), os.path.abspath(target)]) != os.path.abspath(workdir):
+                raise FileNotFoundError(f"path dependency {key} of {dependent} lies outside the staging directory")
+            if not os.path.isdir(source):
+                raise FileNotFoundError(f"path dependency {key} of {dependent}: directory {source} not found")
+            if not os.path.isdir(target):  # two dependents may share a sibling
+                copy_working_copy(source, target)
+            continue
         if key == changed_key:
             copy_working_copy(eco.projects[changed].path, target)
             continue
@@ -1294,14 +1321,16 @@ def _cells(status: ProjectStatus) -> list[tuple[str, str]]:
         unreleased = (f"{status.unreleased} ({status.bump}{target})", _YELLOW)
     ci_colour = {"passing": _GREEN, "failing": _RED, "running": _YELLOW, "not pushed": _YELLOW}.get(status.ci, _DIM)
     drift = ("?", _DIM) if status.drift is None else (str(status.drift), _YELLOW if status.drift else _GREEN)
-    bad_pins = [p for p in status.pins if p.state != "current"]
+    bad_pins = [p for p in status.pins if p.state not in ("current", "path")]
+    local = [f"{p.dep} at {p.path}" for p in status.pins if p.state == "path"]
     if not status.pins:
         pins = ("-", _DIM)
     elif bad_pins:
         severe = any(p.state in ("stale", "diverged", "unlocked") for p in bad_pins)
-        pins = (", ".join(f"{p.dep} {p.state}" for p in bad_pins), _RED if severe else _YELLOW)
+        pins = (", ".join([*(f"{p.dep} {p.state}" for p in bad_pins), *local]), _RED if severe else _YELLOW)
     else:
-        pins = ("current", _GREEN)
+        current = ["current"] if any(p.state == "current" for p in status.pins) else []
+        pins = (", ".join([*current, *local]), _GREEN)
     return [
         (status.name, _BOLD),
         (status.branch, ""),

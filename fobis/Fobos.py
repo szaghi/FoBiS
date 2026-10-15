@@ -624,6 +624,7 @@ class DepNode:
     duplicate: bool = False
     version: str = ""
     dev: bool = False  # a test-only dependency (:: dev)
+    path: str = ""  # the directory of a path dependency (path=DIR), resolved
 
 
 def render_tree(nodes: list[DepNode], prefix: str = "") -> str:
@@ -655,6 +656,8 @@ def render_tree(nodes: list[DepNode], prefix: str = "") -> str:
             label += " [test only]"
         if node.duplicate:
             label += " (*) [already shown]"
+        elif not node.fetched and node.path:
+            label += f" [directory {node.path} not found]"
         elif not node.fetched:
             label += " [not fetched — run fobis fetch]"
         elif not node.has_fobos:
@@ -1807,6 +1810,12 @@ class Fobos:
             if dev and depth > 0:  # a dependency's test-only dependencies are its own business
                 continue
             dep_dir = os.path.join(deps_dir, name)
+            local = ""
+            head = spec.split("::")[0].strip()
+            if head.startswith("path="):  # a path dependency: its directory, relative to this fobos
+                local = dep_dir = os.path.normpath(
+                    os.path.join(os.path.dirname(self.filename), os.path.expanduser(head.partition("=")[2].strip()))
+                )
             fetched = os.path.isdir(dep_dir)
             fobos_file = os.path.join(dep_dir, "fobos")
             has_fobos = fetched and os.path.isfile(fobos_file)
@@ -1821,7 +1830,7 @@ class Fobos:
                         break
 
             # deduplication key
-            dedup_key = spec.split("::")[0].strip() + "#" + name
+            dedup_key = (os.path.abspath(local) if local else head) + "#" + name
 
             if dedup_key in visited:
                 node = DepNode(
@@ -1832,6 +1841,7 @@ class Fobos:
                     version=version,
                     duplicate=True,
                     dev=dev,
+                    path=local,
                 )
                 nodes.append(node)
                 continue
@@ -1872,6 +1882,7 @@ class Fobos:
                 children=children,
                 duplicate=False,
                 dev=dev,
+                path=local,
             )
             nodes.append(node)
         return nodes

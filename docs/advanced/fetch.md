@@ -28,12 +28,14 @@ fobis build
 
 ```
 name = URL [:: branch=X] [:: tag=X] [:: rev=X] [:: mode=X] [:: use=sources|fobos] [:: dev]
+name = path=DIR [:: mode=X] [:: use=sources|fobos] [:: dev]
 ```
 
 | Field | Description |
 |---|---|
 | `name` | Short identifier; also becomes the subdirectory name under `deps_dir` |
 | `URL` | Git URL of the repository (`https://`, `ssh://`, `git@...`, `file://` for a local repository), or `user/repo` for GitHub |
+| `path=DIR` | A local directory instead of a repository, relative to the fobos file's directory — see [local directories](#local-directories-path) |
 | `branch=X` | Check out branch `X` |
 | `tag=X` | Check out tag `X` |
 | `rev=X` | Check out commit `X` |
@@ -63,6 +65,37 @@ testkit = https://github.com/user/testkit :: tag=v1.0.0 :: dev
   them below the first level, and marks yours `[test only]`).
 - A build of every program (a mode without `target`) whose sources include test programs using it needs it too:
   give the mode a `target`, or keep the test directory out of its sources.
+
+## Local directories (`path=`)
+
+A library developed next to its application, or the parts of a monorepo, are used where they are:
+
+```ini
+[dependencies]
+; compiled with the project
+utils = path=../utils
+; built with its own fobos, linked as a library
+core  = path=../core :: use=fobos
+```
+
+- The directory is relative to the fobos file's directory (absolute paths and `~` work too). It is used as it is,
+  so a path dependency takes no `tag`, `branch`, `rev` or `semver`: `fetch` and `build` stop with exit 2 when one is
+  given, and with exit 1 when the directory does not exist.
+- **No fetch is needed.** Every `build` (and `check`, `doctests`) reads path dependencies from the fobos, so an edit
+  of the fobos or of the directory takes effect at the next build: a changed source of a `use=sources` one is
+  recompiled, a `use=fobos` one is rebuilt by its own fobos first, as `dependon` does.
+- **`use=sources`** adds the directory to the source scan, without its `.git`, `.fobis`, its own fetched dependencies
+  (`deps_dir` of its fobos, default `.fobis_deps`) and the `build_dir` of its fobos modes. Its own dependencies are
+  not taken from it: declare in your fobos what it needs, as for a cloned dependency (two copies of a module would
+  clash).
+- **`fobis fetch`** checks the directory, builds a `use=fobos` one (unless `--no-build`) and records it in
+  `fobos.lock`: the directory's commit and `dirty` state when it is in a git checkout (the state of the directory
+  alone: tracked changes and untracked sources under it), a `sha256` of its source files otherwise. `--frozen` reports
+  a path dependency that changed since the lock as a warning, never an error: such a dependency is expected to
+  change.
+- `:: dev` works as for a repository; `fobis tree`, `fobis check` and `fobis introspect --dependencies` show the
+  path, the ecosystem dashboard shows `name at PATH` in its pins column, and `fobis fpm export` writes an fpm
+  `path` dependency.
 
 ## Integration modes (`use=`)
 
@@ -184,6 +217,8 @@ fobis fetch --deps-dir vendor/
 | No `[dependencies]` section | Warning message, `fetch` exits cleanly |
 | `use=fobos` dep without a `fobos` file | Error message identifying the dependency |
 | git clone / fetch failure | Error message with git output |
+| `path=DIR` that does not exist | Error naming the directory, exit 1 (`fetch`, `build`, `check`) |
+| `path=DIR` with `tag`/`branch`/`rev`/`semver` | Error naming the dependency, exit 2 |
 | Already cloned, no `--update` | Skip with "already fetched" message |
 
 ## Relation to `install`

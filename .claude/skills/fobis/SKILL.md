@@ -565,7 +565,8 @@ The `fetch` command pulls GitHub-hosted Fortran libraries declared in `[dependen
 deps_dir = .fobis_deps     ; optional clone dir (default .fobis_deps)
 
 penf     = https://github.com/szaghi/PENF :: tag=v1.5.0
-stdlib   = fortran-lang/stdlib :: semver=^0.5 :: use=fobos :: mode=gnu   ; user/repo shorthand
+; user/repo shorthand (no inline comments: fobos keeps them in the value)
+stdlib   = fortran-lang/stdlib :: semver=^0.5 :: use=fobos :: mode=gnu
 jsonfort = https://github.com/jacobwilliams/json-fortran :: branch=main :: use=fobos
 ```
 
@@ -573,6 +574,12 @@ Spec: `name = URL [:: branch=X | tag=X | rev=X | semver=EXPR] [:: mode=X] [:: us
 `:: dev` = test-only: used by `fobis test` builds (hidden `build --dev-deps`), doctests, `check`; every other build
 excludes it (even with `src = ./`); `fetch --no-dev` skips it; `tree` marks it `[test only]` and never shows a
 dependency's own dev deps. URLs: any `scheme://` (incl. `file://`) or `git@`, else `user/repo` = GitHub.
+**Path dependencies:** `name = path=DIR [:: use=sources|fobos] [:: mode=X] [:: dev]`, DIR relative to the fobos
+file's directory; no pins (tag/branch/rev/semver -> exit 2), missing dir -> exit 1. Need NO fetch: every
+build/check/doctests reads them from the fobos (`use=fobos` -> `dependon`, rebuilt each build; `use=sources` -> source
+scan minus the dir's `.git`, `.fobis`, its deps_dir and its modes' build_dir). `fetch` validates, builds `use=fobos`,
+locks `commit` + `dirty` (git checkout, state of that dir only) or `sha256` of its sources; `--frozen` mismatch =
+warning only. `tree`/`check`/`introspect --dependencies` show the path; ecosystem pins `name at PATH`.
 `semver` is **mutually exclusive** with branch/tag/rev and resolves the highest matching git tag
 (Cargo-style `^`, `~`, `=`, `>=`/`<=`/`>`/`<`, `*`, comma-AND).
 

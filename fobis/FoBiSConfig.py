@@ -206,40 +206,60 @@ class FoBiSConfig:
 
     def _load_fetched_deps(self) -> None:
         """
-        Auto-load dependencies previously fetched with 'fetch' command.
+        Auto-load dependencies previously fetched with 'fetch' command, and the path dependencies.
 
         Reads .fobis_deps/.deps_config.ini (if present) and appends its dependon
         entries to cliargs.dependon so the existing interdependent build machinery
         picks them up automatically. ``check`` reads it too: without it the fetched modules were unresolved.
+        Path dependencies (``path=DIR``) are read from the fobos itself, so they need no fetch: a ``use=fobos`` one
+        joins ``dependon``, a ``use=sources`` one the sources (its ``.git``, build and deps directories excluded).
         """
-        if self.cliargs.which in ("build", "check", "doctests"):
-            deps_dir = self.fobos.get_deps_dir()
-            config_file = os.path.join(deps_dir, ".deps_config.ini")
-            if os.path.exists(config_file):
-                from .Fetcher import Fetcher
+        if self.cliargs.which not in ("build", "check", "doctests"):
+            return
+        from .Fetcher import Fetcher
 
-                fetcher = Fetcher(deps_dir=deps_dir, print_n=self.print_b, print_w=self.print_r)
-                config = fetcher.load_config()
-                # test-only deps: for the builds of fobis test (hidden --dev-deps), doctests and check (it scans the
-                # test programs too); any other build leaves them out, even when its sources contain the deps dir
-                with_dev = self.cliargs.which in ("check", "doctests") or getattr(self.cliargs, "dev_deps", False)
-                dependon = config.get("dependon", []) + (config.get("dev_dependon", []) if with_dev else [])
-                src = config.get("src", []) + (config.get("dev_src", []) if with_dev else [])
-                excluded = [] if with_dev else config.get("dev_src", [])
-                excluded += [
-                    os.path.dirname(e.split(":")[0]) for e in (config.get("dev_dependon", []) if not with_dev else [])
-                ]
-                self.cliargs.dependon.extend(dependon)
-                for entry in dependon:
-                    excluded.append(os.path.dirname(entry.split(":")[0]))
-                for dep_dir in excluded:
-                    dep_dir = os.path.normpath(dep_dir)
-                    if dep_dir not in self.cliargs.exclude_dirs:
-                        self.cliargs.exclude_dirs.append(dep_dir)
-                for src_path in src:
-                    abs_src = os.path.abspath(src_path)
-                    if not any(abs_src.startswith(os.path.abspath(s)) for s in self.cliargs.src):
-                        self.cliargs.src.append(src_path)
+        deps_dir = self.fobos.get_deps_dir()
+        fetcher = Fetcher(deps_dir=deps_dir, print_n=self.print_b, print_w=self.print_r)
+        config_file = os.path.join(deps_dir, ".deps_config.ini")
+        config = fetcher.load_config() if os.path.exists(config_file) else {}
+        # test-only deps: for the builds of fobis test (hidden --dev-deps), doctests and check (it scans the
+        # test programs too); any other build leaves them out, even when its sources contain the deps dir
+        with_dev = self.cliargs.which in ("check", "doctests") or getattr(self.cliargs, "dev_deps", False)
+        dependon = config.get("dependon", []) + (config.get("dev_dependon", []) if with_dev else [])
+        src = config.get("src", []) + (config.get("dev_src", []) if with_dev else [])
+        excluded = [] if with_dev else config.get("dev_src", [])
+        excluded += [os.path.dirname(e.split(":")[0]) for e in (config.get("dev_dependon", []) if not with_dev else [])]
+        try:
+            path_deps = fetcher.path_dependencies(self.fobos)
+        except ValueError as error:
+            self.print_r(f"Error: {error}")
+            sys.exit(2)
+        for dep in path_deps:
+            if not os.path.isdir(dep["path"]):
+                self.print_r(f"Error: path dependency '{dep['name']}': directory {dep['path']} not found")
+                sys.exit(1)
+            if dep["dev"] and not with_dev:
+                excluded.append(dep["path"])
+            elif dep["use"] == "fobos":
+                fobos_file = os.path.join(dep["path"], "fobos")
+                dependon.append(fobos_file + (":" + dep["mode"] if dep["mode"] else ""))
+            else:
+                src.append(dep["path"])
+                excluded += fetcher.path_excludes(dep["path"])
+        self.cliargs.dependon.extend(dependon)
+        for entry in dependon:
+            excluded.append(os.path.dirname(entry.split(":")[0]))
+        for dep_dir in excluded:
+            dep_dir = os.path.normpath(dep_dir)
+            if dep_dir not in self.cliargs.exclude_dirs:
+                self.cliargs.exclude_dirs.append(dep_dir)
+        for src_path in src:
+            abs_src = os.path.abspath(
+                src_path
+            )  # covered: under a source path (whole components: core-utils/ is not core/)
+            covered = (os.path.abspath(s) for s in self.cliargs.src)
+            if not any(abs_src == base or abs_src.startswith(base.rstrip(os.sep) + os.sep) for base in covered):
+                self.cliargs.src.append(src_path)
 
     @staticmethod
     def _check_md5sum(filename: str, hashfile: str) -> tuple[bool, bool]:

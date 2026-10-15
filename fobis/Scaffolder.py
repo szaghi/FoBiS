@@ -62,6 +62,9 @@ def _fobos_deps_to_fpm(deps: dict) -> str:
     lines = ["[dependencies]"]
     for name, spec in deps.items():
         parsed = _parse_dep_spec(spec)
+        if parsed["url"].startswith("path="):  # a local directory
+            lines.append(f'{name} = {{ path="{parsed["url"].partition("=")[2].strip()}" }}')
+            continue
         url = _resolve_dep_url(parsed["url"])
         if "tag" in parsed:
             pin = f', tag="{parsed["tag"]}"'

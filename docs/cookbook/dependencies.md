@@ -59,14 +59,46 @@ Guide: [the lock file](/advanced/lock-file).
 ## Another project on this machine
 
 ```ini
+[dependencies]
+; its sources compiled with yours
+mylib = path=../mylib
+; built by its own fobos, its library linked
+core  = path=../core :: use=fobos :: mode=static
+```
+
+Nothing to fetch or publish: every build reads the directory as it is now, so an edit there is rebuilt at the next
+`fobis build`. `fobis fetch` is still useful to record the directories' state in `fobos.lock`. The same with
+`dependon`, without a `[dependencies]` section:
+
+```ini
 [default]
 compiler = gnu
 src      = ./src/
 dependon = ../mylib/fobos:static
 ```
 
-The other project is built in its mode `static` first (and rebuilt when it changes); its module files and library
-are used. Tutorial: [a project that depends on quad](/tutorial/growing/04-dependon).
+Tutorial: [a project that depends on quad](/tutorial/growing/04-dependon). Guide:
+[local directories](/advanced/fetch#local-directories-path).
+
+## A monorepo
+
+```text
+repo/
+├── libs/core/   fobos (mode lib), src/
+├── libs/utils/  src/
+└── apps/solver/ fobos, src/
+```
+
+```ini
+; apps/solver/fobos
+[dependencies]
+utils = path=../../libs/utils
+core  = path=../../libs/core :: use=fobos :: mode=lib
+```
+
+The paths are relative to the fobos that declares them; build from `apps/solver/` (the mode's `src` is relative to
+the current directory). The lock records the repository's commit and whether each directory has uncommitted
+changes.
 
 ## System libraries
 

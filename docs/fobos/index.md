@@ -341,18 +341,24 @@ any path). See [Includes](/advanced/includes) for the full reference.
 
 ### `[dependencies]` section
 
-Declares GitHub-hosted dependencies. Each entry maps a short name to a repository spec:
+Declares dependencies. Each entry maps a short name to a repository spec, or to a local directory:
 
 ```ini
 [dependencies]
-deps_dir = .fobis_deps          # optional: where to clone deps (same as --deps-dir)
+# optional: where to clone deps (same as --deps-dir)
+deps_dir = .fobis_deps
 penf     = https://github.com/szaghi/PENF :: tag=v1.5.0
 stdlib   = https://github.com/fortran-lang/stdlib :: semver=>=0.5,<1.0 :: use=fobos :: mode=gnu
-testkit  = https://github.com/user/testkit :: tag=v1.0.0 :: dev   # test-only
+# test-only
+testkit  = https://github.com/user/testkit :: tag=v1.0.0 :: dev
+# a directory next to this project, relative to this fobos
+utils    = path=../utils
 ```
 
+Comments go on lines of their own: a fobos keeps an inline `#` or `;` comment in the value.
 `:: dev` marks a test-only dependency: used by `fobis test`, doctests and `check`, left out of every other build
-([test-only dependencies](/advanced/fetch#test-only-dependencies-dev)). The `use=` field selects the integration
+([test-only dependencies](/advanced/fetch#test-only-dependencies-dev)). `path=DIR` is used where it is, with no
+fetch ([local directories](/advanced/fetch#local-directories-path)). The `use=` field selects the integration
 mode:
 - **`sources`** (default) — dependency sources are compiled inline with your project
 - **`fobos`** — dependency is built as a separate library and linked

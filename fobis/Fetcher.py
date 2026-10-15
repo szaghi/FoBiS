@@ -22,8 +22,10 @@ This module handles fetching and building GitHub-hosted FoBiS.py dependencies.
 # You should have received a copy of the GNU General Public License
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
 import configparser
+import contextlib
 import hashlib
 import os
+import shlex
 import shutil
 import subprocess
 from collections.abc import Callable
@@ -66,8 +68,11 @@ class Fetcher:
 
         Format: URL [:: branch=X] [:: tag=X] [:: rev=X] [:: mode=X]
                     [:: use=sources|fobos] [:: semver=^1.5] [:: dev]
+            or: path=DIR [:: mode=X] [:: use=sources|fobos] [:: dev]
 
         ``dev`` marks a test-only dependency: fetched like the others, used only by ``fobis test`` and doctests.
+        ``path=DIR`` is a local directory (relative to the fobos file's directory, see ``resolve_path``), used as it
+        is: nothing is cloned, so it takes no pin.
 
         Parameters
         ----------
@@ -77,16 +82,22 @@ class Fetcher:
         Returns
         -------
         dict
-          parsed fields: 'url', and optionally 'branch', 'tag', 'rev', 'mode',
-          'use', 'semver'
+          parsed fields: 'url' (or 'path' for a local directory), and optionally 'branch', 'tag', 'rev', 'mode',
+          'use', 'semver', 'dev'
 
         Raises
         ------
         ValueError
-          If both ``semver`` and a pinning key (tag/branch/rev) are specified.
+          If both ``semver`` and a pinning key (tag/branch/rev) are specified, or a path dependency has a pin.
         """
         parts = [p.strip() for p in spec.split("::")]
-        result: dict[str, str] = {"url": self._resolve_url(parts[0].strip())}
+        result: dict[str, str]
+        if parts[0].startswith("path="):
+            result = {"path": parts[0].partition("=")[2].strip()}
+            if not result["path"]:
+                raise ValueError("Dependency spec error: 'path=' needs a directory.")
+        else:
+            result = {"url": self._resolve_url(parts[0].strip())}
         for part in parts[1:]:
             if "=" in part:
                 key, _, value = part.partition("=")
@@ -101,7 +112,152 @@ class Fetcher:
                     f"Dependency spec error: 'semver' cannot be combined with "
                     f"{', '.join(conflicts)}. Use one or the other."
                 )
+        if "path" in result:
+            pins = [k for k in ("tag", "branch", "rev", "semver") if k in result]
+            if pins:
+                raise ValueError(
+                    f"Dependency spec error: the path dependency {result['path']} cannot take "
+                    f"{', '.join(pins)}: its directory is used as it is."
+                )
         return result
+
+    def path_dependencies(self, fobos: Any) -> list[dict[str, Any]]:
+        """
+        Return the path dependencies of a fobos: ``{name, spec_path, path, use, mode, dev}`` each.
+
+        ``path`` is the resolved directory (``resolve_path``), ``spec_path`` the declared one.
+
+        Raises
+        ------
+        ValueError
+          A dependency spec is wrong (see ``parse_dep_spec``).
+        """
+        found = []
+        for name, spec in fobos.get_dependencies().items():
+            if not spec.strip().startswith("path="):
+                continue
+            try:
+                parsed = self.parse_dep_spec(spec)
+            except ValueError as error:
+                raise ValueError(
+                    f"[dependencies] {name}: {str(error).removeprefix('Dependency spec error: ')}"
+                ) from None
+            found.append(
+                {
+                    "name": name,
+                    "spec_path": parsed["path"],
+                    "path": self.resolve_path(parsed["path"], getattr(fobos, "filename", "") or ""),
+                    "use": parsed.get("use", "sources"),
+                    "mode": parsed.get("mode", ""),
+                    "dev": parsed.get("dev") == "true",
+                }
+            )
+        return found
+
+    @staticmethod
+    def resolve_path(path: str, fobos_file: str) -> str:
+        """
+        Return the directory of a path dependency: *path* (``~`` expanded) relative to the directory of *fobos_file*.
+
+        Relative to the current directory when the fobos path is, as the source paths of a build are.
+        """
+        return os.path.normpath(os.path.join(os.path.dirname(fobos_file or ""), os.path.expanduser(path)))
+
+    @staticmethod
+    def path_excludes(dep_dir: str) -> list[str]:
+        """
+        Return the directories of a path dependency that its source scan must skip.
+
+        Its ``.git``, ``.fobis`` (shadow builds, scratch copies of the sources), its own fetched dependencies (the
+        project declares what it needs, as for a cloned dependency: two copies of a module would clash) and the
+        build directories of its fobos modes.
+        """
+        excluded = [os.path.join(dep_dir, name) for name in (".git", ".fobis")]
+        deps_dir = ".fobis_deps"
+        build_dirs: list[str] = []
+        fobos_file = os.path.join(dep_dir, "fobos")
+        if os.path.isfile(fobos_file):
+            config = configparser.RawConfigParser(strict=False)
+            try:
+                config.read(fobos_file)
+            except configparser.Error:
+                config = configparser.RawConfigParser()
+            if config.has_option("dependencies", "deps_dir"):
+                deps_dir = config.get("dependencies", "deps_dir").strip() or deps_dir
+            for section in config.sections():
+                if config.has_option(section, "build_dir"):
+                    build_dirs.append(config.get(section, "build_dir").strip())
+        excluded.append(os.path.join(dep_dir, deps_dir))
+        for build_dir in build_dirs:  # a build_dir of ./ is the dependency itself; $variables are not resolved here
+            if build_dir and "$" not in build_dir and os.path.normpath(build_dir) != ".":
+                excluded.append(os.path.join(dep_dir, build_dir))
+        return list(dict.fromkeys(os.path.normpath(e) for e in excluded))
+
+    @staticmethod
+    def path_state(dep_dir: str) -> dict[str, str]:
+        """
+        Return what the lock records of a path dependency.
+
+        In a git checkout: ``commit`` (of the checkout holding the directory) and ``dirty`` (``true`` when a tracked
+        file under the directory changed or an untracked source exists there). Elsewhere: ``sha256``, a digest of
+        the directory's source files (names and contents).
+        """
+        from .verification.provenance import _is_source
+
+        code, commit = subprocess.getstatusoutput(f"git -C {shlex.quote(dep_dir)} rev-parse HEAD")
+        if code == 0:
+            status = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    dep_dir,
+                    "-c",
+                    "core.quotepath=off",
+                    "status",
+                    "--porcelain",
+                    "--untracked-files=all",
+                    "--",
+                    ".",
+                ],
+                capture_output=True,
+                text=True,
+            ).stdout.splitlines()
+            dirty = any(line and (not line.startswith("??") or _is_source(line[3:])) for line in status)
+            return {"commit": commit.strip(), "dirty": "true" if dirty else "false"}
+        digest = hashlib.sha256()
+        skipped = set(Fetcher.path_excludes(dep_dir))
+        for root, dirs, files in os.walk(dep_dir):
+            dirs[:] = sorted(d for d in dirs if os.path.normpath(os.path.join(root, d)) not in skipped)
+            for name in sorted(files):
+                path = os.path.join(root, name)
+                if not _is_source(name):
+                    continue
+                with contextlib.suppress(OSError), open(path, "rb") as handle:
+                    digest.update(os.path.relpath(path, dep_dir).encode() + b"\0" + handle.read() + b"\0")
+        return {"sha256": digest.hexdigest()}
+
+    def check_path_lock(self, name: str, state: dict[str, str], lock: dict[str, dict[str, str]]) -> bool:
+        """
+        Warn when a path dependency differs from its lock entry (it is expected to change: never an error).
+
+        Returns
+        -------
+        bool
+          True when it matches, or has no lock entry.
+        """
+        locked = lock.get(name, {})
+        keys = [k for k in ("commit", "dirty", "sha256") if k in state or k in locked]
+        if not locked or all(state.get(k, "") == locked.get(k, "") for k in keys):
+            return True
+        if "commit" in state:
+            now = state["commit"][:12] + (" with uncommitted changes" if state.get("dirty") == "true" else "")
+            then = locked.get("commit", "")[:12] + (
+                " with uncommitted changes" if locked.get("dirty") == "true" else ""
+            )
+        else:
+            now, then = "content " + state["sha256"][:12], "content " + locked.get("sha256", "")[:12]
+        self.print_w(f"Warning: path dependency '{name}' is at {now}, fobos.lock recorded {then or 'nothing'}.")
+        return False
 
     def list_remote_tags(self, url: str) -> list[str]:
         """
@@ -293,6 +449,8 @@ class Fetcher:
         config.add_section("deps")
         entries: dict[str, list[str]] = {"dependon": [], "src": [], "dev_dependon": [], "dev_src": []}
         for dep in deps_info:
+            if dep.get("local"):  # a path dependency: read from the fobos by every build, never stale here
+                continue
             prefix = "dev_" if dep.get("dev") else ""  # test-only: loaded by fobis test and doctests only
             if dep.get("use", "sources") == "fobos":
                 fobos_path = os.path.join(dep["path"], "fobos")
@@ -304,6 +462,7 @@ class Fetcher:
             if values:
                 config.set("deps", key, " ".join(values))
         config_path = os.path.join(self.deps_dir, self.DEPS_CONFIG_FILE)
+        os.makedirs(self.deps_dir, exist_ok=True)  # path dependencies alone clone nothing into it
         with open(config_path, "w") as cfg_file:
             config.write(cfg_file)
         self.print_n("Saved deps config to " + config_path)
@@ -500,6 +659,7 @@ class Fetcher:
           ``'branch'``, ``'tag'``, ``'rev'``, ``'semver'``, ``'resolved'``.
         """
         lock_path = os.path.join(self.deps_dir, self.LOCK_FILE)
+        os.makedirs(self.deps_dir, exist_ok=True)
         config = configparser.RawConfigParser()
         for entry in lock_entries:
             name = entry["name"]

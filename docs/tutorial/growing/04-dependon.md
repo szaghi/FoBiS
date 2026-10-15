@@ -48,6 +48,21 @@ gfortran rewrites a module file only when the module's interface changes, so FoB
 `.mod` files of the modules a file uses from outside the project with the file's object: `curves` and `area` were
 recompiled.
 
+## The lighter alternative: a path dependency
+
+When `area` only needs `quad`'s modules, not its library, the `[dependencies]` section can name the directory:
+
+```ini
+[dependencies]
+quad = path=../quad
+```
+
+`quad`'s sources are then compiled with `area`'s, as a dependency fetched from GitHub would be (its `.git`, build
+and fetched-dependency directories skipped). Nothing is fetched or installed, and an edit in `../quad` is
+recompiled at the next build. `quad = path=../quad :: use=fobos :: mode=static` builds it with its own fobos and
+links the library instead, which is this chapter's `dependon` without the link syntax. Guide:
+[local directories](/advanced/fetch#local-directories-path).
+
 ::: tip What you learned
 `dependon = PATH:MODE((direct|indirect))`: another project's library rebuilt first, its module files and archive
 wired in, its interface changes followed. For dependencies from GitHub, [`[dependencies]`](../first-steps/05-dependencies)

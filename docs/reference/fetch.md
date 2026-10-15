@@ -58,7 +58,12 @@ Each dependency entry has the form:
 
 ```
 name = URL [:: branch=X | tag=X | rev=X | semver=X] [:: mode=X] [:: use=sources|fobos] [:: dev]
+name = path=DIR [:: mode=X] [:: use=sources|fobos] [:: dev]
 ```
+
+`path=DIR` is a local directory, relative to the fobos file's directory: nothing is cloned, every build reads it
+from the fobos, `fetch` builds a `use=fobos` one and locks its commit and dirty state (or a checksum outside git)
+([local directories](/advanced/fetch#local-directories-path)).
 
 `:: dev` marks a test-only dependency: used by `fobis test`, doctests and `check`, left out of every other build
 ([test-only dependencies](/advanced/fetch#test-only-dependencies-dev)).

@@ -230,6 +230,9 @@ def run_fobis_build_json(configuration):
         exit_code, failure = (exc.code if isinstance(exc.code, int) else 1), exc
     except SystemExit as exc:
         exit_code = exc.code if isinstance(exc.code, int) else 1
+    except ValueError as exc:  # a wrong dependency spec
+        collector.print_w(f"Error: {exc}")
+        exit_code = 2
     finally:
         stderr_text = sys.stderr.getvalue()
         sys.stderr = old_stderr
@@ -316,8 +319,22 @@ def run_fobis_fetch_json(configuration):
         deps = configuration.fobos.get_dependencies()
         if deps:
             for name, spec in deps.items():
-                parsed = fetcher.parse_dep_spec(spec)
+                try:
+                    parsed = fetcher.parse_dep_spec(spec)
+                except ValueError as error:
+                    raise ValueError(
+                        f"[dependencies] {name}: {str(error).removeprefix('Dependency spec error: ')}"
+                    ) from None
                 use_mode = parsed.get("use", "sources")
+                if "path" in parsed:  # a local directory: checked, never cloned
+                    dep_path = fetcher.resolve_path(parsed["path"], configuration.fobos.filename)
+                    if not os.path.isdir(dep_path):
+                        collector.print_w(f"Error: path dependency '{name}': directory {dep_path} not found")
+                        sys.exit(1)
+                    if not configuration.cliargs.no_build and use_mode == "fobos":
+                        fetcher.build_dep(name, dep_path, mode=parsed.get("mode"))
+                    deps_info.append({"name": name, "path": dep_path, "use": use_mode, "local": True})
+                    continue
                 dep_path, _commit = fetcher.fetch(
                     name,
                     parsed["url"],
@@ -332,6 +349,9 @@ def run_fobis_fetch_json(configuration):
             fetcher.save_config(deps_info)
     except SystemExit as exc:
         exit_code = exc.code if isinstance(exc.code, int) else 1
+    except ValueError as exc:  # a wrong dependency spec
+        collector.print_w(f"Error: {exc}")
+        exit_code = 2
     finally:
         stderr_text = sys.stderr.getvalue()
         sys.stderr = old_stderr
@@ -383,7 +403,11 @@ def run_fobis_fetch(configuration):
     lock_entries = []
     no_dev = getattr(configuration.cliargs, "no_dev", False)
     for name, spec in deps.items():
-        parsed = fetcher.parse_dep_spec(spec)
+        try:
+            parsed = fetcher.parse_dep_spec(spec)
+        except ValueError as error:
+            configuration.print_r(f"Error: [dependencies] {name}: {str(error).removeprefix('Dependency spec error: ')}")
+            sys.exit(2)
         use_mode = parsed.get("use", "sources")
         dev = parsed.get("dev") == "true"
         if dev and no_dev:  # a test-only dependency, not wanted: its lock entry (if any) is kept as it was
@@ -395,6 +419,30 @@ def run_fobis_fetch(configuration):
                 deps_info.append(
                     {"name": name, "path": clone, "mode": parsed.get("mode", ""), "use": use_mode, "dev": True}
                 )
+            continue
+
+        if "path" in parsed:  # a local directory: nothing to clone, the build reads it from the fobos
+            dep_path = fetcher.resolve_path(parsed["path"], configuration.fobos.filename)
+            if not os.path.isdir(dep_path):
+                configuration.print_r(f"Error: path dependency '{name}': directory {dep_path} not found")
+                sys.exit(1)
+            state = fetcher.path_state(dep_path)
+            if frozen:  # expected to change: a mismatch is reported, never an error
+                fetcher.check_path_lock(name, state, lock)
+            configuration.print_b(f"{name}: path dependency {dep_path}")
+            if not configuration.cliargs.no_build and use_mode == "fobos":
+                fetcher.build_dep(name, dep_path, mode=parsed.get("mode"))
+            deps_info.append(
+                {
+                    "name": name,
+                    "path": dep_path,
+                    "mode": parsed.get("mode", ""),
+                    "use": use_mode,
+                    "dev": dev,
+                    "local": True,
+                }
+            )
+            lock_entries.append({"name": name, "path": parsed["path"], **state, **({"dev": "true"} if dev else {})})
             continue
 
         # Semver resolution
@@ -1836,6 +1884,7 @@ def run_fobis_tree(configuration):
                 "has_fobos": n.has_fobos,
                 "duplicate": n.duplicate,
                 "dev": n.dev,
+                **({"path": n.path} if n.path else {}),
                 "dependencies": [node(c) for c in n.children],
             }
 
@@ -1956,6 +2005,32 @@ def _exit_status(returncode: int) -> int:
     return 128 - returncode if returncode < 0 else returncode
 
 
+def _dependon_modules(dependon: list[str]) -> set[str]:
+    """Return the (lower-case) modules defined in the sources of the ``dependon`` projects.
+
+    ``check`` builds nothing, so their module files may not exist yet: what their sources define counts as provided.
+    """
+    from .cli._constants import __extensions_parsed__
+    from .Fetcher import Fetcher
+    from .ParsedFile import __regex_module__
+
+    modules: set[str] = set()
+    for entry in dependon:
+        root = os.path.dirname(re.sub(r"\(\(.*\)\)", "", entry).split(":")[0]) or "."
+        skipped = set(Fetcher.path_excludes(root))
+        for top, dirs, files in os.walk(root):
+            dirs[:] = [d for d in dirs if os.path.normpath(os.path.join(top, d)) not in skipped]
+            for name in files:
+                if os.path.splitext(name)[1] not in __extensions_parsed__:
+                    continue
+                with contextlib.suppress(OSError), open(os.path.join(top, name), errors="replace") as handle:
+                    for line in handle:
+                        matching = __regex_module__.match(line)
+                        if matching:
+                            modules.add(matching.group("name").lower())
+    return modules
+
+
 def run_fobis_check(configuration):
     """
     Run FoBiS in check mode: validate the dependency graph without building.
@@ -1976,7 +2051,12 @@ def run_fobis_check(configuration):
     warnings: list[str] = []
     print_r = configuration.print_r
 
+    provided = _dependon_modules(configuration.cliargs.dependon) if configuration.cliargs.dependon else set()
+
     def collect(message, *args, **kwargs):
+        unreachable = re.search(r"depends on '(\w+)' that is unreachable", str(message))
+        if unreachable and unreachable.group(1).lower() in provided:  # a dependon project's module: not a warning
+            return
         warnings.append(str(message))
         if not as_json:
             print_r(message, *args, **kwargs)
@@ -2002,6 +2082,10 @@ def run_fobis_check(configuration):
     except CircularDependency as failure:
         cycles = failure.cycles
     configuration.print_r = print_r
+    for pfile in pfiles:  # modules of the dependon projects (use=fobos): built by build, provided here
+        for dep in pfile.dependencies:
+            if not dep.file and dep.type == "module" and dep.name.lower() in provided:
+                dep.external = True
     # unresolved dependencies and cycles are reported on their own: the analysis' messages about them are not warnings
     warnings = [w for w in warnings if w.strip() and "unreachable" not in w and "circular dependency" not in w]
     unresolved = [
@@ -2011,6 +2095,12 @@ def run_fobis_check(configuration):
         if not dep.file and not getattr(dep, "external", False)  # a .mod found in an include directory resolves it
     ]
     failed = bool(unresolved or cycles or (strict and warnings))
+    from .Fetcher import Fetcher
+
+    local = [  # the configuration already stopped on a missing directory or a wrong spec
+        {"name": d["name"], "path": d["path"], "use": d["use"], **({"dev": True} if d["dev"] else {})}
+        for d in Fetcher(deps_dir=configuration.fobos.get_deps_dir()).path_dependencies(configuration.fobos)
+    ]
     if as_json:
         import json
 
@@ -2020,11 +2110,14 @@ def run_fobis_check(configuration):
             "unresolved": unresolved,
             "cycles": cycles,
             "warnings": warnings,
+            **({"path_dependencies": local} if local else {}),
         }
         print(json.dumps(result, indent=2))
         if failed:
             sys.exit(1)
         return
+    for dep in local:
+        configuration.print_b(f"  Path dependency {dep['name']}: {dep['path']} (use={dep['use']})")
     for item in unresolved:
         configuration.print_r(
             f"  Unresolved: '{item['file']}' depends on '{item['dependency']}' ({item['type']}) — not found"
@@ -4780,6 +4873,8 @@ def run_fobis_introspect(configuration):
             fetcher_tmp = Fetcher(deps_dir=fobos.get_deps_dir())
             parsed = fetcher_tmp.parse_dep_spec(spec)
             dep_dir = os.path.join(fobos.get_deps_dir(), name)
+            if "path" in parsed:  # a path dependency: its own directory
+                dep_dir = fetcher_tmp.resolve_path(parsed["path"], fobos.filename)
             dep_info = {
                 "url": parsed.get("url", ""),
                 "use": parsed.get("use", "sources"),

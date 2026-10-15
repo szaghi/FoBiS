@@ -457,6 +457,9 @@ def fpm_from_fobos(
         fetcher = Fetcher(deps_dir=".fobis_deps")  # only its spec parser is used
         for dep, spec in sorted(dependencies.items()):
             parsed = fetcher.parse_dep_spec(spec)
+            if "path" in parsed:  # a local directory: fpm's path dependency
+                out.append(f"{dep} = {_toml_value({'path': parsed['path']})}")
+                continue
             entry = {"git": parsed["url"]}
             entry.update({pin: parsed[pin] for pin in ("tag", "branch", "rev") if parsed.get(pin)})
             if parsed.get("semver"):

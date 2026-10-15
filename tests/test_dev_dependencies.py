@@ -28,7 +28,7 @@ def _remote(root, name, files) -> str:
         (repo / path).write_text(text)
     _git(repo, "init", "-q", "-b", "master")
     _git(repo, "add", "-A")
-    _git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "init")
+    _git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "init")
     return f"file://{repo}"
 
 
@@ -123,7 +123,9 @@ def test_tree_marks_it_and_dependents_never_see_it(project, capsys, tmp_path):
     # a project using this one: this project's test-only dependency is not part of its tree
     _git(project, "init", "-q", "-b", "master")
     _git(project, "add", "fobos", "src", "test")
-    _git(project, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "init")
+    _git(
+        project, "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "init"
+    )
     user = tmp_path / "user"
     user.mkdir()
     (user / "fobos").write_text(f"[default]\ncompiler = gnu\n\n[dependencies]\nproj = file://{project}\n")
