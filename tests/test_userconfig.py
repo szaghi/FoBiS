@@ -92,3 +92,38 @@ def test_settings_written_for_ollama_keep_ollama(tmp_path):
     assert UserConfig(path=str(cfg_path)).llm_provider == "managed"
     cfg_path.write_text("[llm]\nmax_diff_chars = 5000\n")
     assert UserConfig(path=str(cfg_path)).llm_provider == "managed"
+
+
+def test_inline_comments_are_warned_once_per_version(tmp_path, capsys):
+    """Like a fobos, the user config keeps ``value ; comment`` in the value: a warning on stderr, once per file version
+    (UserConfig is built many times), never for the shell lines of ``[scheduler] setup``."""
+    import os
+
+    path = tmp_path / "config.ini"
+    path.write_text(
+        "[llm]\nprovider = managed ; the default\nmodel = coder-7b\n"
+        "[scheduler]\nsetup = module purge ; module load nvhpc\npartition = gpu   # the A30 nodes\n"
+    )
+    cfg = UserConfig(path=str(path))
+    assert cfg.llm_provider == "managed ; the default"  # what the comment does to the value
+    err = capsys.readouterr().err
+    assert err.count("warning: user config") == 2
+    assert '[llm] provider: "; the default" is part of the value' in err
+    assert '[scheduler] partition: "# the A30 nodes" is part of the value' in err and "setup" not in err
+    UserConfig(path=str(path))
+    assert capsys.readouterr().err == ""  # already warned about this version
+    path.write_text("[llm]\nprovider = managed ; still\n")
+    stamp = os.path.getmtime(path) + 5
+    os.utime(path, (stamp, stamp))
+    UserConfig(path=str(path))
+    assert '[llm] provider: "; still"' in capsys.readouterr().err
+
+
+def test_no_warning_for_a_clean_config(tmp_path, capsys):
+    template = tmp_path / "config.ini"
+    UserConfig(path=str(template)).create_default()  # the commented template written for the user
+    UserConfig(path=str(template))
+    clean = tmp_path / "clean.ini"
+    clean.write_text("[llm]\n; a comment on its own line\nmodel = coder-7b\nurl = http://host:8080/#fragment\n")
+    UserConfig(path=str(clean))
+    assert capsys.readouterr().err == ""

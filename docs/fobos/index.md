@@ -66,6 +66,10 @@ compiler = gnu
 FoBiS warns when a value contains a `;` or `#` after a space. The exceptions are the shell commands run by bash,
 where these characters have their shell meaning: the `[rule-*]` sections and the `setup` and `check` keys.
 
+The [user configuration](/reference/configuration) (`~/.config/fobis/config.ini`) follows the same rule, and FoBiS
+warns the same way, once per version of the file: `provider = managed ; the default` would ask for a provider named
+`managed ; the default`.
+
 ## Case sensitivity
 
 By default fobos option names are case-sensitive. To make them case-insensitive:
@@ -501,18 +505,6 @@ sets — together they form the union the dependency scanner skips. See
 [Compilers](/guide/compilers#compiler-supplied-intrinsic-modules) for the
 list of compiler-supplied modules and
 [Architecture](/advanced/architecture) for the three-tier filter.
-
-## Comments
-
-Lines beginning with `#` are ignored:
-
-```ini
-[default]
-# This is a comment
-# inline comments are also supported
-compiler = gnu
-cflags   = -c -O2
-```
 
 ## Further reading
 

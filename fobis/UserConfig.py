@@ -22,6 +22,7 @@ UserConfig.py — user-level FoBiS configuration (~/.config/fobis/config.ini).
 import configparser
 import os
 import re
+import sys
 import tempfile
 
 
@@ -145,11 +146,35 @@ class UserConfig:
     DEFAULT_MAX_DIFF_CHARS = 12_000
     DEFAULT_REFINE_PASSES = 0
 
+    _warned: set[tuple[str, float]] = set()  # (path, mtime) already warned about: UserConfig is built many times
+
     def __init__(self, path: str | None = None) -> None:
         self.path = path or default_config_path()
         self._cp = configparser.ConfigParser()
         if os.path.exists(self.path):
             self._cp.read(self.path)
+            self._warn_inline_comments()
+
+    def _warn_inline_comments(self) -> None:
+        """Warn, on stderr and once per file version, about values holding an inline ``; comment``: like a fobos, the
+        user config keeps it in the value (``model = coder-7b ; fast`` names a model that does not exist). Shell lines
+        (``[scheduler] setup``) are skipped, as in a fobos."""
+        from .Fobos import inline_comments
+
+        try:
+            stamp = (os.path.abspath(self.path), os.path.getmtime(self.path))
+        except OSError:
+            return
+        if stamp in UserConfig._warned:
+            return
+        UserConfig._warned.add(stamp)
+        for section, key, text in inline_comments(self._cp):
+            shown = text if len(text) <= 40 else text[:37] + "..."
+            print(
+                f'warning: user config {self.path} [{section}] {key}: "{shown}" is part of the value (the user '
+                "config keeps inline comments): put the comment on a line of its own",
+                file=sys.stderr,
+            )
 
     def _get(self, section: str, key: str, fallback):
         return self._cp.get(section, key, fallback=fallback)
