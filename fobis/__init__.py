@@ -1,6 +1,6 @@
 """FoBiS.py main package"""
 
-__version__ = "3.9.9"
+__version__ = "3.9.10"
 # Copyright (C) 2015  Stefano Zaghi
 #
 # This file is part of FoBiS.py.

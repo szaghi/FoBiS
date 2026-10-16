@@ -4,6 +4,15 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.9.10] — 2026-10-16
+### Added
+- **fobos**: Qualify a mode key by compiler or operating system, as cflags.intel or ext_libs.windows
+
+
+### Documentation
+- Cover the new features in the overview pages, and show build --explain with a local model
+
+
 ## [3.9.9] — 2026-10-16
 ### Added
 - **lint**: Add fobis lint with correctness and obsolescent-feature rules
