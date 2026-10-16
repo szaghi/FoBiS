@@ -4,6 +4,147 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.9.9] — 2026-10-16
+### Added
+- **lint**: Add fobis lint with correctness and obsolescent-feature rules
+
+- **lint**: Add OpenMP, OpenACC, MPI and modernisation rules with autofix
+
+- **kb**: Add knowledge packs and fobis kb search
+
+- **lint**: Add compiler feedback rules and fobis mcp server
+
+- **lint**: Add Fortitude G4 rules and data-flow OpenMP, OpenACC and MPI rules
+
+- **llm**: Add the model store and fobis llm pull, list, rm and recommended
+
+- **llm**: Add the managed llama.cpp runtime and structured commit output ⚠ BREAKING CHANGE
+
+- **llm**: Add fobis llm serve and make the model store relocatable
+
+- **ai**: Add fobis ask with cited answers from the knowledge packs and project facts
+
+- **build**: Add build --explain to diagnose failed builds from project facts and a cited LLM explanation
+
+- **run**: Add run and test --explain to diagnose runtime failures without trusting optimised backtraces
+
+- **lint**: Add lint --deep for cited LLM verdicts on findings and lint --ask for questions about a region
+
+- **commit**: Infer the commit scope from repository history and Fortran line facts, and stop git colour codes reaching the model
+
+- **review**: Add fobis review to report lint findings on changed lines only, with a cited risk summary
+
+- **merge-assist**: Add fobis merge-assist to propose compiler-checked resolutions of merge, rebase and cherry-pick conflicts
+
+- **ecosystem**: Add ecosystem impact to list the dependent code using a project's changed public Fortran interfaces
+
+- **testgen**: Add fobis testgen to generate a module's tests from a compile-checked skeleton, kept only when they build, run and check
+
+- **mcp**: Expose every FoBiS feature to agents as annotated tools over new structured JSON outputs, and fix tree reporting the root version for every dependency
+
+- **verification**: Add declared cases whose runs extract numerical quantities with full provenance, as the base of fobis verification
+
+- **verification**: Add fobis verify to compare case quantities with committed references within per-quantity tolerances, and rebuild case programs when the compiler or flags change
+
+- **verification**: Add shadow modes and fobis matrix to build, test and verify every mode with checking flags across the machine's compilers, and fix fobis test building the mode's target instead of the test
+
+- **verification**: Add fobis assess to estimate numerical error and uncertainty from ensembles of precision, rounding, compiler, parallel, input and refinement variants of a case, with budgets
+
+- **verification**: Add fobis diff-run to run the declared cases on a revision and on the working tree in scratch copies and compare their quantities, with the changed procedures and an optional judgement against the numerical spread
+
+- **analysis**: Add fobis query for deterministic code-graph answers (callers, callees, uses, writers, readers, defines, regions, device residency, MPI calls, interfaces) from the static analysis of the mode's sources
+
+- **agents**: Add fobis agents-md to generate the build, test and verification instructions for coding agents from the fobos and the sources, kept current by --check
+
+- **verification**: Add fobis bench to measure run time with a distribution-free interval of the median, compare with history or a revision only when the intervals do not overlap, and diff the compiler's vectorisation and data-movement reports; strip colour codes from compiler-feedback logs
+
+- **verification**: Add fobis gate to run build, review, tests, verify, diff-run, bench, assess and the declared matrix as stages with one verdict and the first failing fact of each, and review --worktree to include uncommitted changes since a base
+
+- **verification**: Run cases, tests, assessments and benchmarks as Slurm jobs with --runner slurm, from [scheduler] settings and the case's ranks, threads, GPUs and timeout, and refuse MPI and GPU runs on declared login nodes
+
+- **verification**: Add fobis profile to map gprof time and callgrind instructions to the project's procedures and source lines, with inlined procedures found through their lines, the project callers of runtime routines, and per-rank load imbalance
+
+- **fpm**: Add fobis fpm import and export to translate between fpm.toml and fobos with notes for what does not translate, and resolve a version file next to the fobos outside a git repository
+
+- **bindings**: Add fobis bindings to generate bind(c) shims with explicit kind conversions, a C header and a Python ctypes wrapper for the public procedures of the modules, reporting why the others cannot be bound
+
+- **verification**: Add fobis modernize to apply lint fixes in scratch copies and keep them only when build, tests and cases are unchanged, add automatic fixes for specific intrinsics, character*n and labelled DO loops, name duplicate test programs after their files, and report a stdout probe that reads nothing
+
+- **kb**: Add compilers, libraries and numerics knowledge packs written from measurements on gfortran, ifx, nvfortran, Open MPI, Intel MPI and HDF5 and from the cited literature, check every compiler flag they name against the compiler, name the method section of each assess family, and route ask questions to the new packs
+
+- **verification**: Add an nsys backend to fobis profile that maps GPU kernel time to the OpenACC/OpenMP directive lines and reports host-device transfers per direction and per source line and kernel time per rank, run every profiler through --runner slurm, record the compute node's facts in the provenance of Slurm runs, and stop reporting job ids, node names and GPU serial numbers as provenance changes
+
+- **build**: Rebuild everything when the compiler behind the mode's command changes (another path or --version, e.g. after a module swap), recording it in the object directory after each successful build
+
+- **merge-assist**: Replay historical merges with the configured model (merge_replay.py --model) and measure how its proposals compare with the committed resolutions
+
+- **build**: Write the compilation database compile_commands.json on request and print it with introspect --compile-commands
+
+- **run**: Start programs and tests through a launcher such as mpirun, gdb or valgrind with --launcher and --ranks
+
+- **test**: Run test programs in parallel with fobis test -j N, and find the built programs with --no-build
+
+- **fetch**: Mark test-only dependencies with :: dev, used by fobis test, doctests and check and left out of every other build
+
+- **fetch**: Use a local directory as a dependency with path=DIR, compiled with the project or built by its own fobos, with no fetch needed
+
+- **fobos**: Warn when a value holds an inline comment, which a fobos keeps as part of the value
+
+- **build**: Compile C sources with the compiler family's C compiler and link them with the Fortran objects
+
+- **fpm**: Import an fpm package with fpm's own flags: features, profiles, library types, path and dev dependencies
+
+- **new**: Create a ready-to-build project with fobis new
+
+- **config**: Warn when a user config value holds an inline comment, as a fobos does
+
+
+### Changed
+- **commit**: Route LLM access through a provider-agnostic layer
+
+- **build**: Remove remove_other_main, which never removed anything
+
+
+### Documentation
+- Rewrite the docs in reading order with generated tutorial outputs
+
+- Generate the command reference, every fobos mode key and the user configuration from FoBiS itself
+
+- Add concept pages, redirect moved pages and check every link and anchor
+
+
+### Fixed
+- **commit**: Authenticate hosted LLM endpoints and raise typed errors
+
+- **llm**: Bound every structured answer so small models cannot loop until the context is full, and name testgen's code field so models return code
+
+- **run**: Exit with 128 + the signal number when the program is killed by a signal, as a shell does (139 for a segmentation fault instead of 245)
+
+- **build**: Let an explicit --build-dir win over the mode's build_dir in build, clean, doctests, install and rule, and build the compiler-feedback report apart from the user's build tree
+
+- **lint**: Stop reporting MPI004 when every branch calls the same collectives and OMP001/OMP002 for writes guarded by the thread number; feat(testgen): wrap over-long model lines before building and name the public generic of a private specific in the feedback
+
+- **build**: Repair dependon, build profiles and machine output
+
+- **build**: Parse sources in natural path order on every machine
+
+- Report each compiler error once and mark only breaking API changes
+
+- Compile bindings shims for imported kinds and skip C headers
+
+- **bot**: Resolve ruff errors and use PyPI JSON API URL
+
+- **ai**: Ask for the answer before the verdict, search doc comments, and lower the confidence of merges that do not compile
+
+- **test**: Honour the [test] timeout and suite, and accept --preprocessor without a value
+
+- **docs**: Check documented commands without importing click
+
+- **check**: Report circular dependencies instead of crashing, honour --strict, and keep the lock file with the dependencies
+
+- **build**: Give files named alike in several directories objects of their own
+
+
 ## [3.9.8] — 2026-10-08
 ### Fixed
 - **scaffold**: Render templated sources of init-only and patched files
