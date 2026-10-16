@@ -4930,6 +4930,12 @@ def run_fobis_introspect(configuration):
         }
         if getattr(cliargs, "shadow", None):
             data["buildoptions"]["shadow"] = cliargs.shadow
+        qualified = getattr(cliargs, "qualified_keys", None)
+        if qualified:  # the mode's name.qualifier keys: which applied, how, and the value they gave
+            for item in qualified:
+                if item["applied"]:
+                    item["result"] = getattr(cliargs, item["key"].partition(".")[0], None)
+            data["buildoptions"]["qualified_keys"] = qualified
 
     # Include dirs
     if getattr(cliargs, "introspect_include_dirs", False):

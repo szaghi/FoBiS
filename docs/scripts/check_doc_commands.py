@@ -153,7 +153,7 @@ OTHER_SECTIONS = re.compile(
     r"|include|externals|pkgconfig|examples?|llm|varsets|rule-.*|(case|assess|bench|varset|example|test|feature"
     r"|feature-group):.*|(target|example)\..*",
 )
-_INI_KEY = re.compile(r"^([A-Za-z_][\w-]*)\s*[=:]")
+_INI_KEY = re.compile(r"^([A-Za-z_][\w.-]*)\s*[=:]")  # name.qualifier keys too
 _SECTION = re.compile(r"^\[([^\]]+)\]\s*(;.*|#.*)?$")
 
 
@@ -235,6 +235,7 @@ def problems(docs: Path = DOCS) -> list[Problem]:
     from gen_cli_reference import mode_keys  # the same keys as the fobos reference's table
 
     known = set(mode_keys())
+    from fobis.Fobos import KEY_COMPILERS, KEY_SYSTEMS
     from fobis.lint import rule as lint_rule
     from fobis.lint import rules as _rules  # noqa: F401 (registers the rules)
 
@@ -259,7 +260,10 @@ def problems(docs: Path = DOCS) -> list[Problem]:
             found.append(Problem(relative, number, key, "inline comment: a fobos keeps it in the value"))
         for number, section, key in fobos_snippets(text):
             is_mode = section.startswith("mode:") or not OTHER_SECTIONS.fullmatch(section)
-            if is_mode and key not in known and not key.startswith("$"):
+            base, _, qualifier = key.partition(".")
+            if qualifier and is_mode and qualifier not in KEY_COMPILERS + KEY_SYSTEMS:
+                found.append(Problem(relative, number, f"[{section}] {key}", "no such qualifier (compiler or system)"))
+            if is_mode and base not in known and not key.startswith("$"):
                 found.append(Problem(relative, number, f"[{section}] {key}", "fobos modes have no such key"))
     return found
 

@@ -101,7 +101,20 @@ def mode_keys() -> dict[str, tuple[str, list[str]]]:
 
 
 def keys_section() -> str:
-    lines = [KEYS_BEGIN, NOTE, "", "| Key | Read by | Description |", "|---|---|---|"]
+    from fobis.Fobos import FLAG_KEYS, KEY_COMPILERS, KEY_SYSTEMS
+
+    qualifiers = [
+        "",
+        "Any key can be qualified, `key.QUALIFIER`, and applies only when QUALIFIER is the mode's compiler ("
+        + ", ".join(f"`{c}`" for c in KEY_COMPILERS)
+        + ") or the operating system ("
+        + ", ".join(f"`{s}`" for s in KEY_SYSTEMS)
+        + "): "
+        + ", ".join(f"`{k}`" for k in FLAG_KEYS)
+        + " get the value appended (compiler, then system), any other key is replaced. An unknown qualifier, or one key "
+        "replaced by both a compiler and a system key, is an error. See [qualified keys](#qualified-keys).",
+    ]
+    lines = [KEYS_BEGIN, NOTE, *qualifiers, "", "| Key | Read by | Description |", "|---|---|---|"]
     for key, (text, commands) in mode_keys().items():
         read = "all" if set(commands) >= set(MODE_COMMANDS) else ", ".join(commands)
         lines.append(f"| `{key}` | {read} | {_cell(text)} |")

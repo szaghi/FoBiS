@@ -671,6 +671,39 @@ def render_tree(nodes: list[DepNode], prefix: str = "") -> str:
 
 _INLINE_COMMENT = re.compile(r"\s[;#]")
 # values that are shell commands: there ` ; ` separates commands and ` #` is a shell comment, both on purpose
+# qualified mode keys, ``name.qualifier`` (issue #206 step 9): a compiler family or an operating system
+KEY_COMPILERS = (
+    "gnu",
+    "intel",
+    "intel_nextgen",
+    "g95",
+    "opencoarrays-gnu",
+    "pgi",
+    "ibm",
+    "nag",
+    "nvfortran",
+    "amd",
+    "lfortran",
+    "custom",
+)
+KEY_SYSTEMS = ("linux", "macos", "windows", "freebsd")
+FLAG_KEYS = ("cflags", "lflags", "preproc", "c_cflags", "c_preproc")  # appended to; any other key is replaced
+
+
+def split_qualified(key: str) -> tuple[str, str] | None:
+    """``(name, qualifier)`` of a qualified key ``name.qualifier``, None for a plain key."""
+    name, dot, qualifier = key.partition(".")
+    return (name, qualifier) if dot else None
+
+
+def current_system() -> str:
+    """The operating system's qualifier (``linux``, ``macos``, ``windows``, ``freebsd``), else ``sys.platform``."""
+    for prefix, name in (("linux", "linux"), ("darwin", "macos"), ("win32", "windows"), ("freebsd", "freebsd")):
+        if sys.platform.startswith(prefix):
+            return name
+    return sys.platform
+
+
 SHELL_KEYS = frozenset({"setup", "check"})  # [scheduler]/[verification] setup, [ecosystem] check: run by bash
 
 
@@ -1116,6 +1149,7 @@ class Fobos:
             self._check_template()
             self._check_local_variables(cliargs=cliargs)
             self._set_cliargs_attributes(cliargs=cliargs, cliargs_dict=cliargs_dict)
+            self._apply_qualified_keys(cliargs=cliargs, cliargs_dict=cliargs_dict)
             self._check_cliargs_cflags(cliargs=cliargs, cliargs_dict=cliargs_dict)
             # Apply build profile flags (prepended so user flags win)
             self._apply_build_profile(cliargs)
@@ -1126,6 +1160,61 @@ class Fobos:
             # Validate pre_build / post_build rule names
             self._validate_lifecycle_hooks(cliargs)
         return
+
+    def _apply_qualified_keys(self, cliargs, cliargs_dict):
+        """Apply the mode's qualified keys (``cflags.gnu = -march=native``, ``ext_libs.windows = ws2_32``): a key whose
+        qualifier is the mode's compiler or this operating system applies, the others are ignored. A flag key
+        (`FLAG_KEYS`) gets the value appended, compiler first then system; any other key is replaced, and a key
+        qualified both ways is a declaration error (which one would win?), as is an unknown qualifier (exit 2).
+        What applied is kept in ``cliargs.qualified_keys`` for ``introspect --buildoptions``."""
+        if not self.mode:
+            return
+        compiler = (getattr(cliargs, "compiler", "") or "").lower()
+        system = current_system()
+        qualified = []
+        for key, value in self.fobos.items(self.mode):
+            parts = split_qualified(key)
+            if parts is None:
+                continue
+            name, qualifier = parts
+            if qualifier not in KEY_COMPILERS and qualifier not in KEY_SYSTEMS:
+                self.print_w(
+                    f"Error: [{self.mode}] {key}: unknown qualifier {qualifier!r}: a compiler "
+                    f"({', '.join(KEY_COMPILERS)}) or a system ({', '.join(KEY_SYSTEMS)})"
+                )
+                sys.exit(2)
+            matches = qualifier == compiler if qualifier in KEY_COMPILERS else qualifier == system
+            kind = "compiler" if qualifier in KEY_COMPILERS else "system"
+            qualified.append({"key": key, "name": name, "kind": kind, "value": value, "applied": matches})
+        order = {"compiler": 0, "system": 1}
+        applying = sorted((q for q in qualified if q["applied"]), key=lambda q: order[q["kind"]])
+        for name in {q["name"] for q in applying if q["name"] not in FLAG_KEYS}:
+            keys = [q["key"] for q in applying if q["name"] == name]
+            if len(keys) > 1:
+                self.print_w(f"Error: [{self.mode}] {' and '.join(keys)} both apply and replace {name}: keep one")
+                sys.exit(2)
+        for item in applying:
+            name = item["name"]
+            if name not in cliargs_dict:
+                item["applied"] = False  # a key this command does not read
+                continue
+            if name in FLAG_KEYS:
+                base = getattr(cliargs, name, None) or ("-c" if name == "cflags" and compiler != "custom" else "")
+                setattr(cliargs, name, (base + " " + item["value"]).strip())
+                item["how"] = "appended"
+            else:
+                current = cliargs_dict[name]
+                if isinstance(current, bool):
+                    value = item["value"].strip().lower() in ("true", "yes", "on", "1")
+                elif isinstance(current, int):
+                    value = int(item["value"])
+                elif isinstance(current, list):
+                    value = item["value"].split()
+                else:
+                    value = item["value"]
+                setattr(cliargs, name, value)
+                item["how"] = "replaced"
+        cliargs.qualified_keys = [{k: v for k, v in q.items() if k != "name"} for q in qualified]
 
     def _validate_lifecycle_hooks(self, cliargs: Any) -> None:
         """

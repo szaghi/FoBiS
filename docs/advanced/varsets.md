@@ -50,6 +50,14 @@ fobis build --mode mode-solver --varset hpc1
 fobis build --mode mode-solver --varset lab
 ```
 
+### Qualified keys, modes or varsets?
+
+- **A qualified key** (`cflags.intel = -xHost`) when a value follows the compiler or the operating system by itself:
+  one mode keeps working whichever compiler or system it meets. See [qualified keys](/fobos/#qualified-keys).
+- **A varset** when the value follows the *machine* (a cluster's library paths, a GPU architecture): you choose it
+  with `--varset`.
+- **A named mode** when the build itself differs (another target, a library instead of a program, other sources).
+
 ## Defining a varset
 
 A varset is a section named `[varset:NAME]` whose keys are `$variable`

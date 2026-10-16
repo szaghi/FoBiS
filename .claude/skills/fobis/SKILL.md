@@ -457,6 +457,7 @@ matches a `build`-command option (underscored form).
 | `cflags_heritage` | Persist cflags; force full rebuild when they change |
 | `track_build` | Record built artifacts for `install` |
 | `build_profile` | Named flag preset: `debug`, `release`, `asan`, `coverage` |
+| `KEY.QUALIFIER` | Qualified key: applies only when QUALIFIER is the mode's compiler (`cflags.gnu`, `cflags.intel`) or the OS (`linux`, `macos`, `windows`, `freebsd`); `cflags`/`lflags`/`preproc`/`c_cflags`/`c_preproc` appended (base, compiler, system, then CLI), other keys replaced; unknown qualifier or two replacing keys -> exit 2; `introspect --buildoptions` lists them |
 | `cc` / `c_cflags` / `c_preproc` | C compiler of the `.c` sources (default the family's: gcc, icx, nvc...) / their flags (default `-c`; the Fortran `cflags` never apply) / their `-D` flags |
 | `features` / `no_default_features` | Activate feature flags / suppress `[features] default` |
 | `varset` | Apply named `[varset:NAME]` bindings |
