@@ -86,8 +86,6 @@ are in `tests/fpm/mixed-fpm-0.13.0.txt`, and the test suite compares against the
 
 - A dependency compiled with the project (a path dependency, or a git one with `use=sources`) gets the project's
   macros: FoBiS has one flag set per build, fpm one per package.
-- fpm compiles files with the same name in different directories; FoBiS names an object after its file, so they
-  collide (fpm's `hello_fpm_path` example: three `say_hello.f90`). The import says so in a note.
 - One compiler per import: the notes name the features with flags for other compilers and the `--compiler` value to
   import them (`--compiler intel_nextgen` for ifx).
 

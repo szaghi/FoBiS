@@ -338,6 +338,7 @@ def dependency_hiearchy(builder, pfiles, print_w=None, force_compile=False):
         for cycle in cycles:
             print_wm("error: circular dependency: " + " -> ".join(cycle))
         raise CircularDependency(cycles)
+    object_names(pfiles, print_w=print_w)
     # indirect dependency list
     for parsed_file in pfiles:
         parsed_file.create_pfile_dep_all()
@@ -366,14 +367,58 @@ def external_module_times(pfiles, include_dirs):
     return times
 
 
+# what a compiler compiles to an object (any case): another file FoBiS compiles (an .inc not listed as include
+# extension) gives no object (gfortran takes it for linker input), so its name is left as it was
+COMPILED_SUFFIXES = (
+    ".f",
+    ".for",
+    ".fpp",
+    ".fortran",
+    ".f77",
+    ".f90",
+    ".f95",
+    ".f03",
+    ".f08",
+    ".f2k",
+    *C_SOURCE_EXTENSIONS,
+)
+
+
+def object_names(pfiles, print_w=None):
+    """Give files named alike in several directories (``say_hello.f90`` in three dependencies) objects named after
+    their path, ``crate_utils1_src_say_hello.f90.o``: an object is ``<obj_name>.o`` in one directory, and two files
+    with one name compiled to the same object (each build overwrote the other's, and the second was taken for up to
+    date). Only the files that collide are renamed, so every other object, and FoBiS's outputs, keep their names.
+    Called by `dependency_hiearchy` once the included files are known (an ``x.inc`` is one only when a file includes
+    it): ``x.F90`` and the ``x.inc`` it includes do not collide."""
+    groups = {}
+    for pfile in pfiles:
+        if not pfile.include and pfile.extension.lower() in COMPILED_SUFFIXES:
+            groups.setdefault(pfile.obj_name.lower(), []).append(pfile)  # lower: the Makefile export lowercases them
+    for group in groups.values():
+        if len(group) < 2:
+            continue
+        for pfile in group:
+            relative = os.path.normpath(os.path.relpath(pfile.name)).replace(os.sep, "_").replace("..", "up")
+            pfile.obj_name = relative.lstrip("._") or pfile.obj_name
+        programs = [p for p in group if p.program]
+        if len(programs) > 1 and print_w is not None and not getattr(programs[0], "named_alike_warned", False):
+            programs[0].named_alike_warned = True  # dependency_hiearchy runs once per target
+            print_w(
+                "warning: programs "
+                + ", ".join(p.name for p in programs)
+                + " are named alike: built without a target or an output, the last overwrites the others"
+            )
+
+
 def remove_other_main(builder, pfiles, myself):
     """
     The function remove_other_main removes all compiled objects of other program than the current target under building.
     """
     for parsed_file in pfiles:
         if parsed_file.program and parsed_file.name != myself.name:
-            if os.path.exists(builder.obj_dir + parsed_file.basename + ".o"):
-                os.remove(builder.obj_dir + parsed_file.basename + ".o")
+            if os.path.exists(builder.obj_dir + parsed_file.obj_name + ".o"):
+                os.remove(builder.obj_dir + parsed_file.obj_name + ".o")
 
 
 def check_results(results, log=None, print_w=None):

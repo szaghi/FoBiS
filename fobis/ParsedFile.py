@@ -455,8 +455,9 @@ class ParsedFile:
         # C files: a .c source (compiled with the C compiler, linked like a file without modules) or a C header
         self.c_source = is_c_source(self.name)
         self.c_header = is_c_header(self.name)
-        if self.c_source:  # objects are <basename>.o: timer.c.o, so a timer.f90 next to it keeps its timer.o
-            self.basename = os.path.basename(self.name)
+        # the object's name, <obj_name>.o: the file's stem; a C source's keeps its extension (timer.c.o, so a timer.f90
+        # next to it keeps its timer.o); files named alike in several directories get their path (utils.object_names)
+        self.obj_name = os.path.basename(self.name) if self.c_source else self.basename
         self.timestamp = os.path.getmtime(self.name)
         self.order = 0
         self.pfile_dep = None
@@ -634,7 +635,7 @@ class ParsedFile:
         builder : Builder object
           builder used for building self
         """
-        with open(os.path.join(builder.build_dir, "build_" + self.basename + ".log"), "w") as log_file:
+        with open(os.path.join(builder.build_dir, "build_" + self.obj_name + ".log"), "w") as log_file:
             log_file.writelines("Hierarchical dependencies list of: " + self.name + "\n")
             for dep in self.pfile_dep:
                 log_file.writelines("  " + dep.name + "\n")
@@ -680,12 +681,12 @@ class ParsedFile:
           string containing the compiling rule of the file
         """
         string = []
-        target = self.basename.lower()
+        target = self.obj_name.lower()
         if not self.include:
             objs = []
             for dep in self.pfile_dep:
-                if not dep.include and os.path.splitext(os.path.basename(dep.name))[0].lower() != target:
-                    objs.append("\t$(DOBJ)" + os.path.splitext(os.path.basename(dep.name))[0].lower() + ".o")
+                if not dep.include and dep.obj_name.lower() != target:
+                    objs.append("\t$(DOBJ)" + dep.obj_name.lower() + ".o")
             deps = [self.name]
             for dep in self.pfile_dep:
                 if dep.include:
@@ -727,9 +728,9 @@ class ParsedFile:
           flag for excluding programs obj from the list
         """
         if exclude_programs:
-            return [p.basename + ".o" for p in self.pfile_dep_all if not p.include and not p.program]
+            return [p.obj_name + ".o" for p in self.pfile_dep_all if not p.include and not p.program]
         else:
-            return [p.basename + ".o" for p in self.pfile_dep_all if not p.include]
+            return [p.obj_name + ".o" for p in self.pfile_dep_all if not p.include]
 
     def check_compile(
         self, obj_dir: str, force_compile: bool = False, external_mods: dict[str, float] | None = None
@@ -754,7 +755,7 @@ class ParsedFile:
                     if force_compile:
                         self.to_compile = True
                     else:
-                        obj = os.path.join(obj_dir, dep.basename + ".o")
+                        obj = os.path.join(obj_dir, dep.obj_name + ".o")
                         # verifying if dep is up-to-date
                         if os.path.exists(obj):
                             if os.path.getmtime(obj) < dep.timestamp:
@@ -772,7 +773,7 @@ class ParsedFile:
                         sys.exit(1)
                     else:
                         # comparing the include dependency with the self-compiled-object if exist
-                        obj = os.path.join(obj_dir, self.basename + ".o")
+                        obj = os.path.join(obj_dir, self.obj_name + ".o")
                         # verifying if dep is up-to-date
                         if os.path.exists(obj):
                             if os.path.getmtime(obj) < os.path.getmtime(dep.name):
@@ -780,7 +781,7 @@ class ParsedFile:
                                 self.to_compile = True
             # verifying if a module of another project (a library, a dependon) changed its interface since
             if external_mods and not self.to_compile:
-                obj = os.path.join(obj_dir, self.basename + ".o")
+                obj = os.path.join(obj_dir, self.obj_name + ".o")
                 if os.path.exists(obj):
                     stamp = os.path.getmtime(obj)
                     self.to_compile = any(
@@ -791,7 +792,7 @@ class ParsedFile:
                     )
             # verifying if self is up-to-date
             if not self.to_compile:
-                obj = os.path.join(obj_dir, self.basename + ".o")
+                obj = os.path.join(obj_dir, self.obj_name + ".o")
                 if os.path.exists(obj):
                     if os.path.getmtime(obj) < self.timestamp:
                         # the compiled object is out-of-date, thus self must be compiled

@@ -348,9 +348,9 @@ class Builder:
                     + " "
                     + file_to_compile.name
                     + output_prepend
-                    + os.path.join(preprocessor_dir, file_to_compile.basename + ".pp.f90")
+                    + os.path.join(preprocessor_dir, file_to_compile.obj_name + ".pp.f90")
                 )
-                preprocessor_output = os.path.join(preprocessor_dir, file_to_compile.basename + ".pp.f90")
+                preprocessor_output = os.path.join(preprocessor_dir, file_to_compile.obj_name + ".pp.f90")
                 if not preprocessor_store:
                     preprocessor_remove = True
         return preprocessor_cmd, preprocessor_output, preprocessor_remove
@@ -395,7 +395,7 @@ class Builder:
                     + include_cmd
                     + file_to_compile.name
                     + " -o "
-                    + os.path.join(self.obj_dir, file_to_compile.basename + ".o"),
+                    + os.path.join(self.obj_dir, file_to_compile.obj_name + ".o"),
                     None,
                 )
             ]
@@ -407,7 +407,7 @@ class Builder:
                 + include_cmd
                 + preprocessor_output
                 + " -o "
-                + os.path.join(self.obj_dir, file_to_compile.basename + ".o")
+                + os.path.join(self.obj_dir, file_to_compile.obj_name + ".o")
             )
             cleanup = preprocessor_output if preprocessor_remove else None
             return [(preprocessor_cmd, None), (compile_cmd, cleanup)]
@@ -418,7 +418,7 @@ class Builder:
                 + include_cmd
                 + file_to_compile.name
                 + " -o "
-                + os.path.join(self.obj_dir, file_to_compile.basename + ".o")
+                + os.path.join(self.obj_dir, file_to_compile.obj_name + ".o")
             )
             return [(comp_cmd, None)]
 

@@ -74,6 +74,12 @@ are tracked separately with `--cflags-heritage`.
 | `--extensions` | (all Fortran extensions) | Parsed file extensions — tab-completable |
 | `--build-all` | `False` | Build all parsed sources, not just program files |
 
+`--target src/main.f90` names that file; a bare name (`--target main.f90`) names every file called so, as before.
+Objects are `<build_dir>/<obj_dir>/<name>.o`, named after the file; files named alike in several directories
+(`lib/one/util.f90`, `lib/two/util.f90`) get objects named after their path (`lib_one_util.f90.o`,
+`lib_two_util.f90.o`), so each is compiled and linked. Two programs named alike would still write one executable:
+give each a `--target` and an `--output` (a warning says so).
+
 ## fobos options
 
 | Option | Description |

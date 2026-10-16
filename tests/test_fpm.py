@@ -183,10 +183,6 @@ def test_feature_tables_errors(tmp_path, monkeypatch):
     monkeypatch.setattr("fobis.fpm.current_os", lambda: "linux")
     with pytest.raises(FpmError, match="must be a table"):
         fobos_from_fpm(parse_toml('name = "x"\n[features]\nf.linux = 1\n'), str(tmp_path), "gnu")
-    same = tmp_path / "same"
-    _write(same, {"src/a/util.f90": "module a\nend module a\n", "src/b/util.f90": "module b\nend module b\n"})
-    notes = fobos_from_fpm(parse_toml('name = "same"\n'), str(same), "gnu").notes
-    assert any("files named alike in several directories (util.f90)" in n for n in notes)
 
 
 def _fpm_lines(profile):

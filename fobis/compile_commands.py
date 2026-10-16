@@ -57,7 +57,7 @@ def entry(builder, pfile, directory: str) -> dict:
     if len(steps) > 1:  # preprocessed first: the compile step reads the preprocessor's output
         _, preprocessed, _ = builder._compile_preprocessor(pfile)
         words = [pfile.name if word == preprocessed else word for word in words]
-    output = os.path.join(builder.obj_dir, pfile.basename + ".o")
+    output = os.path.join(builder.obj_dir, pfile.obj_name + ".o")
     return {
         "directory": directory,
         "file": os.path.normpath(os.path.join(directory, pfile.name)),

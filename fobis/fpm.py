@@ -655,17 +655,6 @@ def _dependencies(manifest: dict, root: str, notes: list[str]) -> tuple[list[str
     return list(lines.values()), mode_keys
 
 
-def _same_names(root: str, directories: list[str]) -> list[str]:
-    """Source file names found in more than one directory: FoBiS names an object after its file, so they collide."""
-    found: dict[str, set[str]] = {}
-    for directory in directories:
-        for folder, _, files in os.walk(os.path.join(root, directory)):
-            for name in files:
-                if os.path.splitext(name)[1].lower() in (".f90", ".f", ".f95", ".f03", ".f08", ".c"):
-                    found.setdefault(name, set()).add(os.path.relpath(folder, root))
-    return sorted(name for name, folders in found.items() if len(folders) > 1)
-
-
 def _has_c_sources(root: str, sources: list[str]) -> bool:
     return any(
         name.endswith(".c")
@@ -724,13 +713,6 @@ def fobos_from_fpm(manifest: dict, root: str = ".", compiler: str = "gnu") -> Tr
     for feature in features.values():
         feature.macros = [_macro(m, version) for m in feature.macros]
     has_c = _has_c_sources(root, sources)
-    path_dirs = [line.split("path=", 1)[1].split(" ::")[0] for line in deps_lines if " = path=" in line]
-    same = _same_names(root, sources + path_dirs)
-    if same:
-        notes.append(
-            f"files named alike in several directories ({', '.join(same)}): FoBiS names objects after the file, so "
-            "they collide; rename them"
-        )
     kinds = _as_list(library.get("type", "monolithic"))
     lib_kinds = list(dict.fromkeys("shared" if k == "shared" else "static" for k in kinds))
 

@@ -698,8 +698,9 @@ def run_fobis_build(configuration):
                 fobos.rule_execute(rule_name)
 
             source = t_dict.get("source") or t_dict.get("target", "")
+            chosen = target_files(source, pfiles_all)
             for pfile in pfiles_all:
-                if os.path.basename(pfile.name) == os.path.basename(source):
+                if pfile in chosen:
                     build_pfile(
                         configuration=configuration,
                         pfile=pfile,
@@ -743,6 +744,7 @@ def run_fobis_build(configuration):
         fobos.rule_execute(rule_name)
 
     build_succeeded = False
+    chosen = target_files(cliargs.target, pfiles) if cliargs.target else []
     # building target or all programs found
     for pfile in pfiles:
         if cliargs.build_all:
@@ -757,7 +759,7 @@ def run_fobis_build(configuration):
             build_succeeded = True
         else:
             if cliargs.target:
-                if os.path.basename(cliargs.target) == os.path.basename(pfile.name):
+                if pfile in chosen:
                     build_pfile(
                         configuration=configuration,
                         pfile=pfile,
@@ -1165,6 +1167,14 @@ def parse_files(configuration, src_dir=None, is_doctest=False):
     return sorted(pfiles, key=lambda pfile: _natural_key(pfile.name))
 
 
+def target_files(target, pfiles):
+    """The files a target names: the file at that path when one is (``b/main.f90`` among two ``main.f90``), else every
+    file of that name (``target = main.f90``, FoBiS's rule before paths were compared)."""
+    wanted = os.path.normpath(os.path.abspath(target))
+    exact = [p for p in pfiles if os.path.normpath(os.path.abspath(p.name)) == wanted]
+    return exact or [p for p in pfiles if os.path.basename(p.name) == os.path.basename(target)]
+
+
 def _natural_key(text):
     """Sort key putting `x-2` before `x-10`."""
     return [int(part) if part.isdigit() else part for part in re.split(r"(\d+)", text)]
@@ -1480,7 +1490,7 @@ def build_submodules(configuration, pfiles, builder):
                 file_to_build=pfile, verbose=configuration.cliargs.verbose, log=configuration.cliargs.log
             )
             if build_ok:
-                submodules.append(pfile.basename + ".o")
+                submodules.append(pfile.obj_name + ".o")
                 # Also include transitive module dependencies of this submodule.
                 # Modules used exclusively by submodule files are not reachable from the
                 # main program's module dependency graph and would otherwise be compiled
@@ -1599,13 +1609,13 @@ def save_makefile(configuration, pfiles, builder):
         nomodlibs = []
         for pfile in pfiles:
             if pfile.nomodlib:
-                nomodlibs.append("$(DOBJ)" + pfile.basename.lower() + ".o")
+                nomodlibs.append("$(DOBJ)" + pfile.obj_name.lower() + ".o")
         string = []
         string.append("\n#building rules\n")
         # linking rules: the target only when the mode names one (it is make's default goal, and its output the
         # executable's name); else every program, named after its file
         target = configuration.cliargs.target
-        matched = [p for p in pfiles if target and os.path.basename(target) == os.path.basename(p.name)]
+        matched = target_files(target, pfiles) if target else []
         for pfile in pfiles:
             save_target_rule = pfile in matched if matched else pfile.program
             if matched:  # the name fobis build gives it
@@ -1615,17 +1625,19 @@ def save_makefile(configuration, pfiles, builder):
             if save_target_rule:
                 if len(nomodlibs) > 0:
                     string.append(
-                        "$(DEXE)" + name + ": $(MKDIRS) " + "$(DOBJ)" + pfile.basename.lower() + ".o \\" + "\n"
+                        "$(DEXE)" + name + ": $(MKDIRS) " + "$(DOBJ)" + pfile.obj_name.lower() + ".o \\" + "\n"
                     )
                     for nomod in nomodlibs[:-1]:
                         string.append("\t" + nomod + " \\" + "\n")
                     string.append("\t" + nomodlibs[-1] + "\n")
                 else:
-                    string.append("$(DEXE)" + name + ": $(MKDIRS) " + "$(DOBJ)" + pfile.basename.lower() + ".o\n")
-                string.append("\t@rm -f $(filter-out $(DOBJ)" + pfile.basename.lower() + ".o,$(EXESOBJ))\n")
+                    string.append("$(DEXE)" + name + ": $(MKDIRS) " + "$(DOBJ)" + pfile.obj_name.lower() + ".o\n")
+                string.append("\t@rm -f $(filter-out $(DOBJ)" + pfile.obj_name.lower() + ".o,$(EXESOBJ))\n")
                 string.append("\t@echo $(LITEXT)\n")
                 string.append("\t@$(FC) $(OPTSL) $(DOBJ)*.o $(LIBS) -o $@\n")
                 string.append("EXES := $(EXES) " + name + "\n")
+                if pfile.obj_name.lower() != pfile.basename.lower():  # a qualified object (utils.object_names)
+                    string.append("EXESOBJ += $(DOBJ)" + pfile.obj_name.lower() + ".o\n")
         return "".join(string)
 
     def _gnu_auxiliary_rules():

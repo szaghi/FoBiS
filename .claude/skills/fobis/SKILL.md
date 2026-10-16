@@ -203,7 +203,7 @@ fobis test --explain     # the same for every failed test (LLM for the first one
   `-fimplicit-none -Werror=implicit-interface -ffree-form`, `-cpp` when cpp is used), `lib-static`/`lib-shared`
   from `[library] type`, path deps (and theirs) -> `path=<dir>/<source-dir>`, dev deps -> `:: dev`, C files ->
   `c_cflags`/`c_preproc`. Checked flag for flag against fpm 0.13.0. Notes: features for other compilers (with the
-  `--compiler` to use), same-named files in several directories (objects collide). `fpm export`: library
+  `--compiler` to use). `fpm export`: library
   source-dir from where the modules are, [[test]]/[[executable]] from the programs, git deps, macros. No overwrite
   without --force.
 - `profile`: gprof (case rebuilt with -pg as a variant; sampled self time + exact calls; MPI ranks -> per-process
