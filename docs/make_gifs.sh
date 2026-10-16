@@ -5,6 +5,8 @@
 # Prerequisites: gfortran must be in PATH (and git; the ecosystem tapes also need git-cliff).
 # The *_llm_* tapes need an LLM directory with the runtime and coder-7b already installed
 # (fobis llm runtime install && fobis llm pull coder-7b, or FOBIS_LLM_DIR pointing to one).
+# GIF_LLM_CPU=1 records them with the CPU runtime and no GPU at all (GIF_LLM_THREADS threads, default 6), for a
+# machine whose GPUs are busy: e.g.  GIF_LLM_CPU=1 bash make_gifs.sh 13
 # The tapes run the `fobis` found on PATH: to record unreleased features, put the dev one first,
 # e.g.  PATH="$(realpath ../.venv/bin):$PATH" bash make_gifs.sh 09 10 11  (absolute: tapes cd elsewhere)
 #
@@ -64,6 +66,9 @@ run_tape() {
     local work_dir
     if [[ "$name" == "07_fetch" ]]; then
         work_dir=$(_make_work_dir "$SCRIPT_DIR/demo/fetch-demo")
+    elif [[ "$name" == "13_llm_explain" ]]; then
+        # quad, the tutorial's project, as its first chapter starts
+        work_dir=$(_make_work_dir "$SCRIPT_DIR/examples/tutorial/1-first-steps/01-first-build/files")
     elif [[ "$name" == *_ecosystem_* ]]; then
         # a fresh demo ecosystem (three git repos with local remotes) for every tape
         work_dir=$(mktemp -d)
@@ -80,10 +85,23 @@ run_tape() {
         _cleanup_dirs+=("$xdg")
         mkdir -p "$xdg/fobis"
         printf '[llm]\nprovider = managed\nmodel = coder-7b\n' > "$xdg/fobis/config.ini"
+        local gpus="${CUDA_VISIBLE_DEVICES-unset}"
+        if [[ "${GIF_LLM_CPU:-0}" == 1 ]]; then
+            printf 'runtime_variant = cpu\nn_gpu_layers = 0\nthreads = %s\n' "${GIF_LLM_THREADS:-6}" >> "$xdg/fobis/config.ini"
+            gpus=""
+        fi
         # a short path for the recording: the work dir links to the recorder's LLM directory
         ln -s "${FOBIS_LLM_DIR:-$HOME/.fobis/llm}" "$xdg/llm"
-        FOBIS_DEMO_DIR="$work_dir" XDG_CONFIG_HOME="$xdg" FOBIS_LLM_DIR="$xdg/llm" vhs "$tape"
-        return
+        local status=0
+        if [[ "$gpus" == unset ]]; then
+            FOBIS_DEMO_DIR="$work_dir" XDG_CONFIG_HOME="$xdg" FOBIS_LLM_DIR="$xdg/llm" vhs "$tape" || status=$?
+        else
+            CUDA_VISIBLE_DEVICES="$gpus" FOBIS_DEMO_DIR="$work_dir" XDG_CONFIG_HOME="$xdg" FOBIS_LLM_DIR="$xdg/llm" \
+                vhs "$tape" || status=$?
+        fi
+        # a tape may start a persistent server (fobis llm serve start): never leave it running
+        XDG_CONFIG_HOME="$xdg" FOBIS_LLM_DIR="$xdg/llm" fobis llm serve stop >/dev/null 2>&1 || true
+        return "$status"
     fi
 
     FOBIS_DEMO_DIR="$work_dir" vhs "$tape"

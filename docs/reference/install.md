@@ -93,7 +93,8 @@ fobis install --prefix /usr/local/
 3. If `--branch`, `--tag`, or `--rev` is given, that revision is checked out.
 4. The dependency is built with `fobis build --track-build` (optionally with `--mode`).
 5. The generated `.track_build` files are scanned for artifact paths.
-6. Executables are copied to `<prefix>/<bin>/`, libraries to `<prefix>/<lib>/`, and module files to `<prefix>/<include>/`.
+6. Executables are copied to `<prefix>/<bin>/`, libraries to `<prefix>/<lib>/`, and module files to `<prefix>/<include>/`
+   (`bin` and `lib` are mode keys too: `bin = tools/` in the mode).
 
 The target repository **must** contain a `fobos` file.
 

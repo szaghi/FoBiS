@@ -254,6 +254,9 @@ specific:
 Each step appends names not already present; CLI negation tokens are applied
 after the full expansion to drop entries from any earlier step.
 
+A mode can also drop the `[features] default` set with `no_default_features = True`, as
+`--no-default-features` does.
+
 ```ini
 [features]
 release  = -O3 -DNDEBUG

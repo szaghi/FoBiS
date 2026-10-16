@@ -107,6 +107,21 @@ end module simple
 
 ## Running doctests
 
+The options are mode keys too, so a mode can keep the doctests' settings:
+
+```ini
+[doctests]
+compiler               = gnu
+cflags                 = -c
+build_dir              = ./build/doctests/
+; programs left on disk for inspection
+keep_volatile_doctests = True
+; cpp or fpp, for the sources' #if lines
+doctests_preprocessor  = cpp
+; files whose doctests are not run
+exclude_from_doctests  = src/slow_module.F90
+```
+
 ```bash
 # Run all doctests found in the source tree
 fobis doctests
@@ -115,7 +130,7 @@ fobis doctests
 fobis doctests --keep-volatile-doctests
 
 # Store build output in ./build/
-fobis doctests --dbld ./build/
+fobis doctests --build-dir ./build/
 
 # Use a fobos mode
 fobis doctests -f project.fobos --mode gnu
@@ -134,7 +149,7 @@ doctest passed
 
 ## Volatile program structure
 
-With `--keep-volatile-doctests` and `-dbld ./build/`, the generated structure looks like:
+With `--keep-volatile-doctests` and `--build-dir ./build/`, the generated structure looks like:
 
 ```
 build/

@@ -11,6 +11,7 @@ order; these pages hold the details.
 
 | Guide | |
 |---|---|
+| [A new project](/reference/new) | `fobis new`: a module, a program, a test and a fobos that build at once |
 | [The fobos file](/fobos/) | modes, templates, variables, rules, project metadata ([complete example](/fobos/complete-example)) |
 | [Build profiles](/advanced/build-profiles) | `debug`, `release`, `asan`, `coverage` flag presets per compiler |
 | [Feature flags](/advanced/features) | named compile-time options, groups, requirements and conflicts |
@@ -24,16 +25,18 @@ order; these pages hold the details.
 | [Parallel compiling](/advanced/parallel) | `-j N` |
 | [Build cache](/advanced/cache) | reuse objects across clean builds and branches |
 | [Source discovery](/advanced/auto-discovery) | `src/`, `source/`, `app/` found without configuration |
+| [Mixed-language projects](/advanced/mixed-language) | C files compiled with the family's C compiler and linked in |
+| [Compilation database](/reference/build#compilation-database) | `compile_commands.json` for editors and language servers |
 | [PreForM](/advanced/preform) | template preprocessing |
 | [GNU Makefile export](/advanced/makefile) | a Makefile for users without FoBiS |
-| [fpm](/advanced/fpm) | import an `fpm.toml`, export one |
+| [fpm](/advanced/fpm) | import an `fpm.toml` with fpm's own flags (features, profiles), export one |
 | [Compilers](/guide/compilers) | the supported compilers and their flags |
 
 ## Dependencies
 
 | Guide | |
 |---|---|
-| [Fetching dependencies](/advanced/fetch) | `[dependencies]`, sources or libraries |
+| [Fetching dependencies](/advanced/fetch) | `[dependencies]`, sources or libraries; [local directories](/advanced/fetch#local-directories-path) (`path=`), [test-only](/advanced/fetch#test-only-dependencies-dev) (`:: dev`) |
 | [Lock file and semver](/advanced/lock-file) | reproducible fetches, version constraints |
 | [Installing from GitHub](/advanced/install) | `fobis install user/repo` |
 
@@ -41,7 +44,7 @@ order; these pages hold the details.
 
 | Guide | |
 |---|---|
-| [Test runner](/advanced/testing) | `fobis test` |
+| [Test runner](/advanced/testing) | `fobis test`, in parallel (`-j N`), through `mpirun` or any launcher |
 | [Doctests](/advanced/doctests) | checks in the documentation comments |
 | [Cases and provenance](/advanced/cases) | runs with quantities read from their outputs, and where they came from |
 | [Verifying results](/advanced/verify) | references and tolerances |

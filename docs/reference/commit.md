@@ -13,9 +13,9 @@ fobis commit [options]
 | Option | Short | Description |
 |--------|-------|-------------|
 | `--provider TEXT` | `-b` | LLM provider: `managed` (default: llama.cpp run locally by FoBiS), `ollama` or `openai`. `--backend` is accepted as the former name |
-| `--url TEXT` | `-u` | Base URL of the LLM server (default: `http://localhost:11434`) |
+| `--url TEXT` | `-u` | Base URL of an `ollama`/`openai` server (default: `http://localhost:11434`); the managed provider starts its own |
 | `--api-key-env NAME` | | Name of the environment variable holding the API key, sent as `Authorization: Bearer <key>`; required by hosted endpoints. Without it no credentials are sent |
-| `--model TEXT` | `-m` | Model identifier (default: `qwen3-coder:30b-a3b-q4_K_M`) |
+| `--model TEXT` | `-m` | Model identifier (default: `coder-7b` with `managed`, `qwen3-coder:30b-a3b-q4_K_M` with `ollama`/`openai`) |
 | `--max-diff INT` | | Maximum staged-diff characters sent to the model (default: 12 000); truncation is file-boundary-aware — every file's metadata header is preserved |
 | `--refine-passes INT` | | Critique-and-rewrite iterations after the initial draft (default: 0 = single pass); 1–3 recommended for small/fast models |
 | `--apply` | | Run `git commit` with the generated message after interactive review |

@@ -172,6 +172,11 @@ def _parse(text: str) -> dict | None:
     return data if isinstance(data, dict) else None
 
 
+# a source label the model wrote into a claim, "(S1)", "[S2]", "(S1, S3)": the prompt forbids it, and the citations
+# carry it already ([1] after the claim)
+_LABEL_MENTION = re.compile(r"\s*[\(\[]S\d+(?:\s*[,;]\s*S\d+)*[\)\]]")
+
+
 def check_claims(raw: str, bundle: ContextBundle) -> Grounded:
     """Keep the claims of *raw* that cite at least one source of *bundle*; drop and count the others.
 
@@ -186,7 +191,7 @@ def check_claims(raw: str, bundle: ContextBundle) -> Grounded:
     for item in data.get("claims") or []:
         if not isinstance(item, dict):
             continue
-        text = str(item.get("text", "")).strip()
+        text = _LABEL_MENTION.sub("", str(item.get("text", ""))).strip()
         if not text:
             continue
         labels = [str(c).strip().strip("[]").upper() for c in item.get("citations") or []]

@@ -25,17 +25,17 @@ hero:
 features:
   - icon: ⚡
     title: Builds with no makefile
-    details: FoBiS parses every source for modules, uses and includes, and compiles in dependency order, incrementally, in parallel. A fobos file names the modes (debug, release, a library); its options are the command line's.
+    details: FoBiS parses every source for modules, uses and includes, and compiles in dependency order, incrementally, in parallel, C files included. fobis new starts a project; a fobos file names the modes (debug, release, a library); editors get a compile_commands.json.
     link: /tutorial/first-steps/01-first-build
     linkText: A first build
   - icon: 📦
     title: Dependencies from GitHub
-    details: Declare FoBiS projects in [dependencies]; fobis fetch clones them at a tag, branch, commit or semver range and locks the commits. Build them with your sources, or as libraries with their own fobos.
+    details: Declare FoBiS projects in [dependencies]; fobis fetch clones them at a tag, branch, commit or semver range and locks the commits. Build them with your sources, or as libraries with their own fobos; use a local directory as is, or a dependency for the tests only.
     link: /tutorial/first-steps/05-dependencies
     linkText: Dependencies
   - icon: 🧪
     title: Tests, doctests, coverage
-    details: Every program in test/ is a test; checks in the documentation comments are doctests; an instrumented mode and fobis coverage give the report, and a threshold for CI.
+    details: Every program in test/ is a test, run in parallel or through mpirun; checks in the documentation comments are doctests; an instrumented mode and fobis coverage give the report, and a threshold for CI.
     link: /tutorial/first-steps/04-tests
     linkText: Tests
   - icon: 🎯

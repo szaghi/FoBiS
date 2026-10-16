@@ -67,6 +67,12 @@ Modern Fortran's module system is powerful — but tracking inter-module compila
 fobis build
 ```
 
+Starting from nothing, `fobis new` writes a project that builds and tests at once:
+
+```bash
+fobis new demo && cd demo && fobis build && fobis test
+```
+
 For complex projects, a single `fobos` file in the project root replaces makefiles entirely:
 
 ```ini
@@ -85,7 +91,7 @@ build_dir = ./build/release/
 ```
 
 ```bash
-fobis build -mode release
+fobis build --mode release
 ```
 
 | **zero-configuration build** | **simplify complex dependency** |
@@ -133,28 +139,25 @@ fobis scaffold list            # list all managed files and their categories
 
 Project variables (`{{NAME}}`, `{{AUTHORS}}`, `{{REPOSITORY}}`, …) are resolved from the fobos `[project]` section, the git remote URL, and `git config`. See the [scaffold reference](https://szaghi.github.io/FoBiS/reference/scaffold) for full details.
 
-## LLM-assisted commit messages
+## AI assistance, on your machine
 
-`fobis commit` generates [Conventional Commits](https://www.conventionalcommits.org/) messages for your staged changes using a local LLM — no cloud account, no API key, no data leaving your machine.
+FoBiS runs open models itself — llama.cpp's server, a pinned release, and a model pulled once — so there is no
+service to install, no account, and no code leaving the machine. Every answer is built on the project's facts
+(the compiler's message, the code, the interfaces) and cites the sources it comes from.
 
 ```bash
-# Stage your changes as usual
-git add fobis/Commit.py fobis/cli/commit.py
-
-# Generate the message (print only — you review before committing)
-fobis commit
-
-# Generate and commit in one step after interactive review
-fobis commit --apply
-
-# Persist your LLM settings
-fobis commit --init-config     # creates ~/.config/fobis/config.ini
-fobis commit --show-config     # inspect effective settings
+fobis llm runtime install && fobis llm pull coder-7b   # once
+fobis build --explain     # why the build failed: facts first, then a cited cause and fix
+fobis ask -p src "What does simpson require of the number of intervals?"
+fobis commit              # a Conventional Commits message for the staged changes
 ```
 
-Works with [Ollama](https://ollama.com) (default) and any OpenAI-compatible server (LM Studio, vLLM, llama.cpp). The default model is `qwen3-coder:30b-a3b-q4_K_M` — a fast mixture-of-experts model that produces excellent commit messages.
+![fobis build --explain and fobis ask with coder-7b, run locally on the CPU](docs/public/gifs/13_llm_explain.gif)
 
-See the [LLM commit messages guide](https://szaghi.github.io/FoBiS/advanced/commit) for setup instructions, model recommendations, and worked examples.
+Recorded with coder-7b on 6 CPU cores and no GPU: each answer takes about 45 s there (cut from the recording),
+a few seconds on a GPU. Ollama and any OpenAI-compatible server work too. Guides:
+[explaining failures](https://szaghi.github.io/FoBiS/ai/explain), [asking questions](https://szaghi.github.io/FoBiS/ai/ask),
+[commit messages](https://szaghi.github.io/FoBiS/advanced/commit), [the local runtime](https://szaghi.github.io/FoBiS/ai/runtime).
 
 ## Showcases
 

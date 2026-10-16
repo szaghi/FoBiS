@@ -10,6 +10,8 @@ features use that knowledge in layers.
 | **Knowledge** | Reference material distilled from the Fortran, MPI, OpenMP and OpenACC standards and from HPC practice, searchable and cited by rule explanations | No | [`fobis kb`](/ai/knowledge-packs) |
 | **LLM assistance** | Generation and explanation on top of the two layers above, with open models run locally | Yes | [`fobis ask`](/ai/ask), [`fobis build --explain`](/ai/explain), [`fobis commit`](/advanced/commit), [`fobis llm`](/ai/models) |
 
+![fobis build --explain and fobis ask with coder-7b, run locally on the CPU](/gifs/13_llm_explain.gif)
+
 ## Trust tiers
 
 A finding from a rule is reproducible: the same code always gives the same result, every rule has

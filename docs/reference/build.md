@@ -43,7 +43,8 @@ version 'GNU Fortran ... 16.0.1 ...' -> 'GNU Fortran (GCC) 15.2.0'): rebuilding 
 
 The record is written only after a build that compiled without failure, so a failed build leaves the next one
 forced. Without a record (the first build, or objects built by an older FoBiS) nothing is forced. Flag changes
-are tracked separately with `--cflags-heritage`.
+are tracked separately with `--cflags-heritage`. A mode with `force_compile = True` recompiles everything at every
+build, as `--force-compile` does.
 
 ## Directory options
 

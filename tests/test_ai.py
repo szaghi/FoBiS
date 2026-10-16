@@ -71,6 +71,13 @@ def test_check_claims_keeps_cited_and_drops_the_rest():
     assert [s.id for s in result.cited] == ["p:a#one", "p:b#two"]
 
 
+def test_check_claims_drop_label_mentions_from_the_text():
+    """coder-7b wrote "... even (S1)." although the prompt forbids it: the citation is printed as [1] anyway."""
+    raw = json.dumps({"claims": [{"text": "It must be even (S1).", "citations": ["S1"]}], "insufficient": False})
+    result = check_claims(raw, _bundle())
+    assert [c.text for c in result.claims] == ["It must be even."]
+
+
 def test_check_claims_non_json_or_insufficient():
     assert check_claims("I think it is private.", _bundle()).insufficient
     assert check_claims("I think it is private.", _bundle()).dropped == ["I think it is private."]

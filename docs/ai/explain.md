@@ -6,6 +6,10 @@ For a build, FoBiS answers the failures it can diagnose from the
 project's own facts, with no model; for the first error that needs reading the code, it asks the LLM for a
 cause and a fix that cite the code they come from.
 
+![fobis build --explain and fobis ask with coder-7b, run locally on the CPU](/gifs/13_llm_explain.gif)
+
+*coder-7b on 6 CPU cores and no GPU; each answer takes about 45 s there, cut from the recording.*
+
 ```bash
 fobis build --explain                 # facts first, then the model for what they do not cover
 fobis build --explain-context         # print what the model would receive, run no model
