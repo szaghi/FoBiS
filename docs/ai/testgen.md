@@ -12,6 +12,10 @@ fobis testgen penf_b_size -p byte_size --max 4          # only this generic, at 
 fobis testgen penf_b_size --context                     # print what the model would receive, run no model
 ```
 
+![fobis testgen writes a test for the tutorial's gauss_legendre module, then fobis test runs it](/gifs/15_llm_testgen.gif)
+
+*coder-7b on an NVIDIA A30 of a cluster node, reached through ssh; recorded in real time. The test was accepted at the first attempt.*
+
 ## Safety
 
 - Everything is built in a **scratch copy** of the project: the working copy (tracked and untracked files,

@@ -7,6 +7,11 @@
 # (fobis llm runtime install && fobis llm pull coder-7b, or FOBIS_LLM_DIR pointing to one).
 # GIF_LLM_CPU=1 records them with the CPU runtime and no GPU at all (GIF_LLM_THREADS threads, default 6), for a
 # machine whose GPUs are busy: e.g.  GIF_LLM_CPU=1 bash make_gifs.sh 13
+# GIF_LLM_URL=http://HOST:PORT records them with a llama-server already running elsewhere (e.g. on a GPU node reached
+# through an ssh tunnel), as an OpenAI-compatible provider; its key in the variable GIF_LLM_KEY_ENV names (default
+# FOBIS_GIF_LLM_KEY). Nothing is started or stopped then.
+# Tapes 14-16 start from the AI tutorial's project as its chapters leave it: GIF_STATES names a directory made by
+#   python scripts/docs_examples.py --check --track 6-ai --keep DIR
 # The tapes run the `fobis` found on PATH: to record unreleased features, put the dev one first,
 # e.g.  PATH="$(realpath ../.venv/bin):$PATH" bash make_gifs.sh 09 10 11  (absolute: tapes cd elsewhere)
 #
@@ -44,15 +49,43 @@ SLOWOUT
 chmod +x "$_TMPBIN/slowout"
 export PATH="$_TMPBIN:$PATH"
 
+# work dirs are made under one root: _make_work_dir runs in a $(...) subshell, which cannot add to _cleanup_dirs
+_WORK_ROOT=$(mktemp -d)
 _cleanup_dirs=()
-trap 'rm -rf "$_TMPBIN" "${_cleanup_dirs[@]}"' EXIT
+trap 'rm -rf "$_TMPBIN" "$_WORK_ROOT" "${_cleanup_dirs[@]}"' EXIT
 
 _make_work_dir() {
     local src="$1"
     local work_dir
-    work_dir=$(mktemp -d)
-    _cleanup_dirs+=("$work_dir")
+    work_dir=$(mktemp -d -p "$_WORK_ROOT")
     cp -r "$src/." "$work_dir/"
+    echo "$work_dir"
+}
+
+# the AI tutorial's project after chapter $1 of track 6-ai, made ready for tape $2
+_ai_work_dir() {
+    local state="${GIF_STATES:-}/states/6-ai/$1" chapter="$SCRIPT_DIR/examples/tutorial/6-ai"
+    if [[ ! -d "$state" ]]; then
+        echo "  [error] $2 needs GIF_STATES: python scripts/docs_examples.py --check --track 6-ai --keep DIR" >&2
+        return 1
+    fi
+    local work_dir
+    work_dir=$(_make_work_dir "$state")
+    (
+        cd "$work_dir"
+        export GIT_AUTHOR_NAME=Demo GIT_AUTHOR_EMAIL=demo@example.org GIT_COMMITTER_NAME=Demo GIT_COMMITTER_EMAIL=demo@example.org
+        git config commit.gpgsign false
+        git reset -q --hard
+        case "$2" in
+            14_llm_review) cp "$chapter/06-review/racy/sweep.F90" src/sweep.F90 ;;
+            16_llm_merge)
+                git checkout -qb midpoint && git apply "$chapter/08-merge/topic.patch"
+                git commit -qam "test: midpoint is exact on a line too"
+                git checkout -q master && git apply "$chapter/08-merge/master.patch"
+                git commit -qam "test: a tolerance of a few ulps, for -O3 builds" ;;
+        esac
+        fobis test --quiet >/dev/null 2>&1 || true  # the modules built, off camera
+    ) >&2
     echo "$work_dir"
 }
 
@@ -69,6 +102,12 @@ run_tape() {
     elif [[ "$name" == "13_llm_explain" ]]; then
         # quad, the tutorial's project, as its first chapter starts
         work_dir=$(_make_work_dir "$SCRIPT_DIR/examples/tutorial/1-first-steps/01-first-build/files")
+    elif [[ "$name" == 14_llm_review ]]; then
+        work_dir=$(_ai_work_dir 05 "$name")
+    elif [[ "$name" == 15_llm_testgen ]]; then
+        work_dir=$(_ai_work_dir 04 "$name")
+    elif [[ "$name" == 16_llm_merge ]]; then
+        work_dir=$(_ai_work_dir 07 "$name")
     elif [[ "$name" == *_ecosystem_* ]]; then
         # a fresh demo ecosystem (three git repos with local remotes) for every tape
         work_dir=$(mktemp -d)
@@ -86,6 +125,12 @@ run_tape() {
         mkdir -p "$xdg/fobis"
         printf '[llm]\nprovider = managed\nmodel = coder-7b\n' > "$xdg/fobis/config.ini"
         local gpus="${CUDA_VISIBLE_DEVICES-unset}"
+        if [[ -n "${GIF_LLM_URL:-}" ]]; then
+            printf '[llm]\nprovider = openai\nurl = %s\nmodel = coder-7b\napi_key_env = %s\n' \
+                "$GIF_LLM_URL" "${GIF_LLM_KEY_ENV:-FOBIS_GIF_LLM_KEY}" > "$xdg/fobis/config.ini"
+            FOBIS_DEMO_DIR="$work_dir" XDG_CONFIG_HOME="$xdg" vhs "$tape"
+            return
+        fi
         if [[ "${GIF_LLM_CPU:-0}" == 1 ]]; then
             printf 'runtime_variant = cpu\nn_gpu_layers = 0\nthreads = %s\n' "${GIF_LLM_THREADS:-6}" >> "$xdg/fobis/config.ini"
             gpus=""

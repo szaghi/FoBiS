@@ -10,6 +10,10 @@ fobis ask "why does my MPI code hang when every rank sends first?"
 fobis ask --project src "where is the halo exchange done and which MPI calls does it use?"
 ```
 
+![fobis ask -p src on the tutorial project, after a build --explain, with coder-7b run locally on the CPU](/gifs/13_llm_explain.gif)
+
+*The question about `simpson` comes last in the recording. coder-7b on 6 CPU cores and no GPU; each answer takes about 45 s there, cut from the recording.*
+
 A real answer of coder-7b (the default managed model) on an NVIDIA A30, in 3.4 s with the server running:
 
 ```text

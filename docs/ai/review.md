@@ -12,6 +12,10 @@ fobis review --format markdown        # a pull-request comment
 fobis review --deep                   # plus an LLM risk summary, with citations
 ```
 
+![fobis review and fobis review --deep on an OpenMP change, with coder-7b](/gifs/14_llm_review.gif)
+
+*coder-7b on an NVIDIA A30 of a cluster node, reached through ssh; recorded in real time.*
+
 ## What is reviewed
 
 The whole project is linted, as by [`fobis lint`](/ai/lint) with the same fobos mode, rules, `[lint]` section

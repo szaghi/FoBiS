@@ -13,6 +13,10 @@ fobis merge-assist --no-model         # deterministic rules only
 fobis merge-assist --context          # print what the model would receive, run no model
 ```
 
+![fobis merge-assist on a conflict over a tolerance: the rules find no safe answer, the model's proposal does not compile](/gifs/16_llm_merge.gif)
+
+*coder-7b on an NVIDIA A30 of a cluster node, reached through ssh; recorded in real time. The proposal declares the parameter twice: FoBiS compiles it, retries twice with the errors, then shows it marked `does NOT compile` with confidence low. Nothing is written.*
+
 ## Safety
 
 - FoBiS **never** runs `git add`, `git merge --continue`, `git rebase --continue` or any other git command that

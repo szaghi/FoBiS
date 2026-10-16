@@ -13,6 +13,8 @@ Writing good Conventional Commits messages consistently is harder than it looks:
 
 `fobis commit` sends the staged diff, the git stat summary, the current branch name, and the recent commit history to a local model. The model studies the history's style and produces a well-formed message following the same patterns.
 
+![fobis llm doctor and fobis commit with a local model](/gifs/12_llm_commit.gif)
+
 ## Setup
 
 ### Managed llama.cpp (default)
