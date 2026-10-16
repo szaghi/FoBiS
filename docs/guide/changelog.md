@@ -4,6 +4,15 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.9.11] — 2026-10-16
+### Documentation
+- Show review, testgen and merge-assist with a local model, and embed the existing AI GIFs where their commands are
+
+
+### Fixed
+- **test**: Print nothing of a test's build under --quiet unless it fails
+
+
 ## [3.9.10] — 2026-10-16
 ### Added
 - **fobos**: Qualify a mode key by compiler or operating system, as cflags.intel or ext_libs.windows
