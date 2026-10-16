@@ -10,9 +10,9 @@ core it has grown into a tool for the whole life of a Fortran code.
 |---|---|---|
 | Build | dependency-ordered, incremental, parallel builds of programs and libraries; modes in a fobos file; any of a dozen compilers | [First steps](/tutorial/first-steps/01-first-build) |
 | Project | dependencies fetched from GitHub and locked, tests, doctests, coverage, external libraries, fpm and Makefile export | [Tutorials](/tutorial/) |
-| Many projects | a dashboard of several repositories, commands across them in dependency order, checks downstream, a release train | [Ecosystem](/advanced/ecosystem) |
-| Code quality | a linter aware of the build's defines and of OpenMP, OpenACC and MPI; reviews of a change; queries on the code; verified modernisation | [Linting](/ai/lint) |
-| Verification | cases compared with references within tolerances, across compilers and checked builds; error and uncertainty assessment; differential runs; benchmarks; one gate verdict; clusters and profilers | [Verifying results](/advanced/verify) |
+| Many projects | a dashboard of several repositories, commands across them in dependency order, checks downstream, a release train | [Ecosystem](/cookbook/ecosystem) |
+| Code quality | a linter aware of the build's defines and of OpenMP, OpenACC and MPI; reviews of a change; queries on the code; verified modernisation | [Linting](/cookbook/analysis) |
+| Verification | cases compared with references within tolerances, across compilers and checked builds; error and uncertainty assessment; differential runs; benchmarks; one gate verdict; clusters and profilers | [Verifying results](/cookbook/verification#accept-results-then-catch-a-change) |
 | AI assistance | explanations of failures, cited answers, generated tests, merge proposals, on local models; an MCP server for agents | [Analysis and AI](/ai/) |
 
 Each level uses the ones below it, and none is needed to use the others: a project that only wants `fobis build`
@@ -30,11 +30,10 @@ never meets a model.
 
 ## How these pages are organised
 
-- **Start here**: this page and [Installation](/guide/installation).
+- **Get started**: this page, [Installation](/guide/installation), shell completion, the supported compilers.
 - **[Tutorials](/tutorial/)**: one project, grown in tracks from a first build to AI-assisted development. Read them in
-  order.
-- **[Cookbook](/cookbook/)**: short recipes by task ("how do I ...?"), each linking to its tutorial chapter and guide.
-- **[Guides](/guide/topics)**: one page per feature, for when you know what you want.
-- **Concepts**: the models behind the commands: [how a build works](/concepts/build),
-  [the verification model](/concepts/verification), [the AI design](/concepts/ai).
-- **[Reference](/reference/)**: every command and option, the fobos file, the lint rules.
+  order; the first track is all a new user needs.
+- **[Cookbook](/cookbook/)**: everything FoBiS does, by task: how each part works, then one recipe per task, with real
+  outputs and the limits worth knowing.
+- **[Reference](/reference/)**: every command's options, the [fobos keys](/fobos/), the user configuration, the lint
+  rules.

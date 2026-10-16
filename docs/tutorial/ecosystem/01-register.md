@@ -41,7 +41,7 @@ FoBiS reads every project's `[dependencies]` and orders them: a project comes af
 <<< @/examples/output/3-ecosystem/01/graph.txt{console}
 
 The release order is the order in which every command of the next chapters acts. A cycle between projects is reported
-as an error.
+(`dependency cycle, not ordered: ...`) and its projects come after all the others.
 
 ::: tip What you learned
 The registry (`[ecosystem] root` and `projects`), `discover`, `add`, `graph`. Reference:

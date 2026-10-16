@@ -22,12 +22,20 @@ title: 3. A library
 
 The module file `quad_rules.mod` is part of the library: a program using the library needs it to compile.
 
+![fobis build --mode static writes a static library](/gifs/03_static_library.gif)
+
+*Recorded on a small demo project, not quad.*
+
 ## Installing
 
 `fobis install` copies what a mode built into a prefix, executables to `bin/`, libraries to `lib/`, module files to
 `include/`:
 
 <<< @/examples/output/1-first-steps/03/install.txt{console}
+
+![a tracked build installed to a prefix](/gifs/06_install.gif)
+
+*Recorded on a small demo project, not quad.*
 
 ## Using the installed library
 

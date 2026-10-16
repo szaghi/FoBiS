@@ -22,9 +22,13 @@ implementation. "Review it before committing" is meant: a test checks what the m
 can be checked against any table; for a procedure without a known answer, the checks may only repeat what the
 code does. `--apply` writes the program to the test directory, never over an existing file.
 
+![fobis testgen writes a test for gauss_legendre, then fobis test runs it](/gifs/15_llm_testgen.gif)
+
+*coder-7b on an NVIDIA A30 of a cluster node, reached through ssh; recorded in real time.*
+
 ::: tip What you learned
 `fobis testgen`, `--skeleton`, `--context`, `--apply`, what an accepted test proves. Reference:
-[test generation](/ai/testgen).
+[test generation](/cookbook/ai#generate-tests).
 :::
 
 Next: [6. A second reader for a change](./06-review).

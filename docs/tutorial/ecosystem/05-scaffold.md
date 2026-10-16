@@ -25,7 +25,7 @@ In the project, the file by file view:
 
 ::: tip What you learned
 `fobis scaffold status` and `sync`, `[scaffold] skip`, `fobis ecosystem scaffold status`. Reference:
-[scaffold](/advanced/scaffold).
+[scaffold](/cookbook/ecosystem#shared-boilerplate-in-one-project).
 :::
 
 Next: [6. The release train](./06-release).

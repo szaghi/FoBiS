@@ -26,9 +26,13 @@ The fix is a `private(n)` clause:
 
 <<< @/examples/output/4-quality/03/fixed.txt{console}
 
+![fobis review and fobis review --deep on an OpenMP change, with coder-7b](/gifs/14_llm_review.gif)
+
+*coder-7b on an NVIDIA A30 of a cluster node, reached through ssh; recorded in real time.*
+
 ::: tip What you learned
 `fobis review` (working tree, `--staged`, `--base`), `--format markdown`. Reference:
-[`review`](/reference/review), [reviewing a change](/ai/review).
+[`review`](/reference/review), [reviewing a change](/cookbook/analysis#review-only-what-changed).
 :::
 
 Next: [4. Querying the code](./04-query).

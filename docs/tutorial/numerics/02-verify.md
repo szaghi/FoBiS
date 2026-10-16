@@ -33,7 +33,7 @@ bits.
 
 ::: tip What you learned
 `fobis verify`, `--update`, references in the repository, a failure explained by its provenance. Reference:
-[verifying results](/advanced/verify).
+[verifying results](/cookbook/verification#accept-results-then-catch-a-change).
 :::
 
 Next: [3. Defects only some builds see](./03-shadows).

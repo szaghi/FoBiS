@@ -30,6 +30,10 @@ Each mode builds in its own directory, so switching from one to the other never 
 
 <<< @/examples/output/1-first-steps/02/tree.txt{console}
 
+![fobis build with a fobos, in the default mode and in release](/gifs/02_fobos_build.gif)
+
+*Recorded on a small demo project, not quad.*
+
 ## Running
 
 `fobis run` builds the mode's target when needed, then runs it:

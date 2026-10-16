@@ -53,7 +53,7 @@ The integral of x⁴ on [-1, 1] is 2/5: three points integrate it exactly, up to
 
 ::: tip What you learned
 `fobis bindings MODULE...`, what can be bound and what cannot, building and calling the result. Reference:
-[C and Python bindings](/advanced/bindings).
+[C and Python bindings](/cookbook/analysis#call-fortran-from-c-or-python).
 :::
 
 Next: [7. Instructions for agents](./07-agents).

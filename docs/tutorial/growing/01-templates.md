@@ -32,7 +32,7 @@ Since the flags did not change, the objects of the previous chapters are still u
 
 ::: tip What you learned
 Templates (`template = NAME`, chained), `$variables`, and `fobis introspect` to see the result. Reference:
-[templates](/fobos/templates), [variables](/fobos/variables), [`introspect`](/reference/introspect).
+[templates](/cookbook/build#share-settings-between-modes-templates), [variables](/cookbook/build#reuse-values-variables), [`introspect`](/reference/introspect).
 :::
 
 Next: [2. Build profiles and features](./02-profiles).

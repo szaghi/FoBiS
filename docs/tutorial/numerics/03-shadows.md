@@ -47,7 +47,7 @@ With the relative error made absolute near zero (`abs(s - exact) / max(abs(exact
 
 ::: tip What you learned
 `--shadow checks|sanitize|strict` on build, run, test and verify, `fobis matrix`, `--verify`. Reference:
-[the compiler matrix](/advanced/matrix).
+[the compiler matrix](/cookbook/verification#every-mode-every-shadow-every-compiler-the-matrix).
 :::
 
 Next: [4. How accurate is the result?](./04-assess).

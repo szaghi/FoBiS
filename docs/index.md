@@ -41,12 +41,12 @@ features:
   - icon: 🎯
     title: Verified numerical results
     details: Declare cases and the quantities they print; compare them with references within tolerances, across compilers and checked builds, against the previous revision, with confidence intervals on timings and estimates of rounding and discretisation error.
-    link: /advanced/verify
+    link: /cookbook/verification#accept-results-then-catch-a-change
     linkText: Verification
   - icon: 🩺
     title: A linter that sees the build
     details: Bug-prone, obsolescent and non-portable constructs, OpenMP data races, OpenACC and MPI defects, analysed with the defines of the mode you build. Baselines, inline suppressions with reasons, automatic fixes, SARIF, reviews of the lines a change touches.
-    link: /ai/lint
+    link: /cookbook/analysis
     linkText: Linting
   - icon: 🤖
     title: AI assistance on facts
@@ -56,12 +56,12 @@ features:
   - icon: 🧭
     title: Many repositories as one
     details: A dashboard of releases due, CI, drift and stale pins across your projects; commands in dependency order; a check of everything downstream before you release; the release train.
-    link: /advanced/ecosystem
+    link: /cookbook/ecosystem
     linkText: Ecosystem
   - icon: 🖥️
     title: From a laptop to a cluster
     details: The same cases, tests and benchmarks submitted through Slurm, with the node's facts in the provenance; profiles from gprof, callgrind and Nsight Systems mapped to your procedures. One offline file for air-gapped machines.
-    link: /advanced/scheduler
+    link: /cookbook/hpc#declare-the-scheduler
     linkText: Clusters
 ---
 

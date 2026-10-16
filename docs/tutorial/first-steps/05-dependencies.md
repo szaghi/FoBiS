@@ -44,6 +44,10 @@ of chapter 4, with `integrands`, which uses it. Files on the same line belong to
 
 <<< @/examples/output/1-first-steps/05/tree.txt{console}
 
+![fobis fetch clones the dependencies, fobis build compiles them](/gifs/07_fetch.gif)
+
+*Recorded on a small demo project, not quad.*
+
 ## The lock file
 
 <<< @/examples/output/1-first-steps/05/lock.txt{console}
@@ -70,7 +74,7 @@ and checks every dependency against it:
 
 `:: mode=NAME` picks the dependency's fobos mode, `:: use=fobos` builds it as a library, and `:: dev` makes it
 test-only: `fobis test` uses it, the builds of the program and of the library do not
-([test-only dependencies](/advanced/fetch#test-only-dependencies-dev)).
+([test-only dependencies](/cookbook/dependencies#a-testing-framework-for-the-tests-only)).
 
 ::: tip What you learned
 `[dependencies]`, `fobis fetch`, `.fobis_deps/`, the lock and `--frozen`, `fobis tree`. Reference:

@@ -112,7 +112,7 @@ def keys_section() -> str:
         + "): "
         + ", ".join(f"`{k}`" for k in FLAG_KEYS)
         + " get the value appended (compiler, then system), any other key is replaced. An unknown qualifier, or one key "
-        "replaced by both a compiler and a system key, is an error. See [qualified keys](#qualified-keys).",
+        "replaced by both a compiler and a system key, is an error. See [flags that differ by compiler or system](/cookbook/build#flags-that-differ-by-compiler-or-system).",
     ]
     lines = [KEYS_BEGIN, NOTE, *qualifiers, "", "| Key | Read by | Description |", "|---|---|---|"]
     for key, (text, commands) in mode_keys().items():

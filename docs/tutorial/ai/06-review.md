@@ -22,9 +22,13 @@ changed:
 The findings and the exit status are the linter's; the model adds a summary of the risks, cited, and never
 removes a finding. `fobis lint --deep` does the same for the findings of a whole project, region by region.
 
+![fobis review and fobis review --deep on an OpenMP change, with coder-7b](/gifs/14_llm_review.gif)
+
+*coder-7b on an NVIDIA A30 of a cluster node, reached through ssh; recorded in real time.*
+
 ::: tip What you learned
-`fobis review --deep`, `--deep-context`, `fobis lint --deep`. Reference: [reviewing a change](/ai/review),
-[linting with a model](/ai/lint).
+`fobis review --deep`, `--deep-context`, `fobis lint --deep`. Reference: [reviewing a change](/cookbook/analysis#review-only-what-changed),
+[linting with a model](/cookbook/analysis).
 :::
 
 Next: [7. Commit messages](./07-commit).

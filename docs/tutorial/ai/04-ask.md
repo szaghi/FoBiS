@@ -16,6 +16,10 @@ its header, its documentation comment, its arguments, what it uses and calls:
 
 The answer comes from the documentation comment of `test_exactness` ("Simpson cubics"), and says where.
 
+![fobis ask -p src on the tutorial project, after a build --explain, with coder-7b run locally on the CPU](/gifs/13_llm_explain.gif)
+
+*The question comes last in the recording. coder-7b on 6 CPU cores and no GPU; each answer takes about 45 s there, cut from the recording.*
+
 ## What a citation guarantees
 
 A question the sources cannot answer:
@@ -36,7 +40,7 @@ verdict after: found while recording this chapter.
 
 ::: tip What you learned
 `fobis ask`, `-p`, `--show-context`, `--pack`, what citations do and do not guarantee. Reference:
-[asking questions](/ai/ask), [knowledge packs](/ai/knowledge-packs).
+[asking questions](/cookbook/ai#ask-about-the-code-and-the-standards), [knowledge packs](/cookbook/ai-setup#search-the-knowledge-packs).
 :::
 
 Next: [5. Generated tests](./05-testgen).

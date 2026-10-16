@@ -26,7 +26,7 @@ before it says it is done. `--base main` gates a topic branch against its merge 
 branch), `--fail-fast` stops at the first failure, `advisory = ...` reports stages without blocking.
 
 ::: tip What you learned
-`fobis gate`, `[gate]` (`skip`, `advisory`, `matrix_modes`), `--base`. Reference: [the gate](/advanced/gate).
+`fobis gate`, `[gate]` (`skip`, `advisory`, `matrix_modes`), `--base`. Reference: [the gate](/cookbook/verification#one-command-for-all-of-it).
 :::
 
 Next: [8. Where the time goes](./08-profile).

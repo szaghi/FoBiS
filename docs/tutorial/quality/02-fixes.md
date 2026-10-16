@@ -55,7 +55,7 @@ A finding is recorded by its rule, file and the text of its statement, not by it
 bring it back. `.fobis-lint-baseline.json` is read by default; commit it.
 
 ::: tip What you learned
-Inline suppressions with a reason, `--diff`/`--fix`, `--update-baseline`. Reference: [linting](/ai/lint).
+Inline suppressions with a reason, `--diff`/`--fix`, `--update-baseline`. Reference: [linting](/cookbook/analysis).
 :::
 
 Next: [3. Reviewing a change](./03-review).

@@ -20,7 +20,7 @@ The case, in the fobos:
 
 `quantities = stdout` reads every `name = number` line the program prints; a quantity can also be a regular
 expression, a column of a file, a JSON key, an HDF5 dataset, a record of an unformatted file or the exit status
-(see [cases and quantities](/advanced/cases#quantities)).
+(see [cases and quantities](/cookbook/verification#read-the-quantities)).
 
 <<< @/examples/output/5-numerics/01/list.txt{console}
 
@@ -49,7 +49,7 @@ Every result of the next chapters carries this record, and every comparison repo
 
 ::: tip What you learned
 `[case:NAME]`, quantities, `fobis case list` and `case run`, run directories, `fobis provenance`. Reference:
-[cases, quantities and provenance](/advanced/cases).
+[cases, quantities and provenance](/cookbook/verification#declare-a-case-and-run-it).
 :::
 
 Next: [2. References](./02-verify).

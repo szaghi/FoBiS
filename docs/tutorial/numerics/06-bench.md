@@ -39,7 +39,7 @@ host-device copies.
 
 ::: tip What you learned
 `[bench:NAME]`, `fobis bench`, `--compare`, `--record`, verdicts from intervals. Reference:
-[benchmarks](/advanced/bench).
+[benchmarks](/cookbook/verification#is-it-faster).
 :::
 
 Next: [7. One command for all of it](./07-gate).

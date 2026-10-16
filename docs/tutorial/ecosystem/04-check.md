@@ -31,6 +31,10 @@ dependents that uses what changed, without building anything:
 
 The staged copies are kept when a check fails, to look at; the projects themselves were not touched.
 
+![fobis ecosystem check](/gifs/10_ecosystem_check.gif)
+
+*The demo ecosystem of this track: core, mathx, app.*
+
 ::: tip What you learned
 `fobis ecosystem check PROJECT` (dependents built against your working copy) and `fobis ecosystem impact PROJECT`
 (which public names changed, and who uses them).

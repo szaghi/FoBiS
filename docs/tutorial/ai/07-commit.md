@@ -23,8 +23,10 @@ The scope is right and the description reads well, but the type is wrong: a prog
 a `feat`, not a `refactor`. That is why `fobis commit` prints the message and commits nothing; `--apply` asks
 before running `git commit`.
 
+![fobis llm doctor and fobis commit with a local model](/gifs/12_llm_commit.gif)
+
 ::: tip What you learned
-`fobis commit`, `--show-facts`, `--apply`. Reference: [commit messages](/advanced/commit).
+`fobis commit`, `--show-facts`, `--apply`. Reference: [commit messages](/cookbook/ai#commit-messages).
 :::
 
 Next: [8. Merge conflicts](./08-merge).

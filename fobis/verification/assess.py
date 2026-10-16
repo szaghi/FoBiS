@@ -65,7 +65,7 @@ METHODS = {family: f"numerics:assessment#{family}-family" for family in FAMILIES
 DEFAULT_SAMPLES = 16
 DEFAULT_REPEATS = 2
 
-# measured on gfortran 16, ifx 2025.3, nvfortran 26.1 (docs/advanced/assess.md)
+# measured on gfortran 16, ifx 2025.3, nvfortran 26.1 (docs/cookbook/verification.md)
 PRECISION_DEFAULTS = {
     "gnu": {"promoted": "-freal-4-real-8 -freal-8-real-16"},  # explicit real64 promoted too
     "intel": {"promoted": "-real-size 64 -double-size 128"},  # default REAL and DOUBLE PRECISION only

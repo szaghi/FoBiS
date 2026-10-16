@@ -37,9 +37,11 @@ other tracks. Paths under the cluster's home directory are shown as `~/fobis-dev
 `fobis llm ask` is a smoke test: the bare model, no sources, no checks. The next chapters never use the model
 this way.
 
+![fobis llm doctor and fobis commit with a local model](/gifs/12_llm_commit.gif)
+
 ::: tip What you learned
-`fobis llm recommended`, `runtime install`, `pull`, `serve`, `doctor`, `ask`. Reference: [local models](/ai/models),
-[the managed runtime](/ai/runtime).
+`fobis llm recommended`, `runtime install`, `pull`, `serve`, `doctor`, `ask`. Reference: [local models](/cookbook/ai-setup#choose-a-model),
+[the managed runtime](/cookbook/ai-setup).
 :::
 
 Next: [2. Build failures, explained](./02-explain).

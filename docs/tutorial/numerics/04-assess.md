@@ -35,7 +35,7 @@ Each family names the section of the `numerics` knowledge pack that describes it
 
 ::: tip What you learned
 `[assess:NAME]`, the refinement, precision and rounding families, budgets. Other families vary the compiler,
-the thread count and the inputs. Reference: [error and uncertainty assessment](/advanced/assess).
+the thread count and the inputs. Reference: [error and uncertainty assessment](/cookbook/verification#how-many-digits-can-you-trust).
 :::
 
 Next: [5. Is a refactoring harmless?](./05-diff-run).

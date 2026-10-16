@@ -174,7 +174,7 @@ target            = src/main.F90
 ```
 
 Names are case-insensitive and apply only to the mode they are declared in.
-See the [`intrinsic_modules` mode key](/fobos/#intrinsic-modules-mode-key)
+See the [`intrinsic_modules` mode key](/cookbook/build#modules-from-outside-the-project)
 documentation for details.
 
 ## Compilation and linking flags

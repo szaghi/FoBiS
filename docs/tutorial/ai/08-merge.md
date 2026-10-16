@@ -32,9 +32,13 @@ by hunk: accept, ours, theirs, both, edit, skip. Here the right answer is an edi
 real(R8P), parameter :: tolerance = 4.e-14_R8P !< Rounding allowance: a few ulps of the results at -O3, also for the midpoint rule.
 ```
 
+![fobis merge-assist: the rules find no safe answer, the model's proposal does not compile](/gifs/16_llm_merge.gif)
+
+*coder-7b on an NVIDIA A30 of a cluster node, reached through ssh; recorded in real time.*
+
 ::: tip What you learned
 `fobis merge-assist`, `--no-model`, `--apply`, `--yes`, compiled proposals. Reference:
-[merge conflicts](/ai/merge-assist).
+[merge conflicts](/cookbook/ai#merge-conflicts).
 :::
 
 Next: [9. An agent under the gate](./09-agent).

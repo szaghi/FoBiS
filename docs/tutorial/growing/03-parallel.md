@@ -85,8 +85,8 @@ double wall_seconds(void) {
 
 with an interface `function wall_seconds() bind(c, name="wall_seconds")` returning `real(c_double)` in a module.
 FoBiS compiles `clock.c` with the family's C compiler (`gcc` here, `nvc` for nvfortran, `icx` for ifx) and links it
-into every program; `c_cflags` holds its flags, since the Fortran `cflags` are not C's. Guide:
-[mixed-language projects](/advanced/mixed-language).
+into every program; `c_cflags` holds its flags, since the Fortran `cflags` are not C's. Cookbook:
+[mixed-language projects](/cookbook/build#c-files-with-the-fortran-ones).
 
 ::: info MPI outputs
 The MPI outputs were recorded with Open MPI 5.0 and gfortran 15 (the documentation's CI has no MPI); the rest of the
@@ -95,7 +95,7 @@ page, with gfortran 13.
 
 ::: tip What you learned
 `openmp = True`, `mpi = True`. For libraries found through `pkg-config` or a wrapper (HDF5, NetCDF, FFTW, MPI
-too) see [external libraries](/advanced/externals).
+too) see [external libraries](/cookbook/libraries#find-mpi-hdf5-netcdf-blas-fftw).
 :::
 
 Next: [4. A project that depends on quad](./04-dependon).

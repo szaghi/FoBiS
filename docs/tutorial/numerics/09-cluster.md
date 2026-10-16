@@ -92,7 +92,7 @@ runs it with `TMPDIR=/tmp`, local to the node. Found while recording this chapte
 ::: tip What you learned
 `[scheduler]`, `--runner slurm` on `case run`, `verify`, `test`, `assess`, `bench`, `diff-run` and `profile`;
 the login-node guard; the compute node's facts in the provenance; `--tool nsys`. Reference:
-[running on a cluster](/advanced/scheduler), [profiling](/advanced/profile).
+[running on a cluster](/cookbook/hpc#declare-the-scheduler), [profiling](/cookbook/verification#where-does-the-time-go).
 :::
 
 This is the end of the track. [Track 6](/tutorial/ai/01-model) puts a model to work under these checks.

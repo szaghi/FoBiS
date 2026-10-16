@@ -15,7 +15,7 @@ around them is yours and is kept. `fobis agents-md --check` exits 1 when the blo
 deterministic: no dates, no machine state.
 
 ::: tip What you learned
-`fobis agents-md`, `--print`, `-o`, `--check`. Reference: [instructions for agents](/advanced/agents-md).
+`fobis agents-md`, `--print`, `-o`, `--check`. Reference: [instructions for agents](/cookbook/ai-setup#agents-md-and-claude-md-from-facts).
 :::
 
 This is the end of the fourth track. The [fifth](../#tracks) asks the question the linter cannot answer: are the

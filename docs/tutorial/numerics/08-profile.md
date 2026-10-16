@@ -31,7 +31,7 @@ transfers per direction and per source line: chapter 9 uses it on a cluster.
 
 ::: tip What you learned
 `fobis profile`, `--tool gprof|callgrind|nsys`, reading the share outside the sources. Reference:
-[profiling](/advanced/profile).
+[profiling](/cookbook/verification#where-does-the-time-go).
 :::
 
 Next: [9. On a cluster](./09-cluster).

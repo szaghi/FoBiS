@@ -18,7 +18,7 @@ its module files and its archive in:
 
 :::
 
-`dependon = ../quad/fobos:static((direct))` reads: the fobos at that path (relative to this one), its `static`
+`dependon = ../quad/fobos:static((direct))` reads: the fobos at that path (relative to the directory `fobis` runs in, here the project's root), its `static`
 mode, and link the library by its full path (`((indirect))` links it by name, with `-L` and `-l`).
 
 <<< @/examples/output/2-growing/04/build.txt{console}
@@ -27,6 +27,10 @@ FoBiS built `quad`'s static library in its own directory, then added its module 
 the archive to the libraries. When nothing changed, the library build is a no-op:
 
 <<< @/examples/output/2-growing/04/uptodate.txt{console}
+
+![dependon: the dependency's library is built first, then linked](/gifs/04_dependent_build.gif)
+
+*Recorded on a small demo project, not quad.*
 
 ## When the library changes
 
@@ -60,13 +64,13 @@ quad = path=../quad
 `quad`'s sources are then compiled with `area`'s, as a dependency fetched from GitHub would be (its `.git`, build
 and fetched-dependency directories skipped). Nothing is fetched or installed, and an edit in `../quad` is
 recompiled at the next build. `quad = path=../quad :: use=fobos :: mode=static` builds it with its own fobos and
-links the library instead, which is this chapter's `dependon` without the link syntax. Guide:
-[local directories](/advanced/fetch#local-directories-path).
+links the library instead, which is this chapter's `dependon` without the link syntax. Cookbook:
+[local directories](/cookbook/dependencies#another-project-on-this-machine).
 
 ::: tip What you learned
 `dependon = PATH:MODE((direct|indirect))`: another project's library rebuilt first, its module files and archive
 wired in, its interface changes followed. For dependencies from GitHub, [`[dependencies]`](../first-steps/05-dependencies)
-does the same from a clone. Reference: [interdependent projects](/advanced/interdependent).
+does the same from a clone. Reference: [interdependent projects](/cookbook/libraries#build-another-fobis-project-first).
 :::
 
 Next: [5. Rules](./05-rules).

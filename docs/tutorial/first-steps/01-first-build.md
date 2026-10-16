@@ -63,6 +63,10 @@ The build left the objects, the module files and the executable, named after the
 
 Both errors fall as the number of intervals grows; how fast is the subject of a test in chapter 4.
 
+![fobis build with no fobos, then fobis clean](/gifs/01_basic_build.gif)
+
+*Recorded on a small demo project, not quad.*
+
 ## Rebuilding
 
 FoBiS compiles only what is out of date. Run again, nothing is compiled:
@@ -73,6 +77,10 @@ Change `quad_rules.F90` (here `touch` stands for an edit) and everything that de
 the chain of `use` statements; `--quiet` drops the options block:
 
 <<< @/examples/output/1-first-steps/01/touch.txt{console}
+
+![a rebuild after touching one file recompiles that file only](/gifs/05_clean.gif)
+
+*Recorded on a small demo project, not quad.*
 
 ## Cleaning
 

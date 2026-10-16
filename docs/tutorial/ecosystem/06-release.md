@@ -28,8 +28,12 @@ not on GitHub, cannot have.) The pins are current again:
 
 If a release fails, the train stops there and prints the `--from` command that resumes it.
 
+![fobis ecosystem release](/gifs/11_ecosystem_release.gif)
+
+*The demo ecosystem of this track: core, mathx, app.*
+
 ::: tip What you learned
-`fobis ecosystem release`, `--dry-run`, `--yes`, `--bump`, `--from`. The [ecosystem guide](/advanced/ecosystem)
+`fobis ecosystem release`, `--dry-run`, `--yes`, `--bump`, `--from`. The [ecosystem guide](/cookbook/ecosystem)
 covers the configuration and the safety rules in full.
 :::
 

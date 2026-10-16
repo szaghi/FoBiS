@@ -67,14 +67,14 @@ def rule_page(rid: str) -> str:
         "",
         f"```fortran\n! fobis: ignore[{rid}] <why this occurrence is fine>\n```",
         "",
-        f"For the whole project, `ignore = {rid}` in the fobos [`[lint]` section](/fobos/lint).",
+        f"For the whole project, `ignore = {rid}` in the fobos [`[lint]` section](/cookbook/analysis#choose-the-rules).",
     ]
     if rul.refs:
         lines += [
             "",
             "## References",
             "",
-            "Sections of the shipped [knowledge packs](/ai/knowledge-packs) behind this rule:",
+            "Sections of the shipped [knowledge packs](/cookbook/ai-setup#search-the-knowledge-packs) behind this rule:",
             "",
         ]
         lines += [f"- `{ref}` (`fobis kb show {ref}`)" for ref in rul.refs]
@@ -102,7 +102,7 @@ def index_page() -> str:
         f"`fobis lint` has {len(RULES)} rules. Rules marked *default* run unless a selection is given;",
         "*opt-in* rules run only when selected (`--select COR003`, a prefix like `--select COR`, or `ALL`).",
         "Run `fobis lint --explain <ID>` for the same documentation in the terminal. How to run, select and",
-        "suppress rules: [Linting](/ai/lint).",
+        "suppress rules: [Code quality](/cookbook/analysis).",
     ]
     for prefix, family in FAMILIES.items():
         rules = sorted((r for r in RULES.values() if r.family == prefix), key=lambda r: r.id)

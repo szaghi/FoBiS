@@ -32,7 +32,7 @@ the MPI module, and the abstract interface of `quad_rules` has no `implicit none
 
 <<< @/examples/output/4-quality/01/explain.txt{console}
 
-The references point to the [knowledge packs](/ai/knowledge-packs), searchable with `fobis kb`.
+The references point to the [knowledge packs](/cookbook/ai-setup#search-the-knowledge-packs), searchable with `fobis kb`.
 
 ## Choosing the rules
 

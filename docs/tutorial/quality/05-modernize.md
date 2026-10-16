@@ -23,7 +23,7 @@ Without tests or cases the only evidence is the build, which does not prove that
 `--apply` needs `--unverified` too.
 
 ::: tip What you learned
-`fobis modernize`, `--apply`, what counts as evidence. Reference: [verified modernisation](/advanced/modernize).
+`fobis modernize`, `--apply`, what counts as evidence. Reference: [verified modernisation](/cookbook/analysis#modernise-legacy-code-verified).
 :::
 
 Next: [6. C and Python bindings](./06-bindings).

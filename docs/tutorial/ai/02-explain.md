@@ -31,9 +31,13 @@ Every statement cites the sources it rests on, and a statement citing none is dr
 model answers in a fixed JSON form whose citations can only be the labels it was given, so it cannot cite a
 source that does not exist.
 
+![fobis build --explain and fobis ask with coder-7b, run locally on the CPU](/gifs/13_llm_explain.gif)
+
+*coder-7b on 6 CPU cores and no GPU; each answer takes about 45 s there, cut from the recording.*
+
 ::: tip What you learned
 `--explain` on `build`, the deterministic diagnoses, `--explain-context`, cited answers. Reference:
-[explaining failures](/ai/explain).
+[explaining failures](/cookbook/ai#why-the-build-failed).
 :::
 
 Next: [3. Crashes, located](./03-crash).

@@ -23,23 +23,23 @@
 <td><b>📄 fobos — the FoBiS makefile</b><br><sub>A concise INI-style configuration file replaces makefiles entirely. Define multiple build modes, templates, variables, custom rules, feature flags, multi-target sections, and hooks — all in one readable file. <a href="https://szaghi.github.io/FoBiS/fobos/">fobos reference</a></sub></td>
 </tr>
 <tr>
-<td><b>🌐 GitHub integration</b><br><sub>Declare dependencies in a <code>[dependencies]</code> fobos section — <code>fobis fetch</code> clones, pins to branch/tag/rev/semver, and pre-builds them; <code>fobis build</code> picks them up automatically. The commits fetched are recorded in a lock file next to the dependencies. Install any GitHub-hosted FoBiS project directly with <code>fobis install user/repo</code>. <a href="https://szaghi.github.io/FoBiS/advanced/fetch">Fetch deps</a> · <a href="https://szaghi.github.io/FoBiS/advanced/lock-file">Lock file</a></sub></td>
-<td><b>🏗️ Named build profiles &amp; feature flags</b><br><sub>One-word compiler flag presets (<code>debug</code>, <code>release</code>, <code>asan</code>, <code>coverage</code>) for every supported compiler. Feature flags let you activate named compile-time options without separate build modes — mix and match freely. <a href="https://szaghi.github.io/FoBiS/advanced/build-profiles">Build profiles</a> · <a href="https://szaghi.github.io/FoBiS/advanced/features">Feature flags</a></sub></td>
+<td><b>🌐 GitHub integration</b><br><sub>Declare dependencies in a <code>[dependencies]</code> fobos section — <code>fobis fetch</code> clones, pins to branch/tag/rev/semver, and pre-builds them; <code>fobis build</code> picks them up automatically. The commits fetched are recorded in a lock file next to the dependencies. Install any GitHub-hosted FoBiS project directly with <code>fobis install user/repo</code>. <a href="https://szaghi.github.io/FoBiS/cookbook/dependencies">Fetch deps</a> · <a href="https://szaghi.github.io/FoBiS/cookbook/dependencies#the-lock-file">Lock file</a></sub></td>
+<td><b>🏗️ Named build profiles &amp; feature flags</b><br><sub>One-word compiler flag presets (<code>debug</code>, <code>release</code>, <code>asan</code>, <code>coverage</code>) for every supported compiler. Feature flags let you activate named compile-time options without separate build modes — mix and match freely. <a href="https://szaghi.github.io/FoBiS/cookbook/build#debug-and-release-builds">Build profiles</a> · <a href="https://szaghi.github.io/FoBiS/cookbook/build#switch-options-on-and-off-features">Feature flags</a></sub></td>
 </tr>
 <tr>
-<td><b>🧪 Integrated test runner &amp; coverage</b><br><sub><code>fobis test</code> discovers, compiles, and runs all Fortran test programs — no external harness needed. <code>fobis coverage</code> generates HTML/XML reports via gcovr or lcov and can fail CI when coverage drops below a threshold. <a href="https://szaghi.github.io/FoBiS/advanced/testing">Test runner</a> · <a href="https://szaghi.github.io/FoBiS/reference/coverage">Coverage</a></sub></td>
-<td><b>🔬 Introspective doctests</b><br><sub>Embed micro-unit-tests directly inside Fortran comment docstrings. FoBiS generates, compiles, and runs volatile test programs automatically — inspired by Python's doctest module, no test harness needed. <a href="https://szaghi.github.io/FoBiS/advanced/doctests">Doctests</a></sub></td>
+<td><b>🧪 Integrated test runner &amp; coverage</b><br><sub><code>fobis test</code> discovers, compiles, and runs all Fortran test programs — no external harness needed. <code>fobis coverage</code> generates HTML/XML reports via gcovr or lcov and can fail CI when coverage drops below a threshold. <a href="https://szaghi.github.io/FoBiS/cookbook/testing">Test runner</a> · <a href="https://szaghi.github.io/FoBiS/reference/coverage">Coverage</a></sub></td>
+<td><b>🔬 Introspective doctests</b><br><sub>Embed micro-unit-tests directly inside Fortran comment docstrings. FoBiS generates, compiles, and runs volatile test programs automatically — inspired by Python's doctest module, no test harness needed. <a href="https://szaghi.github.io/FoBiS/cookbook/testing#doctests-checks-in-the-documentation">Doctests</a></sub></td>
 </tr>
 <tr>
-<td><b>⚡ Build cache</b><br><sub>Content-addressed cache keyed on source commit, compiler, and flags — reuses object files across clean builds and branch switches. <code>fobis cache list/clean</code> for housekeeping. <a href="https://szaghi.github.io/FoBiS/advanced/cache">Build cache</a></sub></td>
-<td><b>🤖 Introspect &amp; Claude Code skill</b><br><sub><code>fobis introspect --all</code> emits machine-readable JSON of the full project graph — sources, compiler flags, dependencies, targets. Powers the bundled <code>/fobis</code> Claude Code skill for AI-assisted builds right in your editor. <a href="https://szaghi.github.io/FoBiS/reference/introspect">introspect</a> · <a href="https://szaghi.github.io/FoBiS/guide/claude-skill">Claude skill</a></sub></td>
+<td><b>⚡ Build cache</b><br><sub>Content-addressed cache keyed on source commit, compiler, and flags — reuses object files across clean builds and branch switches. <code>fobis cache list/clean</code> for housekeeping. <a href="https://szaghi.github.io/FoBiS/cookbook/build#the-build-cache">Build cache</a></sub></td>
+<td><b>🤖 Introspect &amp; Claude Code skill</b><br><sub><code>fobis introspect --all</code> emits machine-readable JSON of the full project graph — sources, compiler flags, dependencies, targets. Powers the bundled <code>/fobis</code> Claude Code skill for AI-assisted builds right in your editor. <a href="https://szaghi.github.io/FoBiS/reference/introspect">introspect</a> · <a href="https://szaghi.github.io/FoBiS/cookbook/ai-setup#the-claude-code-skill">Claude skill</a></sub></td>
 </tr>
 <tr>
 <td><b>📋 Scaffold — boilerplate sync</b><br><sub>Keep CI workflows, docs configs, license files, and scripts identical across all your Fortran repos. <code>fobis scaffold status</code> shows drift; <code>fobis scaffold sync</code> fixes it; <code>fobis scaffold init</code> bootstraps new projects. All templates bundled inside FoBiS — no extra dependencies. <a href="https://szaghi.github.io/FoBiS/reference/scaffold">Scaffold reference</a></sub></td>
-<td><b>🧠 LLM commit messages</b><br><sub>Generate well-formed <a href="https://www.conventionalcommits.org/">Conventional Commits</a> messages for staged changes via a local LLM. Supports <a href="https://ollama.com">Ollama</a> and any OpenAI-compatible endpoint (LM Studio, vLLM, llama.cpp) — no cloud account, no API key, no data leaving your machine. <a href="https://szaghi.github.io/FoBiS/advanced/commit">LLM commit guide</a></sub></td>
+<td><b>🧠 LLM commit messages</b><br><sub>Generate well-formed <a href="https://www.conventionalcommits.org/">Conventional Commits</a> messages for staged changes via a local LLM. Supports <a href="https://ollama.com">Ollama</a> and any OpenAI-compatible endpoint (LM Studio, vLLM, llama.cpp) — no cloud account, no API key, no data leaving your machine. <a href="https://szaghi.github.io/FoBiS/cookbook/ai#commit-messages">LLM commit guide</a></sub></td>
 </tr>
 <tr>
-<td><b>🧭 Ecosystem dashboard</b><br><sub>Register your interconnected repositories once; <code>fobis ecosystem dashboard</code> shows them all at a glance — releases due (bump suggested from Conventional Commits), CI at HEAD, scaffold drift, dependency pins behind the upstream heads — in the terminal or as a themed HTML page with a live dependency diagram. <a href="https://szaghi.github.io/FoBiS/advanced/ecosystem">Ecosystem guide</a></sub></td>
+<td><b>🧭 Ecosystem dashboard</b><br><sub>Register your interconnected repositories once; <code>fobis ecosystem dashboard</code> shows them all at a glance — releases due (bump suggested from Conventional Commits), CI at HEAD, scaffold drift, dependency pins behind the upstream heads — in the terminal or as a themed HTML page with a live dependency diagram. <a href="https://szaghi.github.io/FoBiS/cookbook/ecosystem">Ecosystem guide</a></sub></td>
 <td><b>🚂 Check &amp; release train</b><br><sub><code>fobis ecosystem check LIB</code> builds and tests every project downstream against your local, unreleased working copy. <code>fobis ecosystem release</code> releases everything due, dependencies first, refusing to start while any project is blocked and stopping safely at the first failure. <a href="https://szaghi.github.io/FoBiS/reference/ecosystem">ecosystem reference</a></sub></td>
 </tr>
 <tr>
@@ -47,7 +47,7 @@
 <td><b>📐 Verified numerics</b><br><sub>Declare cases and the quantities they compute; <code>fobis verify</code> compares them with accepted references within declared tolerances, <code>fobis matrix</code> across compilers and checked builds, <code>fobis assess</code> estimates the digits you can trust, <code>fobis diff-run</code> and <code>fobis bench</code> compare two revisions, <code>fobis gate</code> runs them all, locally or under Slurm. <a href="https://szaghi.github.io/FoBiS/tutorial/numerics/01-cases">Verified numerics track</a></sub></td>
 </tr>
 <tr>
-<td colspan="2"><b>🧠 AI assistance, grounded</b><br><sub>Local open models managed by FoBiS explain build failures and crashes, answer questions about the code with citations, generate tests that must build and pass, review changes and propose merge resolutions checked by the compiler; <code>fobis mcp</code> serves the same facts to AI agents. Facts first, model last. <a href="https://szaghi.github.io/FoBiS/concepts/ai">The AI design</a></sub></td>
+<td colspan="2"><b>🧠 AI assistance, grounded</b><br><sub>Local open models managed by FoBiS explain build failures and crashes, answer questions about the code with citations, generate tests that must build and pass, review changes and propose merge resolutions checked by the compiler; <code>fobis mcp</code> serves the same facts to AI agents. Facts first, model last. <a href="https://szaghi.github.io/FoBiS/cookbook/ai">The AI design</a></sub></td>
 </tr>
 </table>
 </div>
@@ -123,7 +123,7 @@ fobis ecosystem release                     # the release train
 |:---:|:---:|
 | ![ecosystem check](docs/public/gifs/10_ecosystem_check.gif) | ![ecosystem release](docs/public/gifs/11_ecosystem_release.gif) |
 
-See the [ecosystem guide](https://szaghi.github.io/FoBiS/advanced/ecosystem) for the concepts, a one-minute demo you can run locally, and recipes.
+See the [ecosystem guide](https://szaghi.github.io/FoBiS/cookbook/ecosystem) for the concepts, a one-minute demo you can run locally, and recipes.
 
 ## Scaffold — boilerplate management
 
@@ -156,8 +156,8 @@ fobis commit              # a Conventional Commits message for the staged change
 
 Recorded with coder-7b on 6 CPU cores and no GPU: each answer takes about 45 s there (cut from the recording),
 a few seconds on a GPU. Ollama and any OpenAI-compatible server work too. Guides:
-[explaining failures](https://szaghi.github.io/FoBiS/ai/explain), [asking questions](https://szaghi.github.io/FoBiS/ai/ask),
-[commit messages](https://szaghi.github.io/FoBiS/advanced/commit), [the local runtime](https://szaghi.github.io/FoBiS/ai/runtime).
+[explaining failures](https://szaghi.github.io/FoBiS/cookbook/ai#why-the-build-failed), [asking questions](https://szaghi.github.io/FoBiS/cookbook/ai#ask-about-the-code-and-the-standards),
+[commit messages](https://szaghi.github.io/FoBiS/cookbook/ai#commit-messages), [the local runtime](https://szaghi.github.io/FoBiS/cookbook/ai-setup).
 
 ## Showcases
 

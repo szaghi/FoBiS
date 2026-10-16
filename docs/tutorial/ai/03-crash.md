@@ -18,7 +18,7 @@ explanation says so and names the mode to rerun in.
 
 ::: tip What you learned
 `fobis run --explain`, `fobis test --explain`, trusted and untrusted locations. Reference:
-[runtime failures](/ai/explain#runtime-failures).
+[runtime failures](/cookbook/ai#why-the-program-crashed).
 :::
 
 Next: [4. Questions about the code](./04-ask).

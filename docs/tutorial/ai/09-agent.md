@@ -43,9 +43,9 @@ failing fact.
 and the commands before it starts.
 
 ::: tip What you learned
-`fobis mcp`, the read-only and the writing tools, an agent calling `gate`. Reference: [MCP server](/ai/mcp),
-[the gate](/advanced/gate).
+`fobis mcp`, the read-only and the writing tools, an agent calling `gate`. Reference: [MCP server](/cookbook/ai-setup#an-mcp-server-for-your-agent),
+[the gate](/cookbook/verification#one-command-for-all-of-it).
 :::
 
-This is the end of the tutorials. The [guides](/guide/topics) and the [reference](/reference/build) cover every
+This is the end of the tutorials. The [guides](/cookbook/) and the [reference](/reference/build) cover every
 command and option.

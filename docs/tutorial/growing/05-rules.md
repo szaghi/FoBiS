@@ -63,7 +63,7 @@ the same level of the dependency tree are compiled together:
 
 ::: tip What you learned
 `[rule-NAME]`, `fobis rule --list` and `--execute`, `pre_build`/`post_build` hooks, intrinsic rules,
-`--jobs`. Reference: [rules](/fobos/rules), [intrinsic rules](/fobos/intrinsic-rules), [`rule`](/reference/rule).
+`--jobs`. Reference: [rules](/cookbook/libraries#run-project-commands-as-rules), [intrinsic rules](/cookbook/libraries#ask-the-fobos-from-a-script), [`rule`](/reference/rule).
 :::
 
 Next: [6. Continuous integration](./06-ci).

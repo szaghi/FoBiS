@@ -30,9 +30,13 @@ goal is the mode's target, and `make` compiles only what that needs:
 
 The exports are snapshots: generate them again when the fobos changes, for instance with a [rule](./05-rules).
 
+![fobis build -m Makefile exports a GNU Makefile that make builds](/gifs/08_makefile_export.gif)
+
+*Recorded on a small demo project, not quad.*
+
 ::: tip What you learned
-`fobis fpm export` (and `import`), `fobis build --makefile`. Reference: [fpm](/advanced/fpm),
-[Makefile export](/advanced/makefile).
+`fobis fpm export` (and `import`), `fobis build --makefile`. Reference: [fpm](/cookbook/libraries#translate-to-and-from-fpm),
+[Makefile export](/cookbook/libraries#export-a-gnu-makefile).
 :::
 
 This is the end of the second track. The [third](../ecosystem/01-register) leaves `quad` for a while: a family of projects that

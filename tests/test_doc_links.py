@@ -26,10 +26,10 @@ def test_slugify_matches_vitepress():
 
 
 def test_broken_links_are_reported(tmp_path):
-    page = check_links.DOCS / "concepts" / "build.md"
+    page = check_links.DOCS / "cookbook" / "build.md"
     assert check_links.check_link("/fobos/#every-mode-key", page) is None
     assert check_links.check_link("./verification", page) is None
-    assert check_links.check_link("#_4-what-is-compiled-again", page) is None
+    assert check_links.check_link("#what-is-compiled-again", page) is None
     assert check_links.check_link("/fobos/#no-such-key", page).startswith("no anchor")
     assert check_links.check_link("/no/such/page", page) == "no such page"
 

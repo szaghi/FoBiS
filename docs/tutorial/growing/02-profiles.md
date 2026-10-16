@@ -55,7 +55,7 @@ The release mode cannot build that program at all: its sources are `src/` only.
 
 ::: tip What you learned
 `build_profile`, `--list-profiles`, `[features]` and `--features` (`-name` to remove one), `cflags_heritage`.
-Reference: [build profiles](/advanced/build-profiles), [feature flags](/advanced/features).
+Reference: [build profiles](/cookbook/build#debug-and-release-builds), [feature flags](/cookbook/build#switch-options-on-and-off-features).
 :::
 
 Next: [3. OpenMP and MPI](./03-parallel).

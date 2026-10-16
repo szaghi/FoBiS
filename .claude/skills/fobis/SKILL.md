@@ -489,7 +489,7 @@ modules: into every program and every library (a `bind(c)` call is not a `use`).
 recompiles it); C headers (`.h` with C markers) are never read as Fortran. A C compile error fails the build and is
 a `build --json` diagnostic with `tool: "c"`. Keys `cc`, `c_cflags` (default `-c`, `-c` added when missing; a shared
 library needs `-fPIC` there too), `c_preproc`; the Fortran `cflags`/`preproc` never reach C. Lint/query/`--explain`/
-shadow modes skip C. Guide: https://szaghi.github.io/FoBiS/advanced/mixed-language
+shadow modes skip C. Guide: https://szaghi.github.io/FoBiS/cookbook/build#c-files-with-the-fortran-ones
 
 ### Feature flags (conditional compilation)
 
@@ -889,12 +889,12 @@ Add custom include extensions: `fobis build --inc .cmn`.
 
 Full documentation at **https://szaghi.github.io/FoBiS/**:
 
-- [fobos reference](https://szaghi.github.io/FoBiS/fobos/) · [Complete example](https://szaghi.github.io/FoBiS/fobos/complete-example)
-- [Tutorials](https://szaghi.github.io/FoBiS/tutorial/) · [Cookbook](https://szaghi.github.io/FoBiS/cookbook/) · [Concepts](https://szaghi.github.io/FoBiS/concepts/build)
+- [fobos reference](https://szaghi.github.io/FoBiS/fobos/) · [Complete example](https://szaghi.github.io/FoBiS/cookbook/build#write-a-fobos)
+- [Tutorials](https://szaghi.github.io/FoBiS/tutorial/) · [Cookbook](https://szaghi.github.io/FoBiS/cookbook/) · [Concepts](https://szaghi.github.io/FoBiS/cookbook/build)
 - [Command reference](https://szaghi.github.io/FoBiS/reference/) (every command and option)
-- [Ecosystem guide](https://szaghi.github.io/FoBiS/advanced/ecosystem) · [ecosystem reference](https://szaghi.github.io/FoBiS/reference/ecosystem)
-- [Feature flags](https://szaghi.github.io/FoBiS/advanced/features) · [Build profiles](https://szaghi.github.io/FoBiS/advanced/build-profiles) · [Varsets](https://szaghi.github.io/FoBiS/advanced/varsets)
-- [External libraries](https://szaghi.github.io/FoBiS/advanced/externals) · [Build cache](https://szaghi.github.io/FoBiS/advanced/cache) · [Auto-discovery](https://szaghi.github.io/FoBiS/advanced/auto-discovery)
-- [Fetch dependencies](https://szaghi.github.io/FoBiS/advanced/fetch) · [Lock file & semver](https://szaghi.github.io/FoBiS/advanced/lock-file) · [Interdependent builds](https://szaghi.github.io/FoBiS/advanced/interdependent)
-- [Test runner](https://szaghi.github.io/FoBiS/advanced/testing) · [Coverage](https://szaghi.github.io/FoBiS/reference/coverage) · [JSON output](https://szaghi.github.io/FoBiS/advanced/json-output)
+- [Ecosystem guide](https://szaghi.github.io/FoBiS/cookbook/ecosystem) · [ecosystem reference](https://szaghi.github.io/FoBiS/reference/ecosystem)
+- [Feature flags](https://szaghi.github.io/FoBiS/cookbook/build#switch-options-on-and-off-features) · [Build profiles](https://szaghi.github.io/FoBiS/cookbook/build#debug-and-release-builds) · [Varsets](https://szaghi.github.io/FoBiS/cookbook/build#choose-machine-paths-at-build-time-varsets)
+- [External libraries](https://szaghi.github.io/FoBiS/cookbook/libraries#find-mpi-hdf5-netcdf-blas-fftw) · [Build cache](https://szaghi.github.io/FoBiS/cookbook/build#the-build-cache) · [Auto-discovery](https://szaghi.github.io/FoBiS/cookbook/build#build-without-a-fobos)
+- [Fetch dependencies](https://szaghi.github.io/FoBiS/cookbook/dependencies) · [Lock file & semver](https://szaghi.github.io/FoBiS/cookbook/dependencies#the-lock-file) · [Interdependent builds](https://szaghi.github.io/FoBiS/cookbook/libraries#build-another-fobis-project-first)
+- [Test runner](https://szaghi.github.io/FoBiS/cookbook/testing) · [Coverage](https://szaghi.github.io/FoBiS/reference/coverage) · [JSON output](https://szaghi.github.io/FoBiS/cookbook/ci#read-the-results-in-a-script)
 - [Source code](https://github.com/szaghi/FoBiS)

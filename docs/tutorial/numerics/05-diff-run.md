@@ -51,7 +51,7 @@ verdict on the listed changes.
 
 ::: tip What you learned
 `fobis diff-run REF`, `--assess`, `tolerance = q: spec; *: spec` (`exact`, `abs`, `rel`, `ulp`). Reference:
-[differential runs](/advanced/diff-run), [tolerances](/advanced/verify#tolerances).
+[differential runs](/cookbook/verification#is-a-change-harmless), [tolerances](/cookbook/verification#allow-round-off-differences).
 :::
 
 Next: [6. Is it faster?](./06-bench).

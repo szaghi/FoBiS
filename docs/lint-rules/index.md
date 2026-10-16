@@ -9,7 +9,7 @@ title: Lint Rules
 `fobis lint` has 105 rules. Rules marked *default* run unless a selection is given;
 *opt-in* rules run only when selected (`--select COR003`, a prefix like `--select COR`, or `ALL`).
 Run `fobis lint --explain <ID>` for the same documentation in the terminal. How to run, select and
-suppress rules: [Linting](/ai/lint).
+suppress rules: [Code quality](/cookbook/analysis).
 
 ## Correctness (`COR`)
 
