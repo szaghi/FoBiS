@@ -33,7 +33,7 @@ from .Cleaner import Cleaner
 from .FoBiSConfig import FoBiSConfig
 from .Gcov import Gcov, _mermaid_pie
 from .ParsedFile import ParsedFile
-from .utils import BuildFailed, dependency_hiearchy, remove_other_main, safe_mkdir, syswork
+from .utils import BuildFailed, dependency_hiearchy, safe_mkdir, syswork
 
 
 def main():
@@ -1224,8 +1224,6 @@ def build_pfile(configuration, pfile, pfiles, nomodlibs, submodules, builder):
       list of built submodules object names
     builder : Builder()
     """
-    if pfile.program:
-        remove_other_main(builder=builder, pfiles=pfiles, myself=pfile)
     configuration.build_trace = {"pfiles": pfiles, "target": pfile}
     builder.build(
         file_to_build=pfile,
@@ -1523,7 +1521,6 @@ def test_doctests(configuration, doctests, pfiles, nomodlibs, builder):
         if test.is_doctest and os.path.basename(test.name).split("-doctest")[0] not in [
             os.path.basename(os.path.splitext(exc)[0]) for exc in configuration.cliargs.exclude_from_doctests
         ]:
-            remove_other_main(builder=builder, pfiles=pfiles, myself=test)
             builder.build(file_to_build=test, nomodlibs=nomodlibs, verbose=False, log=False, quiet=True)
             test_exe = os.path.join(builder.build_dir, os.path.splitext(os.path.basename(test.name))[0])
             configuration.print_b("executing doctest " + os.path.basename(test_exe))

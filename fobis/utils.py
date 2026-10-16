@@ -411,16 +411,6 @@ def object_names(pfiles, print_w=None):
             )
 
 
-def remove_other_main(builder, pfiles, myself):
-    """
-    The function remove_other_main removes all compiled objects of other program than the current target under building.
-    """
-    for parsed_file in pfiles:
-        if parsed_file.program and parsed_file.name != myself.name:
-            if os.path.exists(builder.obj_dir + parsed_file.obj_name + ".o"):
-                os.remove(builder.obj_dir + parsed_file.obj_name + ".o")
-
-
 def check_results(results, log=None, print_w=None):
     """
     Check the result of system commands exectution.
