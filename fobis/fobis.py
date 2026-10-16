@@ -4533,6 +4533,8 @@ def run_fobis_test(configuration):
     ----------
     configuration : FoBiSConfig()
     """
+    import io
+
     from .TestRunner import TestRunner, discover_tests, select_tests
 
     cliargs = configuration.cliargs
@@ -4583,7 +4585,8 @@ def run_fobis_test(configuration):
     )
 
     selected = len(select_tests(tests, suite_filter, filter_pattern))
-    configuration.print_b(f"\nBuilding test suite ({selected} target(s))...\n")
+    hush = getattr(cliargs, "quiet", False) and not getattr(cliargs, "explain", False)
+    configuration.print_b(f"\nBuilding test suite ({selected} target(s))..." + ("" if hush else "\n"))
 
     def build_test(test):
         """Build a single test program and return the binary path."""
@@ -4604,13 +4607,19 @@ def run_fobis_test(configuration):
             build_args += ["--quiet"]
         if getattr(cliargs, "explain", False):
             build_args += ["--explain-context" if cliargs.explain_context else "--explain"]
-        try:
-            run_fobis(fake_args=build_args)
-            return binary if os.path.isfile(binary) else None
-        except SystemExit as e:
-            if e.code != 0:
-                return None
-            return binary if os.path.isfile(binary) else None
+        # --quiet: a build that succeeds prints nothing, one that fails prints all it said (an explanation streams)
+        said = io.StringIO()
+        built = None
+        with contextlib.redirect_stdout(said) if hush else contextlib.nullcontext():
+            try:
+                run_fobis(fake_args=build_args)
+                built = binary if os.path.isfile(binary) else None
+            except SystemExit as e:
+                if e.code == 0:
+                    built = binary if os.path.isfile(binary) else None
+        if hush and built is None:
+            sys.stdout.write(said.getvalue())
+        return built
 
     suite = runner.run_suite(
         tests=tests,

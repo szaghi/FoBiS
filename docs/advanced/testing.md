@@ -47,7 +47,7 @@ are always included unless `--suite` filters them out.
 | `--timeout N` | `[test] timeout`, else `60` | Seconds before a single test is considered failed |
 | `--no-build` | `False` | Run the test binaries already built |
 | `--list` | `False` | List the tests found, without building or running them |
-| `--quiet` | `False` | Build without printing the builder's settings for each test |
+| `--quiet` | `False` | Print nothing of a test's build that succeeds; a build that fails prints all its output |
 | `--launcher CMD` | mode key `launcher`, else `[test] launcher` | Start every test through `CMD` (`mpirun -np {ranks}`, `valgrind ...`) |
 | `--ranks N` | `1` | Replace `{ranks}` in the launcher; alone, `mpirun -np N` |
 | `--jobs N`, `-j N` | `[test] jobs`, else `1` | Run up to `N` test programs at once (built first, one after the other) |

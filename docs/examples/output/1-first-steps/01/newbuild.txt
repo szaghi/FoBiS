@@ -9,12 +9,6 @@ mean of 1, 2, 3, 4:  2.5
 
 Building test suite (1 target(s))...
 
-
-Building test/test_demo.f90
-Compiling test/test_demo.f90 serially
-Linking ~/demo/build/test/test_demo
-Target test/test_demo.f90 has been successfully built
-
   PASS  test_demo                      (0.00 s)
 
   Results: 1 passed, 0 failed, 0 skipped

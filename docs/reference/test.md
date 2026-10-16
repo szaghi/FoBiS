@@ -22,7 +22,7 @@ fobis test [options] [-- EXTRA_ARGS...]
 | `--launcher CMD` | mode key `launcher`, else `[test] launcher` | Start every test program through `CMD`: `mpirun -np {ranks}`, `valgrind --error-exitcode=1` (see [launchers](/reference/run#launchers)) |
 | `--jobs N`, `-j N` | `[test] jobs`, else `1` | Run up to `N` test programs at once (see [parallel tests](#parallel-tests)) |
 | `--ranks N` | `1` | MPI ranks: replace `{ranks}` in the launcher; without a launcher, `mpirun -np {ranks}` (under `--runner slurm`: the `[scheduler]` launcher, `srun`, and `--ntasks=N` for the job) |
-| `--quiet`, `-q` | `False` | Build the tests without printing the builder's settings for each |
+| `--quiet`, `-q` | `False` | Print nothing of a test's build that succeeds; a build that fails prints all its output |
 | `--json` | `False` | Build and run silently, then one JSON object: each result with its status and, for a failure, the facts of `--explain` (see [JSON output](/advanced/json-output#fobis-test-json)) |
 
 ## fobos options

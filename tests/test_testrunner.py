@@ -252,21 +252,32 @@ def test_name_filter_glob(tmp_path):
 
 @pytest.mark.skipif(shutil.which("gfortran") is None, reason="gfortran")
 def test_quiet_builds_and_the_count_of_selected_tests(tmp_path):
-    """``fobis test --quiet`` builds without the builder's settings block; the header counts the selected tests."""
+    """``fobis test --quiet`` prints nothing of a build that succeeds and all of one that fails; the header counts
+    the selected tests."""
     (tmp_path / "test").mkdir()
     (tmp_path / "fobos").write_text("[default]\ncompiler = gnu\ncflags = -c\nsrc = ./test/\n")
     for name in ("t_a", "t_b"):
         (tmp_path / "test" / f"{name}.f90").write_text(f"program {name}\nprint *, 'ok'\nend program\n")
-    result = subprocess.run(
-        [sys.executable, "-m", "fobis", "test", "--quiet", "--filter", "t_a"],
-        cwd=tmp_path,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+
+    def test(*args):
+        return subprocess.run(
+            [sys.executable, "-m", "fobis", "test", "--quiet", *args],
+            cwd=tmp_path,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    result = test("--filter", "t_a")
     assert result.returncode == 0, result.stdout + result.stderr
     assert "Building test suite (1 target(s))" in result.stdout and "PASS  t_a" in result.stdout
     assert "Builder options" not in result.stdout and "t_b.f90" not in result.stdout
+    assert "Compiling" not in result.stdout and "successfully built" not in result.stdout
+    (tmp_path / "test" / "t_b.f90").write_text("program t_b\nthis is not fortran\nend program\n")
+    result = test()
+    assert result.returncode == 1 and "FAIL  t_b" in result.stdout and "PASS  t_a" in result.stdout
+    assert "Unclassifiable statement" in result.stdout and "Compiling test/t_b.f90" in result.stdout
+    assert "Compiling test/t_a.f90" not in result.stdout
 
 
 @pytest.mark.skipif(shutil.which("gfortran") is None, reason="gfortran")

@@ -2,41 +2,6 @@ $ fobis test --quiet
 
 Building test suite (4 target(s))...
 
-Active features: checks
-
-Building src/romberg.f
-Compiling src/romberg.f serially
-Building test/test_exactness.F90
-Compiling src/quad_rules.F90 serially
-Compiling test/polynomials.F90 serially
-Compiling test/test_exactness.F90 serially
-Linking ~/quad/build/test/test_exactness
-Target test/test_exactness.F90 has been successfully built
-Active features: checks
-
-Building src/romberg.f
-Nothing to compile, all objects are up-to-date
-Building test/test_order.F90
-Nothing to compile, all objects are up-to-date
-Linking ~/quad/build/test/test_order
-Target test/test_order.F90 has been successfully built
-Active features: checks
-
-Building src/romberg.f
-Nothing to compile, all objects are up-to-date
-Building test/test_romberg.F90
-Nothing to compile, all objects are up-to-date
-Linking ~/quad/build/test/test_romberg
-Target test/test_romberg.F90 has been successfully built
-Active features: checks
-
-Building src/romberg.f
-Nothing to compile, all objects are up-to-date
-Building test/test_symmetry.F90
-Compiling test/test_symmetry.F90 serially
-Linking ~/quad/build/test/test_symmetry
-Target test/test_symmetry.F90 has been successfully built
-
   PASS  test_exactness                 (0.00 s)
   PASS  test_order                     (0.00 s)
   PASS  test_romberg                   (0.00 s)
