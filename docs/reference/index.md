@@ -19,7 +19,6 @@ reads from the project, the [user configuration](./configuration) those of the m
 | [`run`](./run) | Build a target (if needed) and execute it. |
 | [`install`](./install) | Install previously built files, or clone+build+install a GitHub-hosted FoBiS project. |
 | [`rule`](./rule) | Execute special rules or user-defined ones from a fobos file. |
-| [`cache`](./cache) | Manage the FoBiS build artifact cache. |
 | [`introspect`](./introspect) | Emit machine-readable JSON project metadata. |
 | [`tree`](./tree) | Print the resolved inter-project dependency tree. |
 | [`check`](./check) | Validate the dependency graph without building. |

@@ -24,15 +24,7 @@ How to use it, with examples: [Dependencies](/cookbook/dependencies).
 | `--no-build` |  |  | Only fetch dependencies, do not build them |
 | `--no-dev` |  |  | Skip the test-only dependencies (:: dev), e.g. for a production build |
 | `--frozen` |  |  | Check every dependency out at the commit of &lt;deps_dir&gt;/fobos.lock; abort if the lock is absent |
-| `--no-cache` |  |  | Disable build artifact cache for fetched dependencies |
-| `--force-compile` |  |  | Force to (re-)compile all |
 | `--colors` |  |  | Activate colors in shell prints |
-| `--log`, `-l` |  |  | Activate log file creation |
-| `--graph` |  |  | Generate a dependencies graph via graphviz |
-| `--quiet`, `-q` |  |  | Less verbose output |
-| `--verbose` |  |  | Extremely verbose output for debugging |
-| `--jobs`, `-j` | INTEGER | `1` | Number of concurrent compilation jobs [default: 1] |
-| `--makefile`, `-m` | TEXT |  | Generate a GNU Makefile for building the project |
 | `--json` |  |  | Emit structured JSON to stdout instead of human-readable output (useful for scripting / agents) |
 
 <!-- cli:end -->

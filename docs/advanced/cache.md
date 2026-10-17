@@ -1,8 +1,8 @@
 ---
-redirect: /cookbook/build#the-build-cache
+redirect: /cookbook/build#what-is-compiled-again
 search: false
 ---
 
 # Build Cache
 
-This page has moved to the cookbook: [Build Cache](/cookbook/build#the-build-cache).
+This page has moved to the cookbook: [Build Cache](/cookbook/build#what-is-compiled-again).

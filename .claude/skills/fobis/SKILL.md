@@ -1,7 +1,7 @@
 ---
 name: fobis
 description: >
-  Expert knowledge of FoBiS.py (Fortran Building System for poor men) — an automatic Fortran build tool that resolves module dependency hierarchies without manual makefiles. Use this skill whenever the user asks about: writing or editing a fobos file; running any fobis subcommand (build, clean, fetch, install, rule, doctests, scaffold, check, test, coverage, tree, introspect, run, cache, commit, ecosystem, lint, kb, mcp, llm); linting Fortran code (fobis lint: correctness, obsolescent features, OpenMP/OpenACC/MPI defects, compiler feedback, baselines, suppressions); the knowledge packs (fobis kb); the MCP server (fobis mcp); running local LLMs (fobis llm: runtime, models, serve, doctor); managing several interconnected FoBiS repositories as a whole (fobis ecosystem: registry, dashboard, cross-repo exec/fetch/check/scaffold, release train); Fortran project build configuration; diagnosing FoBiS build errors; adding GitHub dependencies to a Fortran project; the --json output flag; multi-mode builds; templates; variables and varsets; library builds (static/shared); MPI/OpenMP/coarray/OpenMP-offload builds; feature flags and conditional compilation; build profiles; the build cache; external-library auto-detection and pkg-config (.pc) generation; multi-target builds; convention-based source auto-discovery; the lock file and semver dependency constraints; the first-class test runner and coverage reports; LLM-assisted commit messages; the cflags-heritage feature; parallel compilation; or any question that mentions "fobos", "FoBiS", or building Fortran projects. When in doubt, trigger this skill — it is better to consult it unnecessarily than to miss it.
+  Expert knowledge of FoBiS.py (Fortran Building System for poor men) — an automatic Fortran build tool that resolves module dependency hierarchies without manual makefiles. Use this skill whenever the user asks about: writing or editing a fobos file; running any fobis subcommand (build, clean, fetch, install, rule, doctests, scaffold, check, test, coverage, tree, introspect, run, commit, ecosystem, lint, kb, mcp, llm); linting Fortran code (fobis lint: correctness, obsolescent features, OpenMP/OpenACC/MPI defects, compiler feedback, baselines, suppressions); the knowledge packs (fobis kb); the MCP server (fobis mcp); running local LLMs (fobis llm: runtime, models, serve, doctor); managing several interconnected FoBiS repositories as a whole (fobis ecosystem: registry, dashboard, cross-repo exec/fetch/check/scaffold, release train); Fortran project build configuration; diagnosing FoBiS build errors; adding GitHub dependencies to a Fortran project; the --json output flag; multi-mode builds; templates; variables and varsets; library builds (static/shared); MPI/OpenMP/coarray/OpenMP-offload builds; feature flags and conditional compilation; build profiles; external-library auto-detection and pkg-config (.pc) generation; multi-target builds; convention-based source auto-discovery; the lock file and semver dependency constraints; the first-class test runner and coverage reports; LLM-assisted commit messages; the cflags-heritage feature; parallel compilation; or any question that mentions "fobos", "FoBiS", or building Fortran projects. When in doubt, trigger this skill — it is better to consult it unnecessarily than to miss it.
 ---
 
 # FoBiS.py Expert Knowledge
@@ -19,7 +19,7 @@ FoBiS.py scans your source directories, parses every `.f90` (and related) file f
 ## CLI Commands
 
 20 subcommands, grouped by purpose. Every command except `commit`, `kb`, `mcp`, `llm` and the
-`cache`/`scaffold`/`ecosystem` sub-apps accepts `--fobos`/`-f <path>` (non-default fobos file) and `--mode <name>` (select a build mode).
+`scaffold`/`ecosystem` sub-apps accepts `--fobos`/`-f <path>` (non-default fobos file) and `--mode <name>` (select a build mode).
 
 ### Build & run
 
@@ -31,7 +31,7 @@ fobis coverage           # generate coverage reports from instrumented runs
 fobis check              # validate the dependency graph without building
 ```
 
-- `build`: every compiler/dir/file/preproc option plus profiles, features, varsets, cache,
+- `build`: every compiler/dir/file/preproc option plus profiles, features, varsets,
   multi-target, hooks, externals — see the fobos option table below. Supports `--json`.
 - `run`: positional `TARGET` optional (defaults to the mode's output). `--no-build`, `--dry-run`,
   `--example NAME`. Args after `--` are forwarded to the executed binary.
@@ -56,10 +56,9 @@ fobis fetch              # clone + build GitHub deps from the [dependencies] sec
 fobis install [REPO]     # install built local files, or clone+build+install a GitHub repo
 fobis introspect         # emit machine-readable project metadata (JSON/TOML)
 fobis tree               # print the resolved inter-project dependency tree
-fobis cache <list|clean|show>   # manage the build-artifact cache
 ```
 
-- `fetch`: `--deps-dir`, `--update`, `--no-build`, `--frozen` (enforce lockfile), `--no-cache`.
+- `fetch`: `--deps-dir`, `--update`, `--no-build`, `--frozen` (enforce lockfile), `--no-dev`.
   Supports `--json`.
 - `install`: positional `REPO` (`user/repo` or full URL) optional. Local mode (no REPO) installs
   previously built artifacts to `--prefix/-p` (default `./`) under `--bin`/`--lib`/`--include`.
@@ -73,8 +72,6 @@ fobis cache <list|clean|show>   # manage the build-artifact cache
   compiling, linked as `./compile_commands.json` (never over a file FoBiS did not write; `.fobis/` builds leave the
   root alone); `fobis clean` removes it. Add it to `.gitignore` (a new root file breaks clean-tree release checks).
 - `tree`: `--depth/-d N`, `--no-dedupe`.
-- `cache list` (`--cache-dir`); `cache clean --older-than N` (`--cache-dir`); `cache show DEP_NAME`
-  (positional required, `--cache-dir`).
 
 ### Utilities
 
@@ -466,7 +463,6 @@ matches a `build`-command option (underscored form).
 | `target_filter` / `examples` | Multi-target build controls |
 | `pre_build` / `post_build` | Rule names to run before / after the build |
 | `no_auto_discover` | Disable convention-based source-dir discovery |
-| `no_cache` / `cache_dir` | Disable the build cache / override its directory |
 
 ---
 
@@ -562,13 +558,6 @@ strips the outer brackets, so both forms produce `target.NAME`.)
 
 When `src` is unset (fobos and CLI) and `--no-auto-discover` is off, FoBiS scans `src/`, `source/`,
 `app/` for Fortran sources and uses the directories it finds as scan roots.
-
-### Build cache
-
-`BuildCache` content-addresses built `use=fobos` dependency artifacts; key = SHA-256 of
-`source_commit | compiler | cflags_hash | fobis_version`. Default dir `$FOBIS_CACHE_DIR` or
-`~/.fobis/cache`. Manage with `fobis cache list|clean --older-than N|show DEP`. Disable per build with
-`--no-cache`; relocate with `--cache-dir`.
 
 ### Includes (`[include]`)
 
@@ -894,7 +883,7 @@ Full documentation at **https://szaghi.github.io/FoBiS/**:
 - [Command reference](https://szaghi.github.io/FoBiS/reference/) (every command and option)
 - [Ecosystem guide](https://szaghi.github.io/FoBiS/cookbook/ecosystem) · [ecosystem reference](https://szaghi.github.io/FoBiS/reference/ecosystem)
 - [Feature flags](https://szaghi.github.io/FoBiS/cookbook/build#switch-options-on-and-off-features) · [Build profiles](https://szaghi.github.io/FoBiS/cookbook/build#debug-and-release-builds) · [Varsets](https://szaghi.github.io/FoBiS/cookbook/build#choose-machine-paths-at-build-time-varsets)
-- [External libraries](https://szaghi.github.io/FoBiS/cookbook/libraries#find-mpi-hdf5-netcdf-blas-fftw) · [Build cache](https://szaghi.github.io/FoBiS/cookbook/build#the-build-cache) · [Auto-discovery](https://szaghi.github.io/FoBiS/cookbook/build#build-without-a-fobos)
+- [External libraries](https://szaghi.github.io/FoBiS/cookbook/libraries#find-mpi-hdf5-netcdf-blas-fftw) · [Auto-discovery](https://szaghi.github.io/FoBiS/cookbook/build#build-without-a-fobos)
 - [Fetch dependencies](https://szaghi.github.io/FoBiS/cookbook/dependencies) · [Lock file & semver](https://szaghi.github.io/FoBiS/cookbook/dependencies#the-lock-file) · [Interdependent builds](https://szaghi.github.io/FoBiS/cookbook/libraries#build-another-fobis-project-first)
 - [Test runner](https://szaghi.github.io/FoBiS/cookbook/testing) · [Coverage](https://szaghi.github.io/FoBiS/reference/coverage) · [JSON output](https://szaghi.github.io/FoBiS/cookbook/ci#read-the-results-in-a-script)
 - [Source code](https://github.com/szaghi/FoBiS)

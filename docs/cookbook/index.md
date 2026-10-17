@@ -14,7 +14,7 @@ minutes. Come back here when you need something specific.
 
 | Chapter | What it covers |
 |---|---|
-| [Building](./build) | how a build works, a new project, modes for debug and release, flags per compiler, templates and variables, features, parallel and incremental builds, sources, C files, preprocessing, the cache, running a program |
+| [Building](./build) | how a build works, a new project, modes for debug and release, flags per compiler, templates and variables, features, parallel and incremental builds, sources, C files, preprocessing, running a program |
 | [Libraries and other build systems](./libraries) | static and shared libraries, pkg-config files, external libraries, a project built on another, custom rules, a Makefile, fpm, `compile_commands.json` |
 | [Dependencies](./dependencies) | a GitHub dependency pinned or in a semver range, built with your sources or as a library, a local directory, test-only dependencies, the lock file, installing from GitHub, offline machines |
 | [Testing](./testing) | test programs, suites, parallel and MPI tests, doctests, coverage, defects only a checked build sees, explained failures |

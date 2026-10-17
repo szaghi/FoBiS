@@ -86,8 +86,6 @@ def cmd_check(
         pre_build=[],
         post_build=[],
         no_auto_discover=False,
-        no_cache=False,
-        cache_dir=None,
         examples=False,
         target_filter=[],
         mklib=None,

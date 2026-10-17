@@ -82,8 +82,6 @@ How to use it, with examples: [Building](/cookbook/build).
 | `--pre-build` | TEXT |  | Rule(s) to execute before compilation (defined in [rule-X] sections) |
 | `--post-build` | TEXT |  | Rule(s) to execute after successful linking (defined in [rule-X] sections) |
 | `--no-auto-discover` |  |  | Disable convention-based source directory auto-discovery |
-| `--no-cache` |  |  | Disable the build artifact cache |
-| `--cache-dir` | TEXT |  | Override the default cache directory |
 | `--list-profiles` |  |  | Print all known build profile flag sets and exit |
 | `--examples` |  |  | Also build [[example.*]] sections |
 | `--explain` |  |  | When the build fails, explain why: from the project's facts first, then with the LLM (cited cause and fix) for the first error they do not cover. |

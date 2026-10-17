@@ -39,19 +39,7 @@ def cmd_fetch(
             help="Check every dependency out at the commit of <deps_dir>/fobos.lock; abort if the lock is absent",
         ),
     ] = False,
-    no_cache: Annotated[
-        bool,
-        typer.Option("--no-cache", help="Disable build artifact cache for fetched dependencies"),
-    ] = False,
-    # fancy group
-    force_compile: ForceCompileOpt = False,
     colors: ColorsOpt = False,
-    log: LogOpt = False,
-    graph: GraphOpt = False,
-    quiet: QuietOpt = False,
-    verbose: VerboseOpt = False,
-    jobs: JobsOpt = 1,
-    makefile: MakefileOpt = None,
     json_output: JsonOpt = False,
 ):
     """Fetch and build GitHub-hosted Fortran dependencies listed in the fobos [dependencies] section."""
@@ -67,14 +55,6 @@ def cmd_fetch(
         no_build=no_build,
         no_dev=no_dev,
         frozen=frozen,
-        no_cache=no_cache,
-        force_compile=force_compile,
         colors=colors,
-        log=log,
-        graph=graph,
-        quiet=quiet,
-        verbose=verbose,
-        jobs=jobs,
-        makefile=makefile,
         json_output=json_output,
     )

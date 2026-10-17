@@ -31,7 +31,7 @@
 <td><b>🔬 Introspective doctests</b><br><sub>Embed micro-unit-tests directly inside Fortran comment docstrings. FoBiS generates, compiles, and runs volatile test programs automatically — inspired by Python's doctest module, no test harness needed. <a href="https://szaghi.github.io/FoBiS/cookbook/testing#doctests-checks-in-the-documentation">Doctests</a></sub></td>
 </tr>
 <tr>
-<td><b>⚡ Build cache</b><br><sub>Content-addressed cache keyed on source commit, compiler, and flags — reuses object files across clean builds and branch switches. <code>fobis cache list/clean</code> for housekeeping. <a href="https://szaghi.github.io/FoBiS/cookbook/build#the-build-cache">Build cache</a></sub></td>
+<td><b>⚡ Incremental builds</b><br><sub>Only what changed is compiled again: a source newer than its object, the users of a module whose interface changed, everything when the flags or the compiler change. Compiles in parallel, in dependency order. <a href="https://szaghi.github.io/FoBiS/cookbook/build#what-is-compiled-again">What is compiled again</a></sub></td>
 <td><b>🤖 Introspect &amp; Claude Code skill</b><br><sub><code>fobis introspect --all</code> emits machine-readable JSON of the full project graph — sources, compiler flags, dependencies, targets. Powers the bundled <code>/fobis</code> Claude Code skill for AI-assisted builds right in your editor. <a href="https://szaghi.github.io/FoBiS/reference/introspect">introspect</a> · <a href="https://szaghi.github.io/FoBiS/cookbook/ai-setup#the-claude-code-skill">Claude skill</a></sub></td>
 </tr>
 <tr>

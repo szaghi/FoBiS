@@ -48,7 +48,6 @@ Any key can be qualified, `key.QUALIFIER`, and applies only when QUALIFIER is th
 | `build_profile` | build | Named build profile: debug, release, asan, coverage |
 | `c_cflags` | build, doctests, rule | Compile flags of the .c sources (default -c) |
 | `c_preproc` | build, doctests, rule | Preprocessor flags of the .c sources |
-| `cache_dir` | build | Override the default cache directory |
 | `cc` | build, doctests, rule | C compiler for the .c sources (default: the compiler family's, e.g. gcc) |
 | `cflags` | build, clean, doctests, rule | Compile flags |
 | `cflags_heritage` | build, clean, doctests, rule | Store cflags for heritage checking; re-compile all if they change |
@@ -89,7 +88,6 @@ Any key can be qualified, `key.QUALIFIER`, and applies only when QUALIFIER is th
 | `modsw` | build, clean, doctests, rule | Module search path switch (for --compiler custom) |
 | `mpi` | build, clean, doctests, rule | Use MPI enabled version of compiler |
 | `no_auto_discover` | build | Disable convention-based source directory auto-discovery |
-| `no_cache` | build | Disable the build artifact cache |
 | `no_default_features` | build | Disable the default feature set defined in [features] default |
 | `obj_dir` | build, clean, doctests, rule | Directory containing compiled objects [default: ./obj/] |
 | `openmp` | build, clean, doctests, rule | Use OpenMP pragmas |

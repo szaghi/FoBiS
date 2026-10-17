@@ -240,7 +240,7 @@ the other rules:
 
 ```bash
 # 1. a build with the report flags, apart from your build tree (one job: messages must not interleave)
-fobis build --mode nv --cflags "-Minfo=accel,mp" --build-dir .fobis/feedback -j 1 --force-compile --no-cache \
+fobis build --mode nv --cflags "-Minfo=accel,mp" --build-dir .fobis/feedback -j 1 --force-compile \
   2>&1 | tee build.log
 # 2. lint with the report, in the same mode
 fobis lint --mode nv --compiler-feedback build.log

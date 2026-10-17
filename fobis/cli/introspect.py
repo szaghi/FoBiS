@@ -133,8 +133,6 @@ def cmd_introspect(
         pre_build=[],
         post_build=[],
         no_auto_discover=True,  # no auto-discovery for introspect
-        no_cache=False,
-        cache_dir=None,
         examples=False,
         target_filter=[],
         mklib=None,

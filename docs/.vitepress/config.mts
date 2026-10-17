@@ -135,7 +135,6 @@ const docs = [
           { text: 'check',        link: '/reference/check' },
           { text: 'introspect',   link: '/reference/introspect' },
           { text: 'rule',         link: '/reference/rule' },
-          { text: 'cache',        link: '/reference/cache' },
           { text: 'new',          link: '/reference/new' },
           { text: 'scaffold',     link: '/reference/scaffold' },
           { text: 'ecosystem',    link: '/reference/ecosystem' },

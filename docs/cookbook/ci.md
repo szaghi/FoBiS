@@ -59,7 +59,6 @@ Cache the fetched dependencies, keyed on the fobos that pins them:
   clone: a tag added upstream after the cache was saved is not in it. Keying on `fobos` makes a new pin a new cache.
 - **Caching the build directory does not save compile time.** FoBiS rebuilds an object older than its source, and a
   fresh checkout makes every source newer than any restored object.
-- **`fobis cache` does not help here:** `fobis build` never fills its store in this version.
 
 ## One command for a pull request
 

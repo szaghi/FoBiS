@@ -105,7 +105,6 @@ comments on lines of their own. FoBiS warns about such values on stderr, as it d
 | `FOBIS_LLM_DIR` | The model store and the llama.cpp runtime (default `~/.fobis/llm`) |
 | `HF_TOKEN` | A Hugging Face token, for gated models; sent to the Hub only, never to the download CDN |
 | `HF_ENDPOINT` | A Hugging Face mirror |
-| `FOBIS_CACHE_DIR` | The build cache (default `~/.fobis/cache`) |
 | `XDG_CACHE_HOME` | Where `fobis ecosystem dashboard --format html` writes its page (`~/.cache` when unset) |
 | `EDITOR` | The editor of `fobis merge-assist --apply` (`e`) |
 | `LOADEDMODULES` | Read, not set: recorded in the provenance of results (environment modules) |

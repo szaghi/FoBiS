@@ -29,7 +29,6 @@ from . import (  # noqa: F401
     ask,
     bindings,
     build,
-    cache_cmd,
     case,
     check,
     clean,
@@ -63,14 +62,9 @@ from ._constants import (
     __extensions_old__,
     __extensions_parsed__,
 )
-
-# Register the ``cache`` sub-application
-from .cache_cmd import cache_app as _cache_app
 from .ecosystem import ecosystem_app as _ecosystem_app
 from .kb import kb_app as _kb_app
 from .llm import llm_app as _llm_app
-
-app.add_typer(_cache_app, name="cache")
 
 # Register the ``ecosystem`` sub-application
 app.add_typer(_ecosystem_app, name="ecosystem")

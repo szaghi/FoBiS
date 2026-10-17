@@ -674,24 +674,6 @@ preprocessed file is deleted after compiling unless `preprocessor_dir` (`--dpp`,
 - **A preprocessor not on the PATH** is reported (`... is not in your PATH!`) and the compiles fail. [PreForM.py](https://github.com/szaghi/PreForM) expands templates
   and `cpp`-like directives.
 
-## The build cache
-
-```bash
-fobis cache list                 # entries, with key, compiler, size and date
-fobis cache show penf            # the entries of one dependency
-fobis cache clean --older-than 30
-fobis cache clean                # the whole cache directory
-```
-
-The cache directory is `~/.fobis/cache/` (`FOBIS_CACHE_DIR`, or `--cache-dir` on each subcommand), keyed by
-`SHA-256(source commit | compiler | sorted cflags | FoBiS version)` for `use=fobos` dependencies.
-
-- **Nothing fills it in this version:** neither `build` nor `fetch` stores or restores entries, and `--no-cache`,
-  `--cache-dir` on `build`, and the mode keys `no_cache` and `cache_dir` change nothing. Incremental builds rely on
-  timestamps alone.
-- **Pins decide the code**, not the cache: a dependency's `tag=`/`rev=` in the fobos, and the lock file
-  ([Dependencies](./dependencies)).
-
 ## Build and run
 
 ```bash

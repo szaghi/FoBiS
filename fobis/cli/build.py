@@ -157,14 +157,6 @@ def cmd_build(
             help="Disable convention-based source directory auto-discovery",
         ),
     ] = False,
-    no_cache: Annotated[
-        bool,
-        typer.Option("--no-cache", help="Disable the build artifact cache"),
-    ] = False,
-    cache_dir: Annotated[
-        str | None,
-        typer.Option("--cache-dir", help="Override the default cache directory"),
-    ] = None,
     list_profiles: Annotated[
         bool,
         typer.Option("--list-profiles", help="Print all known build profile flag sets and exit"),
@@ -238,8 +230,6 @@ def cmd_build(
         pre_build=pre_build or [],
         post_build=post_build or [],
         no_auto_discover=no_auto_discover,
-        no_cache=no_cache,
-        cache_dir=cache_dir,
         examples=examples,
         target_filter=[t.strip() for t in (target_filter or "").split(",") if t.strip()],
         explain=explain or explain_context,
