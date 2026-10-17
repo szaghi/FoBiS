@@ -89,7 +89,8 @@ class Fetcher:
         Raises
         ------
         ValueError
-          If both ``semver`` and a pinning key (tag/branch/rev) are specified, or a path dependency has a pin.
+          If both ``semver`` and a pinning key (tag/branch/rev) are specified, more than one pinning key,
+          or a path dependency has a pin.
         """
         parts = [p.strip() for p in spec.split("::")]
         result: dict[str, str]
@@ -113,6 +114,9 @@ class Fetcher:
                     f"Dependency spec error: 'semver' cannot be combined with "
                     f"{', '.join(conflicts)}. Use one or the other."
                 )
+        pinned = [k for k in ("tag", "branch", "rev") if k in result]
+        if len(pinned) > 1 and "path" not in result:  # one of them was silently used (tag, then branch, then rev)
+            raise ValueError(f"Dependency spec error: give one of tag, branch or rev, not {' and '.join(pinned)}.")
         if "path" in result:
             pins = [k for k in ("tag", "branch", "rev", "semver") if k in result]
             if pins:

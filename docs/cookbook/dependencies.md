@@ -60,8 +60,7 @@ The specification is `name = SOURCE [:: option]...`; the name is the directory u
   repository). Only a value with neither `://` nor a leading `git@` is read as GitHub's `user/repo`.
 - **Pin with `tag=` or `rev=`.** That is what makes every checkout (a colleague's, CI's) fetch the same code: the
   lock is not committed. A bare URL or a `branch=` follows the branch.
-- **One pin per dependency.** `semver=` with `tag=`, `branch=` or `rev=` stops `fetch` with exit 2. Between `tag=`,
-  `branch=` and `rev=` nothing is checked: `tag` wins, then `branch`.
+- **One pin per dependency:** two of `tag=`, `branch=`, `rev=` and `semver=` stop `fetch` with exit 2.
 - **A dependency already cloned is not cloned again:** `fetch` prints `already fetched` and checks out the pin, so a
   `tag=` changed in the fobos is applied by a plain `fobis fetch` when the tag existed at clone time. A tag made
   later needs `--update`.

@@ -502,6 +502,14 @@ def test_fetch_semver_conflicts_with_branch_errors():
         fetcher.parse_dep_spec("https://github.com/user/repo :: branch=main :: semver=^1")
 
 
+@pytest.mark.parametrize("pins", ["tag=v1.2 :: branch=main", "branch=main :: rev=abc123", "tag=v1 :: rev=abc123"])
+def test_fetch_more_than_one_pin_errors(pins):
+    """tag=, branch= and rev= together: one of them was silently used (tag first), now a spec error."""
+    fetcher = Fetcher(deps_dir="/fake")
+    with pytest.raises(ValueError, match="give one of tag, branch or rev"):
+        fetcher.parse_dep_spec(f"https://github.com/user/repo :: {pins}")
+
+
 def test_parse_dep_spec_semver_only():
     """Spec with semver= and no other pin → parsed correctly."""
     fetcher = Fetcher(deps_dir="/fake")
