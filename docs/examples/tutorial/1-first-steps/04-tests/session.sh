@@ -1,5 +1,5 @@
 show list 'fobis test --list'
-show test 'fobis test'
+show test 'fobis test --quiet'
 show doctests 'fobis doctests --quiet'
 needs gcovr
 quiet 'fobis test --mode coverage'

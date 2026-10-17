@@ -1,62 +1,6 @@
-$ fobis test
+$ fobis test --quiet
 
 Building test suite (2 target(s))...
-
-Builder options
-  Directories
-    Root of source files directory: "src test"
-    Building directory: "build/debug"
-    Compiled-objects .o   directory: "build/debug/obj"
-    Compiled-objects .mod directory: "build/debug/mod"
-  Compiler options
-    Vendor: "gnu"
-    Compiler command: "gfortran"
-    Module directory switch: "-J"
-    Compiling flags: "-c -O0 -g -fcheck=all -Wall"
-    Linking flags: ""
-    Preprocessing flags: ""
-    Coverage: False
-    Profile: False
-  Archiver: ar -rcs
-  Ranlib: ranlib
-  Preprocessor used: None
-  Preprocessor args: 
-  Preprocessor output directory: None
-  Preprocessor extensions processed: []
-
-Building test/test_exactness.F90
-Compiling src/quad_rules.F90 serially
-Compiling test/polynomials.F90 serially
-Compiling test/test_exactness.F90 serially
-Linking ~/quad/build/test/test_exactness
-Target test/test_exactness.F90 has been successfully built
-Builder options
-  Directories
-    Root of source files directory: "src test"
-    Building directory: "build/debug"
-    Compiled-objects .o   directory: "build/debug/obj"
-    Compiled-objects .mod directory: "build/debug/mod"
-  Compiler options
-    Vendor: "gnu"
-    Compiler command: "gfortran"
-    Module directory switch: "-J"
-    Compiling flags: "-c -O0 -g -fcheck=all -Wall"
-    Linking flags: ""
-    Preprocessing flags: ""
-    Coverage: False
-    Profile: False
-  Archiver: ar -rcs
-  Ranlib: ranlib
-  Preprocessor used: None
-  Preprocessor args: 
-  Preprocessor output directory: None
-  Preprocessor extensions processed: []
-
-Building test/test_order.F90
-Compiling src/integrands.F90 serially
-Compiling test/test_order.F90 serially
-Linking ~/quad/build/test/test_order
-Target test/test_order.F90 has been successfully built
 
   PASS  test_exactness                 (0.00 s)
   PASS  test_order                     (0.00 s)

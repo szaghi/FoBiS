@@ -6,7 +6,8 @@ title: Testing
 
 A test is a Fortran program that ends with a non-zero exit status when a check fails: `error stop`, `stop 1`, or
 `call exit(1)`. `fobis test` finds the programs, builds each one with a mode of your fobos, runs them and reports.
-Any framework that signals failure through the exit status works unchanged: pFUnit, test-drive, FRUIT.
+A framework written in plain Fortran, such as test-drive or FRUIT, works unchanged: its program exits non-zero when
+a check fails. (pFUnit's `.pf` files need pFUnit's own preprocessor first.)
 
 How it works:
 
@@ -30,7 +31,7 @@ runtime checks is the right one: a test should run in the build that catches the
 
 <<< @/examples/output/1-first-steps/04/list.txt{console}
 
-<<< @/examples/output/5-numerics/05/test.txt{console}
+<<< @/examples/output/1-first-steps/04/test.txt{console}
 
 ```bash
 fobis test                          # every test, in the default mode
@@ -85,7 +86,7 @@ the current directory as in a serial run: tests writing the same file need disti
 A launcher starts every test program:
 
 ```bash
-fobis test --ranks 4                                       # mpirun -np 4 ./test
+fobis test --ranks 4                                       # every test under mpirun -np 4
 fobis test --launcher "mpirun -np {ranks}" --ranks 4       # the same, spelled out
 fobis test --launcher "valgrind --error-exitcode=1"        # every test under valgrind
 fobis test -j 8 --launcher "mpirun -np {ranks}" --ranks 4  # two MPI tests at a time: each takes 4 of the 8 slots
@@ -209,7 +210,8 @@ In CI, the threshold and an upload:
 ## Defects only a checked build sees
 
 A test can pass in an optimised build and be wrong: here a division by zero gives NaN, and `NaN > tolerance` is
-false. Rebuild the mode with runtime checks and floating-point traps, without writing a second mode:
+false. Rebuild the mode (`fast`, an optimised mode of the numerics tutorial) with runtime checks and floating-point
+traps, without writing a second mode:
 
 <<< @/examples/output/5-numerics/03/checks.txt{console}
 

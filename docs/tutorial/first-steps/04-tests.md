@@ -35,8 +35,9 @@ Every program in `test/` (the default test directory; `test_dir` in a `[test]` s
 <<< @/examples/output/1-first-steps/04/test.txt{console}
 
 `fobis test` builds each test with the default mode (here `debug`, with run-time checks: a test should run in the
-build that catches the most), runs them, and exits with status 1 when any fails. `--filter 'test_ord*'` selects tests
-by name, `--suite` by a `! fobis: suite=NAME` comment in the file.
+build that catches the most), runs them, and exits with status 1 when any fails. `--quiet` keeps the builds silent;
+without it each test's build prints its settings and commands, and a build that fails prints its errors either way.
+`--filter 'test_ord*'` selects tests by name, `--suite` by a `! fobis: suite=NAME` comment in the file.
 
 ## Doctests
 
