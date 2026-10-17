@@ -114,6 +114,9 @@ def guard_message(host: str) -> str:
 # ── jobs ───────────────────────────────────────────────────────────────────────
 
 
+JOB_SLACK_MINUTES = 2  # added to a job's time limit: its setup (module loads) runs before the program
+
+
 @dataclass
 class Job:
     """What to run in a job: the command (launcher included) in a run directory, and its resources."""
@@ -200,8 +203,8 @@ class SlurmScheduler:
             f"--ntasks={max(job.ranks, 1)}",
             f"--cpus-per-task={max(job.threads, 1)}",
         ]
-        if job.timeout:
-            directives.append(f"--time={max(1, math.ceil(job.timeout / 60))}")
+        if job.timeout:  # the program's limit, plus time for the setup lines and the node facts (a 60 s test got 1 min)
+            directives.append(f"--time={math.ceil(job.timeout / 60) + JOB_SLACK_MINUTES}")
         if job.gpus:
             directives.append(f"--gpus={job.gpus}")
         for key in ("partition", "account", "qos"):

@@ -174,7 +174,8 @@ login_nodes = login*
 ```
 
 The case gives the rest of the job: `ranks` -> `--ntasks`, `threads` -> `--cpus-per-task` and `OMP_NUM_THREADS`,
-`gpus` -> `--gpus`, `timeout` -> `--time` (minutes, rounded up; a case's default timeout is 600 s, so 10 minutes),
+`gpus` -> `--gpus`, `timeout` -> `--time` (minutes, rounded up, plus 2 for the job's setup lines: a case's default
+timeout of 600 s gives 12 minutes),
 `env` -> exported in the script.
 
 <<< @/examples/output/5-numerics/09/case.txt{ini}
@@ -234,7 +235,7 @@ What a run becomes:
 Pitfalls and limits:
 
 - **Tests** run in `.fobis/runs/test-jobs/<name>/`. A test job asks for `--ntasks` from `--ranks` and `--time` from
-  the test's timeout (60 s by default, so 1 minute), never for GPUs: a GPU test needs `--gpus=1` in the fobos's
+  the test's timeout (60 s by default, so 3 minutes with the setup's 2), never for GPUs: a GPU test needs `--gpus=1` in the fobos's
   `[scheduler] options`. With `-j N`, N jobs are in the queue at once.
 - **`bench`** measures the job's own run time; CPU time and load average are not measured (they would be the login
   node's).

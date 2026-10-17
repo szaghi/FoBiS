@@ -138,7 +138,7 @@ def test_script():
         "#SBATCH --chdir=/scratch/run",
         "#SBATCH --ntasks=4",
         "#SBATCH --cpus-per-task=2",
-        "#SBATCH --time=2",  # 90 s rounded up to minutes
+        "#SBATCH --time=4",  # 90 s rounded up to minutes, plus 2 for the setup lines
         "#SBATCH --gpus=1",
         "#SBATCH --partition=gpu",
         "#SBATCH --account=p1",
