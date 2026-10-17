@@ -187,8 +187,8 @@ The case gives the rest of the job: `ranks` -> `--ntasks`, `threads` -> `--cpus-
 - **`options`** lines may start with `#SBATCH` or not.
 - **The launcher under `--runner slurm` is the scheduler's:** it replaces `[verification] launcher` for ranked cases,
   and is the default of `fobis test --ranks`.
-- **No `%` in the user configuration:** it is read with interpolation, and a lone `%` (`--comment=50%`) stops the
-  command with a traceback; write `%%`. A fobos is read without interpolation.
+- **Values are literal,** in the user configuration as in a fobos: `--output=slurm-%j.out` and `--comment=50%` are
+  passed as written.
 - **`setup` lines may carry `;`:** they are shell, so a comment after `;` is part of the command, not a comment.
 
 ## Run cases, tests and benchmarks on compute nodes

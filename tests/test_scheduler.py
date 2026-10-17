@@ -112,6 +112,14 @@ def test_config(tmp_path):
         load_config(FakeFobos("[scheduler]\nkind = pbs\n"), str(tmp_path / "none.ini"))
 
 
+def test_a_percent_in_the_user_config_is_literal(tmp_path):
+    """The user config was read with interpolation: a lone % (Slurm's %j, 50%) raised InterpolationSyntaxError."""
+    user = tmp_path / "config.ini"
+    user.write_text("[scheduler]\noptions = --comment=50%\n  --output=slurm-%j.out\n")
+    config = load_config(None, str(user))
+    assert config.options == ["--comment=50%", "--output=slurm-%j.out"]
+
+
 def test_script():
     config = SchedulerConfig(partition="gpu", account="p1", options=["--exclusive"], setup=["module load nvhpc/26"])
     job = Job(

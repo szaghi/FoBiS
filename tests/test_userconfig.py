@@ -27,6 +27,13 @@ def test_custom_values_from_file(tmp_path):
     assert cfg.llm_refine_passes == 2
 
 
+def test_a_percent_is_literal(tmp_path):
+    """Read without interpolation, as a fobos: a lone % used to raise InterpolationSyntaxError."""
+    cfg_path = tmp_path / "config.ini"
+    cfg_path.write_text("[llm]\nprovider = openai\nurl = http://host/v1%20proxy\n")
+    assert UserConfig(path=str(cfg_path)).llm_url == "http://host/v1%20proxy"
+
+
 def test_partial_override_falls_back_to_defaults(tmp_path):
     cfg_path = tmp_path / "config.ini"
     cfg_path.write_text("[llm]\nbackend = openai\n")

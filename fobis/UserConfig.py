@@ -150,7 +150,7 @@ class UserConfig:
 
     def __init__(self, path: str | None = None) -> None:
         self.path = path or default_config_path()
-        self._cp = configparser.ConfigParser()
+        self._cp = configparser.ConfigParser(interpolation=None)  # a value is literal: %20 in a URL, %j in Slurm
         if os.path.exists(self.path):
             self._cp.read(self.path)
             self._warn_inline_comments()
@@ -327,7 +327,7 @@ class UserConfig:
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
             fh.write("\n".join(lines) + "\n")
         os.replace(tmp, self.path)
-        self._cp = configparser.ConfigParser()
+        self._cp = configparser.ConfigParser(interpolation=None)  # a value is literal: %20 in a URL, %j in Slurm
         self._cp.read(self.path)
 
     @property

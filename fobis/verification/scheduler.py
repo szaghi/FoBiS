@@ -69,7 +69,7 @@ def load_config(fobos: Any = None, user_config: str | None = None) -> SchedulerC
     from ..UserConfig import default_config_path
 
     items: dict[str, str] = {}
-    user = configparser.ConfigParser()
+    user = configparser.ConfigParser(interpolation=None)  # literal values, as in a fobos: Slurm options use %
     with contextlib.suppress(configparser.Error):
         user.read(user_config or default_config_path())
     if user.has_section("scheduler"):
