@@ -18,7 +18,7 @@ its module files and its archive in:
 
 :::
 
-`dependon = ../quad/fobos:static((direct))` reads: the fobos at that path (relative to the directory `fobis` runs in, here the project's root), its `static`
+`dependon = ../quad/fobos:static((direct))` reads: the fobos at that path (relative to this fobos), its `static`
 mode, and link the library by its full path (`((indirect))` links it by name, with `-L` and `-l`).
 
 <<< @/examples/output/2-growing/04/build.txt{console}

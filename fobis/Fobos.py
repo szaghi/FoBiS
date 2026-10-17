@@ -1115,10 +1115,21 @@ class Fobos:
                     elif isinstance(cliargs_dict[item[0]], int):
                         setattr(cliargs, item[0], int(item[1]))
                     elif isinstance(cliargs_dict[item[0]], list):
-                        setattr(cliargs, item[0], item[1].split())
+                        values = item[1].split()
+                        if item[0] == "dependon":
+                            values = [self._from_fobos_dir(value) for value in values]
+                        setattr(cliargs, item[0], values)
                     else:
                         setattr(cliargs, item[0], item[1])
         return
+
+    def _from_fobos_dir(self, path: str) -> str:
+        """A relative path written in this fobos, made relative to the current directory: it is relative to the
+        fobos's own directory (a ``dependon`` entry, as a ``path=`` dependency), not to where fobis runs."""
+        base = os.path.dirname(self.filename or "")
+        if not base or os.path.isabs(path):
+            return path
+        return os.path.relpath(os.path.join(base, path))
 
     @staticmethod
     def _check_cliargs_cflags(cliargs, cliargs_dict):

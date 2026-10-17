@@ -223,7 +223,8 @@ spaces:
   output is what gets linked.
 - **`((direct))`** (the default) links the library by its full path (`libs`); **`((indirect))`** links it by name,
   its build directory added to `lib_dir` (`ext_libs`).
-- **The path is relative to the directory you run `fobis` in**, normally the project's root.
+- **The path is relative to the fobos that writes it**, as a `path=` dependency's; given with `--dependon`, to the
+  directory you run `fobis` in. The mode's other paths (`src`, `build_dir`, ...) are relative to that directory.
 - **The dependency is built every time** (an up-to-date one compiles nothing); its build failing stops this one with
   its exit status. `--quiet` is passed on.
 - **Only `fobis build` builds it.** `fobis check` treats the modules of `dependon` projects as provided. A Makefile

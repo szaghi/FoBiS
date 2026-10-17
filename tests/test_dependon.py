@@ -61,3 +61,22 @@ def test_dependon_finds_the_module_files_and_follows_interface_changes(projects)
     result = _build(app)  # a new procedure: the interface, and the .mod, changed
     assert result.returncode == 0 and _mtime(obj) > before
     assert "Compiling src/p.f90" in result.stdout
+
+
+def test_a_dependon_path_is_relative_to_its_fobos(projects, tmp_path):
+    """dependon = ../lib/fobos is relative to the fobos that writes it (as a path= dependency), not to the directory
+    fobis runs in: building the app from its parent directory used to look for ../lib/fobos next to the parent."""
+    lib, app = projects
+    (app / "fobos").write_text(  # src is relative to where fobis runs (here the parent), dependon to this fobos
+        "[default]\ncompiler = gnu\ncflags = -c\nsrc = ./app/src/\nbuild_dir = ./app/\nobj_dir = ./app/obj/\n"
+        "mod_dir = ./app/mod/\ntarget = app/src/p.f90\ndependon = ../lib/fobos:static\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-m", "fobis", "build", "--quiet", "-f", "app/fobos"],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert (lib / "build" / "libm.a").is_file() and (app / "p").is_file()
