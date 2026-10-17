@@ -62,8 +62,8 @@ intel, `mpiifort -fc=ifx` for intel_nextgen.
   or `compiler = opencoarrays-gnu`, which compiles with the `caf` wrapper.
 - **C files** in an MPI mode compile with the family's MPI C wrapper (`mpicc`, `mpiicx` for intel_nextgen); OpenMP
   adds the C switch too.
-- **Check what a mode does** with a verbose build: its "Compiler command" and "Compiling flags" lines.
-  `fobis introspect --compiler` reports the mode's keys as written, without the wrapper and the OpenMP switch.
+- **Check what a mode does** with `fobis introspect --compiler --mode NAME`: the command the build runs (the MPI
+  wrapper included) and the flags with the OpenMP and coarray switches, without building anything.
 - **Libraries found through `pkg-config` or a wrapper** (HDF5, NetCDF, FFTW): [Dependencies](./dependencies).
 
 Thread count and stack: `OMP_NUM_THREADS` for a run of your own; a case's `threads` sets it for its runs.

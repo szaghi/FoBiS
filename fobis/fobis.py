@@ -4885,11 +4885,20 @@ def run_fobis_introspect(configuration):
             "lflags": getattr(cliargs, "lflags", "") or "",
             "preproc": _merged_preproc_flags(cliargs),
         }
+        from copy import copy
+
         from .Compiler import Compiler
 
-        with contextlib.suppress(AttributeError):  # the C compiler of the .c sources, resolved for the mode
-            c = Compiler(cliargs=cliargs)
-            data["compiler"].update({"cc": c.ccs, "c_cflags": c.c_cflags})
+        with contextlib.suppress(AttributeError):  # an introspect namespace may lack a key a build has
+            # what the build runs: the command (an MPI wrapper, fc) and the flags with the openmp/coarray/coverage/
+            # profile switches, as Builder gets them; the preprocessor flags stay in their own field
+            built = copy(cliargs)
+            built.preproc = ""
+            c = Compiler(cliargs=built, print_w=lambda message: None)
+            data["compiler"].update(
+                {"binary": c.fcs, "cflags": c.cflags.strip(), "lflags": c.lflags.strip(), "cc": c.ccs}
+            )
+            data["compiler"]["c_cflags"] = Compiler(cliargs=cliargs, print_w=lambda message: None).c_cflags
 
     # Source files
     if getattr(cliargs, "introspect_sources", False):

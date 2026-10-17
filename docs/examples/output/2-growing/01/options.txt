@@ -2,9 +2,9 @@ $ fobis introspect --compiler --buildoptions --mode shared
 {
   "compiler": {
     "name": "gnu",
-    "binary": "",
+    "binary": "gfortran",
     "cflags": "-c -O2 -fPIC",
-    "lflags": "",
+    "lflags": "-shared",
     "preproc": "",
     "cc": "gcc",
     "c_cflags": "-c"
