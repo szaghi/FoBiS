@@ -753,7 +753,7 @@ class Builder:
             with open(track_file_name, "w") as track_file:
                 track_file.writelines("[build]\n")
                 track_file.writelines(
-                    "output = " + self.get_output_name(file_to_build=file_to_build, output=output) + "\n"
+                    "output = " + self.get_output_name(file_to_build=file_to_build, output=output, mklib=mklib) + "\n"
                 )
                 if file_to_build.program:
                     track_file.writelines("program = True\n")

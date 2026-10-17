@@ -242,18 +242,47 @@ The same without the link syntax, from a directory or a git repository: `[depend
 
 ## Publish a pkg-config file
 
-The mode keys `pkgconfig`, `pkgconfig_name`, `pkgconfig_desc`, `pkgconfig_url`, `pkgconfig_req` and
-`pkgconfig_req_priv` are read, but no command writes a `.pc` file from them (FoBiS 3.9.11): build, install and rule
-leave none. Write it with a rule, after `fobis install`:
+`pkgconfig = True` in a library mode makes FoBiS write a pkg-config file for it: one for using the library where it
+was built, one for its installed copy.
 
 ```ini
-[rule-pc]
-help = The pkg-config file of the installed library
-rule = printf 'prefix=%s\nlibdir=${prefix}/lib\nincludedir=${prefix}/include\n\nName: quad\nDescription: Quadrature rules\nVersion: 0.1.0\nLibs: -L${libdir} -lquad\nCflags: -I${includedir}\n' "$HOME/opt/quad" > quad.pc
+[project]
+name    = quad
+version = v0.1.0
+summary = Quadrature rules
+
+[static]
+compiler    = gnu
+cflags      = -c -O2
+src         = ./src/
+build_dir   = ./build/static/
+target      = src/quad_rules.F90
+mklib       = static
+output      = libquad.a
+track_build = True
+pkgconfig   = True
+; Requires: and Requires.private: of the file
+pkgconfig_req_priv = zlib
 ```
 
-`pkg-config --cflags --libs quad` (with the file's directory in `PKG_CONFIG_PATH`) then prints
-`-I.../include -L.../lib -lquad`.
+```bash
+fobis build --mode static                        # writes build/static/quad.pc: the build tree
+fobis install --mode static --prefix ~/opt/quad  # writes ~/opt/quad/lib/pkgconfig/quad.pc
+PKG_CONFIG_PATH=~/opt/quad/lib/pkgconfig pkg-config --cflags --libs quad
+```
+
+The second prints `-I/home/me/opt/quad/include -L/home/me/opt/quad/lib -lquad`: a program using the library compiles
+and links with these flags alone.
+
+- **The fields:** `Name` is `pkgconfig_name`, else `[project] name`, else the library's name; `Description` is
+  `pkgconfig_desc`, else `[project] summary`; `URL` is `pkgconfig_url`, else `[project] repository`; `Version` is the
+  project's version without a leading `v`. `pkgconfig_req` and `pkgconfig_req_priv` fill `Requires` and
+  `Requires.private`.
+- **The paths are absolute:** `prefix` is the build directory or the install prefix; `Cflags` names the module
+  directory (`include/` once installed, `--include` renames it).
+- **A library named `libNAME`** is linked with `-L... -lNAME`; any other name (a mode without `output` builds
+  `NAME.a`) is linked by its path, which `-l` could not find.
+- **Libraries only:** a mode without `mklib` writes no file.
 
 ## Run project commands as rules
 

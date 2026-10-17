@@ -1037,6 +1037,18 @@ def run_fobis_install(configuration):
                         safe_mkdir(directory=inc_path)
                         configuration.fobos.print_n('Install "' + mod_file + '" in "' + inc_path + '"')
                         shutil.copy(mod_file, inc_path)
+                    if (spec := configuration.fobos.get_pkgconfig_spec()) is not None:
+                        from .PkgConfig import write_pc
+
+                        pc = write_pc(
+                            spec,
+                            output,
+                            prefix=configuration.cliargs.prefix,
+                            lib_dir=configuration.cliargs.lib,
+                            include_dir=configuration.cliargs.include,
+                            pc_dir=os.path.join(lib_path, "pkgconfig"),
+                        )
+                        configuration.fobos.print_n(f'Install "{pc}"')
 
 
 def run_fobis_doctests(configuration):
@@ -1245,7 +1257,7 @@ def build_pfile(configuration, pfile, pfiles, nomodlibs, submodules, builder, cl
     """
     cliargs = cliargs or configuration.cliargs
     configuration.build_trace = {"pfiles": pfiles, "target": pfile}
-    builder.build(
+    built = builder.build(
         file_to_build=pfile,
         output=cliargs.output,
         nomodlibs=nomodlibs,
@@ -1259,6 +1271,20 @@ def build_pfile(configuration, pfile, pfiles, nomodlibs, submodules, builder, cl
         pfile.save_build_log(builder=builder)
     if cliargs.graph:
         pfile.save_dep_graph()
+    if built and cliargs.mklib and (spec := configuration.fobos.get_pkgconfig_spec()) is not None:
+        # uninstalled: for a project using the library where it was built (fobis install writes the installed one)
+        from .PkgConfig import write_pc
+
+        library = builder.get_output_name(file_to_build=pfile, output=cliargs.output, mklib=cliargs.mklib)
+        pc = write_pc(
+            spec,
+            library,
+            prefix=builder.build_dir,
+            lib_dir=os.path.relpath(os.path.dirname(os.path.abspath(library)), os.path.abspath(builder.build_dir)),
+            include_dir=os.path.relpath(os.path.abspath(builder.mod_dir), os.path.abspath(builder.build_dir)),
+            pc_dir=builder.build_dir,
+        )
+        configuration.print_b(f"pkg-config file {pc}")
 
 
 def _build_failure_facts(configuration, failure):

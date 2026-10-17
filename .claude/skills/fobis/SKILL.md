@@ -535,7 +535,8 @@ externals = mpi hdf5
 ```
 
 To *publish* a `.pc` file for your own library, set `pkgconfig = true` (+ optional `pkgconfig_name`,
-`pkgconfig_desc`, `pkgconfig_url`, `pkgconfig_req`, `pkgconfig_req_priv`; defaults from `[project]`).
+`pkgconfig_desc`, `pkgconfig_url`, `pkgconfig_req`, `pkgconfig_req_priv`; defaults from `[project]`). A library mode's build writes `<build_dir>/NAME.pc` (the build tree), `fobis install` writes
+`<prefix>/lib/pkgconfig/NAME.pc` (the installed copy).
 
 ### Multi-target builds
 
