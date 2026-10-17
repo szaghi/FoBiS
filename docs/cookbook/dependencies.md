@@ -61,6 +61,9 @@ The specification is `name = SOURCE [:: option]...`; the name is the directory u
 - **Pin with `tag=` or `rev=`.** That is what makes every checkout (a colleague's, CI's) fetch the same code: the
   lock is not committed. A bare URL or a `branch=` follows the branch.
 - **One pin per dependency:** two of `tag=`, `branch=`, `rev=` and `semver=` stop `fetch` with exit 2.
+- **A dependency that fails fails the fetch:** a clone, an update, a checkout of the pin or a `use=fobos` build that
+  fails is reported, the other dependencies are still fetched, and `fetch` ends with the list of failures and exit 1.
+  A dependency that was not cloned keeps its previous lock entry, if any. A wrong specification exits 2.
 - **A dependency already cloned is not cloned again:** `fetch` prints `already fetched` and checks out the pin, so a
   `tag=` changed in the fobos is applied by a plain `fobis fetch` when the tag existed at clone time. A tag made
   later needs `--update`.
@@ -117,72 +120,8 @@ stdlib = https://github.com/fortran-lang/stdlib :: tag=v0.5.0 :: use=fobos :: mo
   dependencies in your fobos and use it with `use=sources`, or fetch inside its clone.
 - **`mode=` without `use=fobos` does nothing:** your mode compiles a `use=sources` dependency.
 
-The same wiring without `[dependencies]`, for a project already on disk, is the mode key `dependon`
-(`PATH/fobos:MODE`; append `((indirect))` to link with `-L`/`-l` instead of the full path):
-
-```ini
-[default]
-compiler = gnu
-src      = ./src/
-target   = src/area.F90
-dependon = ../quad/fobos:static((direct))
-```
-
-<<< @/examples/output/2-growing/04/uptodate.txt{console}
-
-## Where the dependencies go
-
-```ini
-[dependencies]
-deps_dir = vendor
-penf     = https://github.com/szaghi/PENF :: tag=v2.0.1
-```
-
-`deps_dir` (default `.fobis_deps`) holds the clones, `.deps_config.ini` and `fobos.lock`. Keep it out of git; the
-`.gitignore` of `fobis new` already does (`/.fobis_deps/`).
-
-<<< @/examples/output/1-first-steps/05/deps.txt{console}
-
-- **Set it in the fobos, not with `--deps-dir`.** `fobis fetch --deps-dir DIR` clones into DIR, but `build`,
-  `check`, `doctests` and `tree` read the fobos's `deps_dir` only: with the option alone, the build does not see the
-  dependencies.
-
-## Update, or go back to the lock
-
-```bash
-fobis fetch --update     # git fetch in each clone, move to the newest commit its pin allows, rewrite the lock
-fobis fetch --frozen     # check every dependency out at the commit of the lock; leave the lock as it is
-fobis fetch --no-build   # clone or update only; use=fobos dependencies are built by the next fobis build
-```
-
-`--update` moves a `branch=` dependency to the remote branch's head (fast-forward), an unpinned one to its upstream
-head, resolves `semver=` ranges again, and makes newly created tags available; a `tag=` or `rev=` pin stays where it
-is. To move a pinned dependency, change the pin in the fobos: that is the change to commit.
-
-`--frozen` refuses to run without a lock (exit 1), uses the locked tag of a `semver=` range without asking the
-remote, and never rewrites the lock. A dependency the lock does not list is fetched as usual.
-
-<<< @/examples/output/1-first-steps/05/frozen.txt{console}
-
-- **`--frozen` is for a checkout that keeps its `deps_dir`:** a workstation, a cluster account, a CI job caching
-  `.fobis_deps/`. A fresh checkout has no lock: run `fobis fetch`, and rely on the fobos's pins.
-- **A plain `fetch` compares each clone with the lock** and warns, never fails, when its commit differs (a clone
-  moved by hand, a pin changed in the fobos):
-  `Warning: dependency 'penf' HEAD (...) does not match fobos.lock (...). Run 'fobis fetch --update' to refresh.`
-  The lock is then rewritten with the new commit.
-
-## The lock file
-
-<<< @/examples/output/1-first-steps/05/lock.txt{console}
-
-One section per dependency: `url`, `commit` (the clone's `HEAD`), `sha256` (of `git archive HEAD`: the committed
-content), the pin as declared, `resolved` for a `semver=` range, `dev = true` for a test-only one. A path dependency
-records `path` and, in a git checkout, the `commit` holding it and `dirty` (tracked changes or untracked sources
-under the directory), else a `sha256` of its source files.
-
-- **The lock lives in `deps_dir` and is not committed.** It records what this checkout fetched, so that `fetch` can
-  tell when a clone moved and `--frozen` can put it back. Reproducibility across checkouts comes from the pins.
-- **Do not edit it:** every `fetch` but `--frozen` rewrites it.
+The same wiring without `[dependencies]`, for a project already on disk, is the mode key `dependon`: see
+[Libraries and other build systems](./libraries).
 
 ## Another project on this machine
 
@@ -252,6 +191,60 @@ fobis fetch --no-dev   # a production checkout: not fetched
   test-only dependencies.
 - **A build of every program** (a mode without `target`) whose sources include test programs using it fails: give
   the mode a `target`, or keep the test directory out of its sources. More in [Testing](./testing).
+
+## Update, or go back to the lock
+
+```bash
+fobis fetch --update     # git fetch in each clone, move to the newest commit its pin allows, rewrite the lock
+fobis fetch --frozen     # check every dependency out at the commit of the lock; leave the lock as it is
+fobis fetch --no-build   # clone or update only; use=fobos dependencies are built by the next fobis build
+```
+
+`--update` moves a `branch=` dependency to the remote branch's head (fast-forward), an unpinned one to its upstream
+head, resolves `semver=` ranges again, and makes newly created tags available; a `tag=` or `rev=` pin stays where it
+is. To move a pinned dependency, change the pin in the fobos: that is the change to commit.
+
+`--frozen` refuses to run without a lock (exit 1), uses the locked tag of a `semver=` range without asking the
+remote, and never rewrites the lock. A dependency the lock does not list is fetched as usual.
+
+<<< @/examples/output/1-first-steps/05/frozen.txt{console}
+
+- **`--frozen` is for a checkout that keeps its `deps_dir`:** a workstation, a cluster account, a CI job caching
+  `.fobis_deps/`. A fresh checkout has no lock: run `fobis fetch`, and rely on the fobos's pins.
+- **A plain `fetch` compares each clone with the lock** and warns, never fails, when its commit differs (a clone
+  moved by hand, a pin changed in the fobos):
+  `Warning: dependency 'penf' HEAD (...) does not match fobos.lock (...). Run 'fobis fetch --update' to refresh.`
+  The lock is then rewritten with the new commit.
+
+## The lock file
+
+<<< @/examples/output/1-first-steps/05/lock.txt{console}
+
+One section per dependency: `url`, `commit` (the clone's `HEAD`), `sha256` (of `git archive HEAD`: the committed
+content), the pin as declared, `resolved` for a `semver=` range, `dev = true` for a test-only one. A path dependency
+records `path` and, in a git checkout, the `commit` holding it and `dirty` (tracked changes or untracked sources
+under the directory), else a `sha256` of its source files.
+
+- **The lock lives in `deps_dir` and is not committed.** It records what this checkout fetched, so that `fetch` can
+  tell when a clone moved and `--frozen` can put it back. Reproducibility across checkouts comes from the pins.
+- **Do not edit it:** every `fetch` but `--frozen` rewrites it.
+
+## Where the dependencies go
+
+```ini
+[dependencies]
+deps_dir = vendor
+penf     = https://github.com/szaghi/PENF :: tag=v2.0.1
+```
+
+`deps_dir` (default `.fobis_deps`) holds the clones, `.deps_config.ini` and `fobos.lock`. Keep it out of git; the
+`.gitignore` of `fobis new` already does (`/.fobis_deps/`).
+
+<<< @/examples/output/1-first-steps/05/deps.txt{console}
+
+- **Set it in the fobos, not with `--deps-dir`.** `fobis fetch --deps-dir DIR` clones into DIR, but `build`,
+  `check`, `doctests` and `tree` read the fobos's `deps_dir` only: with the option alone, the build does not see the
+  dependencies.
 
 ## See the dependency tree
 
@@ -362,10 +355,7 @@ fobis introspect --dependencies
 
 `fetch --json` runs the same fetch as `fobis fetch` (semver ranges, `--frozen`, `--no-dev`, the lock) and prints one
 document: `status`, `deps_dir`, `dependencies`, `failures` (one line per dependency that could not be cloned, checked
-out at its pin or built) and `errors` (the messages).
+out at its pin or built) and `errors` (the messages); its exit status is the plain fetch's.
 
-- **A dependency that fails fails the fetch:** a clone, an update, a checkout of the pin or a `use=fobos` build that
-  fails is reported, the other dependencies are still fetched, and `fetch` ends with the list of failures and exit 1.
-  A dependency that was not cloned keeps its previous lock entry, if any. A wrong specification exits 2.
 - **Cache `.fobis_deps/`** between CI runs keyed on the fobos, and run `fobis fetch --frozen` on a cache hit. More in
   [Continuous integration](./ci).
