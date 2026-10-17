@@ -178,9 +178,12 @@ def _environment(home: Path, bin_dir: Path) -> dict[str, str]:
 
 
 def _git_config(home: Path) -> None:
+    # gc.auto = 0: a background "git gc --auto" repacked loose objects while a chapter's state was being copied
+    # (shutil.Error: .git/objects/01 vanished), failing the check at random in CI
     (home / ".gitconfig").write_text(
         "[user]\n\tname = Ada Fortran\n\temail = ada@example.org\n[init]\n\tdefaultBranch = master\n"
         "[color]\n\tui = never\n[advice]\n\tdetachedHead = false\n[commit]\n\tgpgsign = false\n"
+        "[gc]\n\tauto = 0\n"
     )
 
 
