@@ -57,9 +57,9 @@ fobis new kit --lib                                                     # a new 
   --get-output-name` prints the path a mode writes.
 - **One `build_dir` per library mode.** The `track_build` record is named after the target: two modes building the
   same target into one directory overwrite each other's.
-- **A static library does not carry other libraries.** `libs` given to a static mode are stored inside the new
-  archive, where linkers do not look (checked with GNU ld: undefined references); `ext_libs` and `lib_dir` are
-  ignored. Link those libraries in the program that uses yours. A shared library links them into the `.so`.
+- **A static library does not carry other libraries.** It holds the mode's objects only: `libs`, `vlibs` and
+  `ext_libs` of a static mode stay out of it, and FoBiS warns that a program using it links them too. A shared
+  library links them into the `.so`.
 - **Programs linking a shared library** find it at run time through `LD_LIBRARY_PATH`, or through an rpath:
   `lflags = -Wl,-rpath,/opt/quad/lib`.
 

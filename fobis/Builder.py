@@ -487,6 +487,12 @@ class Builder:
             if mklib.lower() == "shared":
                 link_cmd = self.cmd_link + " " + link_cmd + " -o " + lib
             elif mklib.lower() == "static":
+                linked = [*self.libs, *self.vlibs, *(f"-l{name}" for name in (*self.ext_libs, *self.ext_vlibs))]
+                if linked:
+                    self.print_w(
+                        f"Warning: the static library {lib} does not contain {' '.join(linked)}: a program using it "
+                        "links them too"
+                    )
                 link_cmd = self.ar + " " + self.arflags + " " + lib + " " + link_cmd
                 if self.ranlib:
                     ranlib_cmd = self.ranlib + " " + lib
@@ -523,11 +529,9 @@ class Builder:
             objs = objs + submodules
         objs = objs + file_to_build.obj_dependencies(exclude_programs=exclude_programs)
         objs = list(set(objs))  # remove duplicated objs
-        link_cmd = (
-            "".join([os.path.join(self.obj_dir, s + " ") for s in objs])
-            + "".join([s + " " for s in self.libs])
-            + "".join([s + " " for s in self.vlibs])
-        )
+        link_cmd = "".join([os.path.join(self.obj_dir, s + " ") for s in objs])
+        if mklib is None or mklib.lower() == "shared":  # an archive holds objects: another archive in it is never read
+            link_cmd += "".join([s + " " for s in self.libs]) + "".join([s + " " for s in self.vlibs])
         if mklib is None or mklib.lower() == "shared":
             if len(self.ext_libs) > 0:
                 link_cmd += " " + "".join(["-l" + s + " " for s in self.ext_libs])
