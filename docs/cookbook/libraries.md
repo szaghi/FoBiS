@@ -201,8 +201,8 @@ The volatile library /shared/ci/libfoo.a is changed with respect the last buildi
 ```
 
 - **The hash lives in the build directory**, as `.<library file name>.md5`. The first build only records it.
-- **The build directory must exist** before the first build with a volatile library: otherwise the hash cannot be
-  written and FoBiS stops with a traceback. A missing volatile library stops it the same way.
+- **A missing volatile library** is reported (`The volatile library ... is not found!`) and the link then fails, as
+  for any library.
 - **When you need it.** The link step already runs at every build, and a newer `.mod` from an include directory
   already recompiles its users. A volatile library adds a full recompile on any change of the library's bytes: for
   libraries whose module files you do not have, or whose changes the `.mod` times do not show.

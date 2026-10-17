@@ -285,6 +285,7 @@ class FoBiSConfig:
             md5sum = hashlib.md5(fh.read()).hexdigest()
         hashexist = os.path.exists(hashfile)
         comparison = False
+        os.makedirs(os.path.dirname(hashfile) or ".", exist_ok=True)  # before the first build, no build directory
         if hashexist:
             with open(hashfile) as fh:
                 md5sum_old = fh.read()
@@ -300,6 +301,7 @@ class FoBiSConfig:
         for lib in self.cliargs.vlibs:
             if not os.path.exists(lib):
                 self.print_r("The volatile library " + lib + " is not found!")
+                continue  # nothing to hash: the link reports the missing library
             hashfile, comparison = self._check_md5sum(
                 filename=lib, hashfile=os.path.join(self.cliargs.build_dir, "." + os.path.basename(lib) + ".md5")
             )
@@ -336,6 +338,7 @@ class FoBiSConfig:
                     lib_found = os.path.exists(libpath)
             if not lib_found:
                 self.print_r("The volatile library " + lib + " is not found!")
+                continue  # nothing to hash: the link reports the missing library
             hashfile, comparison = self._check_md5sum(
                 filename=libpath,
                 hashfile=os.path.join(self.cliargs.build_dir, "." + os.path.basename(libpath) + ".md5"),
