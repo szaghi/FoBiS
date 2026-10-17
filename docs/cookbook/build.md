@@ -7,7 +7,7 @@ title: Building
 `fobis build` compiles a Fortran project without a makefile: it reads the sources, finds which file defines each
 module and which files use it, compiles them in that order and links every program. A `fobos` file in the project
 root holds the configurations (modes) when the defaults are not enough. This page covers building programs; libraries,
-external libraries, Makefile export and editor integration are in [Libraries and integration](./libraries),
+external libraries, Makefile export and editor integration are in [Libraries and other build systems](./libraries),
 dependencies in [Dependencies](./dependencies), tests in [Testing](./testing).
 
 How it works:
@@ -135,29 +135,6 @@ fobis build -f fobos.intel      # a fobos with another name or path
   `[default]` is read; a fobos with neither warns `fobos file has not "modes" section neither "default" one`.
 - **An unknown `--mode`** prints an error and the defined modes, and exits 1.
 
-## Name and version the project
-
-```ini
-[project]
-name       = quad
-summary    = Quadrature rules
-version    = VERSION
-repository = https://github.com/me/quad
-website    = https://me.github.io/quad
-email      = me@example.org
-year       = 2020
-authors    = Ada Fortran
-             Charles Babbage
-```
-
-Every key is optional; authors go one per line. `fobis introspect --projectinfo`, `fobis tree`, pkg-config files,
-`fobis fpm export` and `fobis scaffold` (`{{YEAR}}`, default the current year) read it.
-
-- **`version`** is a literal, or a file holding it: a path relative to the git repository root (outside a git
-  repository, next to the fobos). The result gets a leading `v` (`1.2.3` -> `v1.2.3`).
-- **Without `version`**, the latest git tag (`git describe --tags --abbrev=0`) is the version.
-- **Both set and different:** a warning names both and the two fixes (change the fobos, or tag).
-
 ## Debug and release builds
 
 One mode per configuration; a build profile writes the flags for the mode's compiler:
@@ -192,14 +169,39 @@ fobis build --mode debug --build-profile release   # the command line's profile 
 - **Four profiles:** `debug` (checks, backtrace, floating-point traps, warnings), `release`, `asan` (address and
   undefined-behaviour sanitizers), `coverage` (for [`fobis coverage`](./testing)).
 - **Compilers:** `gnu`, `intel`, `intel_nextgen`, `nvfortran`, `nag`, `amd`, `lfortran` (`--list-profiles` shows
-  which pairs exist). A pair missing for a compiler of another family gives a warning and no flags: gfortran's
-  options are not theirs. Missing on purpose, because measured: ifort ignores `-fsanitize=address`, nvfortran rejects
+  which pairs exist). A missing pair gives a warning and no flags, never gfortran's. Some are missing because the
+  compiler refuses or ignores the flags, as measured: ifort ignores `-fsanitize=address`, nvfortran rejects
   `-fsanitize=address` and `--coverage`, ifx does not support `-ip` or `-prof-gen=srcpos`. A `custom` compiler gets
   the `gnu` flags, with a warning; an unknown profile name, a warning and no flags.
 - **The profile comes first:** its flags are put before the mode's `cflags`, so the mode's own flags win on a
   conflict (`-O0 -g -fcheck=all ... -c -DDEBUG`). The profile's link flags go before `lflags`.
 - **C files too:** each profile has flags for the family's C compiler (`[C: ...]` above), before `c_cflags`.
 - **Not `--profile`:** that one adds profiling instrumentation (`-pg`).
+
+## Choose the sources
+
+```ini
+[release]
+compiler     = gnu
+cflags       = -c -O2
+src          = ./src/
+               ./vendor/lib/src/
+exclude_dirs = ./src/experimental/
+exclude      = old_solver.f90
+```
+
+```bash
+fobis build --src ./src --src ./vendor/lib/src     # repeat the option for several
+fobis build --exclude old_solver.f90 --disable-recursive-search
+```
+
+- **`src`** lists directories, walked recursively unless `disable_recursive_search = True`.
+- **`exclude`** matches file names: `exclude = src/old_solver.f90` excludes every `old_solver.f90`.
+- **`exclude_dirs`** excludes a directory and those below it: a directory is skipped when its path contains the
+  given one, so `./src/old` also skips `./src/older`.
+- **`extensions`** sets which files are read (default: every Fortran extension, the include extensions and `.c`); a
+  mode setting it must list everything it wants, `.c` included.
+- **Fetched dependencies** used as sources join `src` by themselves: see [Dependencies](./dependencies).
 
 ## Build one program out of many
 
@@ -212,7 +214,8 @@ or `target` and `output` in the mode. Only the files the program reaches through
 
 <<< @/examples/output/2-growing/02/release.txt{console}
 
-- **A target outside the mode's `src` is an error** (exit 1), as above: add its directory to the mode's sources.
+- **A target outside the mode's `src` is an error** (exit 1), as the output shows: add its directory to the mode's
+  sources.
 - **A path or a name:** `--target src/main.f90` names that file; `--target main.f90` names every file called so.
 - **An explicit `--target`** keeps its own target and output over the mode's: this is how `fobis test` builds each
   test in a mode that names a program.
@@ -245,40 +248,67 @@ fobis build --examples               # the targets and the examples
 - **`--examples` without `[target.NAME]` sections** builds the examples, then the mode's program as usual.
 - **A target without `output`** is named after its file (`[target.solver]` of `src/solver.f90` gives `solver`).
 
-## Flags that differ by compiler or system
-
-A key qualified by a compiler family or an operating system applies only there, so one mode serves several:
+## Keep build products out of the sources
 
 ```ini
 [release]
-compiler         = gnu
-cflags           = -c -O2
-cflags.gnu       = -march=native
-cflags.intel     = -xHost
-cflags.windows   = -static
-ext_libs.windows = ws2_32
+compiler  = gnu
+cflags    = -c -O2
+build_dir = ./build/release/
+obj_dir   = obj/
+mod_dir   = mod/
 ```
+
+`obj_dir` and `mod_dir` (default `./obj/` and `./mod/`) are inside `build_dir` (default `./`); the program goes to
+`build_dir`, named after its file or `output`. One `build_dir` per mode keeps the modes' objects apart.
 
 ```bash
-fobis introspect --buildoptions --mode release   # which qualified keys applied, and the result
+fobis build --mode release --build-dir /scratch/me/quad    # wins over the mode's build_dir
 ```
 
-- **Qualifiers:** a `compiler` value (`gnu`, `intel`, `intel_nextgen`, `nvfortran`, ...) or a system (`linux`,
-  `macos`, `windows`, `freebsd`). The compiler is the mode's, after its templates (a mode's `compiler` replaces
-  `--compiler`).
-- **Flag keys are appended:** `cflags`, `lflags`, `preproc`, `c_cflags`, `c_preproc` get the base, then the
-  compiler's, then the system's (gfortran on Linux above: `-c -O2 -march=native`). A command-line `--cflags` comes
-  last.
-- **Any other key is replaced**, so two qualified keys replacing the same key that both apply (`ext_libs.gnu` and
-  `ext_libs.linux` with gfortran on Linux) are an error, as is an unknown qualifier (exit 2).
-- **They work in templates**, and `$variables` are substituted in them.
-- **`introspect --buildoptions`** lists every qualified key, whether it applied, how (`appended`, `replaced`) and the
-  value it gave.
+Shadow builds (`--shadow`, in [Testing](./testing)) and the variants of `fobis assess` keep their objects under
+`.fobis/`, apart from yours.
 
-Which mechanism: a **qualified key** when the value follows the compiler or the system by itself; a
-**[varset](#choose-machine-paths-at-build-time-varsets)** when it follows the machine (a cluster's library paths, a
-GPU architecture) and you choose it with `--varset`; a **named mode** when the build itself differs (another target, a
-library, other sources). A build profile when the flags are the usual debug or release ones.
+## Build and run
+
+```bash
+fobis run --mode release                  # build the mode, then run its program
+fobis run --mode release -- input.nml     # arguments after -- go to the program, untouched
+fobis run --no-build                      # run what the last build left
+fobis run --dry-run                       # print the build and run commands
+fobis run ./build/release/other           # build the mode, run this binary
+fobis run --example demo                  # build the [example.demo] section alone, run it
+```
+
+<<< @/examples/output/1-first-steps/02/run.txt{console}
+
+- **The program** is the mode's `output` (or its target's name) in its `build_dir`; the mode needs one of the two. A
+  name given after `run` is the binary to start, not a target to build: the build is the mode's, whole.
+- **Exit status:** the program's; a program killed by a signal gives 128 + the signal (139 for a segmentation fault).
+  A failed build stops before running.
+- **Launchers:** `--launcher "gdb --args"`, `--launcher "valgrind --error-exitcode=1"`, `--ranks 4` for
+  `mpirun -np 4`; a mode can keep `launcher = mpirun -np {ranks}`. More in [HPC and clusters](./hpc).
+- **`--shadow checks`** runs the mode rebuilt with runtime checks; **`--explain`** explains a crash
+  ([AI assistance](./ai)).
+- Unknown options before `--` are an error, not passed to the program.
+
+## Clean
+
+```bash
+fobis clean --mode debug        # objects, module files and the mode's program
+fobis clean --only-obj          # objects and module files, keep the program
+fobis clean --only-target       # the program, keep the objects
+```
+
+<<< @/examples/output/1-first-steps/02/clean.txt{console}
+
+- **It reads the same mode as `build`**, so the same directories are cleaned: give it the same `--mode` and `-f`.
+- **The program is removed only when there is a target** (the mode's `target`, or `--target`): without one, as in a
+  build with no fobos, the programs stay (see the tutorial's
+  [cleaning](/tutorial/first-steps/01-first-build#cleaning)).
+- **Also removed:** the target's build log (`<build_dir>/build_<file>.log`), `<build_dir>/.cflags.heritage` and the
+  compilation database with its root link. The compiler record and a `.<target>.cflags.heritage` stay.
+- `--only-obj` and `--only-target` exclude each other.
 
 ## Share settings between modes: templates
 
@@ -350,31 +380,40 @@ fobis introspect --varsets                       # every varset, its bindings an
 - **With other options:** `check`, `introspect` and `test` take `--varset` too; varsets and features compose
   (`--varset cluster --features prod`).
 
-## Split a fobos into files
+## Flags that differ by compiler or system
+
+A key qualified by a compiler family or an operating system applies only there, so one mode serves several:
 
 ```ini
-[include]
-paths = templates.fobos
-        ../shared/compilers.fobos
-        ?fobos.local
+[release]
+compiler         = gnu
+cflags           = -c -O2
+cflags.gnu       = -march=native
+cflags.intel     = -xHost
+cflags.windows   = -static
+ext_libs.windows = ws2_32
 ```
 
-The sections of the listed files are merged into the fobos before anything else, key by key. Typical uses: one file
-per kind of section, compiler templates shared by sibling projects, and a git-ignored `fobos.local` with a
-developer's own paths (`$HDF5 = /home/me/hdf5`).
+```bash
+fobis introspect --buildoptions --mode release   # which qualified keys applied, and the result
+```
 
-- **Paths** are relative to the including file, after `${VAR}` and `~` expansion. A `?` prefix makes a file optional:
-  silently skipped when missing; without it, a missing file stops the build (exit 1) and suggests the `?`.
-- **Who wins:** the including file over its includes; among the includes, the later one. A key the parent does not
-  set flows through.
-- **Lists are merged:** `[modes] modes`, `[features] default` and `[varsets] default` get the names of every file.
-- **Includes may include**, depth first, up to 16 levels; a cycle (a file including itself, directly or not) stops
-  the build (exit 1). Two paths reaching the same file are not a cycle.
-- **Everything works across files:** variables, templates, features, varsets.
-- **One path per line, no comment after it:** words on the `paths` line are file names, so `?fobos.local ; mine`
-  includes a file named `;`.
-- **`.fobos` is a convention** for included files, not a rule. Includes have no parameters and no conditions: for
-  values chosen at build time use varsets or features.
+- **Qualifiers:** a `compiler` value (`gnu`, `intel`, `intel_nextgen`, `nvfortran`, ...) or a system (`linux`,
+  `macos`, `windows`, `freebsd`). The compiler is the mode's, after its templates (a mode's `compiler` replaces
+  `--compiler`).
+- **Flag keys are appended:** `cflags`, `lflags`, `preproc`, `c_cflags`, `c_preproc` get the base, then the
+  compiler's, then the system's (gfortran on Linux above: `-c -O2 -march=native`). A command-line `--cflags` comes
+  last.
+- **Any other key is replaced**, so two qualified keys replacing the same key that both apply (`ext_libs.gnu` and
+  `ext_libs.linux` with gfortran on Linux) are an error, as is an unknown qualifier (exit 2).
+- **They work in templates**, and `$variables` are substituted in them.
+- **`introspect --buildoptions`** lists every qualified key, whether it applied, how (`appended`, `replaced`) and the
+  value it gave.
+
+Which mechanism: a **qualified key** when the value follows the compiler or the system by itself; a
+**[varset](#choose-machine-paths-at-build-time-varsets)** when it follows the machine (a cluster's library paths, a
+GPU architecture) and you choose it with `--varset`; a **named mode** when the build itself differs (another target, a
+library, other sources). A build profile when the flags are the usual debug or release ones.
 
 ## Switch options on and off: features
 
@@ -440,8 +479,35 @@ src      = ./src/
 ```
 
 `preproc` reaches every Fortran compile command, after `cflags`; files the compiler preprocesses are the usual
-`.F90`, `.F` (or any file with `-cpp`). Groups of macros switched by name are [features](#switch-options-on-and-off-features).
-The analysis commands evaluate `#if` lines with the mode's `-D` macros.
+`.F90`, `.F` (or any file with `-cpp`). Groups of macros switched by name are
+[features](#switch-options-on-and-off-features). The analysis commands evaluate `#if` lines with the mode's `-D`
+macros.
+
+## Split a fobos into files
+
+```ini
+[include]
+paths = templates.fobos
+        ../shared/compilers.fobos
+        ?fobos.local
+```
+
+The sections of the listed files are merged into the fobos before anything else, key by key. Typical uses: one file
+per kind of section, compiler templates shared by sibling projects, and a git-ignored `fobos.local` with a
+developer's own paths (`$HDF5 = /home/me/hdf5`).
+
+- **Paths** are relative to the including file, after `${VAR}` and `~` expansion. A `?` prefix makes a file optional:
+  silently skipped when missing; without it, a missing file stops the build (exit 1) and suggests the `?`.
+- **Who wins:** the including file over its includes; among the includes, the later one. A key the parent does not
+  set flows through.
+- **Lists are merged:** `[modes] modes`, `[features] default` and `[varsets] default` get the names of every file.
+- **Includes may include**, depth first, up to 16 levels; a cycle (a file including itself, directly or not) stops
+  the build (exit 1). Two paths reaching the same file are not a cycle.
+- **Everything works across files:** variables, templates, features, varsets.
+- **One path per line, no comment after it:** words on the `paths` line are file names, so `?fobos.local ; mine`
+  includes a file named `;`.
+- **`.fobos` is a convention** for included files, not a rule. Includes have no parameters and no conditions: for
+  values chosen at build time use varsets or features.
 
 ## Compile in parallel
 
@@ -489,7 +555,8 @@ or `--cflags-heritage` (`--ch`). The mode's compile flags (with the macros, and 
 key) are saved in `<build_dir>/.cflags.heritage`, or `<build_dir>/.<target>.cflags.heritage` with a target; when the
 next build's differ, everything is recompiled:
 
-<<< @/examples/output/2-growing/02/unchecked.txt{console}
+The [features](#switch-options-on-and-off-features) output above shows it: dropping the `checks` feature changed the
+flags, and every file was compiled again.
 
 - **The file is written when the build starts**, before compiling: a build that fails after a flag change leaves the
   objects it did not reach with the old flags, and the next build no longer sees a change. Rerun with
@@ -507,71 +574,6 @@ and recompiles everything, instead of linking objects and reading `.mod` files o
 - **The record is written only after a build without compile failure**: a failed build leaves the next one forced.
 - **No record** (the first build, objects of an older FoBiS): nothing is forced.
 
-## Keep build products out of the sources
-
-```ini
-[release]
-compiler  = gnu
-cflags    = -c -O2
-build_dir = ./build/release/
-obj_dir   = obj/
-mod_dir   = mod/
-```
-
-`obj_dir` and `mod_dir` (default `./obj/` and `./mod/`) are inside `build_dir` (default `./`); the program goes to
-`build_dir`, named after its file or `output`. One `build_dir` per mode keeps the modes' objects apart.
-
-```bash
-fobis build --mode release --build-dir /scratch/me/quad    # wins over the mode's build_dir
-```
-
-Shadow builds (`--shadow`, in [Testing](./testing)) and the variants of `fobis assess` keep their objects under
-`.fobis/`, apart from yours.
-
-## Clean
-
-```bash
-fobis clean --mode debug        # objects, module files and the mode's program
-fobis clean --only-obj          # objects and module files, keep the program
-fobis clean --only-target       # the program, keep the objects
-```
-
-<<< @/examples/output/1-first-steps/02/clean.txt{console}
-
-- **It reads the same mode as `build`**, so the same directories are cleaned: give it the same `--mode` and `-f`.
-- **The program is removed only when there is a target** (the mode's `target`, or `--target`): without one, as in a
-  build with no fobos, the programs stay (see the tutorial's
-  [cleaning](/tutorial/first-steps/01-first-build#cleaning)).
-- **Also removed:** the target's build log (`<build_dir>/build_<file>.log`), `<build_dir>/.cflags.heritage` and the
-  compilation database with its root link. The compiler
-  record and a `.<target>.cflags.heritage` stay.
-- `--only-obj` and `--only-target` exclude each other.
-
-## Choose the sources
-
-```ini
-[release]
-compiler     = gnu
-cflags       = -c -O2
-src          = ./src/
-               ./vendor/lib/src/
-exclude_dirs = ./src/experimental/
-exclude      = old_solver.f90
-```
-
-```bash
-fobis build --src ./src --src ./vendor/lib/src     # repeat the option for several
-fobis build --exclude old_solver.f90 --disable-recursive-search
-```
-
-- **`src`** lists directories, walked recursively unless `disable_recursive_search = True`.
-- **`exclude`** matches file names: `exclude = src/old_solver.f90` excludes every `old_solver.f90`.
-- **`exclude_dirs`** excludes a directory and those below it: a directory is skipped when its path contains the
-  given one, so `./src/old` also skips `./src/older`.
-- **`extensions`** sets which files are read (default: every Fortran extension, the include extensions and `.c`); a
-  mode setting it must list everything it wants, `.c` included.
-- **Fetched dependencies** used as sources join `src` by themselves: see [Dependencies](./dependencies).
-
 ## Modules from outside the project
 
 ```ini
@@ -586,7 +588,7 @@ A `use` of a module no project file defines warns `the file 'X' depends on 'NAME
 to the compiler, which must find `NAME.mod` in an `include` directory. `intrinsic_modules` silences the warning for
 modules that come from outside (case-insensitive, for that mode). The standard intrinsics and the compiler's own
 modules (`cudafor` with nvfortran, `ifport` with Intel, the list in [compilers](/guide/compilers)) are skipped
-already. Libraries found through pkg-config or a wrapper: [Libraries and integration](./libraries).
+already. Libraries found through pkg-config or a wrapper: [Libraries and other build systems](./libraries).
 
 ## Fortran include files
 
@@ -673,31 +675,8 @@ preprocessed file is deleted after compiling unless `preprocessor_dir` (`--dpp`,
   Fortran file goes through. C files never do.
 - **A file must be read to be preprocessed:** a non-Fortran extension such as `.pfm` must be in `extensions` too.
 - **`preprocessor_args`** (`--app`) go to the preprocessor; `preproc` goes to the compiler.
-- **A preprocessor not on the PATH** is reported (`... is not in your PATH!`) and the compiles fail. [PreForM.py](https://github.com/szaghi/PreForM) expands templates
-  and `cpp`-like directives.
-
-## Build and run
-
-```bash
-fobis run --mode release                  # build the mode, then run its program
-fobis run --mode release -- input.nml     # arguments after -- go to the program, untouched
-fobis run --no-build                      # run what the last build left
-fobis run --dry-run                       # print the build and run commands
-fobis run ./build/release/other           # build the mode, run this binary
-fobis run --example demo                  # build the [example.demo] section alone, run it
-```
-
-<<< @/examples/output/1-first-steps/02/run.txt{console}
-
-- **The program** is the mode's `output` (or its target's name) in its `build_dir`; the mode needs one of the two. A
-  name given after `run` is the binary to start, not a target to build: the build is the mode's, whole.
-- **Exit status:** the program's; a program killed by a signal gives 128 + the signal (139 for a segmentation fault).
-  A failed build stops before running.
-- **Launchers:** `--launcher "gdb --args"`, `--launcher "valgrind --error-exitcode=1"`, `--ranks 4` for
-  `mpirun -np 4`; a mode can keep `launcher = mpirun -np {ranks}`. More in [HPC and clusters](./hpc).
-- **`--shadow checks`** runs the mode rebuilt with runtime checks; **`--explain`** explains a crash
-  ([AI assistance](./ai)).
-- Unknown options before `--` are an error, not passed to the program.
+- **A preprocessor not on the PATH** is reported (`... is not in your PATH!`) and the compiles fail.
+- [PreForM.py](https://github.com/szaghi/PreForM) expands templates and `cpp`-like directives.
 
 ## Check the dependency graph
 
@@ -729,7 +708,30 @@ fobis introspect --all --write                             # one .fobis-info/int
 Sections: `--sources`, `--compiler`, `--dependencies`, `--targets` (the mode's program or library), `--include-dirs`,
 `--buildoptions` (with the qualified keys), `--projectinfo`, `--varsets`, `--all`; `--varset` and `--shadow` apply
 before resolving. A call with no section prints `{}`. `--compile-commands` prints the compilation database of the
-mode, alone ([Libraries and integration](./libraries)).
+mode, alone ([Libraries and other build systems](./libraries)).
 
 Two build options leave files to look at: `--log` writes `<build_dir>/build_<file>.log` (the dependencies of each
 built program), `--graph` its dependency graph (graphviz). `--verbose` is the most detailed output.
+
+## Name and version the project
+
+```ini
+[project]
+name       = quad
+summary    = Quadrature rules
+version    = VERSION
+repository = https://github.com/me/quad
+website    = https://me.github.io/quad
+email      = me@example.org
+year       = 2020
+authors    = Ada Fortran
+             Charles Babbage
+```
+
+Every key is optional; authors go one per line. `fobis introspect --projectinfo`, `fobis tree`, pkg-config files,
+`fobis fpm export` and `fobis scaffold` (`{{YEAR}}`, default the current year) read it.
+
+- **`version`** is a literal, or a file holding it: a path relative to the git repository root (outside a git
+  repository, next to the fobos). The result gets a leading `v` (`1.2.3` -> `v1.2.3`).
+- **Without `version`**, the latest git tag (`git describe --tags --abbrev=0`) is the version.
+- **Both set and different:** a warning names both and the two fixes (change the fobos, or tag).
