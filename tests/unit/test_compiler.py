@@ -4,6 +4,7 @@ import argparse
 
 import pytest
 
+from fobis.cli._constants import __compiler_supported__
 from fobis.Compiler import Compiler
 
 
@@ -154,6 +155,35 @@ def test_openmp_gnu_lflags():
 def test_openmp_intel_cflags():
     c = Compiler(_ns(compiler="intel", openmp=True))
     assert "-qopenmp" in c.cflags
+
+
+# ---------------------------------------------------------------------------
+# Feature flags — OpenMP offload (a family without a known flag raised TypeError: None joined to the flags)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("vendor", __compiler_supported__)
+def test_openmp_offload_never_breaks_the_flags(vendor):
+    switches = {"openmp": True, "openmp_offload": True, "coarray": True, "coverage": True, "profile": True}
+    c = Compiler(_ns(compiler=vendor, **switches), print_w=lambda message: None)  # custom raised IndexError too
+    assert "None" not in c.cflags and "None" not in c.lflags
+
+
+@pytest.mark.parametrize(("vendor", "flag"), [("intel_nextgen", "-fopenmp-targets=spir64"), ("nvfortran", "-mp=gpu")])
+def test_openmp_offload_known_flags(vendor, flag):
+    warnings = []
+    c = Compiler(_ns(compiler=vendor, openmp=True, openmp_offload=True), print_w=warnings.append)
+    assert flag in c.cflags.split() and flag in c.lflags.split() and not warnings
+
+
+def test_openmp_offload_unknown_flag_is_a_warning():
+    warnings = []
+    c = Compiler(_ns(compiler="gnu", openmp=True, openmp_offload=True), print_w=warnings.append)
+    assert c.cflags.split() == ["-c", "-fopenmp"]
+    assert warnings == [
+        "Warning: openmp_offload: no OpenMP offload flag is known for the gnu compiler; "
+        "add the target flags to cflags and lflags"
+    ]
 
 
 # ---------------------------------------------------------------------------

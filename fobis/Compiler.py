@@ -166,6 +166,11 @@ class Compiler:
         self.mpi = cliargs.mpi
         self.openmp = cliargs.openmp
         self.openmp_offload = cliargs.openmp_offload
+        if self.openmp_offload and self._openmp_offload is None:  # None: no flag known for this family
+            self.print_w(
+                f"Warning: openmp_offload: no OpenMP offload flag is known for the {self.compiler} compiler; "
+                "add the target flags to cflags and lflags"
+            )
         self.coarray = cliargs.coarray
         self.coverage = cliargs.coverage
         self.profile = cliargs.profile
@@ -332,6 +337,7 @@ class Compiler:
         self.modsw = "-module "
         self._mpi = "mpif90"
         self._openmp = ["-mp", "-mp"]
+        self._openmp_offload = "-mp=gpu"
         self._coarray = ["", ""]
         self._coverage = ["", ""]
         self._profile = ["-pg", "-pg"]
@@ -383,10 +389,12 @@ class Compiler:
         self.preproc = ""
         self.modsw = ""
         self._mpi = ""
-        self._openmp = ""
-        self._coarray = ""
-        self._coverage = ""
-        self._profile = ""
+        # (compile, link) pairs like every family's: a custom compiler's flags are all the user's own
+        self._openmp = ["", ""]
+        self._openmp_offload = ""
+        self._coarray = ["", ""]
+        self._coverage = ["", ""]
+        self._profile = ["", ""]
         return
 
     def _set_fcs(self):
@@ -411,9 +419,8 @@ class Compiler:
         if self.openmp:
             if self._openmp[0] != "":
                 self.cflags += " " + self._openmp[0]
-        if self.openmp_offload:
-            if self._openmp_offload != "":
-                self.cflags += " " + self._openmp_offload
+        if self.openmp_offload and self._openmp_offload:
+            self.cflags += " " + self._openmp_offload
         if self.coarray:
             if self._coarray[0] != "":
                 self.cflags += " " + self._coarray[0]
@@ -442,9 +449,8 @@ class Compiler:
         if self.openmp:
             if self._openmp[1] != "":
                 self.lflags += " " + self._openmp[1]
-        if self.openmp_offload:
-            if self._openmp_offload != "":
-                self.lflags += " " + self._openmp_offload
+        if self.openmp_offload and self._openmp_offload:
+            self.lflags += " " + self._openmp_offload
         if self.coarray:
             if self._coarray[1] != "":
                 self.lflags += " " + self._coarray[1]

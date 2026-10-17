@@ -105,9 +105,9 @@ A mode for nvfortran and an NVIDIA A30 (compute capability 8.0); the offload fla
   capability (`ccnative`: the GPUs of the build machine). `-gpu=mem:managed` puts allocatable data in managed memory,
   which hides missing data clauses: a code correct only with it can fail with `-gpu=mem:separate`. Device code uses
   FMA unless `-gpu=nofma`.
-- **ifx:** `openmp = True` with `openmp_offload = True` adds `-fopenmp-targets=spir64` (Intel GPUs).
-- **`openmp_offload = True` with any other compiler stops the build** with a Python `TypeError` in this version: write
-  the offload flags in `cflags` and `lflags`.
+- **`openmp_offload = True`** adds the offload flag to the compile and link flags: `-fopenmp-targets=spir64` for ifx
+  (Intel GPUs), `-mp=gpu` for nvfortran. Any other compiler gets a warning and no flag: write its offload flags in
+  `cflags` and `lflags`.
 - **gfortran:** `-fopenacc` offloads only with a gfortran built with an offload target; otherwise the regions run on
   the host.
 - **One mode for several compilers:** qualified keys (`cflags.nvfortran = -acc -gpu=cc80`): [Building](./build).
