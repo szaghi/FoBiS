@@ -133,8 +133,7 @@ fobis build -f fobos.intel      # a fobos with another name or path
 - **Key names are case-sensitive.** `--fci` makes them case-insensitive (values stay as written).
 - **Which section is used:** `--mode NAME` needs a `[modes]` section listing NAME. Without `[modes]` only
   `[default]` is read; a fobos with neither warns `fobos file has not "modes" section neither "default" one`.
-- **An unknown `--mode`** prints an error and the defined modes, and exits with status 0: a script cannot tell it
-  from a success.
+- **An unknown `--mode`** prints an error and the defined modes, and exits 1.
 
 ## Name and version the project
 

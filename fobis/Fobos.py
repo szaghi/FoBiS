@@ -805,7 +805,7 @@ class Fobos:
                     self.mode = mode
                 else:
                     self.print_w('Error: the mode "' + mode + '" is not defined into the fobos file.')
-                    self.modes_list()
+                    self.modes_list(exit_after=False)
                     sys.exit(1)
             else:
                 self.print_w('Error: fobos file has not "modes" section.')
@@ -1297,8 +1297,8 @@ class Fobos:
         else:
             return output
 
-    def modes_list(self) -> None:
-        """List defined modes."""
+    def modes_list(self, exit_after: bool = True) -> None:
+        """List defined modes, then exit 0 (the listing is the command), unless *exit_after* is False."""
         if self.fobos:
             self.print_n("The fobos file defines the following modes:")
             if self.fobos.has_option("modes", "modes"):
@@ -1313,8 +1313,8 @@ class Fobos:
             else:
                 self.print_w("Error: no modes are defined into the fobos file!")
                 sys.exit(1)
-        sys.exit(0)
-        return
+        if exit_after:
+            sys.exit(0)
 
     def get_project_info(self) -> dict[str, Any]:
         """
@@ -2154,14 +2154,16 @@ class Fobos:
             config["baseline"] = self.fobos.get("lint", "baseline").strip()
         return config
 
-    def rules_list(self, quiet: bool = False) -> None:
+    def rules_list(self, quiet: bool = False, exit_after: bool = True) -> None:
         """
-        Function for listing defined rules.
+        Function for listing defined rules, then exit 0 (the listing is the command).
 
         Parameters
         ----------
         quiet : {False}
           less verbose outputs than default
+        exit_after : {True}
+          False to return instead of exiting (the listing follows an error)
         """
         if self.fobos:
             self.print_n("The fobos file defines the following rules:")
@@ -2172,14 +2174,15 @@ class Fobos:
                     else:
                         helpmsg = ""
                     self.print_n('  - "' + rule.split("rule-")[1] + '" ' + helpmsg)
+                    rule_quiet = quiet  # a rule's own quiet key hides its commands only
                     if self.fobos.has_option(rule, "quiet"):
-                        quiet = self.fobos.getboolean(rule, "quiet")
+                        rule_quiet = self.fobos.getboolean(rule, "quiet")
                     for rul in self.fobos.options(rule):
                         if rul.startswith("rule"):
-                            if not quiet:
+                            if not rule_quiet:
                                 self.print_n("       Command => " + self.fobos.get(rule, rul))
-        sys.exit(0)
-        return
+        if exit_after:
+            sys.exit(0)
 
     def rule_execute(self, rule: str, quiet: bool = False, log: bool = False) -> None:
         """
@@ -2221,6 +2224,6 @@ class Fobos:
                     check_results(results=failed, log="rules_errors.log" if log else None, print_w=self.print_w)
             else:
                 self.print_w('Error: the rule "' + rule + '" is not defined into the fobos file. Defined rules are:')
-                self.rules_list(quiet=quiet)
+                self.rules_list(quiet=quiet, exit_after=False)
                 sys.exit(1)
         return

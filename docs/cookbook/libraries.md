@@ -285,10 +285,10 @@ fobis rule --execute dist           # --ex for short
   output is printed when all are done. Chain with `&&` in one command when a step depends on the previous one.
 - **`$variables`** of the fobos are substituted in the commands at execution (`fobis rule --list` shows them
   unsubstituted).
-- **`quiet = True`** hides the commands from the execution and the listing; **`log = True`** appends failed output
-  to `rules_errors.log`.
-- **An unknown rule** prints `Error: the rule "NAME" is not defined into the fobos file` and the list of rules, with
-  exit status 0: a script must not rely on the status.
+- **`quiet = True`** hides the rule's commands from the execution and the listing; **`log = True`** appends failed
+  output to `rules_errors.log`.
+- **An unknown rule** prints `Error: the rule "NAME" is not defined into the fobos file` and the list of rules, and
+  exits 1.
 
 ## Run rules before and after a build
 

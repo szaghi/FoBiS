@@ -32,10 +32,11 @@ def _ns(fobos_path, mode=None):
 
 
 def test_invalid_mode_exits(tmp_path):
-    """Requesting a non-existent mode causes SystemExit."""
+    """Requesting a non-existent mode exits 1 (the listing of the modes exited 0 before the error's exit)."""
     _write(tmp_path, "fobos", "[modes]\nmodes = gnu\n[gnu]\ncompiler = gnu\n")
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit) as exc:
         Fobos(cliargs=_ns(tmp_path / "fobos", mode="typo_mode"))
+    assert exc.value.code == 1
 
 
 # ---------------------------------------------------------------------------
@@ -44,15 +45,16 @@ def test_invalid_mode_exits(tmp_path):
 
 
 def test_unknown_rule_exits(tmp_path, monkeypatch):
-    """Executing an undefined rule name causes SystemExit."""
+    """Executing an undefined rule name exits 1."""
     _write(
         tmp_path,
         "fobos",
         "[default]\n[rules]\n[myrule]\nexecute = echo hello\n",
     )
     monkeypatch.chdir(tmp_path)
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit) as exc:
         run_fobis(fake_args=["rule", "-f", "fobos", "-ex", "nonexistent_rule_xyz"])
+    assert exc.value.code == 1
 
 
 # ---------------------------------------------------------------------------
@@ -61,15 +63,16 @@ def test_unknown_rule_exits(tmp_path, monkeypatch):
 
 
 def test_build_bad_mode_exits(tmp_path, monkeypatch):
-    """fobis build with an invalid --mode aborts with SystemExit."""
+    """fobis build with an invalid --mode exits 1."""
     _write(
         tmp_path,
         "fobos",
         "[modes]\nmodes = gnu\n[gnu]\ncompiler = gnu\nsrc = .\n",
     )
     monkeypatch.chdir(tmp_path)
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit) as exc:
         run_fobis(fake_args=["build", "-f", "fobos", "--mode", "bad_mode"])
+    assert exc.value.code == 1
 
 
 # ---------------------------------------------------------------------------
@@ -78,15 +81,27 @@ def test_build_bad_mode_exits(tmp_path, monkeypatch):
 
 
 def test_list_modes_exits(tmp_path, monkeypatch):
-    """--lmodes prints available modes then causes SystemExit."""
+    """--lmodes prints available modes then exits 0."""
     _write(
         tmp_path,
         "fobos",
         "[modes]\nmodes = gnu intel\n[gnu]\ncompiler = gnu\n[intel]\ncompiler = intel\n",
     )
     monkeypatch.chdir(tmp_path)
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit) as exc:
         run_fobis(fake_args=["build", "-f", "fobos", "--lmodes"])
+    assert exc.value.code == 0
+
+
+def test_a_quiet_rule_hides_its_own_commands_only(tmp_path, monkeypatch, capsys):
+    """rule --list: a rule's quiet key used to hide the commands of every rule listed after it."""
+    _write(tmp_path, "fobos", "[rule-silent]\nquiet = True\nrule = echo hidden\n\n[rule-loud]\nrule = echo shown\n")
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(SystemExit) as exc:
+        run_fobis(fake_args=["rule", "--list"])
+    out = capsys.readouterr()
+    assert exc.value.code == 0
+    assert "echo hidden" not in out.out + out.err and "Command => echo shown" in out.out + out.err
 
 
 # ---------------------------------------------------------------------------
