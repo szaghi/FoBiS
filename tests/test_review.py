@@ -115,6 +115,18 @@ def test_review_revision(repo):
         review_revision(base="no-such-branch")
 
 
+def test_an_untracked_file_is_reviewed(repo, capsys):
+    """A new file not yet added was invisible to the working-tree review (git diff HEAD does not list it)."""
+    (repo / "racy.f90").write_text(LEGACY.replace("legacy", "racy"))
+    scope = diff_scope(review_revision())
+    change = next(c for c in scope.changes if c.path == "racy.f90")
+    assert change.status == "?" and change.added == set(range(1, 9))
+    assert "+++ b/racy.f90" in scope.diffs["racy.f90"] and "+y = x" in scope.diffs["racy.f90"]
+    assert all(c.path != "racy.f90" for c in diff_scope(review_revision(staged=True)).changes)  # not staged
+    code, out = _run(["--select", "OMP"], capsys)
+    assert code == 1 and "racy.f90:5: OMP001" in out
+
+
 def test_review_revision_outside_git(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     with pytest.raises(ReviewError, match="not inside a git repository"):

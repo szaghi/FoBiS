@@ -319,8 +319,8 @@ The fix is `!$omp parallel do private(n)`; then:
 - **A changed directive counts its whole region as changed.** Removing `private(flux) reduction(+:total)` changes
   one line, yet the race on `flux` and the unprotected sum on `total` are on the lines below: the OpenMP/OpenACC
   region of a changed directive is reviewed as a whole.
-- **New files must be known to git.** The change is what `git diff` shows: an untracked file is not reviewed until
-  it is staged (or marked with `git add -N`).
+- **New files count:** without `--staged` or `--base`, a file git does not track yet (and does not ignore) is reviewed
+  as wholly added. `--staged` reviews only what is staged.
 - **Line numbers.** With `--staged` or `--base` the reviewed side is the index or `HEAD`, while the linter reads the
   files on disk: a reviewed file with other uncommitted changes gets a warning, its lines may not match.
 - **Exit status 1** when a warning or error is on the changed lines, a file cannot be read, the directory is not a

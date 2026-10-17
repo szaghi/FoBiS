@@ -241,6 +241,23 @@ def file_change(status: str, path: str, old: str, git: Git = _git, revision: Rev
     return change
 
 
+def untracked_files(git: Git = _git) -> list[str]:
+    """The files git does not track and does not ignore, relative to the top of the repository."""
+    return git("ls-files", "--others", "--exclude-standard", "--full-name", "--", ":(top)").splitlines()
+
+
+def untracked_change(path: str, git: Git = _git, revision: Revision = STAGED) -> FileChange:
+    """The facts of an untracked file of the working tree (status ``?``): every line is added."""
+    change = FileChange(path, "?", file_kind(path))
+    if not path.lower().endswith(FORTRAN_EXTENSIONS):
+        return change
+    text = revision.show("new", path, git)
+    change.added = set(range(1, len(text.splitlines()) + 1))
+    if change.added:
+        _side(text, path, change.added, change)
+    return change
+
+
 # ── scope candidates ───────────────────────────────────────────────────────────
 
 

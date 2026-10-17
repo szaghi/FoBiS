@@ -37,7 +37,17 @@ from typing import TYPE_CHECKING
 
 from ..analysis.regions import regions
 from ..llm.provider import messages
-from .change import WORKTREE, FileChange, Git, Revision, _git, file_change, staged_changes
+from .change import (
+    WORKTREE,
+    FileChange,
+    Git,
+    Revision,
+    _git,
+    file_change,
+    staged_changes,
+    untracked_change,
+    untracked_files,
+)
 from .deep import _rule_text
 from .grounding import ANSWER_TOKENS, ContextBundle, Grounded, Source, check_claims, claims_schema, load_prompt
 
@@ -95,12 +105,24 @@ class DiffScope:
 def diff_scope(revision: Revision, git: Git = _git) -> DiffScope:
     """The changed files and lines of *revision*."""
     changes = [file_change(status, path, old, git, revision) for status, path, old in staged_changes(git, revision)]
+    if revision.new == WORKTREE:  # a new file not yet added is part of the working tree's change too
+        tracked = {c.path for c in changes}
+        changes += [untracked_change(path, git, revision) for path in untracked_files(git) if path not in tracked]
     diffs = {
-        c.path: git("diff", "--no-color", *revision.diff, "-U2", "-M", "--", f":(top){c.path}")
+        c.path: _untracked_diff(c.path, revision, git)
+        if c.status == "?"
+        else git("diff", "--no-color", *revision.diff, "-U2", "-M", "--", f":(top){c.path}")
         for c in changes
         if c.lines
     }
     return DiffScope(revision, changes, diffs)
+
+
+def _untracked_diff(path: str, revision: Revision, git: Git) -> str:
+    """The diff of a new, untracked file, as git prints one added file (``git diff`` does not show it)."""
+    lines = revision.show("new", path, git).splitlines()
+    head = f"diff --git a/{path} b/{path}\nnew file\n--- /dev/null\n+++ b/{path}\n@@ -0,0 +1,{len(lines)} @@\n"
+    return head + "".join(f"+{line}\n" for line in lines)
 
 
 def effective_lines(scope: DiffScope, result: LintResult) -> dict[str, set[int]]:
