@@ -147,9 +147,11 @@ class Cleaner:
             if os.path.exists(os.path.join(self.build_dir, exe)):
                 self.print_w("Removing " + os.path.join(self.build_dir, exe))
                 os.remove(os.path.join(self.build_dir, exe))
-            if os.path.exists("build_" + os.path.splitext(os.path.basename(self.target))[0] + ".log"):
-                self.print_w("Removing build_" + os.path.splitext(os.path.basename(self.target))[0] + ".log")
-                os.remove("build_" + os.path.splitext(os.path.basename(self.target))[0] + ".log")
+            # the build log is written in the build directory (ParsedFile.save_build_log), not in the current one
+            log = os.path.join(self.build_dir, "build_" + os.path.splitext(os.path.basename(self.target))[0] + ".log")
+            if os.path.exists(log):
+                self.print_w("Removing " + log)
+                os.remove(log)
             if os.path.exists("dependency_graph_" + os.path.splitext(os.path.basename(self.target))[0] + ".svg"):
                 self.print_w("Removing dependency_graph_" + os.path.splitext(os.path.basename(self.target))[0] + ".svg")
                 os.remove("dependency_graph_" + os.path.splitext(os.path.basename(self.target))[0] + ".svg")

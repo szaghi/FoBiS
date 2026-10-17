@@ -541,7 +541,8 @@ fobis clean --only-target       # the program, keep the objects
 - **The program is removed only when there is a target** (the mode's `target`, or `--target`): without one, as in a
   build with no fobos, the programs stay (see the tutorial's
   [cleaning](/tutorial/first-steps/01-first-build#cleaning)).
-- **Also removed:** `<build_dir>/.cflags.heritage` and the compilation database with its root link. The compiler
+- **Also removed:** the target's build log (`<build_dir>/build_<file>.log`), `<build_dir>/.cflags.heritage` and the
+  compilation database with its root link. The compiler
   record and a `.<target>.cflags.heritage` stay.
 - `--only-obj` and `--only-target` exclude each other.
 
