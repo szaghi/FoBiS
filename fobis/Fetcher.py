@@ -61,6 +61,7 @@ class Fetcher:
         self.deps_dir = deps_dir
         self.print_n = print_n if print_n is not None else print_fake
         self.print_w = print_w if print_w is not None else print_fake
+        self.failures: list[str] = []  # one line per dependency step that failed: fetch exits 1 when any did
 
     def parse_dep_spec(self, spec: str) -> dict[str, str]:
         """
@@ -370,12 +371,14 @@ class Fetcher:
             result = syswork("git clone " + url + " " + dep_dir)
             if result[0] != 0:
                 self.print_w("Error cloning " + name + ":\n" + result[1])
+                self.failures.append(f"{name}: clone failed")
                 return dep_dir, ""
         elif update:
             self.print_n("Updating " + name)
             result = syswork("git -C " + dep_dir + " fetch")
             if result[0] != 0:
                 self.print_w("Error fetching updates for " + name + ":\n" + result[1])
+                self.failures.append(f"{name}: update failed")
         else:
             self.print_n("Dependency " + name + " already fetched (use --update to refresh)")
 
@@ -384,6 +387,7 @@ class Fetcher:
             result = syswork("git -C " + dep_dir + " checkout " + frozen_commit)
             if result[0] != 0:
                 self.print_w("Error checking out frozen commit " + frozen_commit + " for " + name + ":\n" + result[1])
+                self.failures.append(f"{name}: checkout of the locked commit {frozen_commit} failed")
         else:
             ref = tag or branch or rev
             if ref:
@@ -391,22 +395,25 @@ class Fetcher:
                 result = syswork("git -C " + dep_dir + " checkout " + ref)
                 if result[0] != 0:
                     self.print_w("Error checking out " + ref + " for " + name + ":\n" + result[1])
+                    self.failures.append(f"{name}: checkout of {ref} failed")
                 elif update and branch and not (tag or rev):
                     # checkout of an existing local branch does not move it to the fetched remote head
                     result = syswork("git -C " + dep_dir + " merge --ff-only origin/" + branch)
                     if result[0] != 0:
                         self.print_w("Error merging updates for " + name + ":\n" + result[1])
+                        self.failures.append(f"{name}: update failed")
             elif update:
                 result = syswork("git -C " + dep_dir + " merge --ff-only")
                 if result[0] != 0:
                     self.print_w("Error merging updates for " + name + ":\n" + result[1])
+                    self.failures.append(f"{name}: update failed")
 
         # Record resolved HEAD commit
         sha_result = syswork("git -C " + dep_dir + " rev-parse HEAD")
         commit_sha = sha_result[1].strip() if sha_result[0] == 0 else ""
         return dep_dir, commit_sha
 
-    def build_dep(self, name: str, dep_dir: str, mode: str | None = None) -> None:
+    def build_dep(self, name: str, dep_dir: str, mode: str | None = None) -> bool:
         """
         Build a dependency using FoBiS.py build.
 
@@ -418,11 +425,17 @@ class Fetcher:
           path to the dependency directory
         mode : {None}
           fobos mode to use for building
+
+        Returns
+        -------
+        bool
+          True when the dependency was built (a failure is also recorded in ``failures``)
         """
         fobos_file = os.path.join(dep_dir, "fobos")
         if not os.path.exists(fobos_file):
             self.print_w('Error: dependency "' + name + '" has no fobos file in ' + dep_dir)
-            return
+            self.failures.append(f"{name}: no fobos file to build it with (use=fobos)")
+            return False
         self.print_n("Building dependency " + name)
         old_pwd = os.getcwd()
         os.chdir(dep_dir)
@@ -430,8 +443,10 @@ class Fetcher:
         os.chdir(old_pwd)
         if result[0] != 0:
             self.print_w("Error building " + name + ":\n" + result[1])
-        else:
-            self.print_n(result[1])
+            self.failures.append(f"{name}: build failed")
+            return False
+        self.print_n(result[1])
+        return True
 
     def save_config(self, deps_info: list[dict[str, Any]]) -> None:
         """
@@ -534,13 +549,17 @@ class Fetcher:
         if name.endswith(".git"):
             name = name[:-4]
         dep_dir, _commit = self.fetch(name, url, branch=branch, tag=tag, rev=rev, update=update)
+        if not os.path.isdir(dep_dir):  # not cloned: the failure is recorded
+            return
         if no_build:
             self.print_n("Cloned " + name + " to " + dep_dir + " (--no-build: skipping build and install)")
             return
-        self._build_dep_tracked(name, dep_dir, mode=mode)
-        self._install_artifacts(dep_dir, prefix, bin_dir, lib_dir, include_dir)
+        if self._build_dep_tracked(name, dep_dir, mode=mode) and not self._install_artifacts(
+            dep_dir, prefix, bin_dir, lib_dir, include_dir
+        ):
+            self.failures.append(f"{name}: nothing installed (no .track_build file names an existing artifact)")
 
-    def _build_dep_tracked(self, name: str, dep_dir: str, mode: str | None = None) -> None:
+    def _build_dep_tracked(self, name: str, dep_dir: str, mode: str | None = None) -> bool:
         """
         Build a dependency using 'fobis build --track_build'.
 
@@ -552,11 +571,17 @@ class Fetcher:
           path to the dependency directory
         mode : {None}
           fobos mode to use for building
+
+        Returns
+        -------
+        bool
+          True when the build succeeded (a failure is also recorded in ``failures``)
         """
         fobos_file = os.path.join(dep_dir, "fobos")
         if not os.path.exists(fobos_file):
             self.print_w('Error: "' + name + '" has no fobos file in ' + dep_dir)
-            return
+            self.failures.append(f"{name}: no fobos file to build it with")
+            return False
         self.print_n("Building " + name + " (with --track_build)")
         old_pwd = os.getcwd()
         os.chdir(dep_dir)
@@ -567,10 +592,12 @@ class Fetcher:
         os.chdir(old_pwd)
         if result[0] != 0:
             self.print_w("Error building " + name + ":\n" + result[1])
-        else:
-            self.print_n(result[1])
+            self.failures.append(f"{name}: build failed")
+            return False
+        self.print_n(result[1])
+        return True
 
-    def _install_artifacts(self, dep_dir: str, prefix: str, bin_dir: str, lib_dir: str, include_dir: str) -> None:
+    def _install_artifacts(self, dep_dir: str, prefix: str, bin_dir: str, lib_dir: str, include_dir: str) -> bool:
         """
         Scan dep_dir for .track_build files and copy artifacts to the prefix.
 
@@ -586,7 +613,17 @@ class Fetcher:
           sub-directory under prefix for libraries
         include_dir : str
           sub-directory under prefix for module/include files
+
+        Returns
+        -------
+        bool
+          True when something was installed
         """
+
+        def built(path: str) -> str:
+            # the build ran in dep_dir: a relative path in a .track_build is relative to it, not to the caller
+            return path if os.path.isabs(path) else os.path.join(dep_dir, path)
+
         installed_any = False
         for root, _, files in os.walk(dep_dir):
             for filename in files:
@@ -596,7 +633,7 @@ class Fetcher:
                 track_file.read(os.path.join(root, filename))
                 if not track_file.has_option("build", "output"):
                     continue
-                output = track_file.get("build", "output")
+                output = built(track_file.get("build", "output"))
                 if not os.path.exists(output):
                     continue
                 is_program = track_file.has_option("build", "program") and track_file.get("build", "program")
@@ -614,7 +651,7 @@ class Fetcher:
                     shutil.copy(output, dest)
                     installed_any = True
                     if track_file.has_option("build", "mod_file"):
-                        mod_file = track_file.get("build", "mod_file")
+                        mod_file = built(track_file.get("build", "mod_file"))
                         inc_dest = os.path.join(prefix, include_dir)
                         os.makedirs(inc_dest, exist_ok=True)
                         self.print_n('Installing "' + mod_file + '" -> "' + inc_dest + '"')
@@ -623,6 +660,7 @@ class Fetcher:
             self.print_w(
                 "No installable artifacts found. Ensure the project fobos uses --track_build or check the fobos mode."
             )
+        return installed_any
 
     def _compute_sha256(self, dep_dir: str) -> str:
         """

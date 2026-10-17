@@ -295,105 +295,37 @@ def run_fobis_clean_json(configuration):
         sys.exit(exit_code)
 
 
-def run_fobis_fetch_json(configuration):
-    """Run FoBiS fetch and emit a structured JSON result to stdout.
+def _fetch_dependencies(configuration, fetcher, print_n, print_w) -> list[dict] | None:
+    """
+    Fetch the dependencies of the fobos, build the ``use=fobos`` ones, write the deps config and the lock.
+
+    Every failure of a dependency (clone, update, checkout, build) is recorded in ``fetcher.failures`` and the others
+    are still fetched: the caller decides the exit status. A wrong specification exits 2, ``--frozen`` without a lock
+    and a missing path dependency exit 1.
 
     Parameters
     ----------
     configuration : FoBiSConfig()
+    fetcher : Fetcher
+    print_n, print_w : callable
+      printers of messages and errors
+
+    Returns
+    -------
+    list[dict] or None
+      the dependencies recorded in the deps config; None when the fobos has no [dependencies] section
     """
-    import io
-    import json
-
-    from .Fetcher import Fetcher
-
-    collector = _JsonCollector()
-
-    old_stderr = sys.stderr
-    sys.stderr = io.StringIO()
-    exit_code = 0
-    deps_info: list[dict] = []
-    try:
-        deps_dir = configuration.cliargs.deps_dir or configuration.fobos.get_deps_dir()
-        fetcher = Fetcher(deps_dir=deps_dir, print_n=collector.print_n, print_w=collector.print_w)
-        deps = configuration.fobos.get_dependencies()
-        if deps:
-            for name, spec in deps.items():
-                try:
-                    parsed = fetcher.parse_dep_spec(spec)
-                except ValueError as error:
-                    raise ValueError(
-                        f"[dependencies] {name}: {str(error).removeprefix('Dependency spec error: ')}"
-                    ) from None
-                use_mode = parsed.get("use", "sources")
-                if "path" in parsed:  # a local directory: checked, never cloned
-                    dep_path = fetcher.resolve_path(parsed["path"], configuration.fobos.filename)
-                    if not os.path.isdir(dep_path):
-                        collector.print_w(f"Error: path dependency '{name}': directory {dep_path} not found")
-                        sys.exit(1)
-                    if not configuration.cliargs.no_build and use_mode == "fobos":
-                        fetcher.build_dep(name, dep_path, mode=parsed.get("mode"))
-                    deps_info.append({"name": name, "path": dep_path, "use": use_mode, "local": True})
-                    continue
-                dep_path, _commit = fetcher.fetch(
-                    name,
-                    parsed["url"],
-                    branch=parsed.get("branch"),
-                    tag=parsed.get("tag"),
-                    rev=parsed.get("rev"),
-                    update=configuration.cliargs.update,
-                )
-                if not configuration.cliargs.no_build and use_mode == "fobos":
-                    fetcher.build_dep(name, dep_path, mode=parsed.get("mode"))
-                deps_info.append({"name": name, "path": dep_path, "use": use_mode})
-            fetcher.save_config(deps_info)
-    except SystemExit as exc:
-        exit_code = exc.code if isinstance(exc.code, int) else 1
-    except ValueError as exc:  # a wrong dependency spec
-        collector.print_w(f"Error: {exc}")
-        exit_code = 2
-    finally:
-        stderr_text = sys.stderr.getvalue()
-        sys.stderr = old_stderr
-
-    errors = list(collector.warnings)
-    if stderr_text.strip():
-        errors.extend(stderr_text.strip().splitlines())
-
-    result = {
-        "status": "ok" if exit_code == 0 else "error",
-        "deps_dir": str(getattr(configuration.cliargs, "deps_dir", None) or configuration.fobos.get_deps_dir()),
-        "dependencies": deps_info,
-        "errors": errors,
-    }
-    print(json.dumps(result, indent=2))
-    if exit_code != 0:
-        sys.exit(exit_code)
-
-
-def run_fobis_fetch(configuration):
-    """
-    Run FoBiS in fetch mode: clone/update and optionally build GitHub dependencies.
-
-    Parameters
-    ----------
-    configuration : FoBiSConfig()
-    """
-    from .Fetcher import Fetcher
-
-    deps_dir = configuration.cliargs.deps_dir or configuration.fobos.get_deps_dir()
+    deps_dir = fetcher.deps_dir
     frozen = getattr(configuration.cliargs, "frozen", False)
-    fetcher = Fetcher(deps_dir=deps_dir, print_n=configuration.print_b, print_w=configuration.print_r)
     deps = configuration.fobos.get_dependencies()
     if not deps:
-        configuration.print_r("No [dependencies] section found in fobos file")
-        return
+        return None
 
     # Load existing lock file for frozen mode or verification
     lock = fetcher.load_lock()
 
     if frozen and not lock:
-        configuration.print_r(
+        print_w(
             "Error: --frozen requires fobos.lock to be present but none was found. "
             "Run 'fobis fetch' first to generate it."
         )
@@ -406,12 +338,12 @@ def run_fobis_fetch(configuration):
         try:
             parsed = fetcher.parse_dep_spec(spec)
         except ValueError as error:
-            configuration.print_r(f"Error: [dependencies] {name}: {str(error).removeprefix('Dependency spec error: ')}")
+            print_w(f"Error: [dependencies] {name}: {str(error).removeprefix('Dependency spec error: ')}")
             sys.exit(2)
         use_mode = parsed.get("use", "sources")
         dev = parsed.get("dev") == "true"
         if dev and no_dev:  # a test-only dependency, not wanted: its lock entry (if any) is kept as it was
-            configuration.print_b(f"{name}: test-only dependency, skipped (--no-dev)")
+            print_n(f"{name}: test-only dependency, skipped (--no-dev)")
             if name in lock:
                 lock_entries.append({"name": name, **lock[name]})
             clone = os.path.join(deps_dir, name)
@@ -424,12 +356,12 @@ def run_fobis_fetch(configuration):
         if "path" in parsed:  # a local directory: nothing to clone, the build reads it from the fobos
             dep_path = fetcher.resolve_path(parsed["path"], configuration.fobos.filename)
             if not os.path.isdir(dep_path):
-                configuration.print_r(f"Error: path dependency '{name}': directory {dep_path} not found")
+                print_w(f"Error: path dependency '{name}': directory {dep_path} not found")
                 sys.exit(1)
             state = fetcher.path_state(dep_path)
             if frozen:  # expected to change: a mismatch is reported, never an error
                 fetcher.check_path_lock(name, state, lock)
-            configuration.print_b(f"{name}: path dependency {dep_path}")
+            print_n(f"{name}: path dependency {dep_path}")
             if not configuration.cliargs.no_build and use_mode == "fobos":
                 fetcher.build_dep(name, dep_path, mode=parsed.get("mode"))
             deps_info.append(
@@ -451,7 +383,7 @@ def run_fobis_fetch(configuration):
             # In frozen mode: use locked resolved tag
             if frozen and name in lock and lock[name].get("resolved"):
                 resolved_tag = lock[name]["resolved"]
-                configuration.print_b(f"[frozen] {name}: using locked resolved tag {resolved_tag}")
+                print_n(f"[frozen] {name}: using locked resolved tag {resolved_tag}")
                 parsed["tag"] = resolved_tag
             elif not configuration.cliargs.update and name in lock and lock[name].get("resolved"):
                 parsed["tag"] = lock[name]["resolved"]
@@ -479,6 +411,11 @@ def run_fobis_fetch(configuration):
         if lock and not frozen and not configuration.cliargs.update:
             fetcher.verify_lock(name, dep_path, lock)
 
+        if not commit_sha:  # not cloned (the failure is recorded): nothing to build, the old lock entry kept
+            if name in lock:
+                lock_entries.append({"name": name, **lock[name]})
+            continue
+
         if not configuration.cliargs.no_build and use_mode == "fobos":
             fetcher.build_dep(name, dep_path, mode=parsed.get("mode"))
 
@@ -502,6 +439,82 @@ def run_fobis_fetch(configuration):
     # Write / update lock file (not in frozen mode)
     if not frozen:
         fetcher.save_lock(lock_entries)
+    return deps_info
+
+
+def _fetch_failed(fetcher, print_w) -> bool:
+    """Print the dependencies that failed, if any; True when one did."""
+    if not fetcher.failures:
+        return False
+    print_w(f"Error: {len(fetcher.failures)} dependency step(s) failed:")
+    for failure in fetcher.failures:
+        print_w(f"  {failure}")
+    return True
+
+
+def run_fobis_fetch_json(configuration):
+    """Run FoBiS fetch and emit a structured JSON result to stdout.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    import io
+    import json
+
+    from .Fetcher import Fetcher
+
+    collector = _JsonCollector()
+
+    old_stderr = sys.stderr
+    sys.stderr = io.StringIO()
+    exit_code = 0
+    deps_info: list[dict] = []
+    deps_dir = configuration.cliargs.deps_dir or configuration.fobos.get_deps_dir()
+    fetcher = Fetcher(deps_dir=deps_dir, print_n=collector.print_n, print_w=collector.print_w)
+    try:
+        deps_info = _fetch_dependencies(configuration, fetcher, collector.print_n, collector.print_w) or []
+        if fetcher.failures:
+            exit_code = 1
+    except SystemExit as exc:
+        exit_code = exc.code if isinstance(exc.code, int) else 1
+    finally:
+        stderr_text = sys.stderr.getvalue()
+        sys.stderr = old_stderr
+
+    errors = list(collector.warnings)
+    if stderr_text.strip():
+        errors.extend(stderr_text.strip().splitlines())
+
+    result = {
+        "status": "ok" if exit_code == 0 else "error",
+        "deps_dir": str(deps_dir),
+        "dependencies": deps_info,
+        "failures": fetcher.failures,
+        "errors": errors,
+    }
+    print(json.dumps(result, indent=2))
+    if exit_code != 0:
+        sys.exit(exit_code)
+
+
+def run_fobis_fetch(configuration):
+    """
+    Run FoBiS in fetch mode: clone/update and optionally build GitHub dependencies.
+
+    Parameters
+    ----------
+    configuration : FoBiSConfig()
+    """
+    from .Fetcher import Fetcher
+
+    deps_dir = configuration.cliargs.deps_dir or configuration.fobos.get_deps_dir()
+    fetcher = Fetcher(deps_dir=deps_dir, print_n=configuration.print_b, print_w=configuration.print_r)
+    if _fetch_dependencies(configuration, fetcher, configuration.print_b, configuration.print_r) is None:
+        configuration.print_r("No [dependencies] section found in fobos file")
+        return
+    if _fetch_failed(fetcher, configuration.print_r):
+        sys.exit(1)
 
 
 def run_fobis_commit(configuration):
@@ -986,6 +999,8 @@ def run_fobis_install(configuration):
             lib_dir=configuration.cliargs.lib,
             include_dir=configuration.cliargs.include,
         )
+        if _fetch_failed(fetcher, configuration.print_r):
+            sys.exit(1)
         return
 
     if not os.path.exists(configuration.cliargs.build_dir):

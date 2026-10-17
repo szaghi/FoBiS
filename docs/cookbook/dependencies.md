@@ -319,8 +319,8 @@ own tracked build: see [Libraries](./libraries).
   without that mode stops the command.
 - **An installed project is yours to manage:** nothing records it, and `fetch` is the tool for build-time
   dependencies of a project.
-- **Known defect (3.9.11):** the copy looks for the tracked files from the current directory, not from the clone,
-  so a project whose mode has a relative `build_dir` installs nothing (`No installable artifacts found`, exit 0).
+- **A failure exits 1:** a clone or build that fails, or a build that tracked nothing to install
+  (`No installable artifacts found`), ends the command with the list of failures and exit 1.
 
 ## A cluster without internet
 
@@ -361,12 +361,12 @@ fobis tree --json
 fobis introspect --dependencies
 ```
 
-`fetch --json` prints one document (`status`, `deps_dir`, `dependencies`, `errors`) and exits 2 on a wrong
-specification, 1 on a missing path dependency.
+`fetch --json` runs the same fetch as `fobis fetch` (semver ranges, `--frozen`, `--no-dev`, the lock) and prints one
+document: `status`, `deps_dir`, `dependencies`, `failures` (one line per dependency that could not be cloned, checked
+out at its pin or built) and `errors` (the messages).
 
-- **`fetch --json` is a reduced fetch (3.9.11):** it clones at `tag=`/`branch=`/`rev=`, but ignores `semver=` (the
-  default branch is cloned), `--frozen` and `--no-dev`, and writes no lock. Use plain `fobis fetch` in CI.
-- **A failed clone or dependency build does not fail `fetch`:** the git or build error is printed and the exit
-  status stays 0; the build that follows fails. Check the output, or run `fobis check` after fetching.
+- **A dependency that fails fails the fetch:** a clone, an update, a checkout of the pin or a `use=fobos` build that
+  fails is reported, the other dependencies are still fetched, and `fetch` ends with the list of failures and exit 1.
+  A dependency that was not cloned keeps its previous lock entry, if any. A wrong specification exits 2.
 - **Cache `.fobis_deps/`** between CI runs keyed on the fobos, and run `fobis fetch --frozen` on a cache hit. More in
   [Continuous integration](./ci).

@@ -258,6 +258,8 @@ FoBiS.py build             # auto-reads .fobis_deps/.deps_config.ini:
 
 **Lock file (user decision 2026-10-14):** `fobos.lock` lives in `<deps_dir>/` with the fetched deps and is NOT committed (the deps dir is git-ignored): it records what THIS checkout fetched; cross-checkout reproducibility comes from the fobos pins (`tag=`/`rev=`). `--frozen` checks every dep out at its locked commit (semver: locked `resolved` tag), aborts without a lock, never rewrites it: for checkouts that keep `.fobis_deps/`, not for a fresh CI checkout. A non-frozen fetch warns when a dep's HEAD differs from the lock.
 
+**Failures (2026-10-16):** `Fetcher.failures` collects one line per failed step (clone, update, checkout of the pin or the locked commit, a `use=fobos` dependency without a fobos or whose build fails; for `install REPO` also nothing installed); `fetch` and `install REPO` fetch every dependency, then print the list and exit 1 (before: exit 0). A dependency not cloned keeps its previous lock entry and gets no deps-config entry. `fetch --json` and plain `fetch` share `_fetch_dependencies` (before: a reduced copy ignoring semver/--frozen/--no-dev, writing no lock); the JSON has `failures`. `install REPO` resolves the `.track_build` paths against the clone (it installed nothing for a relative `build_dir`). Tests `tests/test_fetch_failures.py`.
+
 **Storage:** deps are cloned into `deps_dir/<name>/` (default `.fobis_deps/`); `deps_dir` can be set in fobos `[dependencies]` section or via `--deps-dir` CLI flag (CLI takes precedence). The generated `.deps_config.ini` has a `src` key for source-mode deps and a `dependon` key for fobos-mode deps.
 
 ### install command (GitHub mode)
