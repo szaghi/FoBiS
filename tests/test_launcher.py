@@ -123,8 +123,10 @@ def test_ranks_on_a_login_node_are_refused(project, capsys):
     config = project / "xdg" / "fobis"
     config.mkdir(parents=True)
     (config / "config.ini").write_text(f"[scheduler]\nlogin_nodes = {platform.node()}\n")
-    code, out = _run(["run", "--ranks", "2"], capsys)
-    assert code == 2 and "login node" in out and "--runner slurm" in out
+    code, out = _run(["run", "--ranks", "2"], capsys)  # run has no --runner: it was told to use one
+    assert code == 2 and "login node" in out and "run it on a compute node (inside salloc, or a batch job)" in out
+    code, out = _run(["test", "--ranks", "2"], capsys)
+    assert code == 2 and "run it through the scheduler with --runner slurm" in out
     assert _fobis(["run", "--launcher", "wrap"], project).returncode == 0  # no ranks: a debugger is fine
 
 

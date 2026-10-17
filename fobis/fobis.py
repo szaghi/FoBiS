@@ -2494,7 +2494,13 @@ def _program_launcher(configuration, command: str) -> tuple[list[str], int]:
             sys.exit(2)
         host = on_login_node(_scheduler_config(configuration)) if ranks else ""
         if host:
-            configuration.print_r("Error: " + guard_message(host).replace("an MPI or GPU case", "an MPI program"))
+            message = guard_message(host).replace("an MPI or GPU case", "an MPI program")
+            if command == "run":  # fobis run has no --runner: the program belongs on a compute node
+                message = message.split(": run it")[0] + (
+                    ": run it on a compute node (inside salloc, or a batch job), or declare it as a case for"
+                    " fobis case run --runner slurm"
+                )
+            configuration.print_r("Error: " + message)
             sys.exit(2)
     return words, ranks
 

@@ -259,9 +259,9 @@ On a host matching `login_nodes`, a case with `ranks` or `gpus` is not run local
 
 - **Cases** (`case run`, `verify`, `assess`, `bench`, `diff-run`, `profile`) get the status `error` with this message,
   and the command exits 1.
-- **`fobis run --ranks` and `fobis test --ranks`** stop before building, with exit 2 and the same message for "an MPI
-  program". `fobis test --runner slurm` is accepted; `fobis run` cannot be submitted (the message names
-  `--runner slurm` all the same).
+- **`fobis run --ranks` and `fobis test --ranks`** stop before building, with exit 2. `fobis test --runner slurm` is
+  accepted; `fobis run` cannot be submitted, and its message says to run it on a compute node (inside `salloc`, or a
+  batch job) or to declare it as a case.
 - **Serial runs still run locally:** a small check on the login node is usually allowed; MPI and GPU runs are what
   cluster policies forbid. A launcher without `--ranks` (valgrind, gdb) is not refused.
 
