@@ -949,6 +949,9 @@ class Fobos:
             varset_arg: str | None = None
             if cliargs is not None:
                 varset_arg = getattr(cliargs, "varset", None) or None
+            if varset_arg is None and self.mode and self.fobos.has_option(self.mode, "varset"):
+                # the mode's own varset key: read here, since the variables are substituted before the mode's keys
+                varset_arg = self.fobos.get(self.mode, "varset").strip() or None
             if varset_arg is None:
                 # Fall back to fobos-declared default (if any).
                 default_varsets = self._get_default_varsets()
@@ -1521,6 +1524,12 @@ class Fobos:
                 return self.fobos.get("features", "default").split()
         return []
 
+    def _mode_flag(self, key: str) -> bool:
+        """The active mode's boolean *key* (False when absent); for keys a dedicated phase reads, not the auto-copy."""
+        if not self.fobos or not self.mode or not self.fobos.has_option(self.mode, key):
+            return False
+        return self.fobos.get(self.mode, key).strip().lower() in ("true", "1", "yes", "on")
+
     def _get_mode_features(self) -> list[str]:
         """
         Return the space-split list of features declared on the active mode.
@@ -1672,7 +1681,7 @@ class Fobos:
         features_map = {name: meta.flags for name, meta in metadata.items() if meta.flags}
         default_features = self.get_default_features() if (self.fobos and self.fobos.has_section("features")) else []
 
-        no_default = getattr(cliargs, "no_default_features", False)
+        no_default = getattr(cliargs, "no_default_features", False) or self._mode_flag("no_default_features")
         requested_raw = getattr(cliargs, "features", "") or ""
         requested_names = [n.strip() for n in requested_raw.replace(",", " ").split() if n.strip()]
 

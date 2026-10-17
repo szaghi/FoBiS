@@ -341,9 +341,8 @@ fobis introspect --varsets                       # every varset, its bindings an
 
 - **A varset's variables apply only when it is selected**, by `--varset` or by `[varsets] default` (a list too).
   They override the global variables of the same name.
-- **`--varset` replaces the default**, it does not add to it.
-- **The mode key `varset` is not applied** (the variables are substituted before the mode's keys are read): select
-  varsets with `--varset` or `[varsets] default`.
+- **Which varsets apply:** `--varset`, else the mode's `varset` key, else `[varsets] default`; each replaces the
+  next, it does not add to it.
 - **Errors and warnings:** an undefined varset (on the command line or as the default) stops the build (exit 1) and
   lists the defined ones; a key without `$` is ignored with a warning; a varset whose keys all lack the `$`, a
   warning.
@@ -403,7 +402,7 @@ fobis build --no-default-features               # ignore [features] default
 - **Composites:** `prod = @release @hdf5 -DEXTRA` activates both features and adds its own flag. Only `@NAME`
   refers to a feature; a cycle is ignored with a warning.
 - **Unknown names** and a `-NAME` matching no active feature give a warning, not an error.
-- **The mode's `no_default_features` is not read**: only the command-line `--no-default-features` drops the default.
+- **Dropping the default features:** `--no-default-features`, or `no_default_features = True` in the mode.
 
 Constraints between features, in sections of their own:
 

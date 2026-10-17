@@ -222,6 +222,27 @@ def test_varset_overrides_plain_variable():
         assert "/opt/hdf5" not in cliargs.cflags
 
 
+def test_mode_varset_key_selects_the_varset():
+    """A mode's own varset key applies (the variables used to be substituted before it was read); --varset wins."""
+    with tempfile.TemporaryDirectory() as root:
+        content = (
+            "[varset:leonardo]\n"
+            "$O = -O3\n\n"
+            "[varset:debug]\n"
+            "$O = -O0\n\n"
+            "[default]\n"
+            "compiler = Gnu\n"
+            "varset   = leonardo\n"
+            "cflags   = -c $O\n"
+            "lflags   =\n"
+            "build_profile =\n"
+        )
+        _fobos, cliargs = _make_fobos(root, content)
+        assert cliargs.cflags.split() == ["-c", "-O3"]
+        _fobos, cliargs = _make_fobos(root, content, {"varset": "debug"})
+        assert cliargs.cflags.split() == ["-c", "-O0"]
+
+
 def test_varset_substitutes_into_libs_lib_dir_include():
     """The adam-style use case: cluster paths swapped via --varset.
 

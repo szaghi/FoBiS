@@ -85,6 +85,24 @@ def test_features_no_default():
         assert "-DUSE_MPI" not in cliargs.cflags
 
 
+def test_mode_no_default_features_key():
+    """A mode's no_default_features = True drops the default features (the key used to be ignored)."""
+    with tempfile.TemporaryDirectory() as root:
+        content = (
+            "[features]\n"
+            "default = mpi\n"
+            "mpi     = -DUSE_MPI\n\n"
+            "[default]\n"
+            "compiler = Gnu\n"
+            "cflags   = -c\n"
+            "lflags   =\n"
+            "build_profile =\n"
+            "no_default_features = True\n"
+        )
+        _fobos, cliargs = _make_fobos(root, content)
+        assert "-DUSE_MPI" not in cliargs.cflags
+
+
 def test_features_explicit():
     """--features hdf5 must add -DUSE_HDF5 even when not in default."""
     with tempfile.TemporaryDirectory() as root:
