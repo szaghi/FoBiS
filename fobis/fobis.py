@@ -661,7 +661,9 @@ def run_fobis_build(configuration):
     examples_flag = getattr(cliargs, "examples", False)
     target_filter = getattr(cliargs, "target_filter", [])
 
-    if multi_targets:
+    # examples without [target.*] sections: built here, then the mode's own build below (--examples did nothing)
+    examples_only = not multi_targets and examples_flag and bool(example_targets)
+    if multi_targets or examples_only:
         # Validate: mode-level 'target' and [[target.*]] sections are mutually exclusive
         if cliargs.target and multi_targets:
             configuration.print_r(
@@ -676,7 +678,7 @@ def run_fobis_build(configuration):
 
         if target_filter:
             all_build_targets = [t for t in all_build_targets if t["name"] in target_filter]
-            if not all_build_targets:
+            if not all_build_targets and not examples_only:
                 configuration.print_r(f"Error: no targets match filter {target_filter}")
                 sys.exit(1)
 
@@ -731,7 +733,8 @@ def run_fobis_build(configuration):
                         fobos.rule_execute(rule_name)
                     break
         compiler_record()
-        return
+        if not examples_only or target_filter:  # the examples asked for alone, or the [target.*] build: done
+            return
 
     # Standard (single-target) build path
     builder = Builder(cliargs=cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
@@ -893,9 +896,8 @@ def _cliargs_for_target(base_cliargs, target_dict):
     # Apply source -> target
     if "source" in target_dict:
         t_cliargs.target = target_dict["source"]
-    # Apply output
-    if "output" in target_dict:
-        t_cliargs.output = target_dict["output"]
+    # the target's own output, else named after its file: the mode's output would make every target write one file
+    t_cliargs.output = target_dict.get("output")
     # Apply per-target overrides (cflags, lflags, etc.)
     for key, value in target_dict.items():
         if key in ("name", "source", "output"):
@@ -2005,19 +2007,22 @@ def run_fobis_run(configuration):
     fobos = configuration.fobos
     mode = getattr(cliargs, "mode", None)
 
+    example_args: list[str] = []
     if example_name:
         targets = fobos.get_targets("example")
         matched = [t for t in targets if t["name"] == example_name]
         if not matched:
-            configuration.print_r(f"Error: no [[example.{example_name}]] section found in fobos.")
+            configuration.print_r(f"Error: no [example.{example_name}] section found in fobos.")
             sys.exit(1)
         t_dict = matched[0]
+        source = t_dict.get("source") or t_dict.get("target", "")
+        # built by build --examples --target-filter NAME in the mode's build directory, named as any target
         output_path = os.path.join(
-            getattr(cliargs, "build_dir", "build"),
-            "example",
-            t_dict.get("output", example_name),
+            fobos.get(option="build_dir", mode=mode, toprint=False) or "./",
+            t_dict.get("output") or os.path.splitext(os.path.basename(source))[0],
         )
-        build_mode = mode or "default"
+        build_mode = mode
+        example_args = ["--examples", "--target-filter", example_name]
     elif target_name:
         # Try to find matching mode output
         output_path = target_name
@@ -2035,7 +2040,7 @@ def run_fobis_run(configuration):
 
     # Build step
     if not no_build:
-        build_args = ["build"]
+        build_args = ["build", *example_args]
         if build_mode:
             build_args += ["-mode", build_mode]
         if shadow:

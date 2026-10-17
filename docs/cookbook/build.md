@@ -242,7 +242,8 @@ fobis build --examples               # the targets and the examples
   target already built. Use one mode per flag set when the flags must reach every object.
 - **`output`, `mklib`, `track_build` and `log` apply to their own target:** one section can name its program, another
   build a library.
-- **`--examples` needs `[target.NAME]` sections:** in a fobos with examples alone it builds the mode's program only.
+- **`--examples` without `[target.NAME]` sections** builds the examples, then the mode's program as usual.
+- **A target without `output`** is named after its file (`[target.solver]` of `src/solver.f90` gives `solver`).
 
 ## Flags that differ by compiler or system
 
@@ -683,6 +684,7 @@ fobis run --mode release -- input.nml     # arguments after -- go to the program
 fobis run --no-build                      # run what the last build left
 fobis run --dry-run                       # print the build and run commands
 fobis run ./build/release/other           # build the mode, run this binary
+fobis run --example demo                  # build the [example.demo] section alone, run it
 ```
 
 <<< @/examples/output/1-first-steps/02/run.txt{console}

@@ -149,3 +149,49 @@ def test_each_target_is_built_with_its_own_settings(tmp_path, monkeypatch):
     assert (tmp_path / "build" / ".main.f90.track_build").is_file()
     assert (tmp_path / "build" / "libgreet.a").is_file()
     assert not (tmp_path / "build" / ".greet.f90.track_build").exists()  # track_build is the app target's only
+
+
+@pytest.mark.skipif(shutil.which("gfortran") is None, reason="gfortran")
+def test_examples_without_target_sections_and_run_example(tmp_path, monkeypatch, capfd):
+    """--examples did nothing without [target.*] sections, and run --example built the wrong mode, without the
+    example, then looked for build/example/NAME."""
+    import subprocess
+    import sys
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "examples").mkdir()
+    (tmp_path / "src" / "greet.f90").write_text("module greet\ncharacter(*), parameter :: who = 'world'\nend module\n")
+    (tmp_path / "src" / "main.f90").write_text("program main\nuse greet\nprint '(A)', 'main '//who\nend program\n")
+    (tmp_path / "examples" / "demo.f90").write_text("program demo\nuse greet\nprint '(A)', 'demo '//who\nend program\n")
+    (tmp_path / "fobos").write_text(
+        "[modes]\nmodes = debug\n\n[debug]\ncompiler = gnu\ncflags = -c\nsrc = ./src/ ./examples/\n"
+        "build_dir = ./build/\ntarget = src/main.f90\n\n[example.demo]\nsource = examples/demo.f90\n"
+    )
+
+    def fobis(*args):
+        return subprocess.run([sys.executable, "-m", "fobis", *args], cwd=tmp_path, capture_output=True, text=True)
+
+    built = fobis("build", "--quiet", "--examples")
+    assert built.returncode == 0, built.stdout + built.stderr
+    assert (tmp_path / "build" / "demo").is_file() and (tmp_path / "build" / "main").is_file()
+    (tmp_path / "build" / "demo").unlink()
+    ran = fobis("run", "--example", "demo")  # no --mode: the fobos's default mode, not a mode named "default"
+    assert ran.returncode == 0 and ran.stdout.splitlines()[-1] == "demo world", ran.stdout + ran.stderr
+
+
+@pytest.mark.skipif(shutil.which("gfortran") is None, reason="gfortran")
+def test_targets_without_output_are_named_after_their_files(tmp_path, monkeypatch):
+    """A target without output took the mode's output: two targets wrote the same file."""
+    from fobis.fobis import run_fobis
+
+    (tmp_path / "src").mkdir()
+    for name in ("one", "two"):
+        (tmp_path / "src" / f"{name}.f90").write_text(f"program {name}\nend program {name}\n")
+    (tmp_path / "fobos").write_text(
+        "[default]\ncompiler = gnu\ncflags = -c\nsrc = ./src/\nbuild_dir = ./build/\noutput = app\n\n"
+        "[target.one]\nsource = src/one.f90\n\n[target.two]\nsource = src/two.f90\n"
+    )
+    monkeypatch.chdir(tmp_path)
+    run_fobis(fake_args=["build", "--quiet"])
+    assert (tmp_path / "build" / "one").is_file() and (tmp_path / "build" / "two").is_file()
+    assert not (tmp_path / "build" / "app").exists()
