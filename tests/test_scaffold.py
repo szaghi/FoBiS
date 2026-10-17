@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -315,6 +316,23 @@ def test_sync_yes_writes_missing_files(tmp_path):
     # At least some non-init-only files should now exist
     created = [f for f in tmp_path.rglob("*") if f.is_file()]
     assert len(created) > 0
+
+
+@pytest.mark.skipif(hasattr(os, "geteuid") and os.geteuid() == 0, reason="root writes read-only files")
+def test_sync_goes_on_after_a_file_it_cannot_write(tmp_path):
+    """A read-only managed file stopped the whole sync with a PermissionError traceback."""
+    s, messages = _make_scaffolder(tmp_path)
+    s.sync(yes=True)
+    written = sorted(str(f.relative_to(tmp_path)) for f in tmp_path.rglob("*") if f.is_file() and not f.is_symlink())
+    blocked = tmp_path / written[0]
+    for name in written:  # every file drifts: the next sync rewrites them all
+        (tmp_path / name).write_text("drifted\n")
+    blocked.chmod(0o444)
+    messages.clear()
+    s.sync(yes=True)
+    assert s.write_failures == [written[0]] and any(m.startswith(f"  Error    {written[0]}:") for m in messages)
+    assert sum(1 for m in messages if "Written" in m) == len(written) - 1  # the others are still written
+    blocked.chmod(0o644)
 
 
 def test_sync_skips_up_to_date_files(tmp_path):

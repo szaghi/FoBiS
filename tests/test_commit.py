@@ -500,3 +500,29 @@ def test_generate_file_list_threaded_into_refine_prompt():
         prompt = call.messages[-1]["content"]
         assert "fobis/Commit.py" in prompt
         assert "tests/x.py" in prompt
+
+
+def test_apply_exits_with_the_status_of_a_failed_git_commit(tmp_path, monkeypatch):
+    """commit --apply ran git commit and exited 0 even when git refused (a pre-commit hook, a signing failure)."""
+    import stat
+    import subprocess
+
+    from fobis.fobis import run_fobis
+
+    def git(*args):
+        subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
+
+    git("init", "-q")
+    for key, value in (("user.name", "t"), ("user.email", "t@t"), ("commit.gpgsign", "false")):
+        git("config", key, value)
+    hook = tmp_path / ".git" / "hooks" / "pre-commit"
+    hook.write_text("#!/bin/sh\necho rejected by the hook >&2\nexit 3\n")
+    hook.chmod(hook.stat().st_mode | stat.S_IEXEC)
+    (tmp_path / "a.f90").write_text("program a\nend program a\n")
+    git("add", "a.f90")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("fobis.llm.get_provider", lambda *args, **kwargs: FakeProvider(["feat: add a"] * 4))
+    monkeypatch.setattr("builtins.input", lambda prompt="": "y")
+    with pytest.raises(SystemExit) as exc:  # git commit exits 1 when its hook fails: it was not raised at all
+        run_fobis(fake_args=["commit", "--apply", "--no-facts"])
+    assert exc.value.code == 1

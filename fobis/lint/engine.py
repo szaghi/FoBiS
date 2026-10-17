@@ -317,8 +317,9 @@ def lint_files(
 # ── fixes ─────────────────────────────────────────────────────────────────────
 
 
-def apply_fixes(text: str, findings: Iterable[Finding]) -> tuple[str, int]:
-    """*text* with the edits of *findings* applied; overlapping edits after the first are skipped.
+def apply_fixes(text: str, findings: Iterable[Finding], skipped: set | None = None) -> tuple[str, int]:
+    """*text* with the edits of *findings* applied; overlapping edits after the first are skipped (and added to
+    *skipped* when given: their findings are not fixed).
 
     Returns
     -------
@@ -331,6 +332,8 @@ def apply_fixes(text: str, findings: Iterable[Finding]) -> tuple[str, int]:
     for edit in edits:
         idx = edit.line - 1
         if idx >= len(lines) or any(s < edit.end and edit.start < e for s, e in taken.get(idx, [])):
+            if skipped is not None:
+                skipped.add(edit)
             continue
         line = lines[idx]
         lines[idx] = line[: edit.start] + edit.text + line[edit.end :]

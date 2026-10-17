@@ -350,7 +350,7 @@ fobis scaffold list                       # the managed files by category
   job: a FoBiS upgrade with new templates is drift.
 - **Stateless:** drift is the SHA-256 of the file against the SHA-256 of the rendered template, nothing recorded.
   Files outside the manifest are never touched.
-- **A file it cannot write** (permissions) stops the command with Python's `PermissionError`.
+- **A file it cannot write** (permissions) is reported, the others are still written, and the command exits 1.
 - **Then commit by hand:** `git add -A && git commit -m "chore: sync scaffold boilerplate"`.
 
 New project from scratch: `fobis new` (in [Building](./build)) writes a fobos and sources, and `fobis new --scaffold`

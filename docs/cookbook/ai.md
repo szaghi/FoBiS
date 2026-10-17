@@ -412,7 +412,8 @@ restricted to the candidates (kept as written, `solver/gpu` included) or empty:
 ![fobis llm doctor and fobis commit with a local model](/gifs/12_llm_commit.gif)
 
 The scope is right, the type is wrong: a program printing a new result is a `feat`. That is why `fobis commit`
-commits nothing, and `--apply` asks `Commit with this message? [y/N]` before running `git commit`.
+commits nothing, and `--apply` asks `Commit with this message? [y/N]` before running `git commit`; a refused
+commit (a pre-commit hook, a signing failure) gives git's exit status.
 
 ```ini
 ; the user configuration, ~/.config/fobis/config.ini

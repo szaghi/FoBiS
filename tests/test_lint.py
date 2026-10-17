@@ -1046,6 +1046,20 @@ def test_apply_fixes_on_continued_statement():
     assert "a < b" in fixed and "c >= d" in fixed
 
 
+def test_a_finding_whose_edit_was_skipped_is_not_fixed(tmp_path, monkeypatch):
+    """--fix skips an edit overlapping an earlier one, but used to count its finding as fixed (and drop it)."""
+    from fobis.fobis import _lint_fixes
+    from fobis.lint.rule import Edit, Finding
+
+    (tmp_path / "s.f90").write_text("x = a .eq. b\n")
+    monkeypatch.chdir(tmp_path)
+    first = Finding("MDN021", "s.f90", 1, "old operator", "info", fixes=(Edit(1, 6, 10, "=="),))
+    overlap = Finding("XXX000", "s.f90", 1, "same span", "info", fixes=(Edit(1, 5, 9, "!="),))
+    left = _lint_fixes([first, overlap], True, lambda message: None)
+    assert (tmp_path / "s.f90").read_text() == "x = a == b\n"
+    assert left == [overlap]
+
+
 def test_cli_diff_and_fix(tmp_path, monkeypatch, capsys):
     (tmp_path / "s.f90").write_text("subroutine s()\nif (a .eq. b) x = 1\nend subroutine\n")
     monkeypatch.chdir(tmp_path)

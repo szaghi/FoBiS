@@ -479,8 +479,9 @@ How it decides:
 4. **Writing.** `--apply` writes the verified rules' fixes, only into files unchanged since the analysis.
 
 - **Evidence is named:** `tests`, `cases`, `tests+cases`, or `build`. A build alone does not show unchanged
-  behaviour: `--apply` then writes nothing (a note says so) unless `--unverified` is given. No evidence at all fails
-  the check.
+  behaviour: `--apply` then writes nothing (a note says so, exit 1) unless `--unverified` is given. No evidence at all
+  fails the check. A file edited during the check is not written either (exit 1).
+- **`--select` a rule with no automatic fix** is an error (exit 2) that lists the fixable ones.
 - **Suppressions are honoured**, so `! fobis: ignore[OBS011] reason` keeps a loop as it is; the `[lint]` section and
   the baseline are not used: every fixable finding of the mode's sources is a candidate.
 - **Exit status:** 0 when every rule is verified or nothing needs fixing, 1 when a rule is not verified, 2 for an

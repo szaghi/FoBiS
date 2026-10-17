@@ -595,7 +595,9 @@ def run_fobis_commit(configuration):
         configuration.print_b("")
         answer = input("Commit with this message? [y/N] ").strip().lower()
         if answer == "y":
-            subprocess.run(["git", "commit", "-m", message])
+            committed = subprocess.run(["git", "commit", "-m", message])
+            if committed.returncode != 0:  # a pre-commit hook or a signing failure: it was exit 0
+                sys.exit(committed.returncode)
         else:
             configuration.print_r("Aborted.")
 
@@ -635,6 +637,9 @@ def run_fobis_scaffold(configuration):
         scaffolder.list_files()
     else:
         configuration.print_r(f"Unknown scaffold action: {action}")
+        sys.exit(1)
+    if scaffolder.write_failures:
+        configuration.print_r(f"Error: {len(scaffolder.write_failures)} file(s) could not be written")
         sys.exit(1)
 
 
@@ -3465,6 +3470,12 @@ def run_fobis_modernize(configuration):
     except (ValueError, CaseError) as exc:
         configuration.print_r(f"Error: {exc}")
         sys.exit(2)
+    unfixable = sorted(r.id for r in rules if r.id not in mz.FIXABLE_RULES and r.id in (cliargs.modernize_select or []))
+    if unfixable:  # named on purpose: "nothing to modernise" (exit 0) hid that they can never be fixed
+        configuration.print_r(
+            f"Error: {', '.join(unfixable)} has no automatic fix (the fixable rules: {', '.join(mz.FIXABLE_RULES)})"
+        )
+        sys.exit(2)
     deps_dir = fobos.get_deps_dir() if fobos is not None and fobos.fobos is not None else ".fobis_deps"
     files = discover_files(
         cliargs.src,
@@ -3557,14 +3568,17 @@ def run_fobis_modernize(configuration):
         shutil.rmtree(scratch, ignore_errors=True)
         sys.exit(2)
     applied = []
+    unwritten = False  # --apply asked for, a verified fix not written: exit 1, the notes say why
     evidence = checks[0].evidence
     if cliargs.modernize_apply and verified:
         if evidence == "build" and not cliargs.modernize_unverified:
             notes.append("no tests and no cases: a build alone does not show unchanged behaviour (--unverified)")
+            unwritten = True
         else:
             for path, text in mz.fixed_texts(plan, verified, read_source).items():
                 if mz.digest(read_source(path)) != plan.digests[path]:
                     notes.append(f"{path} changed since the analysis: not written")
+                    unwritten = True
                     continue
                 with open(path, "w", encoding="utf-8") as handle:
                     handle.write(text)
@@ -3589,7 +3603,7 @@ def run_fobis_modernize(configuration):
         text += "".join(f"\nnote: {n}" for n in notes)
         text += f"\nscratch copies kept in {scratch}" if cliargs.modernize_keep else ""
         (configuration.print_b if not failed else configuration.print_r)(text)
-    if failed:
+    if failed or unwritten:
         sys.exit(1)
 
 
@@ -4435,9 +4449,10 @@ def _lint_fixes(findings, write: bool, print_n) -> list:
         if finding.fixes:
             by_path.setdefault(finding.path, []).append(finding)
     applied_total = 0
+    skipped: set = set()  # edits overlapping an earlier one: their findings stay in the report
     for path, fixable in sorted(by_path.items()):
         text = read_source(path)
-        fixed, applied = apply_fixes(text, fixable)
+        fixed, applied = apply_fixes(text, fixable, skipped)
         applied_total += applied
         if write:
             with open(path, "w", encoding="utf-8") as handle:
@@ -4449,7 +4464,7 @@ def _lint_fixes(findings, write: bool, print_n) -> list:
             print("".join(diff), end="")
     if write:
         print_n(f"{applied_total} fix(es) applied in {len(by_path)} file(s)")
-    return [f for f in findings if not (write and f.fixes)]
+    return [f for f in findings if not (write and f.fixes and not skipped.intersection(f.fixes))]
 
 
 def _read_feedback_log(path: str, cliargs, configuration) -> str:

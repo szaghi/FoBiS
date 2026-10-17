@@ -245,7 +245,7 @@ def test_cli(eco, monkeypatch):
     assert markdown.startswith("### Impact of `geom` changes since `v1.0.0`")
     assert runner.invoke(app, ["ecosystem", "impact", "geom", "-c", cfg, "--format", "html"]).exit_code == 2
     context = runner.invoke(app, ["ecosystem", "impact", "geom", "-c", cfg, "--deep-context"])
-    assert context.exit_code == 0 and "=== system prompt ===" in context.output
+    assert context.exit_code == 1 and "=== system prompt ===" in context.output  # affected, as without the flag
     answer = {
         "insufficient": False,
         "claims": [{"kind": "breaking", "text": "app calls area with one argument.", "citations": ["S1", "S4"]}],

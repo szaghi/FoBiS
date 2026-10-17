@@ -132,6 +132,8 @@ def test_modernize_verified_and_applied(project, capsys, tmp_path):
     assert "DO I = 1, N" in modern and "END DO" in modern and "SQRT(X(I))" in modern and "N == 0" in modern
     code, out, _ = _run(["modernize"], capsys)
     assert code == 0 and "nothing to modernise" in out
+    code, out, err = _run(["modernize", "--select", "COR010"], capsys)  # a rule with no fix: it was exit 0
+    assert code == 2 and "COR010 has no automatic fix" in out + err
 
 
 def test_modernize_catches_a_change(project, capsys, monkeypatch):
@@ -149,9 +151,9 @@ def test_modernize_catches_a_change(project, capsys, monkeypatch):
 def test_modernize_build_only_and_concurrent_edit(project, capsys, monkeypatch):
     (project / "fobos").write_text((project / "fobos").read_text().split("[case:app]")[0])
     os.remove(project / "test" / "t_scale.f90")
-    _, out, _ = _run(["modernize", "--apply", "--json"], capsys)
+    code, out, _ = _run(["modernize", "--apply", "--json"], capsys)
     data = json.loads(out)
-    assert data["checks"][0]["evidence"] == "build" and data["applied"] == []
+    assert code == 1 and data["checks"][0]["evidence"] == "build" and data["applied"] == []  # refused: it was exit 0
     assert "--unverified" in data["notes"][0]
     from fobis.verification import modernize as mz
 
@@ -162,6 +164,6 @@ def test_modernize_build_only_and_concurrent_edit(project, capsys, monkeypatch):
         return original(plan, rules, read)
 
     monkeypatch.setattr(mz, "fixed_texts", edited_meanwhile)
-    _, out, _ = _run(["modernize", "--apply", "--unverified", "--json"], capsys)
+    code, out, _ = _run(["modernize", "--apply", "--unverified", "--json"], capsys)
     data = json.loads(out)
-    assert data["applied"] == [] and "changed since the analysis" in data["notes"][0]
+    assert code == 1 and data["applied"] == [] and "changed since the analysis" in data["notes"][0]

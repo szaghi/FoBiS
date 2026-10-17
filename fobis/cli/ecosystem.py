@@ -426,7 +426,7 @@ def cmd_ecosystem_impact(
         bundle = impact_bundle(impact)
         if deep_context:
             typer.echo(f"=== system prompt ===\n{load_prompt('impact')}\n=== user message ===\n{bundle.render()}")
-            return
+            raise typer.Exit(1 if impact.affected() else 0)  # the facts' status, as without the flag (it was 0)
         if impact.breaking:
             from ..llm import LLMConfig, LLMError, get_provider
             from ..UserConfig import UserConfig

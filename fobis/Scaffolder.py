@@ -268,6 +268,7 @@ class Scaffolder:
         self.cwd = cwd or os.getcwd()
         self.print_n = print_n or print_fake
         self.print_w = print_w or print_fake
+        self.write_failures: list[str] = []  # files that could not be written: the others still are, then exit 1
         self._manifest = None
         self._patches = None
 
@@ -449,16 +450,22 @@ class Scaffolder:
             )
         )
 
-    def _write_file(self, abs_path, content, executable=False):
-        """Write content to abs_path, creating parent dirs as needed."""
-        parent = os.path.dirname(abs_path)
-        if parent:
-            os.makedirs(parent, exist_ok=True)
-        with open(abs_path, "w", encoding="utf-8") as fh:
-            fh.write(content)
-        if executable:
-            mode = os.stat(abs_path).st_mode
-            os.chmod(abs_path, mode | 0o111)
+    def _write_file(self, abs_path, content, executable=False) -> bool:
+        """Write content to abs_path, creating parent dirs as needed; False (reported, recorded) when it cannot."""
+        try:
+            parent = os.path.dirname(abs_path)
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+            with open(abs_path, "w", encoding="utf-8") as fh:
+                fh.write(content)
+            if executable:
+                mode = os.stat(abs_path).st_mode
+                os.chmod(abs_path, mode | 0o111)
+        except OSError as exc:  # a read-only file stopped the whole sync with a traceback
+            self.print_w(f"  Error    {os.path.relpath(abs_path, self.cwd)}: {exc.strerror or exc}")
+            self.write_failures.append(os.path.relpath(abs_path, self.cwd))
+            return False
+        return True
 
     def _symlink_ok(self, abs_dest, target):
         """True when abs_dest is a symlink pointing at *target*."""
@@ -637,7 +644,8 @@ class Scaffolder:
                         text = new_text  # chain further patches against the would-be result
                         continue
                     if yes or self._confirm(f"Insert fragment '{pname}' into {dest}?"):
-                        self._write_file(abs_dest, new_text, executable=entry["executable"])
+                        if not self._write_file(abs_dest, new_text, executable=entry["executable"]):
+                            break
                         text = new_text
                         self.print_n(f"  Patched  {dest}")
                         changed += 1
@@ -684,7 +692,8 @@ class Scaffolder:
             if not yes and not self._confirm(f"Apply changes to {dest}?"):
                 continue
 
-            self._write_file(abs_dest, canonical, executable=entry["executable"])
+            if not self._write_file(abs_dest, canonical, executable=entry["executable"]):
+                continue
             self.print_n(f"  Written  {dest}")
             changed += 1
 
@@ -744,7 +753,8 @@ class Scaffolder:
                 self.print_n(f"  exists   {dest}")
                 continue
             canonical = self._get_canonical(entry)
-            self._write_file(abs_dest, canonical, executable=entry["executable"])
+            if not self._write_file(abs_dest, canonical, executable=entry["executable"]):
+                continue
             self.print_n(f"  created  {dest}")
             created += 1
 
