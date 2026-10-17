@@ -33,7 +33,7 @@ from .Cleaner import Cleaner
 from .FoBiSConfig import FoBiSConfig
 from .Gcov import Gcov, _mermaid_pie
 from .ParsedFile import ParsedFile
-from .utils import BuildFailed, dependency_hiearchy, safe_mkdir, syswork
+from .utils import BuildFailed, dependency_hiearchy, safe_mkdir, syswork, tracked_mod_files
 
 
 def main():
@@ -1031,8 +1031,7 @@ def run_fobis_install(configuration):
                     safe_mkdir(directory=lib_path)
                     configuration.fobos.print_n('Install "' + output + '" in "' + lib_path + '"')
                     shutil.copy(output, lib_path)
-                    if track_file.has_option(section="build", option="mod_file"):
-                        mod_file = track_file.get(section="build", option="mod_file")
+                    for mod_file in tracked_mod_files(track_file):
                         inc_path = os.path.join(configuration.cliargs.prefix, configuration.cliargs.include)
                         safe_mkdir(directory=inc_path)
                         configuration.fobos.print_n('Install "' + mod_file + '" in "' + inc_path + '"')

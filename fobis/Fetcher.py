@@ -31,7 +31,7 @@ import subprocess
 from collections.abc import Callable
 from typing import Any
 
-from .utils import fobis_command, print_fake, syswork
+from .utils import fobis_command, print_fake, syswork, tracked_mod_files
 
 
 class Fetcher:
@@ -650,8 +650,7 @@ class Fetcher:
                     self.print_n('Installing "' + output + '" -> "' + dest + '"')
                     shutil.copy(output, dest)
                     installed_any = True
-                    if track_file.has_option("build", "mod_file"):
-                        mod_file = built(track_file.get("build", "mod_file"))
+                    for mod_file in (built(path) for path in tracked_mod_files(track_file)):
                         inc_dest = os.path.join(prefix, include_dir)
                         os.makedirs(inc_dest, exist_ok=True)
                         self.print_n('Installing "' + mod_file + '" -> "' + inc_dest + '"')

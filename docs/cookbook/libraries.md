@@ -103,9 +103,8 @@ fobis install --mode static --prefix ~/opt/quad
 
 *Recorded on a small demo project, not the tutorial's quad.*
 
-- **One module file is installed:** `<mod_dir>/<target stem>.mod`, the target's. The module files of the other
-  modules in the library are not copied: when users `use` them, or when the target file's name differs from its
-  module's, copy them with a rule.
+- **Every module of the library is installed:** the target's and those of the files it uses (`.mod` files, named in
+  lower case as compilers write them).
 - **The sub-directories:** `--bin`, `--lib`, `--include` given on the command line, else the mode's `bin` and `lib`
   keys, else `bin/`, `lib/`, `include/`. A mode's `include` is its build's search path, never the install's.
 - **Build first.** Without the build directory `fobis install` stops: `Error: build directory not found!` (exit 1).

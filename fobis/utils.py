@@ -124,6 +124,16 @@ def fobis_command() -> list[str]:
     return [sys.executable, archive]
 
 
+def tracked_mod_files(track_file) -> list[str]:
+    """The module files a ``.track_build`` records for a library: ``mod_files`` (one per line), or the single
+    ``mod_file`` of a track file written by an older FoBiS."""
+    if track_file.has_option("build", "mod_files"):
+        return track_file.get("build", "mod_files").split()
+    if track_file.has_option("build", "mod_file"):
+        return [track_file.get("build", "mod_file")]
+    return []
+
+
 def syswork(cmd, shell=False):
     """
     Function for executing system command 'cmd': for compiling and linking files.

@@ -759,9 +759,16 @@ class Builder:
                     track_file.writelines("program = True\n")
                 elif mklib:
                     track_file.writelines("library = True\n")
-                    track_file.writelines(
-                        "mod_file = " + os.path.join(self.mod_dir, file_to_build.basename + ".mod") + "\n"
-                    )
+                    # every module of the library (the target's and those of the files it uses), as compilers name
+                    # their files: lower case. Before, one file named after the target's FILE was recorded.
+                    names = [
+                        name.lower()
+                        for pfile in [file_to_build, *(file_to_build.pfile_dep_all or [])]
+                        for name in (pfile.module_names or [])
+                    ]
+                    mods = [os.path.join(self.mod_dir, name + ".mod") for name in dict.fromkeys(names)]
+                    if mods:
+                        track_file.writelines("mod_files = " + "\n    ".join(mods) + "\n")
         return build_ok
 
     def get_output_name(self, file_to_build: Any, output: str | None = None, mklib: str | None = None) -> str:

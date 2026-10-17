@@ -144,7 +144,7 @@ ruff format fobis/ tests/
   - `_resolve_url()` converts `user/repo` GitHub shorthand to a full HTTPS URL
   - `install_from_github()` orchestrates clone → build (with `--track_build`) → artifact install (used by `install <repo>`)
   - `_build_dep_tracked()` runs `fobis build --track_build` inside the cloned dir
-  - `_install_artifacts()` walks dep dir for `.track_build` files and copies executables/libraries/mod files to prefix
+  - `_install_artifacts()` walks dep dir for `.track_build` files and copies executables/libraries/mod files to prefix (a library's track file records `mod_files`: every module of the target and of the files it uses, lower-cased; `utils.tracked_mod_files` also reads an old single `mod_file`)
 
 - **Dependency.py**: Simple class representing a single dependency (module or include)
 
