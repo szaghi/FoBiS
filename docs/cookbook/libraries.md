@@ -376,10 +376,9 @@ with its dependencies written out, so `make` orders nothing itself. Its default 
 `fobis build` names it); without a target, a rule per program. `make cleanobj`, `cleanmod`, `cleanexe`, `clean`
 (objects and modules) and `cleanall` remove what it built.
 
-- **Programs only.** A library mode exports a rule that links the library as a program, and `make` fails
-  (`undefined reference to 'main'`).
-- **Without a target, the executables are named after their files in upper case** (`MAIN`, where `fobis build`
-  writes `main`): give the mode a `target`.
+- **Libraries too:** a static library mode exports an archive rule with the mode's `ar`, `arflags` and `ranlib`, a
+  shared one a link with its `-shared` flags; the library is named as `fobis build` names it.
+- **Without a target, every program gets a rule,** named after its file as `fobis build` names it.
 - **The link takes every object of the object directory** (`$(DOBJ)*.o`) after deleting the other programs'.
 - **A snapshot.** Generate it again when the fobos or the sources change, with a rule for instance.
 

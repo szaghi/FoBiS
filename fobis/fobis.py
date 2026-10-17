@@ -1622,6 +1622,10 @@ def save_makefile(configuration, pfiles, builder):
         string.append("\n#main building variables\n")
         string.append("DSRC    = " + " ".join(configuration.cliargs.src) + "\n")
         string.append(builder.gnu_make(c_sources=any(p.c_source for p in pfiles)))
+        if (configuration.cliargs.mklib or "").lower() == "static":  # the archiver of the mode, as fobis build uses
+            string.append("AR      = " + builder.ar + "\n")
+            string.append("ARFLAGS = " + builder.arflags + "\n")
+            string.append("RANLIB  = " + (builder.ranlib or "") + "\n")
         string.append("VPATH   = $(DSRC) $(DOBJ) $(DMOD)" + "\n")
         string.append("MKDIRS  = $(DOBJ) $(DMOD) $(DEXE)" + "\n")
         string.append("LCEXES  = $(shell echo $(EXES) | tr '[:upper:]' '[:lower:]')\n")
@@ -1658,12 +1662,15 @@ def save_makefile(configuration, pfiles, builder):
         # executable's name); else every program, named after its file
         target = configuration.cliargs.target
         matched = target_files(target, pfiles) if target else []
+        mklib = (configuration.cliargs.mklib or "").lower() if matched else ""
         for pfile in pfiles:
             save_target_rule = pfile in matched if matched else pfile.program
-            if matched:  # the name fobis build gives it
+            if mklib:  # a library mode: the library, named as fobis build names it (output, else NAME.a/NAME.so)
+                name = os.path.basename(builder.get_output_name(pfile, configuration.cliargs.output, mklib))
+            elif matched:  # the name fobis build gives it
                 name = configuration.cliargs.output or os.path.splitext(os.path.basename(pfile.name))[0]
-            else:
-                name = pfile.basename.upper()
+            else:  # every program, named after its file as fobis build names it (it was upper-cased)
+                name = pfile.basename
             if save_target_rule:
                 if len(nomodlibs) > 0:
                     string.append(
@@ -1676,7 +1683,12 @@ def save_makefile(configuration, pfiles, builder):
                     string.append("$(DEXE)" + name + ": $(MKDIRS) " + "$(DOBJ)" + pfile.obj_name.lower() + ".o\n")
                 string.append("\t@rm -f $(filter-out $(DOBJ)" + pfile.obj_name.lower() + ".o,$(EXESOBJ))\n")
                 string.append("\t@echo $(LITEXT)\n")
-                string.append("\t@$(FC) $(OPTSL) $(DOBJ)*.o $(LIBS) -o $@\n")
+                if mklib == "static":  # an archive of the objects; the shared library links like a program (-shared)
+                    string.append("\t@$(AR) $(ARFLAGS) $@ $(DOBJ)*.o\n")
+                    if builder.ranlib:
+                        string.append("\t@$(RANLIB) $@\n")
+                else:
+                    string.append("\t@$(FC) $(OPTSL) $(DOBJ)*.o $(LIBS) -o $@\n")
                 string.append("EXES := $(EXES) " + name + "\n")
                 if pfile.obj_name.lower() != pfile.basename.lower():  # a qualified object (utils.object_names)
                     string.append("EXESOBJ += $(DOBJ)" + pfile.obj_name.lower() + ".o\n")

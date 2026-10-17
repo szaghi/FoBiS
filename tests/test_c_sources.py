@@ -150,7 +150,7 @@ def test_the_makefile_builds_the_same_program(project, capsys):
     text = (project / "Makefile").read_text()
     assert "CC      = gcc\n" in text and "$(DOBJ)timer.c.o: src/csrc/timer.c src/csrc/clock.h\n" in text
     subprocess.run(["make"], cwd=project, capture_output=True, text=True, check=True)
-    assert _run(project / "build" / "MAIN") == "3.0"
+    assert _run(project / "build" / "main") == "3.0"
 
 
 def test_a_c_compile_error_is_a_located_diagnostic(project, capsys):

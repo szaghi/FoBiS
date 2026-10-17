@@ -20,11 +20,11 @@ COTEXT  = "Compiling $(<F)"
 LITEXT  = "Assembling $@"
 
 #building rules
-$(DEXE)MYPROG: $(MKDIRS) $(DOBJ)myprog.o
+$(DEXE)myprog: $(MKDIRS) $(DOBJ)myprog.o
 	@rm -f $(filter-out $(DOBJ)myprog.o,$(EXESOBJ))
 	@echo $(LITEXT)
 	@$(FC) $(OPTSL) $(DOBJ)*.o $(LIBS) -o $@
-EXES := $(EXES) MYPROG
+EXES := $(EXES) myprog
 
 #compiling rules
 $(DOBJ)mymod.o: ./src/mymod.f90
