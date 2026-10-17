@@ -955,6 +955,7 @@ def run_fobis_rule(configuration):
         result = syswork("ford " + configuration.cliargs.ford)
         if result[0] != 0:
             configuration.print_r(result[1])
+            sys.exit(1)
         else:
             configuration.print_b(result[1])
     elif configuration.cliargs.gcov_analyzer:

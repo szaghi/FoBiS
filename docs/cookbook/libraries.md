@@ -327,7 +327,7 @@ fobis rule --is-float128-kind-supported             # also --is-ascii-kind-suppo
 - **`--get`** prints an empty line for a key the mode does not set; without `--mode` it reads the default mode (the
   first of `[modes]`).
 - **The kind checks** compile and run a small program with the mode's compiler, in its build directory.
-- **`--ford PROJECT.md`** runs FORD on a project file; its exit status is 0 even when FORD fails.
+- **`--ford PROJECT.md`** runs FORD on a project file, and exits 1 when FORD fails or is not installed.
 - **`--gcov-analyzer DIR [--gcov-analyzer SUMMARY]`** reads every `.gcov` file under the current directory and
   writes `DIR/<file>.gcov.md` for each, plus `DIR/SUMMARY.md` with tables and Mermaid pie charts. `fobis coverage`
   is the complete report: [Testing](./testing).
