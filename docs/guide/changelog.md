@@ -4,6 +4,65 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.9.12] — 2026-10-17
+### Added
+- **build**: Remove the build cache and the fetch options that did nothing ⚠ BREAKING CHANGE
+
+- **build**: Write the pkg-config files that the pkgconfig keys describe
+
+
+### Documentation
+- Reorganise into get started, tutorials, cookbook and reference
+
+
+### Fixed
+- **fetch**: Fail when a dependency cannot be fetched or built, and run the full fetch with --json
+
+- **fobos**: Exit 1 for a mode or rule the fobos does not define
+
+- **compiler**: Openmp_offload no longer stops the build for compilers without an offload flag
+
+- **config**: Read the user configuration without interpolation, so a % is literal
+
+- **build**: Build each [target.NAME] with its own output, mklib, track_build and log
+
+- **fobos**: Apply a mode's varset and no_default_features keys
+
+- **review**: Review the untracked files of the working tree too
+
+- **introspect**: Report the command and flags the build runs
+
+- **build**: No traceback from volatile libraries before the first build or when one is missing
+
+- **rule**: Exit 1 when FORD fails
+
+- **docs**: Disable git's automatic gc in the tutorial sessions
+
+- **install**: The command line's --bin, --lib and --include win, and a mode's include is never the install directory
+
+- **install**: Install every module file of a library
+
+- **makefile**: Export a library mode as a library, and name programs as fobis build does
+
+- **scheduler**: Give a job two minutes beyond its program's timeout
+
+- **fobos**: Resolve a dependon path against the fobos that writes it
+
+- **build**: Keep other libraries out of a static library, and say so
+
+- **clean**: Remove the build log from the build directory
+
+- **fetch**: Reject a dependency with more than one of tag, branch and rev
+
+- **run**: On a login node, tell fobis run to use a compute node, not a --runner it lacks
+
+- **build**: Build examples without [target.*] sections, run --example, and name a target without output after its file
+
+- **coverage**: Say that --exclude is a regex and warn about what lcov ignores; fix the testgen --output help
+
+- Report in the exit status what modernize, lint --fix, commit --apply, impact --deep-context and scaffold did not do
+
+
 ## [3.9.11] — 2026-10-16
 ### Documentation
 - Show review, testgen and merge-assist with a local model, and embed the existing AI GIFs where their commands are
