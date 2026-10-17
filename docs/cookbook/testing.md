@@ -180,7 +180,7 @@ fobis coverage --mode coverage --format text --exclude "test/.*"
 <<< @/examples/output/1-first-steps/04/report.txt{console}
 
 - **The report needs [gcovr](https://gcovr.com)** (`pip install gcovr`), or lcov + genhtml. With lcov, only an HTML
-  report is written, and `--exclude` and `--fail-under` are not applied.
+  report is written, and `--exclude` and `--fail-under` are not applied: FoBiS warns when they are given.
 - **`--exclude` is a regular expression** matched by gcovr against the file path: `"test/.*"`, not `test/*`.
 - **Formats:** `--format html` (the default, `coverage/index.html`), `xml` (Cobertura, for Codecov), `text`, or `all`
   (the three); repeat `--format` for several.

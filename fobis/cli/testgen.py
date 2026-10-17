@@ -47,7 +47,7 @@ def cmd_testgen(
         ),
     ] = False,
     output: Annotated[
-        str | None, typer.Option("--output", "-o", help="With --apply, write to this path instead.")
+        str | None, typer.Option("--output", "-o", help="Write the accepted program to this path (implies --apply).")
     ] = None,
     retries: Annotated[
         int, typer.Option("--retries", help="Attempts after the first one, each with the errors of the previous.")

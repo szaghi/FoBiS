@@ -206,7 +206,15 @@ class CoverageReporter:
 
         if tool == "gcovr":
             return self.run_gcovr(formats, output_dir, exclude=exclude, fail_under=fail_under)
-        if tool == "lcov":
+        if tool == "lcov":  # an HTML report only: gcovr's options have no lcov counterpart here
+            ignored = [
+                name for name, given in (("--exclude", exclude), ("--fail-under", fail_under is not None)) if given
+            ]
+            if ignored or set(formats) - {"html"}:
+                self.print_w(
+                    f"Warning: lcov writes an HTML report only; {', '.join(ignored) or 'other formats'} need gcovr"
+                    " (pip install gcovr)"
+                )
             return self.run_lcov(output_dir)
 
         self.print_w(f"Unknown tool: {tool}")

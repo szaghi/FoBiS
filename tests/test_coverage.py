@@ -152,6 +152,22 @@ def test_lcov_invocations_in_order():
         assert capture_idx < genhtml_idx
 
 
+def test_lcov_says_what_it_ignores():
+    """With lcov, --exclude and --fail-under were ignored without a word."""
+    with tempfile.TemporaryDirectory() as build_dir:
+        _make_gcda(build_dir)
+        warnings = []
+        reporter = CoverageReporter(build_dir=build_dir, print_w=warnings.append)
+        with patch("fobis.Coverage.syswork", return_value=(0, "")):
+            reporter.generate(["html"], os.path.join(build_dir, "c"), exclude=["test/.*"], fail_under=80, tool="lcov")
+            assert warnings == [
+                "Warning: lcov writes an HTML report only; --exclude, --fail-under need gcovr (pip install gcovr)"
+            ]
+            warnings.clear()
+            reporter.generate(["html"], os.path.join(build_dir, "c"), tool="lcov")
+            assert warnings == []
+
+
 # ── output_dir creation ──────────────────────────────────────────────────────
 
 

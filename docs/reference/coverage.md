@@ -18,10 +18,10 @@ How to use it, with examples: [Testing](/cookbook/testing).
 | `--fobos`, `-f` | TEXT |  | Specify a "fobos" file named differently from "fobos" |
 | `--fci` |  |  | Assume fobos inputs as case insensitive |
 | `--mode` | TEXT |  | Select a mode defined into a fobos file |
-| `--format` | TEXT |  | Output formats: html (default), xml, text, all |
+| `--format` | TEXT |  | Output formats: html (default), xml, text, all (the three) |
 | `--output-dir` | TEXT | `coverage` | Directory for coverage reports [default: coverage/] |
 | `--source-dir` | TEXT | `.` | Root for source filtering [default: .] |
-| `--exclude` | TEXT |  | Glob patterns to exclude from coverage (repeatable) |
+| `--exclude` | TEXT |  | Regular expression of the file paths to leave out (gcovr's --exclude; repeatable) |
 | `--fail-under` | FLOAT |  | Exit 1 if line coverage is below N% |
 | `--tool` | TEXT |  | Force a specific backend: gcovr or lcov |
 

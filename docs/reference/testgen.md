@@ -27,7 +27,7 @@ Arguments: `MODULE`
 | `--skeleton` |  |  | No model: the compile-checked skeleton (declarations and calls, no checks) only. |
 | `--context` |  |  | Print what the model would receive, run no model. |
 | `--apply` |  |  | Write the accepted program to the test directory (fobos [test] test_dir, default test/) as test_&lt;module&gt;.f90; an existing file is never overwritten. |
-| `--output`, `-o` | TEXT |  | With --apply, write to this path instead. |
+| `--output`, `-o` | TEXT |  | Write the accepted program to this path (implies --apply). |
 | `--retries` | INTEGER | `3` | Attempts after the first one, each with the errors of the previous. |
 | `--timeout` | FLOAT | `60.0` | Seconds a test program may run. |
 | `--format` | TEXT | `text` | Output format: text or json. |

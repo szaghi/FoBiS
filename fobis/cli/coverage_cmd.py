@@ -21,7 +21,7 @@ def cmd_coverage(
     mode: ModeOpt = None,
     fmt: Annotated[
         list[str] | None,
-        typer.Option("--format", help="Output formats: html (default), xml, text, all"),
+        typer.Option("--format", help="Output formats: html (default), xml, text, all (the three)"),
     ] = None,
     output_dir: Annotated[
         str,
@@ -33,7 +33,9 @@ def cmd_coverage(
     ] = ".",
     exclude: Annotated[
         list[str] | None,
-        typer.Option("--exclude", help="Glob patterns to exclude from coverage (repeatable)"),
+        typer.Option(
+            "--exclude", help="Regular expression of the file paths to leave out (gcovr's --exclude; repeatable)"
+        ),
     ] = None,
     fail_under: Annotated[
         float | None,
