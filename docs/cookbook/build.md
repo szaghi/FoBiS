@@ -240,7 +240,8 @@ fobis build --examples               # the targets and the examples
 - **A key of the section replaces the mode's** (`cflags` above is the whole set, not an addition).
 - **The targets share the mode's object directory:** a target with other flags does not recompile objects another
   target already built. Use one mode per flag set when the flags must reach every object.
-- **`output` in a section is not applied:** each program is named after its file (or the mode's `output`).
+- **`output`, `mklib`, `track_build` and `log` apply to their own target:** one section can name its program, another
+  build a library.
 - **`--examples` needs `[target.NAME]` sections:** in a fobos with examples alone it builds the mode's program only.
 
 ## Flags that differ by compiler or system

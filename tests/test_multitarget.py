@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
 import tempfile
+
+import pytest
 
 from fobis.Fobos import Fobos
 
@@ -120,3 +123,29 @@ def test_cliargs_clone_does_not_mutate_base():
     cloned.cflags = "-O3"
 
     assert base.cflags == "-O2"
+
+
+# ── a real build of several targets ──────────────────────────────────────────
+
+
+@pytest.mark.skipif(shutil.which("gfortran") is None, reason="gfortran")
+def test_each_target_is_built_with_its_own_settings(tmp_path, monkeypatch):
+    """A [target.NAME]'s output, mklib and track_build were ignored: the program was linked under the mode's name."""
+    from fobis.fobis import run_fobis
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "greet.f90").write_text(
+        "module greet\ncontains\nsubroutine hello()\nprint '(A)', 'hello'\nend subroutine hello\nend module greet\n"
+    )
+    (tmp_path / "src" / "main.f90").write_text("program main\nuse greet, only : hello\ncall hello\nend program main\n")
+    (tmp_path / "fobos").write_text(
+        "[default]\ncompiler = gnu\ncflags = -c\nsrc = ./src/\nbuild_dir = ./build/\n\n"
+        "[target.app]\nsource = src/main.f90\noutput = mainprog\ntrack_build = True\n\n"
+        "[target.lib]\nsource = src/greet.f90\nmklib = static\noutput = libgreet.a\n"
+    )
+    monkeypatch.chdir(tmp_path)
+    run_fobis(fake_args=["build", "--quiet"])
+    assert (tmp_path / "build" / "mainprog").is_file() and not (tmp_path / "build" / "main").exists()
+    assert (tmp_path / "build" / ".main.f90.track_build").is_file()
+    assert (tmp_path / "build" / "libgreet.a").is_file()
+    assert not (tmp_path / "build" / ".greet.f90.track_build").exists()  # track_build is the app target's only

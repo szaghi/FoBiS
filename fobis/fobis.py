@@ -721,6 +721,7 @@ def run_fobis_build(configuration):
                         nomodlibs=nomodlibs,
                         submodules=submodules,
                         builder=t_builder,
+                        cliargs=t_cliargs,  # the target's own output, mklib, track_build, log
                     )
                     # post_build hooks
                     post_rules = getattr(t_cliargs, "post_build", []) or []
@@ -1224,7 +1225,7 @@ def parse_doctests(configuration, pfiles, builder):
     return doctests, doctests_dirs
 
 
-def build_pfile(configuration, pfile, pfiles, nomodlibs, submodules, builder):
+def build_pfile(configuration, pfile, pfiles, nomodlibs, submodules, builder, cliargs=None):
     """Build a parsed file.
 
     Parameters
@@ -1238,21 +1239,24 @@ def build_pfile(configuration, pfile, pfiles, nomodlibs, submodules, builder):
     submodules : list
       list of built submodules object names
     builder : Builder()
+    cliargs : argparse.Namespace, optional
+      the settings of this build (a ``[target.NAME]``'s own); default the configuration's
     """
+    cliargs = cliargs or configuration.cliargs
     configuration.build_trace = {"pfiles": pfiles, "target": pfile}
     builder.build(
         file_to_build=pfile,
-        output=configuration.cliargs.output,
+        output=cliargs.output,
         nomodlibs=nomodlibs,
         submodules=submodules,
-        mklib=configuration.cliargs.mklib,
-        verbose=configuration.cliargs.verbose,
-        log=configuration.cliargs.log,
-        track=configuration.cliargs.track_build,
+        mklib=cliargs.mklib,
+        verbose=cliargs.verbose,
+        log=cliargs.log,
+        track=cliargs.track_build,
     )
-    if configuration.cliargs.log:
+    if cliargs.log:
         pfile.save_build_log(builder=builder)
-    if configuration.cliargs.graph:
+    if cliargs.graph:
         pfile.save_dep_graph()
 
 
