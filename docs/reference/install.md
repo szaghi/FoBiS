@@ -23,9 +23,9 @@ Arguments: `REPO`
 | `--lmodes` |  |  | List the modes defined into a fobos file |
 | `--build-dir`, `--dbld` | TEXT |  | Directory containing built objects [default: ./]; given here, it wins over the mode's build_dir |
 | `--prefix`, `-p` | TEXT | `./` | Prefix path where built objects are installed [default: ./] |
-| `--bin` | TEXT | `bin/` | Sub-directory for executables [default: bin/] |
-| `--lib` | TEXT | `lib/` | Sub-directory for libraries [default: lib/] |
-| `--include` | TEXT | `include/` | Sub-directory for include files [default: include/] |
+| `--bin` | TEXT |  | Sub-directory for executables [default: bin/] |
+| `--lib` | TEXT |  | Sub-directory for libraries [default: lib/] |
+| `--include` | TEXT |  | Sub-directory for module files [default: include/] |
 | `--branch` | TEXT |  | Branch to check out when installing from GitHub |
 | `--tag` | TEXT |  | Tag to check out when installing from GitHub |
 | `--rev` | TEXT |  | Commit revision to check out when installing from GitHub |

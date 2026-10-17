@@ -42,8 +42,8 @@ CONFIG_PATH = "~/.config/fobis/config.ini"
 MODE_COMMANDS = ("build", "clean", "install", "doctests", "rule")
 # fields of the settings that are not project settings (command-line plumbing)
 NOT_KEYS = {
-    "which", "fobos", "fobos_case_insensitive", "mode", "lmodes", "json_output", "build_dir_explicit", "variant",
-    "variant_cflags", "variant_lflags", "shadow", "explain", "explain_context", "active_features", "target_filter",
+    "which", "fobos", "fobos_case_insensitive", "mode", "lmodes", "json_output", "build_dir_explicit",
+    "install_explicit", "variant", "variant_cflags", "variant_lflags", "shadow", "explain", "explain_context", "active_features", "target_filter",
     "examples", "repo", "branch", "tag", "rev", "update", "no_build", "execute", "list", "get", "get_output_name",
     "ford", "gcov_analyzer", "is_ascii_kind_supported", "is_float128_kind_supported", "is_ucs4_kind_supported",
     "only_obj", "only_target", "makefile", "dev_deps",

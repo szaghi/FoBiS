@@ -24,11 +24,11 @@ def cmd_install(
     prefix: Annotated[
         str, typer.Option("--prefix", "-p", help="Prefix path where built objects are installed [default: ./]")
     ] = "./",
-    bin: Annotated[str, typer.Option("--bin", help="Sub-directory for executables [default: bin/]")] = "bin/",
-    lib: Annotated[str, typer.Option("--lib", help="Sub-directory for libraries [default: lib/]")] = "lib/",
+    bin: Annotated[str | None, typer.Option("--bin", help="Sub-directory for executables [default: bin/]")] = None,
+    lib: Annotated[str | None, typer.Option("--lib", help="Sub-directory for libraries [default: lib/]")] = None,
     include: Annotated[
-        str, typer.Option("--include", help="Sub-directory for include files [default: include/]")
-    ] = "include/",
+        str | None, typer.Option("--include", help="Sub-directory for module files [default: include/]")
+    ] = None,
     # GitHub install options
     branch: Annotated[
         str | None, typer.Option("--branch", help="Branch to check out when installing from GitHub")
@@ -66,9 +66,11 @@ def cmd_install(
         build_dir=build_dir or "./",
         build_dir_explicit=build_dir is not None,
         prefix=prefix,
-        bin=bin,
-        lib=lib,
-        include=include,
+        bin=bin or "bin/",
+        lib=lib or "lib/",
+        include=include or "include/",
+        # given on the command line: they win over the mode's bin and lib keys
+        install_explicit=[name for name, value in (("bin", bin), ("lib", lib), ("include", include)) if value],
         branch=branch,
         tag=tag,
         rev=rev,

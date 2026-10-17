@@ -106,11 +106,8 @@ fobis install --mode static --prefix ~/opt/quad
 - **One module file is installed:** `<mod_dir>/<target stem>.mod`, the target's. The module files of the other
   modules in the library are not copied: when users `use` them, or when the target file's name differs from its
   module's, copy them with a rule.
-- **Give a library mode an `output`.** Without one the record names the file without its `.a`/`.so`, and
-  `fobis install` stops with a traceback (file not found).
-- **The mode's `include`, `lib` and `bin` keys name the install subdirectories**, and they win over `--include`,
-  `--lib`, `--bin`. A mode whose `include` lists directories for its own build installs the module file under that
-  name: install from a mode without it.
+- **The sub-directories:** `--bin`, `--lib`, `--include` given on the command line, else the mode's `bin` and `lib`
+  keys, else `bin/`, `lib/`, `include/`. A mode's `include` is its build's search path, never the install's.
 - **Build first.** Without the build directory `fobis install` stops: `Error: build directory not found!` (exit 1).
 
 Cloning, building and installing a project from GitHub in one command: [Dependencies](./dependencies).

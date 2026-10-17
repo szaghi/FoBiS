@@ -1101,6 +1101,11 @@ class Fobos:
             explicit = {"target", "output"} if cliargs_dict.get("target") else set()
             if cliargs_dict.get("build_dir_explicit"):  # --build-dir given: it wins over the mode's build_dir
                 explicit.add("build_dir")
+            explicit.update(cliargs_dict.get("install_explicit") or [])  # install --bin/--lib/--include given
+            if cliargs_dict.get("which") == "install":
+                # a mode's include is the build's list of include directories, not install's sub-directory for the
+                # module files (they were installed into <prefix>/src for include = ./src/)
+                explicit.add("include")
             for item in self.fobos.items(self.mode):
                 if item[0] in self._SKIP_AUTO_ATTRS or item[0] in explicit:
                     continue
