@@ -1286,7 +1286,9 @@ def _verify_release(
             detail = f"{tag} pushed; GitHub release not published in {int(timeout)}s"
             return StepResult(item.name, "failed", 0, result.seconds, detail)
         return StepResult(item.name, "passed", 0, result.seconds, f"released {tag}")
-    return StepResult(item.name, "passed", 0, result.seconds, f"{tag} pushed (GitHub release not awaited)")
+    # say why: without gh the next projects fetch the tag while its release may still be building
+    why = "not asked" if not wait else ("not a GitHub project" if not project.slug else "gh is not installed")
+    return StepResult(item.name, "passed", 0, result.seconds, f"{tag} pushed (GitHub release not awaited: {why})")
 
 
 # ---------------------------------------------------------------------------

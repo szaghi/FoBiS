@@ -21,6 +21,6 @@ Saved deps config to third_party/.deps_config.ini
 Saved lock file to third_party/fobos.lock
 
 Project  Result        Time  Detail
-core     passed        0.0s  v1.1.0 pushed (GitHub release not awaited)
+core     passed        0.0s  v1.1.0 pushed (GitHub release not awaited: not asked)
 
 1 passed, 0 failed

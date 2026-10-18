@@ -902,10 +902,25 @@ def test_release_train(git_env, release_env):
     plan = eco_mod.plan_release(eco, eco.collect(fetch=False, ci=False))
     results = eco_mod.run_release_train(eco, plan, yes=True, echo=lambda *x: None)
     assert [(r.name, r.status) for r in results] == [("A", "passed"), ("B", "passed")]
-    assert "v1.0.1 pushed (GitHub release not awaited)" in results[0].detail
+    assert "v1.0.1 pushed (GitHub release not awaited: not a GitHub project)" in results[0].detail
     for repo in (a, b):
         assert git(repo, "ls-remote", "--tags", "origin", "refs/tags/v1.0.1")
     assert release_env == ["B"]  # A's dependents refreshed after A's release
+
+
+def test_release_says_when_gh_is_missing(git_env, release_env, monkeypatch):
+    """A GitHub project without gh on the PATH: the release was not awaited, and nothing said why."""
+    from types import SimpleNamespace
+
+    a = releasable_project(git_env, "A")
+    eco = Ecosystem([str(a)])
+    plan = eco_mod.plan_release(eco, eco.collect(fetch=False, ci=False))
+    (result,) = eco_mod.run_release_train(eco, plan, yes=True, echo=lambda *x: None)
+    monkeypatch.setattr(eco_mod.shutil, "which", lambda name: None)
+    github = SimpleNamespace(path=str(a), slug="u/A")
+    item = SimpleNamespace(name="A", version="v1.0.1")
+    checked = eco_mod._verify_release(github, item, result, wait=True, timeout=1, interval=1, echo=lambda *x: None)
+    assert checked.status == "passed" and checked.detail.endswith("(GitHub release not awaited: gh is not installed)")
     # released: nothing left to plan
     assert eco_mod.plan_release(eco, eco.collect(fetch=False, ci=False)) == []
 

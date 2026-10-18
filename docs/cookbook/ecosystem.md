@@ -489,8 +489,9 @@ fobis ecosystem release --no-wait                     # do not wait for the GitH
 - **Resuming never releases twice:** a released project's new tag leaves it nothing to release, so it drops out.
 - **`--yes` approves the plan and answers every `release.sh` prompt.** Use it only for an unattended run of a plan
   reviewed with `--dry-run`.
-- **The release is awaited only on GitHub with `gh` on the PATH**; otherwise the result reads `vX.Y.Z pushed (GitHub
-  release not awaited)`. A release not published within the timeout, or a failed fetch in a dependent, fails the
+- **The release is awaited only on GitHub with `gh` on the PATH**; otherwise the result says why: `vX.Y.Z pushed
+  (GitHub release not awaited: gh is not installed)`, or `not a GitHub project`. Unawaited, the next projects fetch
+  the tag while its release may still be building. A release not published within the timeout, or a failed fetch in a dependent, fails the
   project.
 - **Your own `release.sh`** works if it takes the version as its only argument, tags and pushes; `git-cliff` is
   required anyway (`pipx install git-cliff`), as the scaffolded script needs it.
