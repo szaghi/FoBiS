@@ -139,3 +139,20 @@ def test_install_from_a_repository_that_does_not_build_fails(project, tmp_path, 
     url = _remote(tmp_path, "one", fobos=LIBRARY, source="module one\nthis is not fortran\nend module one\n")
     code, out, err = _run(["install", url, "--prefix", str(tmp_path / "p"), "--deps-dir", str(tmp_path / "d")], capsys)
     assert code == 1 and "one: build failed" in out + err
+
+
+def test_install_from_a_repository_ignores_the_local_fobos(project, tmp_path, capsys):
+    """--mode names a mode of the repository's fobos: it was also checked against the fobos of the current directory,
+    so installing from inside a project with other modes stopped."""
+    modes = (
+        "[modes]\nmodes = static\n\n[static]\ncompiler = gnu\ncflags = -c\nsrc = ./src/\nbuild_dir = ./build/\n"
+        "target = src/one.f90\nmklib = static\noutput = libone.a\ntrack_build = True\n"
+    )
+    url = _remote(tmp_path, "one", fobos=modes)
+    (project / "fobos").write_text("[modes]\nmodes = debug\n\n[debug]\ncompiler = gnu\nlib = mylib/\n")
+    prefix = tmp_path / "prefix"
+    code, out, err = _run(
+        ["install", url, "--mode", "static", "--prefix", str(prefix), "--deps-dir", str(tmp_path / "deps")], capsys
+    )
+    assert code == 0, out + err
+    assert (prefix / "lib" / "libone.a").is_file()  # the local mode's lib = mylib/ is not applied either

@@ -764,6 +764,10 @@ class Fobos:
         else:
             filename = "fobos"
         self.filename = filename
+        # install REPO builds the repository with its own fobos: the local one (whose modes --mode was checked
+        # against, and whose keys could change the install) is not read
+        if getattr(cliargs, "which", "") == "install" and getattr(cliargs, "repo", None):
+            return
         if os.path.exists(filename):
             self.fobos = configparser.RawConfigParser()
             if not cliargs.fobos_case_insensitive:

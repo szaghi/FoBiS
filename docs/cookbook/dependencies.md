@@ -307,8 +307,7 @@ own tracked build: see [Libraries](./libraries).
 
 - **The project needs a fobos** whose mode (`--mode`, else its default) builds what you want installed;
   `--track-build` is passed by the command.
-- **Run it outside a project:** `--mode` is also checked against the fobos of the current directory, and a fobos
-  without that mode stops the command.
+- **The local fobos is not read:** `--mode` names a mode of the repository's fobos, wherever you run the command.
 - **An installed project is yours to manage:** nothing records it, and `fetch` is the tool for build-time
   dependencies of a project.
 - **A failure exits 1:** a clone or build that fails, or a build that tracked nothing to install
