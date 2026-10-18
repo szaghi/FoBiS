@@ -44,6 +44,23 @@ Every command of this page then starts the model when it needs it and stops it a
 an OpenAI-compatible server, a persistent server for many commands, a cluster without internet, the knowledge
 packs, the MCP server for agents: [Models, knowledge and agents](./ai-setup).
 
+## What to trust
+
+- **Facts:** the diagnoses of `--explain`, the findings, the scope candidates, the deterministic merge resolutions,
+  the compile checks. They are reproducible and can fail a CI job.
+- **Checked outputs:** a test that `testgen` accepted builds, runs and checks something; a merge proposal marked as
+  compiling compiles. Neither is proven right.
+- **Claims:** advisory. A citation proves that the source exists and was given to the model, not that it supports
+  the claim: read the cited source when the claim matters. The model's own confidence (merge) and verdicts (lint)
+  carried no information in the measurements reported in the recipes below.
+- **The model matters.** coder-7b is the smallest that is useful; coder-0.5b and coder-1.5b failed every `testgen`
+  attempt, and 1.5b gave a wrong `--explain` fix and invented "about 10 seconds on a GPU" for a question no source
+  answered. A larger model through another provider is a configuration line
+  ([Models, knowledge and agents](./ai-setup)).
+- **Speed:** about 45 s per answer for coder-7b on 6 CPU cores; seconds on an NVIDIA A30 (3.4 s for an `ask`
+  answer, 20 s for an accepted test). A persistent server saves the start-up of every command.
+- **Overrides:** `ask` and `commit` take `--provider` and `--model`; the other commands use the user configuration.
+
 ## Why the build failed
 
 ```bash
@@ -543,19 +560,3 @@ fobis commit --show-facts                    # the facts added to the commit pro
 The same inputs give the same context. Read it when an answer surprises you: a wrong answer from a context missing
 the relevant code is a retrieval problem, not a model problem. To give an AI agent these facts directly, without the
 local model, use the MCP server: [Models, knowledge and agents](./ai-setup).
-
-## What to trust
-
-- **Facts:** the diagnoses of `--explain`, the findings, the scope candidates, the deterministic merge resolutions,
-  the compile checks. They are reproducible and can fail a CI job.
-- **Checked outputs:** a test that `testgen` accepted builds, runs and checks something; a merge proposal marked as
-  compiling compiles. Neither is proven right.
-- **Claims:** advisory. A citation proves that the source exists and was given to the model, not that it supports
-  the claim: read the cited source when the claim matters. The model's own confidence (merge) and verdicts (lint)
-  carried no information in the measurements above.
-- **The model matters.** coder-7b is the smallest that is useful; coder-0.5b and coder-1.5b failed every `testgen`
-  attempt, and 1.5b gave a wrong `--explain` fix and invented "about 10 seconds on a GPU" for a question no source
-  answered. A larger model through another provider is a configuration line ([Models, knowledge and agents](./ai-setup)).
-- **Speed:** about 45 s per answer for coder-7b on 6 CPU cores; seconds on an NVIDIA A30 (3.4 s for the `ask`
-  answer above, 20 s for an accepted test). A persistent server saves the start-up of every command.
-- **Overrides:** `ask` and `commit` take `--provider` and `--model`; the other commands use the user configuration.
