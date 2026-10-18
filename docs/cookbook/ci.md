@@ -118,8 +118,8 @@ GitHub code scanning (findings tracked across commits in the repository's *Secur
     sarif_file: fobis-lint.sarif
 ```
 
-- **Exit status:** 1 when a warning- or error-level finding remains; `--exit-zero` always 0, for a step that only
-  uploads a report.
+- **Exit status:** 1 when a warning- or error-level finding remains or a file cannot be read; `--exit-zero` always 0,
+  for a step that only uploads a report.
 - **`review` needs the merge base in the clone:** `fetch-depth: 0` on the checkout.
 - **Old code:** `review` judges only the changed lines; for `lint`, a baseline keeps the existing findings out of the
   verdict, so only new ones fail the job.
@@ -175,19 +175,21 @@ if [ "$(echo "$result" | jq -r .status)" != ok ]; then
 fi
 ```
 
-- **Which commands:** `--json` on `build`, `clean`, `fetch`, `check`, `tree`, `test`, `case list`, `case run`,
-  `provenance`, `verify`, `matrix`, `assess`, `diff-run`, `bench`, `gate`, `profile`, `query`, `agents-md`, and
-  `commit --show-facts`, `ask --show-context`. `lint`, `review`, `merge-assist`, `testgen` and `ecosystem impact` take
-  `--format json`. `introspect` always prints JSON.
+- **Which commands:** `--json` on `build`, `clean`, `fetch`, `check`, `tree`, `test`, `new`, `case list`, `case run`,
+  `provenance`, `verify`, `matrix`, `assess`, `diff-run`, `bench`, `gate`, `profile`, `query`, `modernize`,
+  `bindings`, `agents-md`, `fpm import`, `fpm export`, `ecosystem dashboard`, `ecosystem graph`, `kb search`,
+  `llm list`, `llm serve status`, and `commit --show-facts`, `ask --show-context`. `lint`, `review`, `merge-assist`,
+  `testgen` and `ecosystem impact` take `--format json`. `introspect` prints JSON unless `--format toml`.
 - **Statuses differ by command:** `ok`/`error` for build, check and test; `pass`/`fail` for verify and gate; per test
   `passed`, `failed`, `build-failed`, `timeout`, `error`. Read the exit status for the verdict, the document for the
   facts.
 - **Exit 2 means the declaration is wrong**, not the code: an unknown case, stage or `[scheduler]` key, a launcher
   not on the PATH. Several of these print `Error: ...` on stderr and no document.
 - **Progress lines of long commands** (`gate: ...`, `slurm: job ...`, the matrix's cells) go to stderr too.
-- **Each document's fields** are listed on the command's reference page.
+- **The fields** are those of the outputs on this page and in the tutorials: read the ones a script needs and ignore
+  the others, so a field added later breaks nothing.
 
-Agents read the same documents through the MCP server, `fobis mcp`: see [AI assistance](./ai).
+Agents read the same documents through the MCP server, `fobis mcp`: see [Models, knowledge and agents](./ai-setup).
 
 ## Review before every commit
 
