@@ -68,6 +68,7 @@ fobis ecosystem remove FiNeR                # the repository itself is not touch
 - **Your comments survive.** `add` and `remove` rewrite only the `projects` key (creating the section or the file when
   missing), atomically; long lists wrap onto continuation lines.
 - **No inline comments** in the configuration: `FLAP ; the parser` registers `;`, `the` and `parser` as projects.
+  FoBiS warns about such a value on standard error; put the comment on a line of its own.
 - **Two registered directories with the same name:** the second is ignored, with a warning.
 
 ## The graph and the release order
@@ -370,8 +371,9 @@ What the files do: `ci.yml` builds and tests; `docs.yml` deploys the VitePress s
 `release.yml` publishes the release notes when a tag is pushed; `install.yml` smoke-tests the install methods the
 project has (make, CMake, FoBiS, fpm) after a release. `scripts/release.sh vX.Y.Z` (or `--patch`/`--minor`/`--major`)
 regenerates `CHANGELOG.md` with git-cliff, updates `VERSION` (and the `fpm.toml` version), commits, tags and pushes.
-`scripts/run_tests.sh` runs the tests serially, `--np N` under MPI, `--vmem KB` capping each test's memory; a test with
-a `<name>.result` file (the doctests) must print that result.
+`scripts/run_tests.sh` runs every test binary in `exe/`: those named `*mpi*` under `mpirun -np N` (`--np N`, default
+2), the others directly; a `*_xfail_*` test must fail, a test with a `<name>.result` file (the doctests) must print
+that result, and `--vmem KB` caps each test's virtual memory.
 
 The variables come from the fobos `[project]` section, then from git:
 
@@ -437,6 +439,33 @@ fobis ecosystem scaffold sync --files "scripts/*" --apply --yes
   `scaffold sync` to review, `scaffold sync --apply`, and `fobis ecosystem exec -- git status -s` before committing
   in each repository.
 
+## What calls for a release
+
+Whether a project needs a release is decided by the **files** its commits change; how big a release by their
+[Conventional Commits](https://www.conventionalcommits.org/) **type**:
+
+1. A commit since the latest tag is releasable when it changes at least one file outside the excluded globs, by
+   default `docs/* .github/* *.md scripts/*` (fnmatch on repository-relative paths, `*` also matching `/`). A docs-only
+   or CI-only commit is unreleased but calls for no release, whatever its type; a commit changing no file (a merge,
+   an empty commit) does not count.
+2. The bump comes from the releasable commits only: a `!` after the type or scope, or a `BREAKING CHANGE` footer, means
+   **major**; `feat` means **minor**; anything else, a non-conventional message included, means **patch**.
+
+| Commit | Files changed | Releasable | Bump |
+|---|---|:---:|:---:|
+| `fix(docs): target es2022` | `docs/package.json`, `scripts/release.sh` | no | |
+| `build(fpm): track default branches` | `fpm.toml` | yes | patch |
+| `feat(core): add halve()` | `src/core_m.f90` | yes | minor |
+| `refactor(api)!: rename twice` | `src/core_m.f90` | yes | major |
+
+Commit types are written by hand and are sometimes wrong; the files a commit touches are not. A project replaces the
+globs in its own fobos (the dashboard and `release` both read them):
+
+```ini
+[ecosystem]
+release_exclude = docs/* .github/* *.md scripts/* examples/*
+```
+
 ## The release train
 
 Releasing a family by hand means: release the bottom library, wait for it, update its dependents' locks, release them,
@@ -498,33 +527,6 @@ fobis ecosystem release --no-wait                     # do not wait for the GitH
 - **Exit codes:** 0 when every planned project is released, nothing needs a release, the plan is declined, or a
   `--dry-run` finds no blocker; 1 when a project is blocked, the confirmation cannot be answered, or a release fails,
   aborts or is not published in time; 2 for an invalid `--bump` or an unknown project.
-
-## What calls for a release
-
-Whether a project needs a release is decided by the **files** its commits change; how big a release by their
-[Conventional Commits](https://www.conventionalcommits.org/) **type**:
-
-1. A commit since the latest tag is releasable when it changes at least one file outside the excluded globs, by
-   default `docs/* .github/* *.md scripts/*` (fnmatch on repository-relative paths, `*` also matching `/`). A docs-only
-   or CI-only commit is unreleased but calls for no release, whatever its type; a commit changing no file (a merge,
-   an empty commit) does not count.
-2. The bump comes from the releasable commits only: a `!` after the type or scope, or a `BREAKING CHANGE` footer, means
-   **major**; `feat` means **minor**; anything else, a non-conventional message included, means **patch**.
-
-| Commit | Files changed | Releasable | Bump |
-|---|---|:---:|:---:|
-| `fix(docs): target es2022` | `docs/package.json`, `scripts/release.sh` | no | |
-| `build(fpm): track default branches` | `fpm.toml` | yes | patch |
-| `feat(core): add halve()` | `src/core_m.f90` | yes | minor |
-| `refactor(api)!: rename twice` | `src/core_m.f90` | yes | major |
-
-Commit types are written by hand and are sometimes wrong; the files a commit touches are not. A project replaces the
-globs in its own fobos (the dashboard and `release` both read them):
-
-```ini
-[ecosystem]
-release_exclude = docs/* .github/* *.md scripts/* examples/*
-```
 
 ## A change at the bottom of the stack
 
