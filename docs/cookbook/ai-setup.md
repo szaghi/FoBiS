@@ -10,10 +10,10 @@ and the ways an external agent (Claude Code, Codex, any MCP client) uses FoBiS. 
 
 How it works:
 
-1. **The managed provider** (the default). FoBiS installs a pinned build of [llama.cpp](https://github.com/ggml-org/llama.cpp)'s
-   `llama-server`, starts it on `127.0.0.1` when a command needs the model, and stops it when the command ends;
-   `fobis llm serve start` keeps one running between commands instead. No service to install, no compiled Python
-   dependency: the standalone `fobis.pyz` does the same.
+1. **The managed provider** (the default). FoBiS installs a pinned build of
+   [llama.cpp](https://github.com/ggml-org/llama.cpp)'s `llama-server`, starts it on `127.0.0.1` when a command needs
+   the model, and stops it when the command ends; `fobis llm serve start` keeps one running between commands instead.
+   No service to install, no compiled Python dependency: the standalone `fobis.pyz` does the same.
 2. **The model store.** Open-weight GGUF models from the Hugging Face Hub, pinned to a commit and checked against the
    Hub's sha256, in `~/.fobis/llm` (or `$FOBIS_LLM_DIR`), with the runtime, the logs and the server record.
 3. **Nothing downloads implicitly.** Only `fobis llm runtime install` and `fobis llm pull` download; a command missing
@@ -68,6 +68,18 @@ fobis llm doctor --no-sample  # the checks only, nothing started
 A failed check prints `BAD` with the command that fixes it, and `doctor` exits 1. With the pinned runtime it also
 checks that the installed build is the pinned one. With `ollama` or `openai`, it shows the server address (FoBiS does
 not start that server) and times the sample answer there.
+
+## Ask the model directly
+
+```bash
+fobis llm ask "What does the Fortran 'contiguous' attribute guarantee?"
+fobis llm ask --schema answer.json "Name the intrinsic"   # the answer constrained to a JSON Schema
+git diff | fobis llm ask -                                # the prompt from standard input
+fobis llm ask --system "Answer in one line." "What is an elemental procedure?"
+```
+
+The answer streams to standard output, from the configured provider: a quick check of any setup. It is the bare
+model, with no grounding: for an answer cited from the packs and your sources, `fobis ask` in [AI assistance](./ai).
 
 ## Choose a model
 
@@ -131,7 +143,7 @@ fobis llm serve stop
 - **It outlives the terminal,** until `serve stop` or a reboot: stop it on a shared machine. A second `serve start`
   is refused while one runs.
 - **The record:** `~/.fobis/llm/server.json` (address, process, key), readable by you only; `serve status --json`
-  prints it without the key, and an empty object, with exit 0, when none runs. The log is
+  prints it without the key, and an empty object when none runs (exit 0, where the plain form exits 1). The log is
   `~/.fobis/llm/logs/llama-server-persistent.log`; a per-command server logs to `logs/llama-server.log`, whose last
   lines the error shows when the server fails to start.
 
@@ -244,18 +256,6 @@ n_gpu_layers = 99
   `fobis ask` in 3.4 s, with `fobis llm serve start` keeping the server up between commands.
 - **The stored files are plain GGUF:** any llama.cpp build serves them (`fobis llm list --json` gives the paths).
 
-## Ask the model directly
-
-```bash
-fobis llm ask "What does the Fortran 'contiguous' attribute guarantee?"
-fobis llm ask --schema answer.json "Name the intrinsic"   # the answer constrained to a JSON Schema
-git diff | fobis llm ask -                                # the prompt from standard input
-fobis llm ask --system "Answer in one line." "What is an elemental procedure?"
-```
-
-The answer streams to standard output, from the configured provider: a quick check of any setup. It is the bare
-model, with no grounding: for an answer cited from the packs and your sources, `fobis ask` in [AI assistance](./ai).
-
 ## Search the knowledge packs
 
 ```bash
@@ -350,9 +350,9 @@ features. The agent calling the gate after its edit:
 - **Annotations** tell the client what to confirm: `readOnlyHint` is false for the tools listed as `writes` above,
   `destructiveHint` true for `clean`, `idempotentHint` false for `fetch`, `openWorldHint` true for `fetch` and
   `ecosystem_status` (network). With Claude Code you approve each call unless you allow the tool.
-- **The writing tools write build products, run directories and fetched dependencies, never sources or references:** `verify` never
-  updates a reference, `bench` never records history, `modernize` never applies its fixes, `lint` with `fix_diff`
-  returns a diff and writes nothing.
+- **The writing tools write build products, run directories and fetched dependencies, never sources or
+  references:** `verify` never updates a reference, `bench` never records history, `modernize` never applies its
+  fixes, `lint` with `fix_diff` returns a diff and writes nothing.
 - **Slow tools:** `matrix` builds once per cell, `assess` once per variant. `test`, `case_run`, `verify`, `assess`,
   `diff_run`, `bench` and `profile` take `runner: slurm` to submit the runs as jobs: see [HPC and clusters](./hpc).
 - **Resources:** `fobis://rules/{id}` (a lint rule's documentation, listed) and `fobis://kb/{id}` (a pack section, its
