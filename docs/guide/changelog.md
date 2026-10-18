@@ -4,6 +4,45 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.10.0] — 2026-10-18
+### Added
+- **fetch**: Remove fetch --deps-dir: the dependency directory is the fobos's deps_dir ⚠ BREAKING CHANGE
+
+
+### Documentation
+- **cookbook**: Order the Building chapter as a project grows, and fix its links and repetitions
+
+- **cookbook**: Correct the Testing chapter's framework claim and show one project's tests
+
+- **cookbook**: Order the Dependencies chapter as a project meets them
+
+- **cookbook**: Put pkg-config next to install in the Libraries chapter
+
+- **cookbook**: Describe the compiler the provenance records as the command the build runs
+
+- **cookbook**: Give the hook, the pull-request workflow and the risk summary one home each, and one name per chapter
+
+- **cookbook**: Put what to trust before the AI features
+
+- **cookbook**: Put the direct model check next to the setup check and state both serve status exit codes
+
+- **cookbook**: Describe run_tests.sh as it runs, note the registry's inline-comment warning, and explain releases before the train
+
+- **cookbook**: List every command with machine output, point the MCP link at the agents chapter, and say where a document's fields come from
+
+- **cookbook**: Name Intel's MPI C wrapper and drop the stack promise in HPC and clusters
+
+
+### Fixed
+- **llm**: Keep the model server's API key off the command line
+
+- **install**: Ignore the local fobos when installing from a repository
+
+- **ecosystem**: Say why the release train did not wait for a GitHub release
+
+- **ecosystem**: Fail scaffold status and sync on a project they cannot read or a file they cannot write
+
+
 ## [3.9.12] — 2026-10-17
 ### Added
 - **build**: Remove the build cache and the fetch options that did nothing ⚠ BREAKING CHANGE
