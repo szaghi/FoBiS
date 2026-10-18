@@ -23,8 +23,9 @@ How it works:
    Recompiling follows the sources, and the `.mod` files of modules used from the include directories: a newer one
    recompiles the files using it.
 
-Tutorial: [a library](/tutorial/first-steps/03-library), [a library from another project](/tutorial/growing/04-dependon),
-[rules](/tutorial/growing/05-rules), [other build systems](/tutorial/growing/07-export). Reference:
+Tutorial: [a library](/tutorial/first-steps/03-library),
+[a library from another project](/tutorial/growing/04-dependon), [rules](/tutorial/growing/05-rules),
+[other build systems](/tutorial/growing/07-export). Reference:
 [`build`](/reference/build), [`install`](/reference/install), [`rule`](/reference/rule), [`fpm`](/reference/fpm),
 [`introspect`](/reference/introspect).
 
@@ -90,7 +91,7 @@ The archiver in use is printed in the builder settings (`Archiver: ar -rcs`).
 ## Install what a mode built
 
 `track_build = True` (or `--track-build`) records what the build produced in `<build_dir>/.<target>.track_build`;
-`fobis install` copies it to a prefix: programs to `bin/`, libraries to `lib/`, the module file to `include/`.
+`fobis install` copies it to a prefix: programs to `bin/`, libraries to `lib/`, module files to `include/`.
 
 ```bash
 fobis build --mode static
@@ -110,6 +111,50 @@ fobis install --mode static --prefix ~/opt/quad
 - **Build first.** Without the build directory `fobis install` stops: `Error: build directory not found!` (exit 1).
 
 Cloning, building and installing a project from GitHub in one command: [Dependencies](./dependencies).
+
+## Publish a pkg-config file
+
+`pkgconfig = True` in a library mode makes FoBiS write a pkg-config file for it: one for using the library where it
+was built, one for its installed copy.
+
+```ini
+[project]
+name    = quad
+version = v0.1.0
+summary = Quadrature rules
+
+[static]
+compiler    = gnu
+cflags      = -c -O2
+src         = ./src/
+build_dir   = ./build/static/
+target      = src/quad_rules.F90
+mklib       = static
+output      = libquad.a
+track_build = True
+pkgconfig   = True
+; Requires: and Requires.private: of the file
+pkgconfig_req_priv = zlib
+```
+
+```bash
+fobis build --mode static                        # writes build/static/quad.pc: the build tree
+fobis install --mode static --prefix ~/opt/quad  # writes ~/opt/quad/lib/pkgconfig/quad.pc
+PKG_CONFIG_PATH=~/opt/quad/lib/pkgconfig pkg-config --cflags --libs quad
+```
+
+The second prints `-I/home/me/opt/quad/include -L/home/me/opt/quad/lib -lquad`: a program using the library compiles
+and links with these flags alone.
+
+- **The fields:** `Name` is `pkgconfig_name`, else `[project] name`, else the library's name; `Description` is
+  `pkgconfig_desc`, else `[project] summary`; `URL` is `pkgconfig_url`, else `[project] repository`; `Version` is the
+  project's version without a leading `v`. `pkgconfig_req` and `pkgconfig_req_priv` fill `Requires` and
+  `Requires.private`.
+- **The paths are absolute:** `prefix` is the build directory or the install prefix; `Cflags` names the module
+  directory (`include/` once installed, `--include` renames it).
+- **A library named `libNAME`** is linked with `-L... -lNAME`; any other name (a mode without `output` builds
+  `NAME.a`) is linked by its path, which `-l` could not find.
+- **Libraries only:** a mode without `mklib` writes no file.
 
 ## Link an installed or system library
 
@@ -236,50 +281,6 @@ spaces:
 
 The same without the link syntax, from a directory or a git repository: `[dependencies]` with `use=fobos`, in
 [Dependencies](./dependencies).
-
-## Publish a pkg-config file
-
-`pkgconfig = True` in a library mode makes FoBiS write a pkg-config file for it: one for using the library where it
-was built, one for its installed copy.
-
-```ini
-[project]
-name    = quad
-version = v0.1.0
-summary = Quadrature rules
-
-[static]
-compiler    = gnu
-cflags      = -c -O2
-src         = ./src/
-build_dir   = ./build/static/
-target      = src/quad_rules.F90
-mklib       = static
-output      = libquad.a
-track_build = True
-pkgconfig   = True
-; Requires: and Requires.private: of the file
-pkgconfig_req_priv = zlib
-```
-
-```bash
-fobis build --mode static                        # writes build/static/quad.pc: the build tree
-fobis install --mode static --prefix ~/opt/quad  # writes ~/opt/quad/lib/pkgconfig/quad.pc
-PKG_CONFIG_PATH=~/opt/quad/lib/pkgconfig pkg-config --cflags --libs quad
-```
-
-The second prints `-I/home/me/opt/quad/include -L/home/me/opt/quad/lib -lquad`: a program using the library compiles
-and links with these flags alone.
-
-- **The fields:** `Name` is `pkgconfig_name`, else `[project] name`, else the library's name; `Description` is
-  `pkgconfig_desc`, else `[project] summary`; `URL` is `pkgconfig_url`, else `[project] repository`; `Version` is the
-  project's version without a leading `v`. `pkgconfig_req` and `pkgconfig_req_priv` fill `Requires` and
-  `Requires.private`.
-- **The paths are absolute:** `prefix` is the build directory or the install prefix; `Cflags` names the module
-  directory (`include/` once installed, `--include` renames it).
-- **A library named `libNAME`** is linked with `-L... -lNAME`; any other name (a mode without `output` builds
-  `NAME.a`) is linked by its path, which `-l` could not find.
-- **Libraries only:** a mode without `mklib` writes no file.
 
 ## Run project commands as rules
 
