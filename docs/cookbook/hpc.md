@@ -235,8 +235,8 @@ What a run becomes:
 Pitfalls and limits:
 
 - **Tests** run in `.fobis/runs/test-jobs/<name>/`. A test job asks for `--ntasks` from `--ranks` and `--time` from
-  the test's timeout (60 s by default, so 3 minutes with the setup's 2), never for GPUs: a GPU test needs `--gpus=1` in the fobos's
-  `[scheduler] options`. With `-j N`, N jobs are in the queue at once.
+  the test's timeout (60 s by default, so 3 minutes with the setup's 2), never for GPUs: a GPU test needs
+  `--gpus=1` in the fobos's `[scheduler] options`. With `-j N`, N jobs are in the queue at once.
 - **`bench`** measures the job's own run time; CPU time and load average are not measured (they would be the login
   node's).
 - **Scratch copies** of `diff-run` and `bench --compare` are made in `.fobis/scratch` instead of `/tmp`, which the
@@ -317,4 +317,4 @@ python3 fobis.pyz verify --runner slurm
   builds run `python3 fobis.pyz ...`, not a `fobis` from the PATH.
 - **The compilers come from the cluster:** the archive holds no compiler.
 - **Dependencies** fetched elsewhere and copied over: [Dependencies](./dependencies).
-- **A local model** for the AI commands, copied with its runtime: [AI setup](./ai-setup).
+- **A local model** for the AI commands, copied with its runtime: [Models, knowledge and agents](./ai-setup).

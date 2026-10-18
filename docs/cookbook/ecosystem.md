@@ -491,8 +491,8 @@ fobis ecosystem release --no-wait                     # do not wait for the GitH
   reviewed with `--dry-run`.
 - **The release is awaited only on GitHub with `gh` on the PATH**; otherwise the result says why: `vX.Y.Z pushed
   (GitHub release not awaited: gh is not installed)`, or `not a GitHub project`. Unawaited, the next projects fetch
-  the tag while its release may still be building. A release not published within the timeout, or a failed fetch in a dependent, fails the
-  project.
+  the tag while its release may still be building. A release not published within the timeout, or a failed fetch
+  in a dependent, fails the project.
 - **Your own `release.sh`** works if it takes the version as its only argument, tags and pushes; `git-cliff` is
   required anyway (`pipx install git-cliff`), as the scaffolded script needs it.
 - **Exit codes:** 0 when every planned project is released, nothing needs a release, the plan is declined, or a
@@ -548,7 +548,7 @@ fobis ecosystem scaffold status             # exit 1 on drift
 fobis ecosystem release --dry-run           # exit 1 when a planned release is blocked
 ```
 
-More in [Continuous integration](./ci).
+More in [CI and machine output](./ci).
 
 ## Try it offline
 

@@ -244,4 +244,4 @@ fobis test --json
 
 One JSON document on standard output: each test with its status (`passed`, `failed`, `build-failed`, `timeout`,
 `error`), its output, and for a failure the facts `--explain` would print. Building and running are silent. More in
-[Continuous integration](./ci).
+[CI and machine output](./ci).

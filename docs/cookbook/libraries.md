@@ -213,7 +213,7 @@ kept.
 - **`mpi = True` is another thing:** it compiles with the MPI wrapper as the compiler. `externals = mpi` keeps the
   plain compiler and adds the MPI flags.
 - **Composes with feature flags.** A feature supplies the macro (`hdf5 = -DUSE_HDF5` in `[features]`), the external
-  the include and link flags of the same library ([building](./build)).
+  the include and link flags of the same library ([Building](./build)).
 
 ## Recompile everything when a library changes
 

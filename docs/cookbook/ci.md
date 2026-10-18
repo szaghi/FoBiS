@@ -124,7 +124,7 @@ GitHub code scanning (findings tracked across commits in the repository's *Secur
 - **Old code:** `review` judges only the changed lines; for `lint`, a baseline keeps the existing findings out of the
   verdict, so only new ones fail the job.
 
-Rules, baselines, suppressions and fixes: [Code analysis](./analysis).
+Rules, baselines, suppressions and fixes: [Code quality](./analysis).
 
 ## Keep the agents' instructions current
 
@@ -138,7 +138,7 @@ Rules, baselines, suppressions and fixes: [Code analysis](./analysis).
 Exit 0 when every file's block is current; 1 when one is stale (the unified diff is printed), has no block, or the
 file does not exist; 2 for broken markers or a fobos error. The block holds no date, version or machine state, so it
 changes only when the project does. `--check --json` gives each file's status and diff. More in
-[Code analysis](./analysis).
+[Models, knowledge and agents](./ai-setup).
 
 ## Read the results in a script
 
@@ -191,35 +191,13 @@ Agents read the same documents through the MCP server, `fobis mcp`: see [AI assi
 
 ## Review before every commit
 
-The rules on the staged lines only, with no model: a hook as fast as `fobis lint`. With
-[pre-commit](https://pre-commit.com), in `.pre-commit-config.yaml`:
-
-```yaml
-repos:
-  - repo: local
-    hooks:
-      - id: fobis-review
-        name: fobis review
-        entry: fobis review --staged
-        language: system
-        pass_filenames: false
-        files: '\.(f|F|for|f90|F90|f95|f03|f08)$'
-```
-
-Or as a plain git hook, `.git/hooks/pre-commit` (executable):
-
-```bash
-#!/bin/sh
-exec fobis review --staged
-```
-
-The commit is refused (exit 1) when a staged line has a warning- or error-level finding. When a reviewed file has
-unstaged changes too, FoBiS warns: the line numbers are the staged version's. Tutorial:
-[review what changed](/tutorial/quality/03-review).
+`fobis review --staged` as a pre-commit hook, with [pre-commit](https://pre-commit.com) or a plain git hook: the
+rules only, no model, as fast as `fobis lint`. The hook files:
+[Code quality](./analysis#review-in-a-pre-commit-hook-and-in-pull-requests).
 
 ## The same CI in every project
 
 `fobis scaffold` keeps a project's CI workflows, release script and documentation boilerplate in line with a
 template (`status` lists the files `OK`, `OUTDATED` or `MISSING`, `sync` updates them after showing the diff), and
 `fobis ecosystem` does it for every project of a group. Tutorial: [shared boilerplate](/tutorial/ecosystem/05-scaffold).
-More in [Ecosystem](./ecosystem).
+More in [Many projects](./ecosystem).

@@ -730,5 +730,5 @@ tutorial: [on a cluster](/tutorial/numerics/09-cluster).
 Every command here takes `--json`: one document on standard output, progress on standard error. `fobis gate --json`
 gives the verdict and, per stage, the status, the first failing fact and the commands run. The MCP server exposes
 `case_list`, `case_run`, `provenance`, `verify`, `matrix`, `assess`, `diff_run`, `bench`, `gate` and `profile` as
-tools; none of them writes references or benchmark history. More in [Continuous integration](./ci) and
+tools; none of them writes references or benchmark history. More in [CI and machine output](./ci) and
 [AI assistance](./ai).

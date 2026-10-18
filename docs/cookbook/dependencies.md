@@ -298,7 +298,7 @@ fobis install szaghi/FLAP --no-build                       # clone only
 `--tag`, `--branch` or `--rev`, runs `fobis build --track-build [--mode MODE]` there, and copies what the build
 tracked: programs to `<prefix>/bin/`, libraries to `<prefix>/lib/`, their module files to `<prefix>/include/`
 (`--bin`, `--lib`, `--include` rename them; the prefix defaults to `./`). Without `REPO`, `fobis install` copies your
-own tracked build: see [Libraries](./libraries).
+own tracked build: see [Libraries and other build systems](./libraries).
 
 ![a tracked build installed to a prefix](/gifs/06_install.gif)
 
@@ -356,4 +356,4 @@ document: `status`, `deps_dir`, `dependencies`, `failures` (one line per depende
 out at its pin or built) and `errors` (the messages); its exit status is the plain fetch's.
 
 - **Cache `.fobis_deps/`** between CI runs keyed on the fobos, and run `fobis fetch --frozen` on a cache hit. More in
-  [Continuous integration](./ci).
+  [CI and machine output](./ci).

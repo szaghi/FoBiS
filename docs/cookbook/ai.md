@@ -42,7 +42,7 @@ fobis llm pull coder-7b       # once: 4.7 GB, the default model
 
 Every command of this page then starts the model when it needs it and stops it at the end. Other models, Ollama or
 an OpenAI-compatible server, a persistent server for many commands, a cluster without internet, the knowledge
-packs, the MCP server for agents: [Setting up the AI](./ai-setup).
+packs, the MCP server for agents: [Models, knowledge and agents](./ai-setup).
 
 ## Why the build failed
 
@@ -341,6 +341,10 @@ Tutorial: [a second reader](/tutorial/ai/06-review).
 `fobis review` reports the lint findings on the changed lines (see [Code quality](./analysis)); `--deep` adds a
 model's risk summary of the change:
 
+![fobis review and fobis review --deep on an OpenMP change, with coder-7b](/gifs/14_llm_review.gif)
+
+*coder-7b on an NVIDIA A30 of a cluster node, reached through ssh; recorded in real time.*
+
 ```bash
 fobis review --deep                       # every uncommitted change
 fobis review --base origin/master --deep  # the commits of a branch
@@ -434,7 +438,7 @@ refine_passes  = 1
   staged.
 - **Another server for one run:** `--provider ollama|openai`, `--url`, `--model`, `--api-key-env NAME`; the key is
   read only from the variable you name, and a hosted endpoint receives your staged diff. More in
-  [Setting up the AI](./ai-setup).
+  [Models, knowledge and agents](./ai-setup).
 
 Tutorial: [commit messages](/tutorial/ai/07-commit).
 
@@ -508,7 +512,7 @@ Tutorial: [merge conflicts](/tutorial/ai/08-merge).
 ## The impact of a change on dependent projects
 
 `fobis ecosystem impact` finds, in every project depending on a library, the places using what changed in its
-public interface (see [Ecosystems](./ecosystem)). `--deep` adds a cited summary for the release train:
+public interface (see [Many projects](./ecosystem)). `--deep` adds a cited summary for the release train:
 
 ```bash
 fobis ecosystem impact PENF --deep                 # what breaks, what to do
@@ -538,7 +542,7 @@ fobis commit --show-facts                    # the facts added to the commit pro
 
 The same inputs give the same context. Read it when an answer surprises you: a wrong answer from a context missing
 the relevant code is a retrieval problem, not a model problem. To give an AI agent these facts directly, without the
-local model, use the MCP server: [Setting up the AI](./ai-setup).
+local model, use the MCP server: [Models, knowledge and agents](./ai-setup).
 
 ## What to trust
 
@@ -551,7 +555,7 @@ local model, use the MCP server: [Setting up the AI](./ai-setup).
   carried no information in the measurements above.
 - **The model matters.** coder-7b is the smallest that is useful; coder-0.5b and coder-1.5b failed every `testgen`
   attempt, and 1.5b gave a wrong `--explain` fix and invented "about 10 seconds on a GPU" for a question no source
-  answered. A larger model through another provider is a configuration line ([Setting up the AI](./ai-setup)).
+  answered. A larger model through another provider is a configuration line ([Models, knowledge and agents](./ai-setup)).
 - **Speed:** about 45 s per answer for coder-7b on 6 CPU cores; seconds on an NVIDIA A30 (3.4 s for the `ask`
   answer above, 20 s for an accepted test). A persistent server saves the start-up of every command.
 - **Overrides:** `ask` and `commit` take `--provider` and `--model`; the other commands use the user configuration.

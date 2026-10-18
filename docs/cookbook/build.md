@@ -692,7 +692,7 @@ It scans the sources as `build` would (fetched and test-only dependencies includ
 provides, an `include` no source directory holds, or files depending on each other in a cycle. A module found as a
 `.mod` in an include directory, or defined by a `dependon` project, is provided. `fobis build` stops on a cycle with
 the same message (`error: circular dependency: a -> b -> a`). A fast first step in CI: see
-[Continuous integration](./ci).
+[CI and machine output](./ci).
 
 ## Inspect the resolved settings
 

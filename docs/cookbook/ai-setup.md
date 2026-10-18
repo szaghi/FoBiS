@@ -400,7 +400,7 @@ In CI, the block must be current:
 
 Exit 0 when every file's block is current; 1 when one is stale (the diff is printed), has no block or does not exist;
 2 for broken markers, an unwritable file or a fobos error. `--check --json` gives each file's status and diff. The MCP
-tool `agents_md` gives the same facts and block. More in [Continuous integration](./ci).
+tool `agents_md` gives the same facts and block. More in [CI and machine output](./ci).
 
 ## The Claude Code skill
 

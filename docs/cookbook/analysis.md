@@ -15,8 +15,8 @@ How it works:
 
 1. **Statements, not a parser.** Each file is cut into logical statements (continuation lines joined, comments
    dropped, `;` split, labels detached, OpenMP/OpenACC directives kept as statements). Fixed form is chosen by the
-   extension (`.f`, `.for`, `.fpp`, `.f77`, `.fortran`, in either case) and ignores the columns beyond 72, as the
-   compilers do by default. A statement the analysis does not recognise is skipped, and the rest of the file is
+   extension (`.f`, `.for`, `.fpp`, `.f77`, `.ftn`, `.fortran`, in either case) and ignores the columns beyond 72,
+   as the compilers do by default. A statement the analysis does not recognise is skipped, and the rest of the file is
    still analysed. Macros used inside Fortran code (a type spelled `VARTYPE(KKP)`) are not expanded; the
    declarations written with them are still recognised.
 2. **The mode's defines.** `#if`/`#ifdef` are resolved with the `-D` flags of the selected mode (its `cflags`,
@@ -213,23 +213,14 @@ fobis lint --format json                            # scripts
 
 <<< @/examples/output/4-quality/01/github.txt{console}
 
-```yaml
-- run: pip install FoBiS.py
-- run: fobis lint --format github
-# or: findings tracked across commits in the repository's Security tab
-- run: fobis lint --format sarif --exit-zero > fobis-lint.sarif
-- uses: github/codeql-action/upload-sarif@v3
-  with:
-    sarif_file: fobis-lint.sarif
-```
-
 - **`json`** holds `files`, `baselined`, `unreadable` and the findings (rule, name, severity, path, line, end_line,
   message, fingerprint).
 - **`sarif`** is SARIF 2.1.0; each result carries the line-independent fingerprint, so code scanning follows a
   finding across commits, and each rule links its page of the rule reference.
 - **`github`** maps the severities to `error`, `warning` and `notice`.
 
-More in [Continuous integration](./ci).
+The workflow steps (annotations, code scanning upload, a review of the pull request):
+[Continuous integration](./ci#lint-and-review-on-pull-requests).
 
 ## Compiler feedback
 
@@ -356,45 +347,19 @@ Or a plain `.git/hooks/pre-commit`, executable:
 exec fobis review --staged
 ```
 
-For a pull request, the findings as a comment:
+For a pull request, the findings as a comment (`--format markdown`):
 
 <<< @/examples/output/4-quality/03/markdown.txt{console}
 
-```yaml
-- uses: actions/checkout@v4
-  with:
-    fetch-depth: 0          # the merge base must be in the clone
-- run: pip install FoBiS.py
-- name: Review the change
-  run: |
-    fobis review --base origin/${{ github.base_ref }} --format github
-    fobis review --base origin/${{ github.base_ref }} --format markdown --exit-zero >> "$GITHUB_STEP_SUMMARY"
-```
-
-The first command annotates the changed lines and fails the job on a finding; the second writes the report to the
-job summary. Formats: `text`, `markdown`, `github`, `sarif`, `json` (the findings plus `changed_lines`).
+Formats: `text`, `markdown`, `github`, `sarif`, `json` (the findings plus `changed_lines`). The workflow, with the
+merge base in the clone: [Continuous integration](./ci#lint-and-review-on-pull-requests).
 `fobis gate --base REF` runs this review with `--worktree` among its stages: see [Verifying results](./verification).
 
 ## A risk summary of the change
 
-`--deep` adds a summary written by a language model from facts: the diff of each changed Fortran file, the changed
-code in context, the OpenMP/OpenACC regions the change touches, the files that `use` a module whose procedure headers
-changed, the findings on the changed lines and their rules. The answer is cited claims of two kinds, **risks** and
-**to check**; a claim citing nothing is dropped.
-
-![fobis review and fobis review --deep on an OpenMP change, with coder-7b](/gifs/14_llm_review.gif)
-
-*coder-7b on an NVIDIA A30 of a cluster node, reached through ssh; recorded in real time.*
-
-```bash
-fobis review --deep                                      # findings, then the risk summary
-fobis review --deep-context                              # the model's input; no model runs
-fobis review --base origin/master --deep --format markdown
-```
-
-The summary adds to the `text`, `markdown` and `json` formats (`risk` in JSON); with `github` or `sarif` it is
-skipped with a warning. It never changes the exit status, and an unavailable model leaves the review without it.
-Models and their limits: [AI assistance](./ai).
+`fobis review --deep` adds a summary written by a language model from the diff, the regions it touches and the
+findings: cited claims of two kinds, **risks** and **to check**. It never changes the findings or the exit status.
+What the model gets, a real answer and its limits: [AI assistance](./ai#a-risk-summary-of-a-change).
 
 ## Who calls a procedure, who writes a variable
 
@@ -591,4 +556,5 @@ specifics) bound 15 and reported the rest (98 with allocatable arguments, 35 cha
 `fobis lint --format json`, `fobis review --format json`, `fobis query --json`, `fobis modernize --json` and
 `fobis bindings --json` print one JSON document on standard output. The MCP server (`fobis mcp`) exposes `lint`
 (with a fix diff), `review`, `query`, `bindings` (the plan, read-only) and `modernize` (never applies) as tools, and
-the rules as resources. Briefing an agent on the project (`fobis agents-md`): [AI setup](./ai-setup).
+the rules as resources. Briefing an agent on the project (`fobis agents-md`):
+[Models, knowledge and agents](./ai-setup).
