@@ -19,7 +19,6 @@ How to use it, with examples: [Dependencies](/cookbook/dependencies).
 | `--fci` |  |  | Assume fobos inputs as case insensitive |
 | `--mode` | TEXT |  | Select a mode defined into a fobos file |
 | `--lmodes` |  |  | List the modes defined into a fobos file |
-| `--deps-dir` | TEXT |  | Directory for storing fetched dependencies [default: .fobis_deps or fobos [dependencies] setting] |
 | `--update` |  |  | Update already-fetched dependencies (git fetch + re-checkout) |
 | `--no-build` |  |  | Only fetch dependencies, do not build them |
 | `--no-dev` |  |  | Skip the test-only dependencies (:: dev), e.g. for a production build |

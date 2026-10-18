@@ -242,9 +242,8 @@ penf     = https://github.com/szaghi/PENF :: tag=v2.0.1
 
 <<< @/examples/output/1-first-steps/05/deps.txt{console}
 
-- **Set it in the fobos, not with `--deps-dir`.** `fobis fetch --deps-dir DIR` clones into DIR, but `build`,
-  `check`, `doctests` and `tree` read the fobos's `deps_dir` only: with the option alone, the build does not see the
-  dependencies.
+- **Only the fobos sets it,** so `fetch`, `build`, `check`, `doctests` and `tree` always agree on where the
+  dependencies are.
 
 ## See the dependency tree
 

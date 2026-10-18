@@ -229,7 +229,7 @@ The `fetch` subcommand clones GitHub-hosted FoBiS projects and saves a config fi
 **Fobos `[dependencies]` section:**
 ```ini
 [dependencies]
-deps_dir = .fobis_deps                          # optional; overrides --deps-dir default
+deps_dir = .fobis_deps                          # optional; the only way to move the deps (no CLI option)
 penf     = https://github.com/szaghi/PENF :: tag=v1.5.0
 stdlib   = https://github.com/fortran-lang/stdlib :: tag=v0.5.0 :: use=fobos :: mode=gnu
 jsonfort = https://github.com/jacobwilliams/json-fortran :: branch=main :: use=fobos
@@ -260,7 +260,7 @@ FoBiS.py build             # auto-reads .fobis_deps/.deps_config.ini:
 
 **Failures (2026-10-16):** `Fetcher.failures` collects one line per failed step (clone, update, checkout of the pin or the locked commit, a `use=fobos` dependency without a fobos or whose build fails; for `install REPO` also nothing installed); `fetch` and `install REPO` fetch every dependency, then print the list and exit 1 (before: exit 0). A dependency not cloned keeps its previous lock entry and gets no deps-config entry. `fetch --json` and plain `fetch` share `_fetch_dependencies` (before: a reduced copy ignoring semver/--frozen/--no-dev, writing no lock); the JSON has `failures`. `install REPO` resolves the `.track_build` paths against the clone (it installed nothing for a relative `build_dir`). Tests `tests/test_fetch_failures.py`.
 
-**Storage:** deps are cloned into `deps_dir/<name>/` (default `.fobis_deps/`); `deps_dir` can be set in fobos `[dependencies]` section or via `--deps-dir` CLI flag (CLI takes precedence). The generated `.deps_config.ini` has a `src` key for source-mode deps and a `dependon` key for fobos-mode deps.
+**Storage:** deps are cloned into `deps_dir/<name>/` (default `.fobis_deps/`); `deps_dir` is set in the fobos `[dependencies]` section only: `fetch --deps-dir` was removed (2026-10-17, user decision) because `build`/`check`/`doctests`/`tree` never read it, so a fetch into another directory was invisible to the build. (`install REPO --deps-dir` is another option: where its clones go.) The generated `.deps_config.ini` has a `src` key for source-mode deps and a `dependon` key for fobos-mode deps.
 
 ### install command (GitHub mode)
 

@@ -58,7 +58,7 @@ fobis introspect         # emit machine-readable project metadata (JSON/TOML)
 fobis tree               # print the resolved inter-project dependency tree
 ```
 
-- `fetch`: `--deps-dir`, `--update`, `--no-build`, `--frozen` (enforce lockfile), `--no-dev`.
+- `fetch`: `--update`, `--no-build`, `--frozen` (enforce lockfile), `--no-dev`. The clone directory is `[dependencies] deps_dir` only.
   Supports `--json`.
 - `install`: positional `REPO` (`user/repo` or full URL) optional. Local mode (no REPO) installs
   previously built artifacts to `--prefix/-p` (default `./`) under `--bin`/`--lib`/`--include`.

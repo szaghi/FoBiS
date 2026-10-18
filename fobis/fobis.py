@@ -470,7 +470,7 @@ def run_fobis_fetch_json(configuration):
     sys.stderr = io.StringIO()
     exit_code = 0
     deps_info: list[dict] = []
-    deps_dir = configuration.cliargs.deps_dir or configuration.fobos.get_deps_dir()
+    deps_dir = configuration.fobos.get_deps_dir()  # [dependencies] deps_dir: build reads the same one
     fetcher = Fetcher(deps_dir=deps_dir, print_n=collector.print_n, print_w=collector.print_w)
     try:
         deps_info = _fetch_dependencies(configuration, fetcher, collector.print_n, collector.print_w) or []
@@ -508,7 +508,7 @@ def run_fobis_fetch(configuration):
     """
     from .Fetcher import Fetcher
 
-    deps_dir = configuration.cliargs.deps_dir or configuration.fobos.get_deps_dir()
+    deps_dir = configuration.fobos.get_deps_dir()  # [dependencies] deps_dir: build reads the same one
     fetcher = Fetcher(deps_dir=deps_dir, print_n=configuration.print_b, print_w=configuration.print_r)
     if _fetch_dependencies(configuration, fetcher, configuration.print_b, configuration.print_r) is None:
         configuration.print_r("No [dependencies] section found in fobos file")

@@ -17,13 +17,6 @@ def cmd_fetch(
     mode: ModeOpt = None,
     lmodes: LmodesOpt = False,
     # fetch-specific options
-    deps_dir: Annotated[
-        str | None,
-        typer.Option(
-            "--deps-dir",
-            help="Directory for storing fetched dependencies [default: .fobis_deps or fobos [dependencies] setting]",
-        ),
-    ] = None,
     update: Annotated[
         bool, typer.Option("--update", help="Update already-fetched dependencies (git fetch + re-checkout)")
     ] = False,
@@ -50,7 +43,6 @@ def cmd_fetch(
         fobos_case_insensitive=fobos_case_insensitive,
         mode=mode,
         lmodes=lmodes,
-        deps_dir=deps_dir,
         update=update,
         no_build=no_build,
         no_dev=no_dev,
