@@ -60,13 +60,13 @@ intel, `mpiifort -fc=ifx` for intel_nextgen.
   family's wrapper replaces `fc`.
 - **Coarrays:** `coarray = True` adds `-fcoarray=lib` (and `-lcaf_mpi` at link time) for gnu, `-coarray` for Intel;
   or `compiler = opencoarrays-gnu`, which compiles with the `caf` wrapper.
-- **C files** in an MPI mode compile with the family's MPI C wrapper (`mpicc`, `mpiicx` for intel_nextgen); OpenMP
-  adds the C switch too.
+- **C files** in an MPI mode compile with the family's MPI C wrapper (`mpicc`; `mpiicc -cc=icx` for intel, `mpiicx`
+  for intel_nextgen); OpenMP adds the C switch too.
 - **Check what a mode does** with `fobis introspect --compiler --mode NAME`: the command the build runs (the MPI
   wrapper included) and the flags with the OpenMP and coarray switches, without building anything.
 - **Libraries found through `pkg-config` or a wrapper** (HDF5, NetCDF, FFTW): [Dependencies](./dependencies).
 
-Thread count and stack: `OMP_NUM_THREADS` for a run of your own; a case's `threads` sets it for its runs.
+Thread count: `OMP_NUM_THREADS` for a run of your own; a case's `threads` sets it for its runs.
 
 ## Run a program or the tests through a launcher
 
@@ -175,8 +175,7 @@ login_nodes = login*
 
 The case gives the rest of the job: `ranks` -> `--ntasks`, `threads` -> `--cpus-per-task` and `OMP_NUM_THREADS`,
 `gpus` -> `--gpus`, `timeout` -> `--time` (minutes, rounded up, plus 2 for the job's setup lines: a case's default
-timeout of 600 s gives 12 minutes),
-`env` -> exported in the script.
+timeout of 600 s gives 12 minutes), `env` -> exported in the script.
 
 <<< @/examples/output/5-numerics/09/case.txt{ini}
 
