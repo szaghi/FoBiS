@@ -2,7 +2,7 @@
 (against a stub server), the managed provider and the ``fobis llm runtime/ask/doctor`` commands.
 
 The stub is a small Python program speaking the part of the llama-server contract FoBiS relies on, checked
-against the real b11308 binary: ``--host/--port/--api-key``, ``GET /health`` answering 503 while loading then
+against the real b11308 binary: ``--host/--port/--api-key-file``, ``GET /health`` answering 503 while loading then
 200, ``POST /v1/chat/completions`` requiring the bearer key and streaming server-sent events, ``--version``.
 """
 
@@ -52,7 +52,7 @@ STUB = textwrap.dedent(
         print("couldn't bind HTTP server socket: address already in use", flush=True)
         sys.exit(1)
     started = time.monotonic()
-    key = opt("--api-key")
+    key = open(opt("--api-key-file")).read().strip()  # read once at startup, as llama-server does
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *a):
@@ -344,6 +344,23 @@ def _server(stub, tmp_path, **kwargs) -> LlamaServer:
     return LlamaServer(stub, str(model), log_path=str(tmp_path / "logs" / "server.log"), **kwargs)
 
 
+def test_the_key_file_is_the_owners_only(stub, tmp_path, monkeypatch):
+    """The key file exists while the server starts, readable by its owner only."""
+    modes = []
+    server = _server(stub, tmp_path, startup_timeout=10)
+    original = server._remove_key_file
+
+    def checked():
+        if os.path.exists(server.key_file):
+            modes.append(os.stat(server.key_file).st_mode & 0o777)
+        original()
+
+    monkeypatch.setattr(server, "_remove_key_file", checked)
+    server.start()
+    server.stop()
+    assert modes == [0o600]
+
+
 def test_server_starts_waits_for_health_and_stops(stub, tmp_path):
     from fobis.llm import OpenAICompatProvider
 
@@ -351,7 +368,10 @@ def test_server_starts_waits_for_health_and_stops(stub, tmp_path):
     waits = []
     server.start(on_wait=waits.append)
     assert waits, "the stub answers 503 first: start() must have waited"
-    assert "--api-key" in server.command() and "--parallel" in server.command()
+    command = server.command()
+    assert "--parallel" in command and "--api-key-file" in command
+    assert server.api_key not in " ".join(command)  # on the command line, any user could read it in ps
+    assert not os.path.exists(server.key_file)  # read by the server at startup, then deleted
     answer = OpenAICompatProvider(server.url, "m", api_key=server.api_key).chat(messages("hello")).text
     assert answer == "ready hello"
     assert server.generation_speed() == 500.0

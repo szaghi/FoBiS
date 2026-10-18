@@ -150,8 +150,9 @@ startup_timeout = 120
 ```
 
 - **Loopback only, one key per process.** The server listens on `127.0.0.1`, on a free port, and refuses requests
-  without a random key generated for it. The key is on the server's command line: another user who can list your
-  processes can read it.
+  without a random key generated for it. The server reads the key from a file only you can read, deleted once it
+  has started: it is never on the command line, where other users of the machine could see it. A persistent server's
+  key is kept in `server.json`, also readable by you only.
 - **Login nodes** usually forbid heavy computation: cap `threads`, or run on a compute node.
 - **Stopped on exit.** A per-command server stops when the command ends, on Ctrl-C and on `kill`.
 - **Bounded answers.** Every structured answer is constrained by a JSON Schema whose strings and lists are bounded,

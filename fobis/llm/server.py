@@ -123,6 +123,10 @@ class LlamaServer:
         self.popen = popen
         self.persistent = persistent
         self.api_key = secrets.token_urlsafe(24)
+        # the key reaches the server in a file only the owner reads: on the command line, every user of the machine
+        # could read it in ps and use the server. Deleted once the server has read it (a persistent server's key is
+        # kept in server.json, mode 0600)
+        self.key_file = log_path + ".key"
         self.port = 0
         self.process: subprocess.Popen | None = None
         self._previous_sigterm = None
@@ -132,8 +136,8 @@ class LlamaServer:
         return f"http://{HOST}:{self.port}"
 
     def command(self) -> list[str]:
-        """The command line (the API key included: it is per process and local)."""
-        cmd = [self.binary, "-m", self.model, "--host", HOST, "--port", str(self.port), "--api-key", self.api_key]
+        """The command line (the API key in ``key_file``: never on the command line, which other users can read)."""
+        cmd = [self.binary, "-m", self.model, "--host", HOST, "--port", str(self.port), "--api-key-file", self.key_file]
         cmd += ["-c", str(self.n_ctx), "-ngl", self.n_gpu_layers, "--parallel", "1", "--no-webui"]
         if self.threads > 0:
             cmd += ["-t", str(self.threads)]
@@ -156,8 +160,20 @@ class LlamaServer:
         except OSError:
             return ""
 
+    def _write_key_file(self) -> None:
+        with contextlib.suppress(FileNotFoundError):
+            os.remove(self.key_file)  # a file left by another process: never reuse its mode
+        fd = os.open(self.key_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(self.api_key + "\n")
+
+    def _remove_key_file(self) -> None:
+        with contextlib.suppress(FileNotFoundError):
+            os.remove(self.key_file)
+
     def _spawn(self) -> None:
         os.makedirs(os.path.dirname(self.log_path) or ".", exist_ok=True)
+        self._write_key_file()
         with open(self.log_path, "w", encoding="utf-8") as log:
             self.process = self.popen(
                 self.command(),
@@ -200,14 +216,17 @@ class LlamaServer:
                 code = self.process.poll()
                 if code is not None:
                     tail = self.log_tail()
+                    self._remove_key_file()
                     self._forget()
                     if attempt < 2 and any(e in tail.lower() for e in _BIND_ERRORS):
                         break  # lost the port to another process: try a new one
                     raise ServerStartError(f"llama-server exited with status {code} while starting:\n{tail}")
                 if self._health() == 200:
+                    self._remove_key_file()  # read at startup: no key left on disk
                     return self
                 if time.monotonic() - started > self.startup_timeout:
                     tail = self.log_tail()
+                    self._remove_key_file()
                     self.stop()
                     raise ServerStartError(
                         f"llama-server not ready after {self.startup_timeout:.0f} s (startup_timeout):\n{tail}"
