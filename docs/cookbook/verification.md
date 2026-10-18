@@ -155,8 +155,9 @@ fobis provenance --json
   untracked **source** exists (FoBiS compiles untracked sources, listed as `untracked_sources`); untracked outputs do
   not count.
 - **`dependencies`**: the commit of each fetched dependency, from `<deps_dir>/fobos.lock`.
-- **`mode`, `compiler`**: the effective mode; the compiler, its path, the first line of its `--version`, the
-  compile, link and preprocessor flags. With `compiler = mpif90` it is the wrapped compiler's version.
+- **`mode`, `compiler`**: the effective mode; the command the build runs, its path, the first line of its
+  `--version`, the compile, link and preprocessor flags. An MPI mode's command is the wrapper (`mpif90`), whose
+  `--version` reports the compiler it wraps.
 - **`environment`**: `$LOADEDMODULES`, `OMP_NUM_THREADS`, and for a case with ranks the first line of
   `mpirun --version`.
 - **`machine`**: host, OS, CPU model, cores, GPUs (`nvidia-smi -L`), Python; under a scheduler, the compute node's.
