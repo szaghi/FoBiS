@@ -795,6 +795,39 @@ def test_cli_scaffold_sync_never_writes_without_consent(git_env, tmp_path):
     assert status.exit_code == 0 and "A: in sync" in status.output
 
 
+def test_cli_scaffold_fails_on_what_it_cannot_read_or_write(git_env, tmp_path):
+    # an unreadable project is not "in sync": a CI drift check exited 0 on it
+    repo = make_project(tmp_path, "A")
+    runner = CliRunner()
+    sync_a = ["ecosystem", "scaffold", "sync", "-c", write_config(tmp_path, "A"), "--files", "scripts/install.sh"]
+    runner.invoke(app, [*sync_a, "--apply", "--yes"])
+    cfg = write_config(tmp_path, "A missing")
+    status = runner.invoke(app, ["ecosystem", "scaffold", "status", "-c", cfg, "--files", "scripts/install.sh"])
+    assert status.exit_code == 1
+    assert "A: in sync" in status.output and "missing: directory not found" in status.output
+    sync = runner.invoke(app, ["ecosystem", "scaffold", "sync", "-c", cfg, "--files", "scripts/install.sh"])
+    assert sync.exit_code == 1 and "missing: directory not found" in sync.output
+
+    # a file sync cannot write fails the command too (it exited 0 and said "Updated")
+    if os.geteuid() == 0:
+        pytest.skip("root writes into read-only directories")
+    workflows = repo / ".github" / "workflows"
+    workflows.mkdir(parents=True, exist_ok=True)
+    workflows.chmod(0o555)
+    try:
+        cfg = write_config(tmp_path, "A")
+        sync = runner.invoke(app, ["ecosystem", "scaffold", "sync", "-c", cfg, "--files", ".github/workflows/ci.yml"])
+        assert sync.exit_code == 0  # dry run: nothing to write
+        result = runner.invoke(
+            app, ["ecosystem", "scaffold", "sync", "-c", cfg, "--files", ".github/workflows/ci.yml", "--apply", "--yes"]
+        )
+        assert result.exit_code == 1 and "could not be written" in result.output
+        assert "Updated" not in result.output
+        assert not (workflows / "ci.yml").exists()
+    finally:
+        workflows.chmod(0o755)
+
+
 # ---------------------------------------------------------------------------
 # Phase 3: release train
 # ---------------------------------------------------------------------------

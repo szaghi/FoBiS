@@ -427,7 +427,7 @@ The same states for every registered project, honouring each one's `skip`:
 <<< @/examples/output/3-ecosystem/05/drift.txt{console}
 
 ```bash
-fobis ecosystem scaffold status                        # exit 1 when any project drifts
+fobis ecosystem scaffold status                        # exit 1 when any project drifts or cannot be read
 fobis ecosystem scaffold status --only PENF,FACE --files ".github/*"
 fobis ecosystem scaffold sync                          # the diffs, project by project: writes nothing
 fobis ecosystem scaffold sync --apply                  # confirm each project (default no), then write
@@ -435,6 +435,8 @@ fobis ecosystem scaffold sync --files "scripts/*" --apply --yes
 ```
 
 - **`--apply` without a terminal** writes nothing and exits 1: add `--yes` for an unattended run.
+- **Exit 1 for a project it cannot read** (shown with its error, as on the dashboard) or, with `--apply`, a file it
+  cannot write; the other projects are still shown and synced.
 - **After upgrading FoBiS** the new templates show as drift: `pip install -U FoBiS.py`, then `scaffold status`,
   `scaffold sync` to review, `scaffold sync --apply`, and `fobis ecosystem exec -- git status -s` before committing
   in each repository.

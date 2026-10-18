@@ -471,15 +471,16 @@ def cmd_ecosystem_scaffold_status(
     files: FilesOpt = None,
     config: ConfigOpt = None,
 ) -> None:
-    """List the managed files not in sync, project by project (exit 1 when any drifts)."""
+    """List the managed files not in sync, project by project (exit 1 when any drifts or cannot be read)."""
     from ..Ecosystem import scaffold_for
 
     _, eco = _load(config)
     drifting = 0
     for name in _selected(eco, only, None):
         project = eco.projects[name]
-        if project.error:
+        if project.error:  # not known to be in sync: a CI drift check must not pass on it
             typer.echo(f"{name}: {project.error}")
+            drifting += 1
             continue
         states = scaffold_for(project.path).drift(files_glob=files)
         bad = [(d, s) for d, s in states if s not in ("ok", "skipped")]
@@ -511,10 +512,12 @@ def cmd_ecosystem_scaffold_sync(
 
     _, eco = _load(config)
     applied = []
+    failed = []  # unreadable projects, and projects with files that could not be written
     for name in _selected(eco, only, None):
         project = eco.projects[name]
         if project.error:
             typer.echo(f"{name}: {project.error}")
+            failed.append(name)
             continue
         drift = [d for d, s in scaffold_for(project.path).drift(files_glob=files) if s not in ("ok", "skipped")]
         if not drift:
@@ -532,12 +535,20 @@ def cmd_ecosystem_scaffold_sync(
                 raise typer.Exit(1) from None
             if not go:
                 continue
-        scaffold_for(project.path).sync(yes=True, files_glob=files)
-        applied.append(name)
+        scaffolder = scaffold_for(project.path)
+        scaffolder.sync(yes=True, files_glob=files)
+        if scaffolder.write_failures:
+            typer.echo(f"{name}: {len(scaffolder.write_failures)} file(s) could not be written")
+            failed.append(name)
+        else:
+            applied.append(name)
     if not apply:
         typer.echo("\nDry run: nothing written. Re-run with --apply to write the changes.")
     elif applied:
         typer.echo(f"\nUpdated: {', '.join(applied)} (review and commit in each repository).")
+    if failed:
+        typer.echo(f"Not synced: {', '.join(failed)}", err=True)
+        raise typer.Exit(1)
 
 
 # ---------------------------------------------------------------------------

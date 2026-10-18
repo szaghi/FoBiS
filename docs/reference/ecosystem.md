@@ -139,7 +139,7 @@ Scaffold drift across the projects (honours each fobos [scaffold] skip).
 
 #### `fobis ecosystem scaffold status`
 
-List the managed files not in sync, project by project (exit 1 when any drifts).
+List the managed files not in sync, project by project (exit 1 when any drifts or cannot be read).
 
 | Option | Value | Default | Description |
 |---|---|---|---|
