@@ -46,6 +46,7 @@ from . import (  # noqa: F401
     modernize,
     new,
     query,
+    registry,
     review,
     rule,
     run,

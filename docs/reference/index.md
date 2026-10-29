@@ -33,6 +33,14 @@ reads from the project, the [user configuration](./configuration) those of the m
 | [`scaffold`](./scaffold) | Manage project boilerplate via bundled scaffold templates. |
 | [`ecosystem`](./ecosystem) | Manage a set of interconnected FoBiS projects (registry: [ecosystem] in the user config). |
 
+## Packages and indexes
+
+| Command | What it does |
+|---|---|
+| [`index`](./index-command) | Manage the package indexes searched by search, info and add (several side by side, none by default). |
+| [`search`](./search) | Search the configured package indexes (and the indexes they follow). |
+| [`info`](./info) | Show what a package's source holds: versions, build system, modules, licence. |
+
 ## Testing
 
 | Command | What it does |

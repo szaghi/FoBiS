@@ -78,6 +78,12 @@ comments on lines of their own. FoBiS warns about such values on stderr, as it d
 # HTML dashboard mode: auto (follow the system), light or dark
 # mode = auto
 
+[indexes]
+# Package indexes searched by fobis search/info/add, in priority order: NAME = URL, where URL is a git
+# repository holding index.toml, a static index.toml over HTTP(S), or a local file or directory
+# (fobis index add NAME URL edits this section)
+# mine = https://github.com/me/fortran-index
+
 [scheduler]
 # Where --runner slurm submits the runs of this machine (a fobos [scheduler] section adds to it, key by key)
 # kind = slurm

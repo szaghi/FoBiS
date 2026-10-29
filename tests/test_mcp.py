@@ -34,6 +34,9 @@ TOOLS = [
     "testgen_skeleton",
     "ecosystem_status",
     "ecosystem_impact",
+    "package_search",
+    "package_info",
+    "index_check",
     "case_list",
     "provenance",
     "build",
@@ -125,7 +128,7 @@ def test_tools_list_has_schemas_and_annotations(server):
         "fetch",
     }
     assert {n for n, a in hints.items() if a["destructiveHint"]} == {"clean"}
-    assert {n for n, a in hints.items() if a["openWorldHint"]} == {"ecosystem_status", "fetch"}
+    assert {n for n, a in hints.items() if a["openWorldHint"]} == {"ecosystem_status", "fetch", "package_search", "package_info", "index_check"}
     assert not hints["fetch"]["idempotentHint"] and hints["build"]["idempotentHint"]
 
 
@@ -154,6 +157,9 @@ def test_command_lines(server, calls):
     _call(server, "query", {"kind": "callers", "argument": "m::s", "mode": "gnu"})
     _call(server, "agents_md", {"mode": "gnu"})
     _call(server, "bindings", {"modules": ["m"]})
+    _call(server, "package_search", {"term": "json", "module": "json_module"})
+    _call(server, "package_info", {"package": "vendor:json"})
+    _call(server, "index_check", {"path": "index.toml", "online": True})
     _call(server, "introspect", {"sections": ["sources", "compiler"]})
     _call(server, "check", {"mode": "gnu"})
     _call(server, "tree", {"depth": 2})
@@ -215,6 +221,9 @@ def test_command_lines(server, calls):
         ["query", "callers", "m::s", "--json", "--mode", "gnu"],
         ["agents-md", "--print", "--json", "--mode", "gnu"],
         ["bindings", "m", "--print", "--json"],
+        ["search", "json", "--json", "--module", "json_module"],
+        ["info", "vendor:json", "--json"],
+        ["index", "check", "index.toml", "--json", "--online"],
         ["introspect", "--sources", "--compiler"],
         ["check", "--json", "--mode", "gnu"],
         ["tree", "--json", "--depth", "2"],

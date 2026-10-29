@@ -85,6 +85,12 @@ _TEMPLATE = """\
 # HTML dashboard mode: auto (follow the system), light or dark
 # mode = auto
 
+[indexes]
+# Package indexes searched by fobis search/info/add, in priority order: NAME = URL, where URL is a git
+# repository holding index.toml, a static index.toml over HTTP(S), or a local file or directory
+# (fobis index add NAME URL edits this section)
+# mine = https://github.com/me/fortran-index
+
 [scheduler]
 # Where --runner slurm submits the runs of this machine (a fobos [scheduler] section adds to it, key by key)
 # kind = slurm
@@ -339,6 +345,60 @@ class UserConfig:
     def ecosystem_mode(self) -> str:
         """Light/dark mode of the HTML dashboard: auto, light or dark."""
         return self._get("ecosystem", "mode", "auto")
+
+    # ── Package indexes ───────────────────────────────────────────────────────
+
+    @property
+    def indexes(self) -> list[tuple[str, str]]:
+        """The ``[indexes]`` entries ``(name, url)`` in the order they are written (the priority order)."""
+        if not self._cp.has_section("indexes"):
+            return []
+        return [(name, url.strip()) for name, url in self._cp.items("indexes") if url.strip()]
+
+    def set_indexes(self, entries: list[tuple[str, str]]) -> None:
+        """
+        Write the ``[indexes]`` entries, leaving the rest of the file (comments included) as it is.
+
+        An entry already in the section is rewritten in place, an entry no longer listed is removed, a new one is
+        appended at the end of the section; the section, or the file, is created when missing. Atomic.
+
+        Parameters
+        ----------
+        entries : list[tuple[str, str]]
+            ``(name, url)`` in priority order.
+        """
+        lines = []
+        if os.path.exists(self.path):
+            with open(self.path, encoding="utf-8") as fh:
+                lines = fh.read().splitlines()
+        wanted = dict(entries)
+        header = next((i for i, line in enumerate(lines) if line.strip().lower() == "[indexes]"), None)
+        if header is None:
+            lines += ([""] if lines and lines[-1].strip() else []) + ["[indexes]"]
+            header = len(lines) - 1
+        end = next((i for i in range(header + 1, len(lines)) if lines[i].lstrip().startswith("[")), len(lines))
+        body, written = [], set()
+        for line in lines[header + 1 : end]:
+            match = _KEY_RE.match(line)
+            if match:
+                name = match.group(1).lower()
+                if name in wanted and name not in written:
+                    body.append(f"{name} = {wanted[name]}")
+                    written.add(name)
+                continue
+            body.append(line)
+        while body and not body[-1].strip():
+            body.pop()
+        body += [f"{name} = {url}" for name, url in entries if name not in written]
+        tail = lines[end:]
+        lines = lines[: header + 1] + body + ([""] if tail else []) + tail
+        os.makedirs(os.path.dirname(os.path.abspath(self.path)), exist_ok=True)
+        fd, tmp = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(self.path)), prefix=".config-", suffix=".ini")
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write("\n".join(lines) + "\n")
+        os.replace(tmp, self.path)
+        self._cp = configparser.ConfigParser(interpolation=None)
+        self._cp.read(self.path)
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 

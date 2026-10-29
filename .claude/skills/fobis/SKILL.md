@@ -739,6 +739,33 @@ unanswerable prompt counts as *no*.
 
 ---
 
+## Package Indexes (decentralised, #209)
+
+An index is a small TOML file naming packages by their source URL; anyone publishes one, several are searched side
+by side, none is built in, and none is read at build time.
+
+```ini
+# ~/.config/fobis/config.ini (or a project fobos: [indexes] there are searched first)
+[indexes]
+# a git repository holding index.toml
+mine   = https://github.com/me/fortran-index
+# a static file
+vendor = https://example.org/fortran/index.toml
+```
+
+```bash
+fobis index add mine https://github.com/me/fortran-index   # validated, appended (lowest priority)
+fobis index list | update | remove NAME | check FILE --online
+fobis index build seeds.toml -o index.toml                 # fill description/license/provides from each source
+fobis index build --from-ecosystem --name me -o index.toml # your ecosystem's public repositories
+fobis search json            # name/description/keywords; INDEX:NAME in the output
+fobis search --module penf   # who provides a Fortran module
+fobis info penf              # versions (the source's tags), build system, modules, licence
+```
+
+An index holds no versions: the source's semantic-version tags are the versions. A bare name present in two
+indexes is an error naming `INDEX:NAME` choices (never a silent pick).
+
 ## JSON Output (scripting / CI)
 
 Add `--json` to **`build`, `clean`, or `fetch`** for structured stdout. Exit codes are unchanged

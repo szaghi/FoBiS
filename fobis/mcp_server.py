@@ -662,6 +662,39 @@ class Server:
                 ),
             ),
             Tool(
+                "package_search",
+                "Search the package indexes",
+                "Packages of the user's package indexes (and the indexes they follow) whose name, description or "
+                "keywords contain a term, or that provide a Fortran module: qualified name INDEX:NAME, source URL, "
+                "description, modules. An index lists sources only: versions come from the source (package_info).",
+                _schema({"term": _STR, "module": {**_STR, "description": "a module name"}}),
+                lambda a: self._json(
+                    ["search", a.get("term", ""), "--json"] + (["--module", a["module"]] if a.get("module") else [])
+                ),
+                open_world=True,
+            ),
+            Tool(
+                "package_info",
+                "What a package's source holds",
+                "For a package name (NAME or INDEX:NAME) or a source URL: its versions (the source's semantic-version "
+                "tags), build system, the modules it defines, licence and summary. Ambiguous names are an error "
+                "listing the qualified names.",
+                _schema({"package": _STR}, ("package",)),
+                lambda a: self._json(["info", a.get("package", ""), "--json"]),
+                open_world=True,
+            ),
+            Tool(
+                "index_check",
+                "Validate a package index",
+                "Validate an index file, directory or URL (schema, names) and, with online, check that every source "
+                "is readable and has a version.",
+                _schema({"path": _STR, "online": _BOOL}, ("path",)),
+                lambda a: self._json(
+                    ["index", "check", a.get("path", ""), "--json"] + (["--online"] if a.get("online") else [])
+                ),
+                open_world=True,
+            ),
+            Tool(
                 "case_list",
                 "List the declared cases",
                 "The runnable cases declared in the fobos ([case:NAME]): program or command, mode, inputs, ranks, "
