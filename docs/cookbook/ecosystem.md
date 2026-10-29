@@ -367,8 +367,10 @@ adds this boilerplate.
 | patched | `docs/.vitepress/config.mts` (rendered when created) | only inserts the `build: { target: 'es2022' }` block into `vite: {` |
 | symlink | `CONTRIBUTING.md` -> `docs/guide/contributing.md` | creates or repairs the link, never writes through it |
 
-What the files do: `ci.yml` builds and tests; `docs.yml` deploys the VitePress site and the coverage badge;
-`release.yml` publishes the release notes when a tag is pushed; `install.yml` smoke-tests the install methods the
+What the files do: `ci.yml` builds and tests (a newer push to the same branch cancels the running check) and, on the
+default branch, uploads the coverage outputs it wrote under `docs/`; `docs.yml` runs when that CI run succeeds and
+deploys the VitePress site and the coverage badge from those outputs, without running the coverage again (a manual
+dispatch, or a project whose own `ci.yml` uploads nothing, runs it itself); `release.yml` publishes the release notes when a tag is pushed; `install.yml` smoke-tests the install methods the
 project has (make, CMake, FoBiS, fpm) after a release. `scripts/release.sh vX.Y.Z` (or `--patch`/`--minor`/`--major`)
 regenerates `CHANGELOG.md` with git-cliff, updates `VERSION` (and the `fpm.toml` version), commits, tags and pushes.
 `scripts/run_tests.sh` runs every test binary in `exe/`: those named `*mpi*` under `mpirun -np N` (`--np N`, default
