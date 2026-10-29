@@ -4,6 +4,35 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.11.0] — 2026-10-29
+### Added
+- **scaffold**: Deploy docs from the coverage of the CI run instead of rerunning it
+
+- **registry**: Add decentralised package indexes with index, search and info
+
+- **registry**: Add `fobis add` resolving a package once into a fobos URL
+
+- **registry**: Accept any URL as a package source and publish without a server
+
+- **registry**: Build packages with your compiler and install them with `fobis pkg`
+
+- **registry**: Resolve dependencies of dependencies by minimal version selection
+
+- **registry**: Build CMake, make and recipe packages with the consumer's compiler
+
+- **registry**: Audit advisories and fall back to Software Heritage
+
+
+### Documentation
+- **registry**: Add the packages cookbook chapter and the quad-as-a-package tutorial
+
+- **examples**: Regenerate the scaffold sync output after the CI docs deployment change
+
+
+### Fixed
+- **registry**: Never trust names and URLs read from a dependency's fobos
+
+
 ## [3.10.0] — 2026-10-18
 ### Added
 - **fetch**: Remove fetch --deps-dir: the dependency directory is the fobos's deps_dir ⚠ BREAKING CHANGE
