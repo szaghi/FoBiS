@@ -339,6 +339,10 @@ def _fetch_dependencies(configuration, fetcher, print_n, print_w) -> list[dict] 
     deps_info = []
     lock_entries = []
     no_dev = getattr(configuration.cliargs, "no_dev", False)
+    resolved: dict[str, str] = {}  # name -> tag selected by MVS
+    required_by: dict[str, str] = {}  # name -> requirers, for the dependencies of dependencies
+    if configuration.fobos.dependencies_transitive() and not frozen:
+        deps, resolved, required_by = _resolve_transitive(configuration, fetcher, deps, print_n, print_w)
     for name, spec in deps.items():
         try:
             parsed = fetcher.parse_dep_spec(spec)
@@ -405,8 +409,10 @@ def _fetch_dependencies(configuration, fetcher, print_n, print_w) -> list[dict] 
             continue
         parsed["url"] = located.url
 
-        # Semver resolution
-        if "semver" in parsed:
+        # Semver resolution (MVS when the graph was resolved)
+        if name in resolved:
+            parsed["tag"] = resolved[name]
+        elif "semver" in parsed:
             constraint = parsed["semver"]
             # In frozen mode: use locked resolved tag
             if frozen and name in lock and lock[name].get("resolved"):
@@ -479,13 +485,113 @@ def _fetch_dependencies(configuration, fetcher, print_n, print_w) -> list[dict] 
                 lock_entry[pin_key] = parsed[pin_key]
         if "semver" in parsed and parsed.get("tag"):
             lock_entry["resolved"] = parsed["tag"]
+        if name in required_by:
+            lock_entry["required_by"] = required_by[name]
         lock_entries.append(lock_entry)
 
+    _check_module_collisions(deps_info, fetcher, print_w)
     fetcher.save_config(deps_info)
     # Write / update lock file (not in frozen mode)
     if not frozen:
         fetcher.save_lock(lock_entries)
     return deps_info
+
+
+def _resolve_transitive(configuration, fetcher, deps, print_n, print_w):
+    """
+    Resolve the dependency graph by Minimal Version Selection (``[dependencies] transitive = true``): the project's
+    git dependencies and, recursively, those their fobos declare (their test-only and path entries skipped) are
+    cloned into the deps directory to read them; each package gets the highest of the minimum versions required.
+
+    Returns
+    -------
+    tuple[dict, dict, dict]
+      ``(deps, resolved, required_by)``: the dependencies to fetch (the project's, then the transitive ones as
+      ``URL :: semver=...``), the tag selected per name, and the requirers of each transitive one
+    """
+    import configparser
+
+    from .Fobos import DEPENDENCY_SETTINGS
+    from .registry.index import normalise_source
+    from .registry.resolve import Requirement, ResolutionError, select
+    from .registry.sources import SourceError, git_tags
+
+    def requirement(name, spec, requirer="(project)"):
+        try:
+            parsed = fetcher.parse_dep_spec(spec)
+        except ValueError:
+            return None
+        if "url" not in parsed or parsed.get("dev") == "true":
+            return None
+        return Requirement(
+            name, parsed["url"], parsed.get("semver", ""), parsed.get("tag", ""),
+            parsed.get("branch") or parsed.get("rev") or "", requirer,
+        )  # fmt: skip
+
+    roots = [r for r in (requirement(n, s) for n, s in deps.items()) if r is not None]
+    names = {normalise_source(r.url): r.name for r in roots}
+
+    def requirements_of(selection):
+        name = names.setdefault(normalise_source(selection.url), selection.name)
+        dep_dir, commit = fetcher.fetch(name, selection.url, tag=selection.tag or None, rev=selection.ref or None)
+        if not commit:
+            return []
+        config = configparser.RawConfigParser(strict=False)
+        config.read(os.path.join(dep_dir, "fobos"), encoding="utf-8")
+        if not config.has_section("dependencies"):
+            return []
+        found = []
+        for key, spec in config.items("dependencies"):
+            if key not in DEPENDENCY_SETTINGS:
+                req = requirement(key, spec, requirer=name)
+                if req is not None:
+                    found.append(req)
+        return found
+
+    def tags_of(url):
+        try:
+            return git_tags(url)
+        except SourceError as error:
+            print_w(f"Error: {error}")
+            return []
+
+    try:
+        selected = select(roots, tags_of, requirements_of, warn=lambda m: print_w(f"Warning: {m}"))
+    except ResolutionError as error:
+        print_w(f"Error: dependency resolution: {error}")
+        sys.exit(1)
+    resolved, required_by, all_deps = {}, {}, dict(deps)
+    for key, selection in selected.items():
+        name = names.get(key, selection.name)
+        if selection.tag:
+            resolved[name] = selection.tag
+        if not selection.root:
+            pin = f"semver=^{selection.tag.lstrip('v')}" if selection.tag else f"rev={selection.ref}"
+            all_deps.setdefault(name, f"{selection.url} :: {pin}")
+            required_by[name] = " ".join(selection.required_by)
+            print_n(f"{name}: {selection.tag or selection.ref} (required by {', '.join(selection.required_by)})")
+    return all_deps, resolved, required_by
+
+
+def _check_module_collisions(deps_info, fetcher, print_w) -> None:
+    """
+    Two fetched dependencies defining the same module cannot be linked into one program: report it before anything
+    compiles (a failure of the fetch). Modules of tests, examples and vendored copies are not counted.
+    """
+    from .registry.sources import scan_modules
+
+    owners: dict[str, list[str]] = {}
+    for dep in deps_info:
+        if os.path.isdir(dep["path"]):
+            for module in scan_modules(dep["path"]):
+                owners.setdefault(module, []).append(dep["name"])
+    for module, names in sorted(owners.items()):
+        if len(names) > 1:
+            print_w(
+                f"Error: module {module} is defined by {' and '.join(names)}: they cannot be linked into one "
+                "program (a package bundles another one? keep one of them)"
+            )
+            fetcher.failures.append(f"module {module} defined by {', '.join(names)}")
 
 
 def _git_tree(path: str) -> str:
@@ -2308,6 +2414,13 @@ def run_fobis_check(configuration):
     ]
     failed = bool(unresolved or cycles or (strict and warnings))
     from .Fetcher import Fetcher
+    from .registry.index import cached_providers
+
+    providers = {}  # a missing module some package of the user's indexes provides
+    for name in sorted({u["dependency"] for u in unresolved if u["type"] == "module"}):
+        found = cached_providers(name, configuration.fobos)
+        if found:
+            providers[name] = [{"package": f"{p.index}:{p.name}", "source": p.source} for p in found]
 
     local = [  # the configuration already stopped on a missing directory or a wrong spec
         {"name": d["name"], "path": d["path"], "use": d["use"], **({"dev": True} if d["dev"] else {})}
@@ -2323,6 +2436,7 @@ def run_fobis_check(configuration):
             "cycles": cycles,
             "warnings": warnings,
             **({"path_dependencies": local} if local else {}),
+            **({"providers": providers} if providers else {}),
         }
         print(json.dumps(result, indent=2))
         if failed:
@@ -2334,6 +2448,9 @@ def run_fobis_check(configuration):
         configuration.print_r(
             f"  Unresolved: '{item['file']}' depends on '{item['dependency']}' ({item['type']}) — not found"
         )
+    for module, found in providers.items():
+        listed = ", ".join(f"{p['package']} ({p['source']})" for p in found)
+        configuration.print_r(f"  {module}: provided by {listed}: fobis add {found[0]['package']}")
     if failed:
         problems = [f"{len(unresolved)} unresolved dependency(-ies)"] if unresolved else []
         problems += [f"{len(cycles)} circular dependency(-ies)"] if cycles else []

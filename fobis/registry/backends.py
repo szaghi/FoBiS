@@ -196,7 +196,7 @@ def _has_dependencies(fobos: str) -> bool:
         config.read(fobos, encoding="utf-8")
     except configparser.Error:
         return False
-    return config.has_section("dependencies") and any(k != "deps_dir" for k in config.options("dependencies"))
+    return config.has_section("dependencies") and any(k not in ("deps_dir", "transitive") for k in config.options("dependencies"))
 
 
 def drop_test_programs(src: str, log: Log = _quiet) -> None:

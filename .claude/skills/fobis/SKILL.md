@@ -785,6 +785,12 @@ kinds = https://example.org/fortran/kinds/ :: semver=^1.0
 penf  = https://github.com/szaghi/PENF :: tag=v2.0.1 :: mirror=https://gitlab.com/me/PENF
 ```
 
+Dependencies of dependencies (opt-in): with `transitive = true` in `[dependencies]`, `fetch` reads each
+dependency's own `[dependencies]` and resolves the whole graph by Minimal Version Selection (each range is a
+minimum; the highest minimum wins; an exact `tag=` of your project always wins). Two dependencies defining the same
+module are reported by `fetch` before anything compiles; `check` and `build --explain` name the package of your
+indexes that provides a missing module (`fobis add IDX:NAME`).
+
 Installed packages (pipx/cargo-install style), built from source with YOUR compiler and filed under a toolchain
 key (compiler family + version + digest of path, MPI and flags):
 

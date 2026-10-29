@@ -415,8 +415,11 @@ class IndexSet:
     loaded: list[LoadedIndex] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
 
-    def load(self, refresh: bool = False, only: str | None = None) -> IndexSet:
-        """Walk the graph; an index that cannot be read is recorded in ``errors`` and skipped."""
+    def load(self, refresh: bool = False, only: str | None = None, offline: bool = False) -> IndexSet:
+        """
+        Walk the graph; an index that cannot be read is recorded in ``errors`` and skipped. *offline*: a remote index
+        is read from the cache only (a build or a check never reaches the network).
+        """
         self.loaded, self.errors = [], []
         seen: set[str] = set()
         queue: list[tuple[str, str, int, str]] = [(name, url, 0, "") for name, url in self.roots]
@@ -429,6 +432,8 @@ class IndexSet:
             if only and depth == 0 and name != only:
                 continue
             cache = os.path.join(self.cache_root, name if depth == 0 else _cache_name(url))
+            if offline and provider_of(url) in ("git", "http") and _cached_url(cache) != url:
+                continue
             try:
                 text, _ = read_index_text(url, cache, refresh=refresh)
                 index = load_index(text, origin=url)
@@ -530,6 +535,22 @@ def fobos_indexes(fobos: Any) -> list[tuple[str, str]]:
             url = os.path.normpath(os.path.join(base, url))
         entries.append((name, url))
     return entries
+
+
+def cached_providers(module: str, fobos: Any = None) -> list[Package]:
+    """
+    The packages of the user's indexes that provide *module*, read OFFLINE (local indexes and cached remote ones):
+    used by ``check`` and ``build --explain`` to name a package for a missing module. Never raises.
+    """
+    from ..UserConfig import UserConfig
+
+    try:
+        roots = configured_roots(UserConfig(), fobos)
+        if not roots:
+            return []
+        return IndexSet(roots).load(offline=True).providers(module)
+    except Exception:  # a hint must never break the command that asks for it
+        return []
 
 
 def remove_cache(cache_root: str, name: str) -> None:

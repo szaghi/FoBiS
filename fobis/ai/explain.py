@@ -372,6 +372,14 @@ def _missing_module(diagnostic: Diagnostic, name: str, facts: BuildFacts) -> Dia
         return diag
     unfetched = [d for d in facts.dependencies if not os.path.isdir(os.path.join(facts.deps_dir, d))]
     diag.facts.append(f"no project source defines module {name}, and it is not a known library module.")
+    from ..registry.index import cached_providers
+
+    providers = cached_providers(name)
+    if providers:
+        listed = ", ".join(f"{p.index}:{p.name} ({p.source})" for p in providers)
+        diag.facts.append(f"{name} is provided by {listed}, listed in your package indexes.")
+        diag.advice.append(f"run `fobis add {providers[0].index}:{providers[0].name}`, then `fobis fetch`")
+        return diag
     if unfetched:
         diag.facts.append(f"fobos declares dependencies that are not fetched yet: {', '.join(unfetched)}.")
         diag.advice.append("run `fobis fetch`")

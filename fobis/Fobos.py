@@ -726,6 +726,10 @@ def inline_comments(config: configparser.RawConfigParser) -> list[tuple[str, str
     return found
 
 
+# keys of [dependencies] that are settings, not dependencies
+DEPENDENCY_SETTINGS = ("deps_dir", "transitive")
+
+
 class Fobos:
     """
     Fobos is an object that handles fobos file, its attributes and methods.
@@ -1485,10 +1489,16 @@ class Fobos:
         deps = {}
         if self.fobos and self.fobos.has_section("dependencies"):
             for name, spec in self.fobos.items("dependencies"):
-                if name == "deps_dir":
+                if name in DEPENDENCY_SETTINGS:
                     continue
                 deps[name] = spec
         return deps
+
+    def dependencies_transitive(self) -> bool:
+        """``[dependencies] transitive = true``: the dependencies' own dependencies are resolved (MVS) and fetched."""
+        if not (self.fobos and self.fobos.has_option("dependencies", "transitive")):
+            return False
+        return self.fobos.get("dependencies", "transitive").strip().lower() in ("true", "yes", "1", "on")
 
     def get_deps_dir(self, default: str = ".fobis_deps") -> str:
         """
