@@ -4,6 +4,17 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.11.1] — 2026-10-29
+### Documentation
+- Link the public fortran-index from the README and the docs
+
+
+### Fixed
+- **registry**: Read the modules an fpm package provides from its library directory only
+
+- Decode command output leniently so a non-UTF-8 byte cannot crash a build
+
+
 ## [3.11.0] — 2026-10-29
 ### Added
 - **scaffold**: Deploy docs from the coverage of the CI run instead of rerunning it
