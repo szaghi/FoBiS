@@ -3,10 +3,10 @@ $ cd mathx && fobis scaffold sync --yes && git status --short
 --- .github/workflows/ci.yml ---
 --- a/.github/workflows/ci.yml
 +++ b/.github/workflows/ci.yml
-@@ -27,4 +27,3 @@
-     - name: Run tests with coverage
-       id: cov
-       uses: ./.github/actions/run-coverage-analysis
+@@ -54,4 +54,3 @@
+         path: coverage-docs.tgz
+         if-no-files-found: error
+         retention-days: 1
 -# local edit
 
   Written  .github/workflows/ci.yml
