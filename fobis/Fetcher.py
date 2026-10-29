@@ -24,6 +24,7 @@ This module handles fetching and building GitHub-hosted FoBiS.py dependencies.
 import configparser
 import contextlib
 import hashlib
+import json
 import os
 import shlex
 import shutil
@@ -342,6 +343,7 @@ class Fetcher:
         update: bool = False,
         frozen_commit: str | None = None,
         mirrors: list[str] | None = None,
+        archive: str | None = None,
     ) -> tuple[str, str]:
         """
         Clone or update a dependency repo.
@@ -365,6 +367,9 @@ class Fetcher:
         mirrors : {None}
           URLs cloned in order when the clone of *url* fails (a mirror needs no trust: the lock's tree hash is
           checked by the caller)
+        archive : {None}
+          ``swh``: when the source and the mirrors fail, fetch *tag* from Software Heritage (the commit returned is
+          then ``swh:<directory id>``, the claimed git tree, checked against the lock by the caller)
 
         Returns
         -------
@@ -374,6 +379,14 @@ class Fetcher:
         dep_dir = os.path.join(self.deps_dir, name)
         if not os.path.exists(self.deps_dir):
             os.makedirs(self.deps_dir)
+        swh_marker = os.path.join(dep_dir, ".fobis-swh.json")
+        if os.path.isfile(swh_marker) and not os.path.isdir(os.path.join(dep_dir, ".git")):
+            with open(swh_marker, encoding="utf-8") as fh:
+                recorded = json.load(fh)
+            if recorded.get("tag") == tag and not update:
+                self.print_n(f"Dependency {name} already fetched (from Software Heritage, {tag})")
+                return dep_dir, "swh:" + recorded["directory"]
+            shutil.rmtree(dep_dir)
         if not os.path.exists(dep_dir):
             self.print_n("Cloning " + name + " from " + url)
             result = syswork("git clone " + url + " " + dep_dir)
@@ -384,6 +397,8 @@ class Fetcher:
                 self.print_n("Cloning " + name + " from mirror " + mirror)
                 url = mirror
                 result = syswork("git clone " + mirror + " " + dep_dir)
+            if result[0] != 0 and archive == "swh" and tag:
+                return self._fetch_from_swh(name, url, tag, dep_dir, result[1])
             if result[0] != 0:
                 self.print_w("Error cloning " + name + ":\n" + result[1])
                 self.failures.append(f"{name}: clone failed")
@@ -427,6 +442,25 @@ class Fetcher:
         sha_result = syswork("git -C " + dep_dir + " rev-parse HEAD")
         commit_sha = sha_result[1].strip() if sha_result[0] == 0 else ""
         return dep_dir, commit_sha
+
+    def _fetch_from_swh(self, name: str, url: str, tag: str, dep_dir: str, error: str) -> tuple[str, str]:
+        """The last resort of a public git source: *tag* fetched from Software Heritage (see `registry.swh`)."""
+        from .registry.index import RegistryError
+        from .registry.swh import fetch_tag
+
+        self.print_w("Error cloning " + name + ":\n" + error)
+        self.print_n(f"Fetching {name} {tag} from Software Heritage")
+        if os.path.exists(dep_dir):
+            shutil.rmtree(dep_dir)
+        try:
+            directory = fetch_tag(url, tag, dep_dir)
+        except RegistryError as failure:
+            self.print_w(f"Error: {name}: {failure}")
+            self.failures.append(f"{name}: clone failed, and Software Heritage too")
+            return dep_dir, ""
+        with open(os.path.join(dep_dir, ".fobis-swh.json"), "w", encoding="utf-8") as fh:
+            json.dump({"origin": url, "tag": tag, "directory": directory}, fh, indent=2)
+        return dep_dir, "swh:" + directory
 
     def build_dep(self, name: str, dep_dir: str, mode: str | None = None) -> bool:
         """

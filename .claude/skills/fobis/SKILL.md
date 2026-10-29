@@ -791,6 +791,12 @@ minimum; the highest minimum wins; an exact `tag=` of your project always wins).
 module are reported by `fetch` before anything compiles; `check` and `build --explain` name the package of your
 indexes that provides a missing module (`fobis add IDX:NAME`).
 
+Advisories have no central database: a package publishes `fortran-advisories.toml` on its default branch
+(`[[advisory]]` id, affected range, severity, summary, url) and `fobis audit` reports those affecting the locked
+versions (exit 1); `fobis audit --witness` compares each locked tag at the source, at its mirrors and in the lock.
+`:: archive=swh` lets `fetch` fall back to Software Heritage when the source and mirrors are gone; the copy is
+accepted only when its tree equals the lock's.
+
 Installed packages (pipx/cargo-install style), built from source with YOUR compiler and filed under a toolchain
 key (compiler family + version + digest of path, MPI and flags):
 

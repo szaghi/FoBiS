@@ -28,6 +28,7 @@ from . import (  # noqa: F401
     add,
     agents_md,
     ask,
+    audit,
     bindings,
     build,
     case,

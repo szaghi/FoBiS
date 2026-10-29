@@ -70,7 +70,7 @@ def main():
     sys.exit(0)
 
 
-PACKAGE_COMMANDS = (["index"], ["search"], ["info"], ["add"], ["publish"], ["pkg"])
+PACKAGE_COMMANDS = (["index"], ["search"], ["info"], ["add"], ["publish"], ["pkg"], ["audit"])
 
 
 def _prog_name():
@@ -442,6 +442,7 @@ def _fetch_dependencies(configuration, fetcher, print_n, print_w) -> list[dict] 
             update=configuration.cliargs.update,
             frozen_commit=frozen_commit,
             mirrors=[m.strip() for m in parsed.get("mirror", "").split(",") if m.strip()],
+            archive=parsed.get("archive"),
         )
 
         # Verify against lockfile (non-frozen: warn only). Not with --update: moving past the lock is
@@ -466,6 +467,20 @@ def _fetch_dependencies(configuration, fetcher, print_n, print_w) -> list[dict] 
         # The content identity: a tag of the lock that now names another tree has been moved (a release changed)
         tree = _git_tree(dep_path)
         locked = lock.get(name, {})
+        if commit_sha.startswith("swh:"):  # an archived copy: its claimed and its computed tree must be the lock's
+            claimed, tree = commit_sha[4:], _content_tree(dep_path)
+            if not locked.get("tree") or locked["tree"] != claimed or tree != claimed:
+                print_w(
+                    f"Error: {name}: the Software Heritage copy of {parsed.get('tag')} (tree {claimed[:12]}, content "
+                    f"{tree[:12]}) does not match the lock ({locked.get('tree', 'no tree recorded')[:12]})"
+                )
+                fetcher.failures.append(f"{name}: archived copy does not match the lock")
+                shutil.rmtree(dep_path, ignore_errors=True)
+                if name in lock:
+                    lock_entries.append({"name": name, **lock[name]})
+                continue
+            commit_sha = locked.get("commit", commit_sha)
+            print_n(f"{name}: {parsed.get('tag')} from Software Heritage, tree {tree[:12]} as locked")
         locked_tag = locked.get("resolved") or locked.get("tag")
         if (
             tree
@@ -654,6 +669,20 @@ def _check_module_collisions(deps_info, fetcher, print_w) -> None:
                 "program (a package bundles another one? keep one of them)"
             )
             fetcher.failures.append(f"module {module} defined by {', '.join(names)}")
+
+
+def _content_tree(path: str) -> str:
+    """The git tree hash of a directory's content (not a checkout: an archived copy), FoBiS's own markers left out."""
+    import tempfile
+
+    from .registry.index import run_git
+
+    with tempfile.TemporaryDirectory(prefix="fobis-tree-") as scratch:
+        run_git("init", "-q", scratch)
+        git_dir = os.path.join(scratch, ".git")
+        run_git(f"--git-dir={git_dir}", f"--work-tree={path}", "add", "-A", "--", ".", ":!.fobis-swh.json")
+        result = run_git(f"--git-dir={git_dir}", "write-tree")
+        return result.stdout.strip() if result.returncode == 0 else ""
 
 
 def _git_tree(path: str) -> str:
