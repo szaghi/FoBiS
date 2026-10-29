@@ -210,7 +210,7 @@ def install_fobis(
     if _has_dependencies(os.path.join(src, fobos)):  # the package's own dependencies, as its users would fetch them
         log(run(_fobis("fetch", "-f", fobos), src).strip())
     chosen = mode if mode is not None else choose_mode(src, toolchain.family, fobos, log)
-    args = ["build", "--track-build", "-f", fobos, "--fc", toolchain.path, "--force-compile"]
+    args = ["build", "--track-build", "-f", fobos, "--fc", toolchain.path, "--force-compile", "--quiet"]
     args += ["--mode", chosen] if chosen else []
     if toolchain.mpi:
         args.append("--mpi")

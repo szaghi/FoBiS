@@ -377,7 +377,7 @@ class UserConfig:
             lines += ([""] if lines and lines[-1].strip() else []) + ["[indexes]"]
             header = len(lines) - 1
         end = next((i for i in range(header + 1, len(lines)) if lines[i].lstrip().startswith("[")), len(lines))
-        body, written = [], set()
+        body, written, in_entry = [], set(), False
         for line in lines[header + 1 : end]:
             match = _KEY_RE.match(line)
             if match:
@@ -385,7 +385,11 @@ class UserConfig:
                 if name in wanted and name not in written:
                     body.append(f"{name} = {wanted[name]}")
                     written.add(name)
+                in_entry = True
                 continue
+            if in_entry and line.strip() and line[:1] in " \t":  # a continuation line of the entry just handled
+                continue
+            in_entry = False
             body.append(line)
         while body and not body[-1].strip():
             body.pop()

@@ -128,7 +128,13 @@ def test_tools_list_has_schemas_and_annotations(server):
         "fetch",
     }
     assert {n for n, a in hints.items() if a["destructiveHint"]} == {"clean"}
-    assert {n for n, a in hints.items() if a["openWorldHint"]} == {"ecosystem_status", "fetch", "package_search", "package_info", "index_check"}
+    assert {n for n, a in hints.items() if a["openWorldHint"]} == {
+        "ecosystem_status",
+        "fetch",
+        "package_search",
+        "package_info",
+        "index_check",
+    }
     assert not hints["fetch"]["idempotentHint"] and hints["build"]["idempotentHint"]
 
 

@@ -63,6 +63,7 @@ def install_package(
     force: bool = False,
     config: str | None = None,
     log=lambda m: typer.echo(m, err=True),
+    say=lambda m: typer.echo(m, err=True),
 ) -> dict:
     """Install one package; returns the receipt as a dict (``already`` true when it was installed before)."""
     from ..registry.backends import BackendError, install
@@ -80,7 +81,10 @@ def install_package(
             _fail(str(error), 1)
         facts = read_manifests(src)
         name = (entry.name if entry else "") or facts["name"] or default_name(url)
-        prefix = store.prefix(toolchain.key, name, chosen or identity[:12])
+        try:
+            prefix = store.prefix(toolchain.key, name, chosen or identity[:12])
+        except ValueError as error:
+            _fail(f"{url}: {error}")
         previous = [r for r in store.find(name, toolchain.key) if r.version == (chosen or identity[:12])]
         if previous and not force:
             return {**previous[0].to_dict(), "already": True}
@@ -90,10 +94,12 @@ def install_package(
         for depend in recipe.depends if recipe else []:  # built first, for the same toolchain
             dep_url, _, dep_range = depend.partition("::")
             dep_range = dep_range.strip().removeprefix("semver=").strip()
-            prefixes.append(install_package(dep_url.strip(), toolchain, dep_range, config=config, log=log)["prefix"])
+            prefixes.append(
+                install_package(dep_url.strip(), toolchain, dep_range, config=config, log=log, say=say)["prefix"]
+            )
         if os.path.isdir(prefix):
             shutil.rmtree(prefix)
-        log(f"Building {name} {chosen or '(default branch)'} with {toolchain.fc} ({toolchain.key}), {backend or '?'}")
+        say(f"Building {name} {chosen or '(default branch)'} with {toolchain.fc} ({toolchain.key}), {backend or '?'}")
         try:
             artifacts = install(
                 backend, src, toolchain, prefix, name, chosen or "0", facts["description"], mode=mode, recipe=recipe,
@@ -122,7 +128,7 @@ def install_package(
         )
         receipt.shims = made
         for link in refused:
-            log(f"warning: {link} exists and is not one of this package's links: left alone")
+            say(f"warning: {link} exists and is not one of this package's links: left alone")
     for old in store.find(name, toolchain.key):  # the links of an older version now point to this one
         if old.version != receipt.version:
             old.shims = [s for s in old.shims if s not in receipt.shims]
@@ -160,6 +166,7 @@ def cmd_pkg_install(
     bin_dir: Annotated[str | None, typer.Option("--bin-dir", help="Where applications are linked.")] = None,
     no_shims: Annotated[bool, typer.Option("--no-shims", help="Do not link applications.")] = False,
     force: Annotated[bool, typer.Option("--force", help="Rebuild even when installed.")] = False,
+    verbose: Annotated[bool, typer.Option("--verbose", help="Show the build's own output.")] = False,
     config: _ConfigOpt = None,
     as_json: _JsonOpt = False,
 ) -> None:
@@ -171,9 +178,16 @@ def cmd_pkg_install(
             constraint = version
         else:
             exact = version
+
+    def quiet(_: str) -> None:
+        pass
+
+    def echo(message: str) -> None:
+        typer.echo(message, err=True)
+
     receipt = install_package(
         package, toolchain, constraint, exact, mode, bin_dir, not no_shims, force, config,
-        log=(lambda m: typer.echo(m, err=True)) if not as_json else (lambda m: None),
+        log=echo if verbose and not as_json else quiet, say=quiet if as_json else echo,
     )  # fmt: skip
     if as_json:
         typer.echo(json.dumps(receipt, indent=2))

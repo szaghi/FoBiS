@@ -153,7 +153,9 @@ def test_fetch_existing_dep_with_update():
         with patch("fobis.Fetcher.syswork", return_value=(0, "")) as mock_sw:
             fetcher.fetch("dep", "https://github.com/user/dep", update=True)
         # Should call git fetch and then git merge
-        calls = [c[0][0] for c in mock_sw.call_args_list]
+        calls = [
+            " ".join(c[0][0]) if isinstance(c[0][0], list) else c[0][0] for c in mock_sw.call_args_list
+        ]  # argument lists
         assert any("fetch" in c for c in calls)
         assert any("merge" in c for c in calls)
 
@@ -165,7 +167,9 @@ def test_fetch_with_tag_checks_out_ref():
         fetcher = Fetcher(deps_dir=tmpdir)
         with patch("fobis.Fetcher.syswork", return_value=(0, "")) as mock_sw:
             fetcher.fetch("dep", "https://github.com/user/dep", tag="v1.0.0")
-        calls = [c[0][0] for c in mock_sw.call_args_list]
+        calls = [
+            " ".join(c[0][0]) if isinstance(c[0][0], list) else c[0][0] for c in mock_sw.call_args_list
+        ]  # argument lists
         assert any("checkout" in c and "v1.0.0" in c for c in calls)
 
 
@@ -176,7 +180,9 @@ def test_fetch_update_branch_fast_forwards_to_remote():
         fetcher = Fetcher(deps_dir=tmpdir)
         with patch("fobis.Fetcher.syswork", return_value=(0, "")) as mock_sw:
             fetcher.fetch("dep", "https://github.com/user/dep", branch="master", update=True)
-        calls = [c[0][0] for c in mock_sw.call_args_list]
+        calls = [
+            " ".join(c[0][0]) if isinstance(c[0][0], list) else c[0][0] for c in mock_sw.call_args_list
+        ]  # argument lists
         checkout = next(i for i, c in enumerate(calls) if "checkout master" in c)
         merge = next(i for i, c in enumerate(calls) if "merge --ff-only origin/master" in c)
         rev_parse = next(i for i, c in enumerate(calls) if "rev-parse HEAD" in c)
@@ -191,7 +197,9 @@ def test_fetch_branch_without_update_does_not_merge():
         fetcher = Fetcher(deps_dir=tmpdir)
         with patch("fobis.Fetcher.syswork", return_value=(0, "")) as mock_sw:
             fetcher.fetch("dep", "https://github.com/user/dep", branch="master")
-        calls = [c[0][0] for c in mock_sw.call_args_list]
+        calls = [
+            " ".join(c[0][0]) if isinstance(c[0][0], list) else c[0][0] for c in mock_sw.call_args_list
+        ]  # argument lists
         assert not any("merge" in c for c in calls)
 
 
@@ -202,7 +210,9 @@ def test_fetch_update_tag_does_not_merge():
         fetcher = Fetcher(deps_dir=tmpdir)
         with patch("fobis.Fetcher.syswork", return_value=(0, "")) as mock_sw:
             fetcher.fetch("dep", "https://github.com/user/dep", tag="v1.0.0", update=True)
-        calls = [c[0][0] for c in mock_sw.call_args_list]
+        calls = [
+            " ".join(c[0][0]) if isinstance(c[0][0], list) else c[0][0] for c in mock_sw.call_args_list
+        ]  # argument lists
         assert not any("merge" in c for c in calls)
 
 

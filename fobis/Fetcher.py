@@ -26,6 +26,7 @@ import contextlib
 import hashlib
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -63,6 +64,23 @@ class Fetcher:
         self.print_n = print_n if print_n is not None else print_fake
         self.print_w = print_w if print_w is not None else print_fake
         self.failures: list[str] = []  # one line per dependency step that failed: fetch exits 1 when any did
+        self.cloned: set[str] = set()  # cloned by this run (the transitive resolution clones before the fetch pass)
+
+    DEP_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.+-]*$")
+
+    def dep_dir(self, name: str) -> str:
+        """
+        The directory of dependency *name* inside the deps directory. A name that is not a plain name (``..``, a
+        path) raises ValueError: names also come from the fobos of dependencies (``transitive = true``), and a
+        directory outside the deps directory would be deleted or checked out by the fetch.
+        """
+        if not self.DEP_NAME.match(name):
+            raise ValueError(f"'{name}' is not a valid dependency name (letters, digits, '_', '.', '-', '+')")
+        path = os.path.join(self.deps_dir, name)
+        root = os.path.realpath(self.deps_dir)
+        if os.path.dirname(os.path.realpath(path)) != root:
+            raise ValueError(f"dependency '{name}' would live outside {self.deps_dir}")
+        return path
 
     def parse_dep_spec(self, spec: str) -> dict[str, str]:
         """
@@ -101,12 +119,22 @@ class Fetcher:
                 raise ValueError("Dependency spec error: 'path=' needs a directory.")
         else:
             result = {"url": self._resolve_url(parts[0].strip())}
+            urls = [result["url"]] + [
+                m for p in parts[1:] if p.startswith("mirror=") for m in p[7:].split(",") if m.strip()
+            ]
+            for url in urls:  # a URL is passed to git: never an option, never several words
+                if url.strip().startswith("-") or any(c.isspace() for c in url.strip()):
+                    raise ValueError(f"Dependency spec error: {url.strip()!r} is not a URL.")
         for part in parts[1:]:
             if "=" in part:
                 key, _, value = part.partition("=")
                 result[key.strip()] = value.strip()
             elif part.lower() == "dev":
                 result["dev"] = "true"
+        for key in ("tag", "branch", "rev"):  # passed to git: never an option, never several words
+            value = result.get(key, "")
+            if value.startswith("-") or any(c.isspace() for c in value):
+                raise ValueError(f"Dependency spec error: {key}={value!r} is not a git reference.")
         # Validate semver exclusivity
         if "semver" in result:
             conflicts = [k for k in ("tag", "branch", "rev") if k in result]
@@ -279,7 +307,7 @@ class Fetcher:
         list[str]
           Tag names (e.g. ``['v1.4.0', 'v1.5.3']``).
         """
-        result = syswork(f"git ls-remote --tags {url}")
+        result = syswork(["git", "ls-remote", "--tags", "--", url])
         if result[0] != 0:
             self.print_w(f"Error listing tags for {url}:\n{result[1]}")
             return []
@@ -376,7 +404,7 @@ class Fetcher:
         tuple[str, str]
           ``(dep_dir, commit_sha)``
         """
-        dep_dir = os.path.join(self.deps_dir, name)
+        dep_dir = self.dep_dir(name)
         if not os.path.exists(self.deps_dir):
             os.makedirs(self.deps_dir)
         swh_marker = os.path.join(dep_dir, ".fobis-swh.json")
@@ -387,16 +415,19 @@ class Fetcher:
                 self.print_n(f"Dependency {name} already fetched (from Software Heritage, {tag})")
                 return dep_dir, "swh:" + recorded["directory"]
             shutil.rmtree(dep_dir)
+        recent = name in self.cloned  # cloned moments ago by this run: no second report
         if not os.path.exists(dep_dir):
+            self.cloned.add(name)
             self.print_n("Cloning " + name + " from " + url)
-            result = syswork("git clone " + url + " " + dep_dir)
+            result = syswork(["git", "clone", "--", url, dep_dir])
+            tried = url
             for mirror in mirrors or []:
                 if result[0] == 0:
                     break
-                self.print_w("Error cloning " + name + " from " + url + ":\n" + result[1])
+                self.print_w("Error cloning " + name + " from " + tried + ":\n" + result[1])
                 self.print_n("Cloning " + name + " from mirror " + mirror)
-                url = mirror
-                result = syswork("git clone " + mirror + " " + dep_dir)
+                tried = mirror
+                result = syswork(["git", "clone", "--", mirror, dep_dir])
             if result[0] != 0 and archive == "swh" and tag:
                 return self._fetch_from_swh(name, url, tag, dep_dir, result[1])
             if result[0] != 0:
@@ -405,41 +436,42 @@ class Fetcher:
                 return dep_dir, ""
         elif update:
             self.print_n("Updating " + name)
-            result = syswork("git -C " + dep_dir + " fetch")
+            result = syswork(["git", "-C", dep_dir, "fetch"])
             if result[0] != 0:
                 self.print_w("Error fetching updates for " + name + ":\n" + result[1])
                 self.failures.append(f"{name}: update failed")
-        else:
+        elif not recent:
             self.print_n("Dependency " + name + " already fetched (use --update to refresh)")
 
         # Frozen mode: check out the pinned commit
         if frozen_commit:
-            result = syswork("git -C " + dep_dir + " checkout " + frozen_commit)
+            result = syswork(["git", "-C", dep_dir, "checkout", frozen_commit])
             if result[0] != 0:
                 self.print_w("Error checking out frozen commit " + frozen_commit + " for " + name + ":\n" + result[1])
                 self.failures.append(f"{name}: checkout of the locked commit {frozen_commit} failed")
         else:
             ref = tag or branch or rev
             if ref:
-                self.print_n("Checking out " + ref + " for " + name)
-                result = syswork("git -C " + dep_dir + " checkout " + ref)
+                if not recent:
+                    self.print_n("Checking out " + ref + " for " + name)
+                result = syswork(["git", "-C", dep_dir, "checkout", ref])
                 if result[0] != 0:
                     self.print_w("Error checking out " + ref + " for " + name + ":\n" + result[1])
                     self.failures.append(f"{name}: checkout of {ref} failed")
                 elif update and branch and not (tag or rev):
                     # checkout of an existing local branch does not move it to the fetched remote head
-                    result = syswork("git -C " + dep_dir + " merge --ff-only origin/" + branch)
+                    result = syswork(["git", "-C", dep_dir, "merge", "--ff-only", "origin/" + branch])
                     if result[0] != 0:
                         self.print_w("Error merging updates for " + name + ":\n" + result[1])
                         self.failures.append(f"{name}: update failed")
             elif update:
-                result = syswork("git -C " + dep_dir + " merge --ff-only")
+                result = syswork(["git", "-C", dep_dir, "merge", "--ff-only"])
                 if result[0] != 0:
                     self.print_w("Error merging updates for " + name + ":\n" + result[1])
                     self.failures.append(f"{name}: update failed")
 
         # Record resolved HEAD commit
-        sha_result = syswork("git -C " + dep_dir + " rev-parse HEAD")
+        sha_result = syswork(["git", "-C", dep_dir, "rev-parse", "HEAD"])
         commit_sha = sha_result[1].strip() if sha_result[0] == 0 else ""
         return dep_dir, commit_sha
 
@@ -802,7 +834,7 @@ class Fetcher:
         locked_commit = lock[name].get("commit", "")
         if not locked_commit:
             return True
-        sha_result = syswork("git -C " + dep_dir + " rev-parse HEAD")
+        sha_result = syswork(["git", "-C", dep_dir, "rev-parse", "HEAD"])
         if sha_result[0] != 0:
             return True
         current = sha_result[1].strip()

@@ -73,6 +73,21 @@ def _allows(requirement: Requirement, tag: str) -> bool:
     return satisfies(Version(tag), parse_constraint(requirement.constraint or "*"))
 
 
+def _is_version(tag: str) -> bool:
+    try:
+        Version(tag)
+    except ValueError:
+        return False
+    return True
+
+
+def _normalised(requirement: Requirement) -> Requirement:
+    """A tag that is not a semantic version (``stable-2024``) is an exact ref: it cannot be compared."""
+    if requirement.tag and not _is_version(requirement.tag):
+        return Requirement(requirement.name, requirement.url, ref=requirement.tag, requirer=requirement.requirer)
+    return requirement
+
+
 def select(
     roots: list[Requirement],
     tags_of: Callable[[str], list[str]],
@@ -83,16 +98,20 @@ def select(
     """
     Resolve the graph from the project's requirements *roots*.
 
+    Each round selects a version for every package REACHABLE from the project through the requirements of the
+    versions selected so far (a package an older version required, and nothing requires now, drops out), then
+    reads the requirements of the selections not read yet; it stops when nothing new is read.
+
     Parameters
     ----------
     roots : list[Requirement]
-      the project's own dependencies (they win)
+      the project's own dependencies (their exact pins win)
     tags_of : callable
       ``url -> tags`` of a source
     requirements_of : callable
       ``Selection -> requirements`` of the selected version of a package (its fobos ``[dependencies]``)
     warn : callable
-      receives the warnings (a transitive requirement a project pin violates)
+      receives the warnings (a dependency's requirement a project pin violates)
 
     Returns
     -------
@@ -104,35 +123,49 @@ def select(
     ResolutionError
       a requirement no selected version satisfies, two different branch/rev pins, no version satisfying a range
     """
-    root_keys = {normalise_source(r.url) for r in roots}
-    requirements: dict[str, list[Requirement]] = {}
-    for requirement in roots:
-        requirements.setdefault(normalise_source(requirement.url), []).append(requirement)
-    selected: dict[str, Selection] = {}
-    expanded: dict[str, tuple[str, str]] = {}  # key -> (tag, ref) whose requirements were read
+    project = "(project)"
+    edges: dict[str, list[Requirement]] = {project: [_normalised(r) for r in roots]}  # requirer key -> requirements
+    read: dict[str, tuple[str, str]] = {}  # package key -> (tag, ref) whose requirements are in edges
     tags_cache: dict[str, list[str]] = {}
     for _ in range(max_rounds):
-        selected = {
-            key: _select_one(key, reqs, key in root_keys, tags_cache, tags_of, warn)
-            for key, reqs in requirements.items()
-        }
-        pending = [s for key, s in selected.items() if expanded.get(key) != (s.tag, s.ref)]
+        selected: dict[str, Selection] = {}
+        active = {project}
+        previous: dict[str, tuple[str, str]] | None = None
+        while True:  # the packages reachable from the project with the current selections, to a fixpoint
+            requirements: dict[str, list[Requirement]] = {}
+            for requirer in sorted(active, key=lambda k: (k != project, k)):  # a fixed order: reproducible
+                for requirement in (
+                    edges.get(requirer, [])
+                    if read.get(requirer, ("", "")) == _version(selected.get(requirer)) or requirer == project
+                    else []
+                ):
+                    requirements.setdefault(normalise_source(requirement.url), []).append(requirement)
+            selected = {key: _select_one(key, reqs, tags_cache, tags_of, warn) for key, reqs in requirements.items()}
+            versions = {key: _version(sel) for key, sel in selected.items()}
+            if versions == previous:
+                break
+            previous = versions
+            active = {project, *selected}
+        pending = [key for key, s in selected.items() if read.get(key) != _version(s)]
         if not pending:
             return selected
-        for selection in pending:
-            key = normalise_source(selection.url)
-            expanded[key] = (selection.tag, selection.ref)
-            # requirements from an older version of this package are dropped: only the selected version's count
-            for reqs in requirements.values():
-                reqs[:] = [r for r in reqs if r.requirer != selection.name]
-            for requirement in requirements_of(selection):
-                requirement.requirer = selection.name
-                requirements.setdefault(normalise_source(requirement.url), []).append(requirement)
+        for key in pending:
+            selection = selected[key]
+            read[key] = _version(selection)
+            edges[key] = [
+                _normalised(Requirement(**{**r.__dict__, "requirer": selection.name}))
+                for r in requirements_of(selection)
+            ]
     raise ResolutionError("the dependency graph did not settle (a cycle of version changes)")
 
 
-def _select_one(key, reqs, is_root, tags_cache, tags_of, warn) -> Selection:
+def _version(selection: Selection | None) -> tuple[str, str]:
+    return (selection.tag, selection.ref) if selection is not None else ("", "")
+
+
+def _select_one(key, reqs, tags_cache, tags_of, warn) -> Selection:
     root = [r for r in reqs if r.requirer == "(project)"]
+    is_root = bool(root)
     pinned = [r for r in root if r.tag or r.ref]  # an exact pin of the project wins; its ranges are minimums
     deciding = pinned or reqs
     name = (root or reqs)[0].name

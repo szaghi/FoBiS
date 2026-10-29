@@ -346,6 +346,7 @@ def _fetch_dependencies(configuration, fetcher, print_n, print_w) -> list[dict] 
     for name, spec in deps.items():
         try:
             parsed = fetcher.parse_dep_spec(spec)
+            fetcher.dep_dir(name)
         except ValueError as error:
             print_w(f"Error: [dependencies] {name}: {str(error).removeprefix('Dependency spec error: ')}")
             sys.exit(2)
@@ -541,7 +542,10 @@ def _resolve_transitive(configuration, fetcher, deps, print_n, print_w):
     def requirement(name, spec, requirer="(project)"):
         try:
             parsed = fetcher.parse_dep_spec(spec)
-        except ValueError:
+            fetcher.dep_dir(name)
+        except ValueError as error:  # a dependency's fobos is not trusted: its bad entries are skipped, said so
+            if requirer != "(project)":
+                print_w(f"Warning: {requirer}: [dependencies] {name} ignored: {error}")
             return None
         if "url" not in parsed or parsed.get("dev") == "true":
             return None
@@ -555,6 +559,8 @@ def _resolve_transitive(configuration, fetcher, deps, print_n, print_w):
 
     def requirements_of(selection):
         name = names.setdefault(normalise_source(selection.url), selection.name)
+        if name in {n for k, n in names.items() if k != normalise_source(selection.url)}:
+            return []  # two sources under one name: reported once the graph is resolved
         dep_dir, commit = fetcher.fetch(name, selection.url, tag=selection.tag or None, rev=selection.ref or None)
         if not commit:
             return []
@@ -583,13 +589,21 @@ def _resolve_transitive(configuration, fetcher, deps, print_n, print_w):
         print_w(f"Error: dependency resolution: {error}")
         sys.exit(1)
     resolved, required_by, all_deps = {}, {}, dict(deps)
+    owners: dict[str, str] = {}
     for key, selection in selected.items():
         name = names.get(key, selection.name)
+        if name in owners and owners[name] != key:  # a fork named like another package: never mixed up
+            print_w(
+                f"Error: dependency resolution: the name {name} is used for two sources, {owners[name]} and {key} "
+                f"(required by {', '.join(selection.required_by)}): declare one of them in the fobos under another name"
+            )
+            sys.exit(1)
+        owners[name] = key
         if selection.tag:
             resolved[name] = selection.tag
         if not selection.root:
             pin = f"semver=^{selection.tag.lstrip('v')}" if selection.tag else f"rev={selection.ref}"
-            all_deps.setdefault(name, f"{selection.url} :: {pin}")
+            all_deps[name] = f"{selection.url} :: {pin}"
             required_by[name] = " ".join(selection.required_by)
             print_n(f"{name}: {selection.tag or selection.ref} (required by {', '.join(selection.required_by)})")
     return all_deps, resolved, required_by
@@ -680,7 +694,10 @@ def _content_tree(path: str) -> str:
     with tempfile.TemporaryDirectory(prefix="fobis-tree-") as scratch:
         run_git("init", "-q", scratch)
         git_dir = os.path.join(scratch, ".git")
-        run_git(f"--git-dir={git_dir}", f"--work-tree={path}", "add", "-A", "--", ".", ":!.fobis-swh.json")
+        run_git(
+            "-c", f"core.excludesFile={os.devnull}", f"--git-dir={git_dir}", f"--work-tree={path}",
+            "add", "-A", "--force", "--", ".", ":!.fobis-swh.json",
+        )  # fmt: skip
         result = run_git(f"--git-dir={git_dir}", "write-tree")
         return result.stdout.strip() if result.returncode == 0 else ""
 
@@ -707,7 +724,7 @@ def _fetch_release_dependency(configuration, fetcher, name, parsed, located, loc
 
     from .registry.manifest import SourceError, fetch_release, select_release
 
-    dep_dir = os.path.join(fetcher.deps_dir, name)
+    dep_dir = fetcher.dep_dir(name)
     marker = os.path.join(dep_dir, ".fobis-release.json")
     locked = lock.get(name, {})
     frozen = getattr(configuration.cliargs, "frozen", False)

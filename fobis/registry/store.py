@@ -11,6 +11,7 @@ from __future__ import annotations
 import datetime
 import json
 import os
+import re
 import shutil
 import tempfile
 from dataclasses import asdict, dataclass, field
@@ -49,7 +50,14 @@ class Store:
     root: str = field(default_factory=default_root)
 
     def prefix(self, key: str, name: str, version: str) -> str:
-        return os.path.join(self.root, key, name, version.lstrip("v") or "unversioned")
+        """The install prefix; ValueError when a part is not a plain name (it comes from the package itself)."""
+        parts = (key, name, version.lstrip("v") or "unversioned")
+        if not all(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.+-]*", p) for p in parts):
+            raise ValueError(f"not a valid package name or version: {'/'.join(parts)}")
+        path = os.path.join(self.root, *parts)
+        if not os.path.realpath(path).startswith(os.path.realpath(self.root) + os.sep):
+            raise ValueError(f"{path} is outside the store {self.root}")
+        return path
 
     def receipts(self) -> list[Receipt]:
         path = os.path.join(self.root, RECEIPTS)
