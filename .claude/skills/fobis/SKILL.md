@@ -763,6 +763,14 @@ fobis search --module penf   # who provides a Fortran module
 fobis info penf              # versions (the source's tags), build system, modules, licence
 ```
 
+```bash
+fobis add penf               # resolved ONCE: the fobos gets "penf = https://github.com/szaghi/PENF :: semver=^2.0.1"
+fobis add vendor:json --use fobos
+fobis add --module stringifor_string_t
+fobis add https://host/repo --tag v1.2.0 --as kinds
+```
+
+`fetch` and `build` never read an index: after `add`, every index can disappear and the project still builds.
 An index holds no versions: the source's semantic-version tags are the versions. A bare name present in two
 indexes is an error naming `INDEX:NAME` choices (never a silent pick).
 

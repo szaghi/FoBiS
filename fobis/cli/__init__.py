@@ -25,6 +25,7 @@ FoBiS.py (and user code) previously imported from ``fobis.cli_parser``.
 
 # Import command modules to register their @app.command decorators
 from . import (  # noqa: F401
+    add,
     agents_md,
     ask,
     bindings,

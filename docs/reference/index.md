@@ -40,6 +40,7 @@ reads from the project, the [user configuration](./configuration) those of the m
 | [`index`](./index-command) | Manage the package indexes searched by search, info and add (several side by side, none by default). |
 | [`search`](./search) | Search the configured package indexes (and the indexes they follow). |
 | [`info`](./info) | Show what a package's source holds: versions, build system, modules, licence. |
+| [`add`](./add) | Add a dependency to the fobos, resolved through the package indexes (the fobos gets its URL). |
 
 ## Testing
 

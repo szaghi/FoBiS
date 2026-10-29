@@ -59,8 +59,8 @@ def main():
     # ``ecosystem`` streams the output of long multi-repo runs and asks for confirmations, ``mcp`` speaks
     # JSON-RPC on stdin/stdout, ``llm`` streams download progress: the CliRunner of FoBiSConfig would buffer
     # stdout and replace stdin, so run them directly.
-    # The package-index commands (index, search, info) read no fobos mode and fetch over the network: direct too.
-    if sys.argv[1:2] in (["ecosystem"], ["mcp"], ["llm"], ["index"], ["search"], ["info"]):
+    # The package-index commands (index, search, info, add) read no fobos mode and fetch over the network: direct too.
+    if sys.argv[1:2] in (["ecosystem"], ["mcp"], ["llm"], ["index"], ["search"], ["info"], ["add"]):
         from .cli import app as _app
 
         _app(prog_name=_prog_name())
