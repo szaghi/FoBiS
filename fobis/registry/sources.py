@@ -216,8 +216,29 @@ def inspect_tree(root: str, info: SourceInfo) -> SourceInfo:
     info.description = info.description or facts["description"] or _readme_description(root)
     info.license = info.license or facts["license"] or detect_license(root)
     info.backend = detect_backend(root)
-    info.modules = scan_modules(root)
+    info.modules = scan_modules(library_dir(root, info.backend))
     return info
+
+
+def library_dir(root: str, backend: str) -> str:
+    """
+    Where a package's library sources are: for an fpm package its ``[library] source-dir`` (``src`` by default: fpm
+    builds nothing else into the library, so ``standalone/`` bundles or scratch directories are not provided);
+    the whole tree otherwise. An fpm package without that directory provides no module.
+    """
+    if backend != "fpm":
+        return root
+    from ..fpm import FpmError, load_toml
+
+    try:
+        with open(os.path.join(root, "fpm.toml"), encoding="utf-8") as fh:
+            library = load_toml(fh.read()).get("library", {})
+    except (OSError, FpmError, ValueError):
+        library = {}
+    source_dir = library.get("source-dir", "src") if isinstance(library, dict) else "src"
+    path = os.path.normpath(os.path.join(root, str(source_dir)))
+    inside = path == os.path.normpath(root) or path.startswith(os.path.normpath(root) + os.sep)
+    return path if inside and os.path.isdir(path) else os.path.join(root, ".fobis-no-library")
 
 
 def probe(url: str, inspect: bool = True, anonymous: bool = False) -> SourceInfo:

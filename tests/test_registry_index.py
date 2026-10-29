@@ -355,3 +355,23 @@ def test_ecosystem_seeds_are_public_urls_and_unreadable_ones_left_out(tmp_path):
     code, out = cli("index", "build", "--from-ecosystem", "--config", str(config), "-o", str(tmp_path / "i.toml"))
     assert code == 0 and "gone: not publicly readable, left out" in out
     assert load_index((tmp_path / "i.toml").read_text()).packages == {}
+
+
+def test_fpm_package_provides_its_library_dir_only(tmp_path):
+    """Found on urbanjost/M_intrinsics: standalone/ bundles and scratch dirs are not part of an fpm library."""
+    from fobis.registry.sources import SourceInfo, inspect_tree
+
+    files = {
+        "fpm.toml": 'name = "lib"\n',
+        "src/lib.f90": "module lib\nend module lib\n",
+        "standalone/bundle.F90": "module m_strings\nend module m_strings\n",
+        "scratch/try.f90": "module scratch_m\nend module scratch_m\n",
+    }
+    for path, text in files.items():
+        (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / path).write_text(text)
+    assert inspect_tree(str(tmp_path), SourceInfo(url="", provider="git")).modules == ["lib"]
+    (tmp_path / "fpm.toml").write_text('name = "lib"\n[library]\nsource-dir = "standalone"\n')
+    assert inspect_tree(str(tmp_path), SourceInfo(url="", provider="git")).modules == ["m_strings"]
+    (tmp_path / "fpm.toml").write_text('name = "app"\n[library]\nsource-dir = "../outside"\n')
+    assert inspect_tree(str(tmp_path), SourceInfo(url="", provider="git")).modules == []

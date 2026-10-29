@@ -92,8 +92,10 @@ fobis index check index.toml --online
   source without your credentials: a private repository is left out, with a warning.
 - **Hand-written fields win** when an index is built again (a description, the `provides` list), and an index can
   `follow` other indexes: `follows = ["https://example.org/fortran/index.toml"]`.
-- **The provided modules are guessed from the sources**, without tests, examples and vendored copies
-  (`third_party/`, `vendor/`, ...). Edit `provides` when a package vendors another one under another directory name.
+- **The provided modules are read from the sources**: for an fpm package its library directory (`[library]
+  source-dir`, `src/` by default), for the others the whole tree without tests, examples and vendored copies
+  (`third_party/`, `vendor/`, ...). A package that bundles another one's sources in its library really defines those
+  modules too: the two cannot be linked into one program, and `fetch` says so.
 
 ## An index for a lab, a company or a project
 
