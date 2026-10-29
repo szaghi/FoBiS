@@ -1,0 +1,8 @@
+$ cd ~/survey && fobis fetch
+Cloning quad from file://~/remotes/quad.git
+Checking out v0.1.0 for quad
+Cloning penf from https://github.com/szaghi/PENF
+Checking out v2.0.1 for penf
+penf: v2.0.1 (required by quad)
+Saved deps config to .fobis_deps/.deps_config.ini
+Saved lock file to .fobis_deps/fobos.lock

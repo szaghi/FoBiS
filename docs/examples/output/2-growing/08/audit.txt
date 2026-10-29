@@ -1,0 +1,3 @@
+$ cd ~/survey && fobis audit
+quad                 v0.1.0       ok
+penf                 v2.0.1       ok

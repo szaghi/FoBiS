@@ -1,0 +1,6 @@
+$ cd ~/survey && grep -E "^\\[|resolved|required_by" .fobis_deps/fobos.lock
+[quad]
+resolved = v0.1.0
+[penf]
+resolved = v2.0.1
+required_by = quad

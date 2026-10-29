@@ -1,0 +1,3 @@
+$ cd ~/survey && fobis add quad
+Added quad = file://~/remotes/quad.git :: semver=^0.1.0
+Run 'fobis fetch' to fetch it.

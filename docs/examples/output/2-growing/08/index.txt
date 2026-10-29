@@ -1,0 +1,6 @@
+$ cat ~/my-index/index.toml
+schema = 1
+
+[package.quad]
+source = "file://~/remotes/quad.git"
+provides = ["integrands", "quad_rules"]

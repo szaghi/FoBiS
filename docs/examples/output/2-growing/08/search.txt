@@ -1,0 +1,2 @@
+$ fobis search --module quad_rules
+mine:quad                     file://~/remotes/quad.git

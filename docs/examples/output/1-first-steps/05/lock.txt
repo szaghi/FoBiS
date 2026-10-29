@@ -4,6 +4,7 @@ $ cat .fobis_deps/fobos.lock
 [penf]
 url = https://github.com/szaghi/PENF
 commit = 4cb9d326c08f109ed5126d83c27e8e70c98b7eaa
+tree = 72266b87b92dece08158aa7b6c33b86854d55c40
 sha256 = 2a46c1a89c4e1e9de7a410cdf0efe4ec1cbef53526998b8552ad98c97260bd66
 tag = v2.0.1
 

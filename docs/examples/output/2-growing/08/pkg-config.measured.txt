@@ -1,0 +1,2 @@
+$ PKG_CONFIG_PATH=$(fobis pkg path quad --pkgconfig) pkg-config --cflags --libs quad
+-I~/.fobis/pkgs/gnu-13.4.0-de7b0728/quad/0.1.0/include -L~/.fobis/pkgs/gnu-13.4.0-de7b0728/quad/0.1.0/lib -lquad 

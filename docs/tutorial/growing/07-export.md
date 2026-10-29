@@ -39,5 +39,4 @@ The exports are snapshots: generate them again when the fobos changes, for insta
 [Makefile export](/cookbook/libraries#export-a-gnu-makefile).
 :::
 
-This is the end of the second track. The [third](../ecosystem/01-register) leaves `quad` for a while: a family of projects that
-depend on each other, managed together.
+Next: [`quad` as a package](./08-packages), found and used by name.

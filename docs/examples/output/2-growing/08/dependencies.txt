@@ -1,0 +1,4 @@
+[dependencies]
+transitive = true
+# added by fobis add from index mine
+quad = file://~/remotes/quad.git :: semver=^0.1.0

@@ -1,0 +1,7 @@
+$ fobis info quad
+quad  (file://~/remotes/quad.git)
+  index     : mine
+  license   : unknown
+  build     : fobis
+  versions  : v0.1.0
+  modules   : integrands, quad_rules

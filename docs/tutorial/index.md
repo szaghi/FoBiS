@@ -18,7 +18,7 @@ Every command output shown is the real one: the pages include what the commands 
 | Track | Level | You learn |
 |---|---|---|
 | [1. First steps](./first-steps/01-first-build) | basic | build without configuration, a fobos with modes, a library, tests and coverage, dependencies |
-| [2. Growing a project](./growing/01-templates) | intermediate | templates and variables, build profiles and feature flags, external libraries (MPI, OpenMP), rules, the cache, CI with machine-readable output, fpm and Makefile export |
+| [2. Growing a project](./growing/01-templates) | intermediate | templates and variables, build profiles and feature flags, external libraries (MPI, OpenMP), rules, the cache, CI with machine-readable output, fpm and Makefile export, quad as a package found and used by name |
 | [3. Many repositories](./ecosystem/01-register) | intermediate | an ecosystem of projects: dashboard, commands across all of them, checking the projects downstream, the release train |
 | [4. Code quality](./quality/01-lint) | advanced | the linter, baselines and fixes, reviewing a change, querying the code, verified modernisation, C and Python bindings |
 | [5. Verified numerics](./numerics/01-cases) | advanced | cases and references, shadow builds and the compiler matrix, error and uncertainty assessment, differential runs, benchmarks, the gate, profiling, clusters |
@@ -51,6 +51,7 @@ flowchart LR
 | [5. Rules](./growing/05-rules) | `[rule-NAME]`, `pre_build`/`post_build`, intrinsic rules, `--jobs` |
 | [6. Continuous integration](./growing/06-ci) | `fobis check`, `--json`, a CI workflow |
 | [7. Other build systems](./growing/07-export) | `fobis fpm export`, `--makefile` |
+| [8. quad as a package](./growing/08-packages) | `fobis publish`, `index`, `search`, `info`, `add`, `transitive = true`, `pkg install`, `audit` |
 
 ### 3. Many repositories
 

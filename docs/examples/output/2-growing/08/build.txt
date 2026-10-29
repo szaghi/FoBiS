@@ -1,0 +1,10 @@
+$ cd ~/survey && fobis build --quiet && ./build/survey
+
+Building src/survey.F90
+Compiling .fobis_deps/quad/src/quad_rules.F90 serially
+Compiling .fobis_deps/quad/src/integrands.F90 serially
+Compiling src/survey.F90 serially
+Linking build/survey
+Target src/survey.F90 has been successfully built
+trapezoid =  1.999598388640037
+simpson   =  2.000269169948388

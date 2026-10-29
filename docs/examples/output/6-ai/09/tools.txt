@@ -18,6 +18,9 @@ fobis: protocol 2025-06-18
   testgen_skeleton     read-only  Test skeleton for a module
   ecosystem_status     read-only  Ecosystem status
   ecosystem_impact     read-only  Impact of an API change
+  package_search       read-only  Search the package indexes
+  package_info         read-only  What a package's source holds
+  index_check          read-only  Validate a package index
   case_list            read-only  List the declared cases
   provenance           read-only  Provenance of a result
   build                writes     Build the project

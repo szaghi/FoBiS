@@ -17,6 +17,7 @@ minutes. Come back here when you need something specific.
 | [Building](./build) | how a build works, a new project, modes for debug and release, flags per compiler, templates and variables, features, parallel and incremental builds, sources, C files, preprocessing, running a program |
 | [Libraries and other build systems](./libraries) | static and shared libraries, pkg-config files, external libraries, a project built on another, custom rules, a Makefile, fpm, `compile_commands.json` |
 | [Dependencies](./dependencies) | a GitHub dependency pinned or in a semver range, built with your sources or as a library, a local directory, test-only dependencies, the lock file, installing from GitHub, offline machines |
+| [Packages and indexes](./packages) | package indexes with no central server, search and add by name, releases on any static host, packages installed for your compiler, CMake and make packages, dependencies of dependencies, advisories |
 | [Testing](./testing) | test programs, suites, parallel and MPI tests, doctests, coverage, defects only a checked build sees, explained failures |
 | [Verifying results](./verification) | cases and the quantities they print, references and tolerances, checked builds across compilers, numerical error, whether a change is harmless or faster, the gate, profiles |
 | [Code quality](./analysis) | the linter, legacy code, suppressions and fixes, reviews of a change, who calls what, verified modernisation, C and Python bindings |

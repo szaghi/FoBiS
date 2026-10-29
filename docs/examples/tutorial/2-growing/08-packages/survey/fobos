@@ -1,0 +1,11 @@
+[modes]
+modes = gnu
+
+[gnu]
+compiler  = gnu
+src       = ./src/
+build_dir = ./build/
+target    = src/survey.F90
+
+[dependencies]
+transitive = true

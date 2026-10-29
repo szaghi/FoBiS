@@ -1,0 +1,8 @@
+$ cat ~/site/quad/fortran-releases.toml
+schema = 1
+name = "quad"
+
+[[release]]
+version = "0.1.0"
+archive = "quad-0.1.0.tar.gz"
+sha256 = "20d203fc68b21b1accb41a7ba74e5d325710e5f6e26b06f3553884f318f58840"

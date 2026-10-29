@@ -1,0 +1,3 @@
+$ fobis index add mine ~/my-index
+mine: 1 package(s), dir index
+Added index mine = ~/my-index to ~/.config/fobis/config.ini

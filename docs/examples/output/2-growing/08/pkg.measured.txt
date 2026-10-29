@@ -1,0 +1,5 @@
+$ fobis pkg install quad --bin-dir ~/bin
+Building quad v0.1.0 with gfortran (gnu-13.4.0-de7b0728), fobis
+Installed quad v0.1.0 for gnu-13.4.0-de7b0728 in ~/.fobis/pkgs/gnu-13.4.0-de7b0728/quad/0.1.0
+  modules : quad_rules
+  use it  : export PKG_CONFIG_PATH=~/.fobis/pkgs/gnu-13.4.0-de7b0728/quad/0.1.0/lib/pkgconfig

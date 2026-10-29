@@ -1,0 +1,6 @@
+$ fobis info ~/site/quad
+quad  (~/site/quad)
+  license   : unknown
+  build     : fobis
+  versions  : 0.1.0
+  modules   : integrands, quad_rules

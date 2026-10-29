@@ -39,6 +39,7 @@ const docs = [
           { text: '5. Rules',                    link: '/tutorial/growing/05-rules' },
           { text: '6. Continuous integration',   link: '/tutorial/growing/06-ci' },
           { text: '7. Other build systems',      link: '/tutorial/growing/07-export' },
+          { text: '8. quad as a package',        link: '/tutorial/growing/08-packages' },
         ],
       },
       {
@@ -105,6 +106,7 @@ const docs = [
       { text: 'Building',                          link: '/cookbook/build' },
       { text: 'Libraries and other build systems', link: '/cookbook/libraries' },
       { text: 'Dependencies',                      link: '/cookbook/dependencies' },
+      { text: 'Packages and indexes',              link: '/cookbook/packages' },
       { text: 'Testing',                           link: '/cookbook/testing' },
       { text: 'Verifying results',                 link: '/cookbook/verification' },
       { text: 'Code quality',                      link: '/cookbook/analysis' },

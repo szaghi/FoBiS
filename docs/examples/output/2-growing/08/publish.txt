@@ -1,0 +1,2 @@
+$ fobis publish --index ~/my-index/index.toml --source file://$HOME/remotes/quad.git
+Added quad in ~/my-index/index.toml (2 module(s))
