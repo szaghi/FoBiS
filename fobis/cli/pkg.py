@@ -84,14 +84,21 @@ def install_package(
         previous = [r for r in store.find(name, toolchain.key) if r.version == (chosen or identity[:12])]
         if previous and not force:
             return {**previous[0].to_dict(), "already": True}
-        backend = detect_backend(src)
+        recipe = _recipe_for(src, entry, config)
+        backend = recipe.backend if recipe else detect_backend(src)
+        prefixes = []
+        for depend in recipe.depends if recipe else []:  # built first, for the same toolchain
+            dep_url, _, dep_range = depend.partition("::")
+            dep_range = dep_range.strip().removeprefix("semver=").strip()
+            prefixes.append(install_package(dep_url.strip(), toolchain, dep_range, config=config, log=log)["prefix"])
         if os.path.isdir(prefix):
             shutil.rmtree(prefix)
         log(f"Building {name} {chosen or '(default branch)'} with {toolchain.fc} ({toolchain.key}), {backend or '?'}")
         try:
             artifacts = install(
-                backend, src, toolchain, prefix, name, chosen or "0", facts["description"], mode=mode, log=log
-            )
+                backend, src, toolchain, prefix, name, chosen or "0", facts["description"], mode=mode, recipe=recipe,
+                prefixes=tuple(prefixes), log=log,
+            )  # fmt: skip
         except BackendError as error:
             shutil.rmtree(prefix, ignore_errors=True)
             _fail(f"{name}: {error}", 1)
@@ -122,6 +129,20 @@ def install_package(
             store.record(old)
     store.record(receipt)
     return {**receipt.to_dict(), "provider": provider, "pc_files": artifacts.pc_files, "already": False}
+
+
+def _recipe_for(src: str, entry: Any, config: str | None):
+    """The recipe of a package: the one its repository ships, else the one its index entry names, else None."""
+    from ..registry.recipe import RecipeError, parse_recipe, read_index_recipe, recipe_in
+
+    try:
+        recipe = recipe_in(src)
+        if recipe is None and entry is not None and entry.recipe:
+            loaded = next(i for i in index_set(config).loaded if i.qualifier == entry.index)
+            recipe = parse_recipe(read_index_recipe(loaded.url, entry.recipe), origin=entry.recipe)
+    except (RecipeError, StopIteration) as error:
+        _fail(f"recipe: {error}", 1)
+    return recipe
 
 
 @pkg_app.command("install")
@@ -168,7 +189,7 @@ def cmd_pkg_install(
     for shim in receipt["shims"]:
         typer.echo(f"  linked  : {shim}")
     if receipt["pc_files"]:
-        typer.echo(f"  use it  : export PKG_CONFIG_PATH={os.path.join(receipt['prefix'], 'lib', 'pkgconfig')}")
+        typer.echo(f"  use it  : export PKG_CONFIG_PATH={os.path.dirname(receipt['pc_files'][0])}")
 
 
 @pkg_app.command("list")
@@ -216,7 +237,15 @@ def cmd_pkg_path(
 ) -> None:
     """Print the install prefix of a package (for scripts, CMAKE_PREFIX_PATH, PKG_CONFIG_PATH)."""
     receipt = _one(name, key, version)
-    typer.echo(os.path.join(receipt.prefix, "lib", "pkgconfig") if pkgconfig else receipt.prefix)
+    if not pkgconfig:
+        typer.echo(receipt.prefix)
+        return
+    ours = os.path.join("lib", "pkgconfig")
+    pc = sorted(
+        {os.path.dirname(f) for f in receipt.files if f.endswith(".pc") and "pkgconfig" in f.split(os.sep)},
+        key=lambda d: (d != ours, d),
+    )
+    typer.echo(os.path.join(receipt.prefix, pc[0] if pc else ours))
 
 
 @pkg_app.command("upgrade")

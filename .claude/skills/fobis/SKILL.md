@@ -803,6 +803,20 @@ export PKG_CONFIG_PATH=$(fobis pkg path penf --pkgconfig)
 gfortran main.f90 $(pkg-config --cflags --libs penf)
 ```
 
+Packages that do not describe themselves (CMake, make, anything else) are built from a recipe, shipped by the
+package (`fortran-recipe.toml`) or named by an index entry (`recipe = recipes/NAME.toml`; `fobis add` copies it
+into the project); without one, a CMakeLists.txt or Makefile is used as found. The consumer's compiler is always
+passed (`-DCMAKE_Fortran_COMPILER`, `FC=`). A dependency of a FoBiS project built this way is installed into
+`.fobis_deps/.prefix/NAME`, and `build` adds its module directory and libraries.
+
+```toml
+# fortran-recipe.toml
+schema     = 1
+backend    = "cmake"
+cmake-args = ["-DENABLE_TESTS=OFF"]
+depends    = ["https://github.com/szaghi/PENF :: semver=^2"]
+```
+
 Applications are linked into `~/.local/bin`; tests and examples are never installed. `fobis install REPO`
 (no record kept) is unchanged.
 

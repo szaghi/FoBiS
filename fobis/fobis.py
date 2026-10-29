@@ -404,6 +404,9 @@ def _fetch_dependencies(configuration, fetcher, print_n, print_w) -> list[dict] 
                     lock_entries.append({"name": name, **lock[name]})
                 continue
             dep_info, lock_entry = fetched
+            backend_prefix = _built_by_backend(configuration, fetcher, name, parsed, dep_info["path"], print_n, print_w)
+            if backend_prefix:
+                dep_info["prefix"] = backend_prefix
             deps_info.append({**dep_info, "mode": parsed.get("mode", ""), "use": use_mode, "dev": dev})
             lock_entries.append({**lock_entry, **({"dev": "true"} if dev else {})})
             continue
@@ -451,10 +454,14 @@ def _fetch_dependencies(configuration, fetcher, print_n, print_w) -> list[dict] 
                 lock_entries.append({"name": name, **lock[name]})
             continue
 
-        if not configuration.cliargs.no_build and use_mode == "fobos":
+        backend_prefix = _built_by_backend(configuration, fetcher, name, parsed, dep_path, print_n, print_w)
+        if backend_prefix is None and not configuration.cliargs.no_build and use_mode == "fobos":
             fetcher.build_dep(name, dep_path, mode=parsed.get("mode"))
 
-        deps_info.append({"name": name, "path": dep_path, "mode": parsed.get("mode", ""), "use": use_mode, "dev": dev})
+        deps_info.append(
+            {"name": name, "path": dep_path, "mode": parsed.get("mode", ""), "use": use_mode, "dev": dev}
+            | ({"prefix": backend_prefix} if backend_prefix else {})
+        )
 
         # The content identity: a tag of the lock that now names another tree has been moved (a release changed)
         tree = _git_tree(dep_path)
@@ -571,6 +578,61 @@ def _resolve_transitive(configuration, fetcher, deps, print_n, print_w):
             required_by[name] = " ".join(selection.required_by)
             print_n(f"{name}: {selection.tag or selection.ref} (required by {', '.join(selection.required_by)})")
     return all_deps, resolved, required_by
+
+
+def _built_by_backend(configuration, fetcher, name, parsed, dep_path, print_n, print_w):
+    """
+    A dependency FoBiS cannot compile as sources (no fobos and a CMakeLists.txt or Makefile, or a ``recipe=`` in its
+    spec) is built and installed into ``<deps_dir>/.prefix/<name>`` with the compiler of the project's default mode;
+    the build then reads its module files and libraries from there. Returns that prefix, or None.
+    """
+    import json as _json
+
+    from .registry.backends import BackendError, _after_brace, install, run
+    from .registry.recipe import RecipeError, load_recipe, recipe_in
+    from .registry.sources import detect_backend
+    from .registry.toolchain import ToolchainError, detect
+    from .utils import fobis_command
+
+    if not os.path.isdir(dep_path):
+        return None
+    recipe = None
+    try:
+        if parsed.get("recipe"):
+            recipe = load_recipe(fetcher.resolve_path(parsed["recipe"], configuration.fobos.filename))
+        else:
+            recipe = recipe_in(dep_path)
+    except (OSError, RecipeError) as error:
+        print_w(f"Error: {name}: {error}")
+        fetcher.failures.append(f"{name}: {error}")
+        return None
+    backend = recipe.backend if recipe else detect_backend(dep_path)
+    if backend not in ("cmake", "make", "recipe") or (
+        recipe is None and os.path.isfile(os.path.join(dep_path, "fobos"))
+    ):
+        return None
+    prefix = os.path.join(fetcher.deps_dir, ".prefix", name)
+    if configuration.cliargs.no_build:
+        return prefix
+    try:
+        facts = _json.loads(
+            _after_brace(run([*fobis_command(), "introspect", "--compiler", "-f", configuration.fobos.filename], "."))
+        )["compiler"]
+        toolchain = detect(facts["name"].lower(), facts.get("binary") or None)
+    except (BackendError, ToolchainError, KeyError, ValueError) as error:
+        print_w(f"Error: {name}: the project's compiler: {error}")
+        fetcher.failures.append(f"{name}: no compiler to build it with")
+        return None
+    print_n(f"Building {name} with {backend} and {toolchain.fc} into {prefix}")
+    if os.path.isdir(prefix):
+        shutil.rmtree(prefix)
+    try:
+        install(backend, os.path.abspath(dep_path), toolchain, os.path.abspath(prefix), name, "0", recipe=recipe)
+    except BackendError as error:
+        print_w(f"Error: {name}: {error}")
+        fetcher.failures.append(f"{name}: {backend} build failed")
+        return None
+    return prefix
 
 
 def _check_module_collisions(deps_info, fetcher, print_w) -> None:

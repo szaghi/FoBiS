@@ -250,6 +250,11 @@ class FoBiSConfig:
             else:
                 src.append(dep["path"])
                 excluded += fetcher.path_excludes(dep["path"])
+        prefixes = config.get("prefix", []) + (config.get("dev_prefix", []) if with_dev else [])
+        for entry in prefixes + ([] if with_dev else config.get("dev_prefix", [])):
+            excluded.append(entry.partition("=")[2])  # its sources are built by its backend, never by this build
+        for entry in prefixes:
+            self._use_prefix(entry.partition("=")[0])
         self.cliargs.dependon.extend(dependon)
         for entry in dependon:
             excluded.append(os.path.dirname(entry.split(":")[0]))
@@ -264,6 +269,24 @@ class FoBiSConfig:
             covered = (os.path.abspath(s) for s in self.cliargs.src)
             if not any(abs_src == base or abs_src.startswith(base.rstrip(os.sep) + os.sep) for base in covered):
                 self.cliargs.src.append(src_path)
+
+    def _use_prefix(self, prefix: str) -> None:
+        """A dependency installed into *prefix* by a backend: its module directories and libraries join the build."""
+        if not os.path.isdir(prefix):
+            return
+        mod_dirs = sorted(
+            {dirpath for dirpath, _dirs, files in os.walk(prefix) if any(f.endswith(".mod") for f in files)}
+        )
+        for directory in mod_dirs or [os.path.join(prefix, "include")]:
+            if directory not in self.cliargs.include:
+                self.cliargs.include.append(directory)
+        if not hasattr(self.cliargs, "libs"):
+            return
+        for dirpath, _dirs, files in sorted(os.walk(prefix)):  # any layout (some CMake projects use a subdirectory)
+            for filename in sorted(files):
+                path = os.path.join(dirpath, filename)
+                if filename.startswith("lib") and filename.endswith(".a") and path not in self.cliargs.libs:
+                    self.cliargs.libs.append(path)
 
     @staticmethod
     def _check_md5sum(filename: str, hashfile: str) -> tuple[bool, bool]:

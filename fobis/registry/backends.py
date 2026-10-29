@@ -7,7 +7,7 @@ prefix with ``lib/`` (libraries), ``include/`` (module files), ``bin/`` (applica
 (``lib/pkgconfig``) and the list of modules provided, so a FoBiS, CMake or make consumer links it the same way.
 
 Backends: ``fobis`` (the package's fobos, the mode matching the compiler family), ``fpm`` (``fpm install`` when fpm is
-on PATH, else the fpm.toml imported as a fobos and built by FoBiS).
+on PATH, else the fpm.toml imported as a fobos and built by FoBiS), ``cmake`` and ``recipe`` (see `recipe`), ``make``.
 """
 
 from __future__ import annotations
@@ -78,10 +78,14 @@ def collect(prefix: str, name: str, version: str, description: str = "", log: Lo
 
     artifacts = Artifacts(prefix=os.path.abspath(prefix))
     lib = os.path.join(prefix, "lib")
-    for dirpath, _dirs, files in os.walk(lib):
+    pc_found: list[str] = []
+    for dirpath, _dirs, files in os.walk(prefix):  # any layout: some CMake projects install into a subdirectory
         for filename in sorted(files):
-            if filename.endswith(LIB_SUFFIXES) and not filename.endswith(".pc"):
-                artifacts.libraries.append(os.path.abspath(os.path.join(dirpath, filename)))
+            path = os.path.abspath(os.path.join(dirpath, filename))
+            if filename.startswith("lib") and filename.endswith(LIB_SUFFIXES) and os.path.basename(dirpath) != "bin":
+                artifacts.libraries.append(path)
+            elif filename.endswith(".pc") and os.path.basename(dirpath) == "pkgconfig":
+                pc_found.append(path)
     bin_dir = os.path.join(prefix, "bin")
     if os.path.isdir(bin_dir):
         for filename in sorted(os.listdir(bin_dir)):
@@ -100,20 +104,52 @@ def collect(prefix: str, name: str, version: str, description: str = "", log: Lo
     elif os.path.isdir(os.path.join(prefix, "include")):
         artifacts.include_dir = os.path.abspath(os.path.join(prefix, "include"))
     pc_dir = os.path.join(lib, "pkgconfig")
-    existing = {f[:-3] for f in os.listdir(pc_dir)} if os.path.isdir(pc_dir) else set()
+    valid = [p for p in pc_found if pc_is_valid(p)]
+    for broken in sorted(set(pc_found) - set(valid)):
+        log(f"{broken}: its directories do not exist (a broken .pc of the package): FoBiS writes its own")
+    existing = {os.path.basename(p)[:-3] for p in valid}
+    described = {library_stem(p) for p in valid}  # a valid .pc names the package, not always the library
     for library in artifacts.libraries:
         stem = library_stem(library)
-        if stem in existing or os.path.dirname(library) != os.path.abspath(lib):
+        if stem in existing or stem in described or (library.endswith((".so", ".dylib")) and _static_twin(library)):
             continue
+        if valid and os.path.dirname(library) != os.path.abspath(lib):
+            continue  # a library elsewhere that the package's own valid .pc describes
         os.makedirs(pc_dir, exist_ok=True)
         include_rel = os.path.relpath(artifacts.include_dir or os.path.join(prefix, "include"), prefix)
+        lib_rel = os.path.relpath(os.path.dirname(library), prefix)
         spec = PkgConfigSpec(name=stem, version=version.lstrip("v"), description=description or name)
-        path = write_pc(spec, library, prefix, "lib", include_rel, pc_dir)
+        path = write_pc(spec, library, prefix, lib_rel, include_rel, pc_dir)
         existing.add(stem)
         log(f"wrote {path}")
-    if os.path.isdir(pc_dir):
-        artifacts.pc_files = sorted(os.path.abspath(os.path.join(pc_dir, f)) for f in os.listdir(pc_dir))
+    ours = sorted(os.path.abspath(os.path.join(pc_dir, f)) for f in os.listdir(pc_dir)) if os.path.isdir(pc_dir) else []
+    artifacts.pc_files = ours + sorted(p for p in valid if p not in ours)  # lib/pkgconfig first
     return artifacts
+
+
+def pc_is_valid(path: str) -> bool:
+    """Whether the directories a ``.pc`` file points to (``-L``, ``-I`` after variable expansion) exist."""
+    values: dict[str, str] = {}
+    flags = []
+    try:
+        with open(path, encoding="utf-8") as fh:
+            lines = fh.read().splitlines()
+    except OSError:
+        return False
+    expand = re.compile(r"\$\{(\w+)\}")
+    for line in lines:
+        if "=" in line and ":" not in line.split("=", 1)[0]:
+            key, _, value = line.partition("=")
+            values[key.strip()] = expand.sub(lambda m: values.get(m.group(1), ""), value.strip())
+        elif line.startswith(("Libs:", "Cflags:")):
+            flags += expand.sub(lambda m: values.get(m.group(1), ""), line.split(":", 1)[1]).split()
+    dirs = [f[2:] for f in flags if f.startswith(("-L", "-I"))]
+    return all(d and os.path.isdir(d) for d in dirs)
+
+
+def _static_twin(library: str) -> bool:
+    stem = library.rsplit(".", 1)[0]
+    return os.path.isfile(stem + ".a")
 
 
 # ── fobis ─────────────────────────────────────────────────────────────────────
@@ -196,7 +232,9 @@ def _has_dependencies(fobos: str) -> bool:
         config.read(fobos, encoding="utf-8")
     except configparser.Error:
         return False
-    return config.has_section("dependencies") and any(k not in ("deps_dir", "transitive") for k in config.options("dependencies"))
+    return config.has_section("dependencies") and any(
+        k not in ("deps_dir", "transitive") for k in config.options("dependencies")
+    )
 
 
 def drop_test_programs(src: str, log: Log = _quiet) -> None:
@@ -364,6 +402,8 @@ def install(
     version: str,
     description: str = "",
     mode: str | None = None,
+    recipe: object = None,
+    prefixes: tuple[str, ...] = (),
     log: Log = _quiet,
 ) -> Artifacts:
     """Build and install a package with *backend*; the `Artifacts` of the prefix (``.pc`` files written)."""
@@ -372,8 +412,10 @@ def install(
         install_fobis(src, toolchain, prefix, mode=mode, log=log)
     elif backend == "fpm":
         install_fpm(src, toolchain, prefix, log=log)
-    elif backend in ("cmake", "make"):
-        raise BackendError(f"{name} is built with {backend}: not supported yet (fobis and fpm packages only)")
+    elif backend in ("cmake", "make", "recipe"):
+        from .recipe import install_with
+
+        install_with(backend, src, toolchain, prefix, recipe=recipe, prefixes=prefixes, log=log)
     else:
         raise BackendError(f"no backend can build {src}: no fobos, fpm.toml, CMakeLists.txt or Makefile, and no recipe")
     artifacts = collect(prefix, name, version, description, log)

@@ -357,6 +357,15 @@ def cmd_info(
     shown = ", ".join(info.versions[:8]) + (f" (+{len(info.versions) - 8} older)" if len(info.versions) > 8 else "")
     typer.echo(f"  versions  : {shown or 'none (no semantic-version tag)'}")
     typer.echo(f"  modules   : {', '.join(info.modules) if info.modules else 'none found'}")
+    if entry is not None and entry.recipe:
+        from ..registry.recipe import RecipeError, parse_recipe, read_index_recipe
+
+        loaded = next(i for i in index_set(config, fobos, depth, False).loaded if i.qualifier == entry.index)
+        try:
+            recipe = parse_recipe(read_index_recipe(loaded.url, entry.recipe), origin=entry.recipe)
+            typer.echo(f"  recipe    : {entry.recipe} ({recipe.backend})")
+        except RecipeError as error:
+            typer.echo(f"  recipe    : {entry.recipe} (not readable: {error})")
 
 
 def _is_url(text: str) -> bool:

@@ -100,10 +100,26 @@ def cmd_add(
         pin = f"semver=^{newest.major}.{newest.minor}.{newest.patch}"
     else:
         warning = f"{url} has no semantic-version tag: the dependency follows its default branch (unpinned)"
+    recipe_spec = ""
+    if entry is not None and entry.recipe:  # copied into the project: builds never depend on the index
+        from ..registry.recipe import RecipeError, parse_recipe, read_index_recipe
+
+        loaded = next(i for i in index_set(config, fobos, depth, False).loaded if i.qualifier == entry.index)
+        try:
+            text = read_index_recipe(loaded.url, entry.recipe)
+            parse_recipe(text, origin=entry.recipe)
+        except RecipeError as error:
+            _fail(str(error), 1)
+        target = os.path.join(os.path.dirname(os.path.abspath(fobos)), "recipes", f"{name}.toml")
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        with open(target, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        recipe_spec = f"recipe=recipes/{name}.toml"
     parts = [url] + ([pin] if pin else [])
     parts += [f"use={use}"] if use else []
     parts += [f"mode={mode}"] if mode else []
     parts += ["dev"] if dev else []
+    parts += [recipe_spec] if recipe_spec else []
     spec = " :: ".join(parts)
     comment = f"added by fobis add from index {entry.index}" if entry else ""
     replaced = set_entry(fobos, name, spec, comment=comment)

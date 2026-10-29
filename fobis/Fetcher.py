@@ -477,12 +477,16 @@ class Fetcher:
         """
         config = configparser.RawConfigParser()
         config.add_section("deps")
-        entries: dict[str, list[str]] = {"dependon": [], "src": [], "dev_dependon": [], "dev_src": []}
+        entries: dict[str, list[str]] = {
+            "dependon": [], "src": [], "prefix": [], "dev_dependon": [], "dev_src": [], "dev_prefix": []
+        }  # fmt: skip
         for dep in deps_info:
             if dep.get("local"):  # a path dependency: read from the fobos by every build, never stale here
                 continue
             prefix = "dev_" if dep.get("dev") else ""  # test-only: loaded by fobis test and doctests only
-            if dep.get("use", "sources") == "fobos":
+            if dep.get("prefix"):  # built by a backend (CMake, make, recipe): installed, linked from its prefix
+                entries[prefix + "prefix"].append(dep["prefix"] + "=" + dep["path"])
+            elif dep.get("use", "sources") == "fobos":
                 fobos_path = os.path.join(dep["path"], "fobos")
                 entry = fobos_path + ":" + dep["mode"] if dep.get("mode") else fobos_path
                 entries[prefix + "dependon"].append(entry)
@@ -798,7 +802,7 @@ class Fetcher:
             result["dependon"] = config.get("deps", "dependon").split()
         if config.has_option("deps", "src"):
             result["src"] = config.get("deps", "src").split()
-        for key in ("dev_dependon", "dev_src"):
+        for key in ("prefix", "dev_dependon", "dev_src", "dev_prefix"):
             if config.has_option("deps", key):
                 result[key] = config.get("deps", key).split()
         return result
