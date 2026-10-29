@@ -785,6 +785,21 @@ kinds = https://example.org/fortran/kinds/ :: semver=^1.0
 penf  = https://github.com/szaghi/PENF :: tag=v2.0.1 :: mirror=https://gitlab.com/me/PENF
 ```
 
+Installed packages (pipx/cargo-install style), built from source with YOUR compiler and filed under a toolchain
+key (compiler family + version + digest of path, MPI and flags):
+
+```bash
+fobis pkg install penf                    # ~/.fobis/pkgs/gnu-16.2.0-xxxxxxxx/penf/2.0.1/{lib,include,bin}
+fobis pkg install json --version ^9 --compiler intel_nextgen
+fobis pkg install https://github.com/fortran-lang/test-drive   # fpm packages too
+fobis pkg list | path NAME [--pkgconfig] | upgrade [NAME] | uninstall NAME [--key K]
+export PKG_CONFIG_PATH=$(fobis pkg path penf --pkgconfig)
+gfortran main.f90 $(pkg-config --cflags --libs penf)
+```
+
+Applications are linked into `~/.local/bin`; tests and examples are never installed. `fobis install REPO`
+(no record kept) is unchanged.
+
 ```bash
 fobis publish --archive site/kinds    # tarball of the latest tag + its manifest entry
 fobis publish --index ../my-index/index.toml   # add or refresh this project in your index
