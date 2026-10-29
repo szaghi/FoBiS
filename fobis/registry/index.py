@@ -263,6 +263,7 @@ def run_git(
         env=env,
         capture_output=True,
         text=True,
+        errors="replace",
         timeout=timeout,
         check=False,
     )

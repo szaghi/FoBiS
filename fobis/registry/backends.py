@@ -57,7 +57,15 @@ def run(cmd: list[str], cwd: str, log: Log = _quiet, env: dict[str, str] | None 
     log("$ " + " ".join(cmd))
     try:
         result = subprocess.run(
-            cmd, cwd=cwd, env=env, capture_output=True, text=True, check=False, timeout=7200, stdin=subprocess.DEVNULL
+            cmd,
+            cwd=cwd,
+            env=env,
+            capture_output=True,
+            text=True,
+            errors="replace",
+            check=False,
+            timeout=7200,
+            stdin=subprocess.DEVNULL,
         )
     except OSError as error:
         raise BackendError(f"{cmd[0]}: {error}") from error

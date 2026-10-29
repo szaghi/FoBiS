@@ -156,7 +156,7 @@ def syswork(cmd, shell=False):
     except FileNotFoundError:  # the compiler is not on PATH (icx, nvc of another toolchain): the shell's status
         error = 127
         output = f"{args[0]}: command not found (is its toolchain loaded?)\n".encode()
-    output = str(output, encoding="UTF-8")
+    output = str(output, encoding="UTF-8", errors="replace")  # a compiler may echo a Latin-1 source line
     return [error, str(output)]
 
 

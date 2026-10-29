@@ -233,3 +233,20 @@ def test_package_with_its_own_dependencies(tmp_path):
     code, out = cli("pkg", "install", url, "--json")
     assert code == 0, out
     assert json.loads(out)["modules"] == ["flapish", "kinds"]
+
+
+def test_build_output_that_is_not_utf8(tmp_path):
+    """Found on urbanjost/M_strings: a build printed a Latin-1 byte and the decoding crashed the install."""
+    script = tmp_path / "latin1.sh"
+    script.write_bytes(b"#!/bin/sh\nprintf 'caf\\344\\n'\n")
+    script.chmod(0o755)
+    assert backends.run([str(script)], str(tmp_path)).strip() == "caf�"
+
+
+def test_syswork_output_that_is_not_utf8(tmp_path):
+    from fobis.utils import syswork
+
+    script = tmp_path / "latin1.sh"
+    script.write_bytes(b"#!/bin/sh\nprintf 'caf\\344\\n'\n")
+    script.chmod(0o755)
+    assert syswork([str(script)]) == [0, "caf�\n"]

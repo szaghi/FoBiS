@@ -82,7 +82,9 @@ class Toolchain:
 def compiler_version(command: str) -> str:
     """The first line of ``COMMAND --version`` ('' when it prints nothing)."""
     try:
-        result = subprocess.run([command, "--version"], capture_output=True, text=True, timeout=60, check=False)
+        result = subprocess.run(
+            [command, "--version"], capture_output=True, text=True, errors="replace", timeout=60, check=False
+        )
     except OSError:
         return ""
     lines = (result.stdout or result.stderr).strip().splitlines()
