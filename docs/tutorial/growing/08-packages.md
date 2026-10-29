@@ -98,6 +98,13 @@ Finally, `fobis audit` reads the advisories each dependency publishes about its 
 
 <<< @/examples/output/2-growing/08/audit.txt{console}
 
+## A public index
+
+Your index can list your packages and follow others. [fortran-index](https://github.com/szaghi/fortran-index) lists
+public FoBiS and fpm projects ([catalogue](https://szaghi.github.io/fortran-index/packages/)): register it with
+`fobis index add szaghi https://github.com/szaghi/fortran-index`, or follow it from yours with
+`follows = ["https://github.com/szaghi/fortran-index"]`.
+
 ::: tip What you learned
 `fobis publish`, `fobis index`, `fobis search`, `fobis info`, `fobis add`, `transitive = true`, `fobis pkg install`,
 `fobis audit`. Reference: [Packages and indexes](/cookbook/packages).

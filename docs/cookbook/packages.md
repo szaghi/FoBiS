@@ -29,7 +29,15 @@ Tutorial: [quad as a package](/tutorial/growing/08-packages). Reference: [`index
 
 ## Find a package
 
-Register an index, then search it by words or by the module you need:
+Register an index, then search it by words or by the module you need. [fortran-index](https://github.com/szaghi/fortran-index)
+is a public index of FoBiS and fpm packages, with a browsable [catalogue of packages and
+modules](https://szaghi.github.io/fortran-index/packages/):
+
+```bash
+fobis index add szaghi https://github.com/szaghi/fortran-index
+```
+
+The outputs below come from the tutorial's own index:
 
 ```bash
 fobis index add mine ~/my-index

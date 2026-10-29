@@ -33,6 +33,11 @@ features:
     details: Declare FoBiS projects in [dependencies]; fobis fetch clones them at a tag, branch, commit or semver range and locks the commits. Build them with your sources, or as libraries with their own fobos; use a local directory as is, or a dependency for the tests only.
     link: /tutorial/first-steps/05-dependencies
     linkText: Dependencies
+  - icon: 📚
+    title: Packages by name
+    details: Package indexes list projects by source URL, with no central server; fobis search finds a package or the module you need, fobis add writes its URL into your fobos, fobis pkg install builds it with your compiler. A public index of FoBiS and fpm packages is fortran-index.
+    link: /cookbook/packages
+    linkText: Packages and indexes
   - icon: 🧪
     title: Tests, doctests, coverage
     details: Every program in test/ is a test, run in parallel or through mpirun; checks in the documentation comments are doctests; an instrumented mode and fobis coverage give the report, and a threshold for CI.

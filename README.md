@@ -47,6 +47,9 @@
 <td><b>📐 Verified numerics</b><br><sub>Declare cases and the quantities they compute; <code>fobis verify</code> compares them with accepted references within declared tolerances, <code>fobis matrix</code> across compilers and checked builds, <code>fobis assess</code> estimates the digits you can trust, <code>fobis diff-run</code> and <code>fobis bench</code> compare two revisions, <code>fobis gate</code> runs them all, locally or under Slurm. <a href="https://szaghi.github.io/FoBiS/tutorial/numerics/01-cases">Verified numerics track</a></sub></td>
 </tr>
 <tr>
+<td colspan="2"><b>📚 Packages by name, no central server</b><br><sub>Package indexes list Fortran projects by source URL; anyone can publish one and FoBiS reads several side by side. <code>fobis search</code> finds a package by name or by the module you need, <code>fobis add</code> writes its source URL into your fobos (builds never read an index), <code>fobis pkg install</code> builds it with your compiler and installs it with a pkg-config file. Any URL can host code: git on any host, or a static directory of releases. A public index of FoBiS and fpm packages: <a href="https://github.com/szaghi/fortran-index">fortran-index</a> (<a href="https://szaghi.github.io/fortran-index/packages/">browse</a>). <a href="https://szaghi.github.io/FoBiS/cookbook/packages">Packages and indexes</a></sub></td>
+</tr>
+<tr>
 <td colspan="2"><b>🧠 AI assistance, grounded</b><br><sub>Local open models managed by FoBiS explain build failures and crashes, answer questions about the code with citations, generate tests that must build and pass, review changes and propose merge resolutions checked by the compiler; <code>fobis mcp</code> serves the same facts to AI agents. Facts first, model last. <a href="https://szaghi.github.io/FoBiS/cookbook/ai">The AI design</a></sub></td>
 </tr>
 </table>
@@ -101,6 +104,23 @@ fobis build --mode release
 | ![project install](docs/public/gifs/06_install.gif) | ![dependancies fetch](docs/public/gifs/07_fetch.gif) |
 | **ecosystem: graph and dashboard** | **ecosystem: check before releasing** |
 | ![ecosystem dashboard](docs/public/gifs/09_ecosystem_dashboard.gif) | ![ecosystem check](docs/public/gifs/10_ecosystem_check.gif) |
+
+## Packages — find, add and install by name
+
+A package index is a small file listing Fortran projects by their source URL. There is no central server: anyone
+publishes one, FoBiS reads several side by side, and builds never read them. [fortran-index](https://github.com/szaghi/fortran-index)
+is a public index of FoBiS and fpm packages ([catalogue](https://szaghi.github.io/fortran-index/packages/)).
+
+```bash
+fobis index add szaghi https://github.com/szaghi/fortran-index
+fobis search --module m_cli2                # who provides a module
+fobis add json-fortran                      # writes the source URL and a version range into your fobos
+fobis fetch && fobis build
+fobis pkg install M_strings                 # built with your compiler, installed with a pkg-config file
+```
+
+See [Packages and indexes](https://szaghi.github.io/FoBiS/cookbook/packages) for publishing your own index, releases
+on any static host, CMake and make packages, and dependencies of dependencies.
 
 ## Ecosystem — manage interconnected projects
 
