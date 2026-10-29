@@ -3,6 +3,7 @@
 #
 # Install VHS: https://github.com/charmbracelet/vhs#installation
 # Prerequisites: gfortran must be in PATH (and git; the ecosystem tapes also need git-cliff).
+# 18_packages reads the public fortran-index and the packages' sources on GitHub (network).
 # The *_llm_* tapes need an LLM directory with the runtime and coder-7b already installed
 # (fobis llm runtime install && fobis llm pull coder-7b, or FOBIS_LLM_DIR pointing to one).
 # GIF_LLM_CPU=1 records them with the CPU runtime and no GPU at all (GIF_LLM_THREADS threads, default 6), for a
@@ -99,6 +100,10 @@ run_tape() {
     local work_dir
     if [[ "$name" == "07_fetch" ]]; then
         work_dir=$(_make_work_dir "$SCRIPT_DIR/demo/fetch-demo")
+    elif [[ "$name" == "17_doctests" || "$name" == "18_packages" ]]; then
+        # quad, the tutorial's project, with the doctests of its tests chapter
+        work_dir=$(_make_work_dir "$SCRIPT_DIR/examples/tutorial/1-first-steps/01-first-build/files")
+        cp -r "$SCRIPT_DIR/examples/tutorial/1-first-steps/04-tests/files/." "$work_dir/"
     elif [[ "$name" == "13_llm_explain" ]]; then
         # quad, the tutorial's project, as its first chapter starts
         work_dir=$(_make_work_dir "$SCRIPT_DIR/examples/tutorial/1-first-steps/01-first-build/files")
@@ -147,6 +152,15 @@ run_tape() {
         # a tape may start a persistent server (fobis llm serve start): never leave it running
         XDG_CONFIG_HOME="$xdg" FOBIS_LLM_DIR="$xdg/llm" fobis llm serve stop >/dev/null 2>&1 || true
         return "$status"
+    fi
+
+    if [[ "$name" == "18_packages" ]]; then
+        # a throwaway user configuration and index cache: the tape registers the public fortran-index (network)
+        local xdg
+        xdg=$(mktemp -d)
+        _cleanup_dirs+=("$xdg")
+        FOBIS_DEMO_DIR="$work_dir" XDG_CONFIG_HOME="$xdg" FOBIS_INDEX_DIR="$xdg/indexes" vhs "$tape"
+        return
     fi
 
     FOBIS_DEMO_DIR="$work_dir" vhs "$tape"

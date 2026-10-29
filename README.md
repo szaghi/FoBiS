@@ -104,6 +104,8 @@ fobis build --mode release
 | ![project install](docs/public/gifs/06_install.gif) | ![dependancies fetch](docs/public/gifs/07_fetch.gif) |
 | **ecosystem: graph and dashboard** | **ecosystem: check before releasing** |
 | ![ecosystem dashboard](docs/public/gifs/09_ecosystem_dashboard.gif) | ![ecosystem check](docs/public/gifs/10_ecosystem_check.gif) |
+| **introspective doctests** | **packages: find and add by name** |
+| ![doctests](docs/public/gifs/17_doctests.gif) | ![package index](docs/public/gifs/18_packages.gif) |
 
 ## Packages — find, add and install by name
 

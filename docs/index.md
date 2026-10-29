@@ -87,6 +87,8 @@ starts here; the [tutorials](/tutorial/) go on, track by track, to verified resu
 | ![basic build](/gifs/01_basic_build.gif) | ![dependent build](/gifs/04_dependent_build.gif) |
 | **fetching dependencies** | **an ecosystem's dashboard** |
 | ![fetch](/gifs/07_fetch.gif) | ![ecosystem dashboard](/gifs/09_ecosystem_dashboard.gif) |
+| **doctests: the documentation checked** | **packages: find and add by name** |
+| ![doctests](/gifs/17_doctests.gif) | ![package index](/gifs/18_packages.gif) |
 
 ## Projects built with FoBiS
 
