@@ -68,7 +68,7 @@ class Fetcher:
         Parse a dependency spec string into a dict.
 
         Format: URL [:: branch=X] [:: tag=X] [:: rev=X] [:: mode=X]
-                    [:: use=sources|fobos] [:: semver=^1.5] [:: dev]
+                    [:: use=sources|fobos] [:: semver=^1.5] [:: dev] [:: mirror=URL[,URL]]
             or: path=DIR [:: mode=X] [:: use=sources|fobos] [:: dev]
 
         ``dev`` marks a test-only dependency: fetched like the others, used only by ``fobis test`` and doctests.
@@ -341,6 +341,7 @@ class Fetcher:
         rev: str | None = None,
         update: bool = False,
         frozen_commit: str | None = None,
+        mirrors: list[str] | None = None,
     ) -> tuple[str, str]:
         """
         Clone or update a dependency repo.
@@ -361,6 +362,9 @@ class Fetcher:
           if True, run git fetch to update before checking out
         frozen_commit : {None}
           if set, check out this exact commit SHA (from lockfile)
+        mirrors : {None}
+          URLs cloned in order when the clone of *url* fails (a mirror needs no trust: the lock's tree hash is
+          checked by the caller)
 
         Returns
         -------
@@ -373,6 +377,13 @@ class Fetcher:
         if not os.path.exists(dep_dir):
             self.print_n("Cloning " + name + " from " + url)
             result = syswork("git clone " + url + " " + dep_dir)
+            for mirror in mirrors or []:
+                if result[0] == 0:
+                    break
+                self.print_w("Error cloning " + name + " from " + url + ":\n" + result[1])
+                self.print_n("Cloning " + name + " from mirror " + mirror)
+                url = mirror
+                result = syswork("git clone " + mirror + " " + dep_dir)
             if result[0] != 0:
                 self.print_w("Error cloning " + name + ":\n" + result[1])
                 self.failures.append(f"{name}: clone failed")

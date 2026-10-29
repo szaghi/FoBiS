@@ -230,6 +230,12 @@ def probe(url: str, inspect: bool = True, anonymous: bool = False) -> SourceInfo
     SourceError
       the URL is not a readable source
     """
+    from .manifest import locate, probe_manifest
+
+    located = locate(url)
+    if located.kind == "manifest":
+        return probe_manifest(url, inspect=inspect)
+    url = located.url  # a redirect page leads to the repository
     versions, others = sort_versions(git_tags(url, anonymous=anonymous))
     info = SourceInfo(url=url, provider="git", versions=versions, latest=versions[0] if versions else "")
     info.other_tags = others
@@ -253,3 +259,39 @@ def default_name(url: str) -> str:
     """The package name a URL suggests: its last path component without ``.git``."""
     name = url.rstrip("/").split("/")[-1].split(":")[-1]
     return name[:-4] if name.endswith(".git") else name
+
+
+def checkout_version(url: str, dest: str, constraint: str = "", version: str = "") -> tuple[str, str, str]:
+    """
+    Put one version of a source into *dest*: an exact *version* (a tag or a release), else the newest satisfying
+    *constraint*, else the newest; a git source without version tags gives its default branch.
+
+    Returns
+    -------
+    tuple[str, str, str]
+      ``(version, identity, provider)``: the identity is the git tree hash or the archive's sha256
+    """
+    from ..SemVer import resolve
+    from .manifest import fetch_release, locate, select_release
+
+    located = locate(url)
+    if located.kind == "manifest":
+        release = select_release(located.manifest, constraint, version)
+        digest = fetch_release(release, dest)
+        return release.version, digest, "manifest"
+    tags = git_tags(located.url)
+    versions, _ = sort_versions(tags)
+    if version:
+        if version not in tags:
+            raise SourceError(f"{url}: no tag {version}")
+        chosen = version
+    elif constraint:
+        chosen = resolve(tags, constraint) or ""
+        if not chosen:
+            raise SourceError(
+                f"{url}: no version satisfies {constraint} (versions: {', '.join(versions[:8]) or 'none'})"
+            )
+    else:
+        chosen = versions[0] if versions else ""
+    git_checkout(located.url, dest, chosen)
+    return chosen, tree_hash(dest), "git"

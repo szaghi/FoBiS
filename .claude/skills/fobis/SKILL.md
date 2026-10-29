@@ -771,6 +771,24 @@ fobis add https://host/repo --tag v1.2.0 --as kinds
 ```
 
 `fetch` and `build` never read an index: after `add`, every index can disappear and the project still builds.
+
+A source is any URL: a git repository (any host, `file://`), a static web directory serving
+`fortran-releases.toml` (written by `fobis publish --archive DIR`), or a page redirecting to either with
+`<meta name="fortran-source" content="git https://host/repo">`. The lock records each git dependency's tree
+hash (a moved tag is reported) and each release's sha256 (a changed release is refused).
+
+```ini
+[dependencies]
+# a static release directory, the newest 1.x
+kinds = https://example.org/fortran/kinds/ :: semver=^1.0
+# a git repository with a mirror used when it is unreachable
+penf  = https://github.com/szaghi/PENF :: tag=v2.0.1 :: mirror=https://gitlab.com/me/PENF
+```
+
+```bash
+fobis publish --archive site/kinds    # tarball of the latest tag + its manifest entry
+fobis publish --index ../my-index/index.toml   # add or refresh this project in your index
+```
 An index holds no versions: the source's semantic-version tags are the versions. A bare name present in two
 indexes is an error naming `INDEX:NAME` choices (never a silent pick).
 

@@ -59,8 +59,9 @@ def main():
     # ``ecosystem`` streams the output of long multi-repo runs and asks for confirmations, ``mcp`` speaks
     # JSON-RPC on stdin/stdout, ``llm`` streams download progress: the CliRunner of FoBiSConfig would buffer
     # stdout and replace stdin, so run them directly.
-    # The package-index commands (index, search, info, add) read no fobos mode and fetch over the network: direct too.
-    if sys.argv[1:2] in (["ecosystem"], ["mcp"], ["llm"], ["index"], ["search"], ["info"], ["add"]):
+    # The package-index commands (index, search, info, add, publish) read no fobos mode and fetch over the network:
+    # direct too.
+    if sys.argv[1:2] in (["ecosystem"], ["mcp"], ["llm"], ["index"], ["search"], ["info"], ["add"], ["publish"]):
         from .cli import app as _app
 
         _app(prog_name=_prog_name())
@@ -378,6 +379,29 @@ def _fetch_dependencies(configuration, fetcher, print_n, print_w) -> list[dict] 
             lock_entries.append({"name": name, "path": parsed["path"], **state, **({"dev": "true"} if dev else {})})
             continue
 
+        # Where the URL leads: a git repository (a redirect page followed) or a release manifest (static hosting)
+        from .registry.manifest import SourceError, locate
+
+        try:
+            located = locate(parsed["url"])
+        except SourceError as error:
+            print_w(f"Error: {name}: {error}")
+            fetcher.failures.append(f"{name}: {error}")
+            if name in lock:
+                lock_entries.append({"name": name, **lock[name]})
+            continue
+        if located.kind == "manifest":
+            fetched = _fetch_release_dependency(configuration, fetcher, name, parsed, located, lock, print_n, print_w)
+            if fetched is None:
+                if name in lock:
+                    lock_entries.append({"name": name, **lock[name]})
+                continue
+            dep_info, lock_entry = fetched
+            deps_info.append({**dep_info, "mode": parsed.get("mode", ""), "use": use_mode, "dev": dev})
+            lock_entries.append({**lock_entry, **({"dev": "true"} if dev else {})})
+            continue
+        parsed["url"] = located.url
+
         # Semver resolution
         if "semver" in parsed:
             constraint = parsed["semver"]
@@ -405,6 +429,7 @@ def _fetch_dependencies(configuration, fetcher, print_n, print_w) -> list[dict] 
             rev=parsed.get("rev"),
             update=configuration.cliargs.update,
             frozen_commit=frozen_commit,
+            mirrors=[m.strip() for m in parsed.get("mirror", "").split(",") if m.strip()],
         )
 
         # Verify against lockfile (non-frozen: warn only). Not with --update: moving past the lock is
@@ -422,11 +447,28 @@ def _fetch_dependencies(configuration, fetcher, print_n, print_w) -> list[dict] 
 
         deps_info.append({"name": name, "path": dep_path, "mode": parsed.get("mode", ""), "use": use_mode, "dev": dev})
 
+        # The content identity: a tag of the lock that now names another tree has been moved (a release changed)
+        tree = _git_tree(dep_path)
+        locked = lock.get(name, {})
+        locked_tag = locked.get("resolved") or locked.get("tag")
+        if (
+            tree
+            and locked.get("tree")
+            and parsed.get("tag")
+            and parsed.get("tag") == locked_tag
+            and locked["tree"] != tree
+        ):
+            print_w(
+                f"Warning: tag {locked_tag} of {name} moved: it now names tree {tree[:12]}, the lock recorded "
+                f"{locked['tree'][:12]} (the content of a published version changed: check it before trusting it)"
+            )
+
         # Build lock entry
         lock_entry: dict[str, str] = {
             "name": name,
             "url": parsed["url"],
             "commit": commit_sha,
+            "tree": tree,
             "sha256": fetcher._compute_sha256(dep_path),
         }
         for pin_key in ("branch", "tag", "rev", "semver", "dev"):
@@ -441,6 +483,81 @@ def _fetch_dependencies(configuration, fetcher, print_n, print_w) -> list[dict] 
     if not frozen:
         fetcher.save_lock(lock_entries)
     return deps_info
+
+
+def _git_tree(path: str) -> str:
+    """The git tree hash of HEAD in *path* ('' when not a git checkout)."""
+    from .registry.sources import tree_hash
+
+    return tree_hash(path) if os.path.isdir(os.path.join(path, ".git")) else ""
+
+
+def _fetch_release_dependency(configuration, fetcher, name, parsed, located, lock, print_n, print_w):
+    """
+    Fetch a dependency served by a release manifest (static hosting): the locked release unless ``--update``, else
+    the release ``tag=`` names or the newest satisfying ``semver=`` (or the newest). Its archive is checked against
+    the manifest's sha256 and, for a release already locked, against the lock's: a published release never changes.
+
+    Returns
+    -------
+    tuple[dict, dict] or None
+      ``(deps-config entry, lock entry)``; None when it failed (recorded in ``fetcher.failures``)
+    """
+    import json
+
+    from .registry.manifest import SourceError, fetch_release, select_release
+
+    dep_dir = os.path.join(fetcher.deps_dir, name)
+    marker = os.path.join(dep_dir, ".fobis-release.json")
+    locked = lock.get(name, {})
+    frozen = getattr(configuration.cliargs, "frozen", False)
+    keep_locked = locked.get("provider") == "manifest" and locked.get("version") and locked.get("url") == parsed["url"]
+    try:
+        if keep_locked and (frozen or not configuration.cliargs.update):
+            release = select_release(located.manifest, version=locked["version"])
+        else:
+            release = select_release(located.manifest, parsed.get("semver", ""), parsed.get("tag", ""))
+    except SourceError as error:
+        print_w(f"Error: {name}: {error}")
+        fetcher.failures.append(f"{name}: {error}")
+        return None
+    if locked.get("version") == release.version and locked.get("sha256") and locked["sha256"] != release.sha256:
+        print_w(
+            f"Error: {name}: release {release.version} changed: its archive's sha256 is {release.sha256[:16]}..., "
+            f"the lock recorded {locked['sha256'][:16]}... (a published release must never change)"
+        )
+        fetcher.failures.append(f"{name}: release {release.version} changed since it was locked")
+        return None
+    record = {"url": parsed["url"], "version": release.version, "sha256": release.sha256}
+    current = {}
+    if os.path.isfile(marker):
+        with open(marker, encoding="utf-8") as fh:
+            current = json.load(fh)
+    if current == record and os.path.isdir(dep_dir):
+        print_n(f"Dependency {name} already fetched (release {release.version})")
+    else:
+        print_n(f"Downloading {name} {release.version} from {release.archive}")
+        try:
+            fetch_release(release, dep_dir)
+        except SourceError as error:
+            print_w(f"Error: {name}: {error}")
+            fetcher.failures.append(f"{name}: {error}")
+            return None
+        with open(marker, "w", encoding="utf-8") as fh:
+            json.dump(record, fh, indent=2)
+    if not configuration.cliargs.no_build and parsed.get("use", "sources") == "fobos":
+        fetcher.build_dep(name, dep_dir, mode=parsed.get("mode"))
+    lock_entry = {
+        "name": name,
+        "url": parsed["url"],
+        "provider": "manifest",
+        "version": release.version,
+        "sha256": release.sha256,
+    }
+    for pin_key in ("tag", "semver"):
+        if pin_key in parsed:
+            lock_entry[pin_key] = parsed[pin_key]
+    return {"name": name, "path": dep_dir}, lock_entry
 
 
 def _fetch_failed(fetcher, print_w) -> bool:

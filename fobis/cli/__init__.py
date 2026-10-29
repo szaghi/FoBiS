@@ -46,6 +46,7 @@ from . import (  # noqa: F401
     merge_assist,
     modernize,
     new,
+    publish,
     query,
     registry,
     review,
