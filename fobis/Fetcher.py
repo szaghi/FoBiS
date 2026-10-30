@@ -293,7 +293,7 @@ class Fetcher:
         self.print_w(f"Warning: path dependency '{name}' is at {now}, fobos.lock recorded {then or 'nothing'}.")
         return False
 
-    def list_remote_tags(self, url: str) -> list[str]:
+    def list_remote_tags(self, url: str, mirrors: list[str] | tuple[str, ...] = ()) -> list[str]:
         """
         List all tags in a remote git repository without cloning.
 
@@ -301,16 +301,26 @@ class Fetcher:
         ----------
         url : str
           Remote repository URL.
+        mirrors : list[str]
+          URLs asked in order when *url* cannot be read (the clone falls back to them too).
 
         Returns
         -------
         list[str]
           Tag names (e.g. ``['v1.4.0', 'v1.5.3']``).
         """
-        result = syswork(["git", "ls-remote", "--tags", "--", url])
-        if result[0] != 0:
-            self.print_w(f"Error listing tags for {url}:\n{result[1]}")
+        errors = []
+        for candidate in [url, *mirrors]:
+            result = syswork(["git", "ls-remote", "--tags", "--", candidate])
+            if result[0] == 0:
+                break
+            errors.append(f"Error listing tags for {candidate}:\n{result[1]}")
+        else:
+            for error in errors:
+                self.print_w(error)
             return []
+        if candidate != url:
+            self.print_n(f"Listing the tags of {url} from mirror {candidate}")
         tags: list[str] = []
         for line in result[1].splitlines():
             parts = line.strip().split()
@@ -324,7 +334,7 @@ class Fetcher:
                 tags.append(ref[len("refs/tags/") :])
         return tags
 
-    def resolve_semver(self, name: str, url: str, constraint: str) -> str:
+    def resolve_semver(self, name: str, url: str, constraint: str, mirrors: list[str] | tuple[str, ...] = ()) -> str:
         """
         Resolve a semver constraint to a concrete tag.
 
@@ -350,7 +360,7 @@ class Fetcher:
         from .SemVer import resolve
 
         self.print_n(f"Resolving semver '{constraint}' for {name}...")
-        tags = self.list_remote_tags(url)
+        tags = self.list_remote_tags(url, mirrors)
         resolved = resolve(tags, constraint)
         if resolved is None:
             self.print_w(
@@ -434,6 +444,8 @@ class Fetcher:
                 self.print_w("Error cloning " + name + ":\n" + result[1])
                 self.failures.append(f"{name}: clone failed")
                 return dep_dir, ""
+            if tried != url:  # the source stays the authority: later updates and missing tags come from it first
+                syswork(["git", "-C", dep_dir, "remote", "set-url", "origin", url])
         elif update:
             self.print_n("Updating " + name)
             result = syswork(["git", "-C", dep_dir, "fetch"])
@@ -455,9 +467,12 @@ class Fetcher:
                 # a clone made for an older pin lacks a newer tag or commit (a fobos edited to tag=v2, or the
                 # transitive resolution reading a dependency's newer version): fetch it instead of failing
                 self.print_n(f"Fetching {name}: {ref} is not in its clone yet")
-                result = syswork(["git", "-C", dep_dir, "fetch", "--tags"])
-                if result[0] != 0:
-                    self.print_w("Error fetching updates for " + name + ":\n" + result[1])
+                for source in [url, *(mirrors or [])]:  # the source first, its mirrors when it is down
+                    result = syswork(["git", "-C", dep_dir, "fetch", "--tags", "--", source])
+                    if result[0] == 0 and self._has_ref(dep_dir, ref):
+                        break
+                else:
+                    self.print_w(f"Error fetching {ref} for {name}:\n{result[1]}")
             if ref:
                 if not recent:
                     self.print_n("Checking out " + ref + " for " + name)

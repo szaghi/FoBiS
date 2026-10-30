@@ -96,6 +96,20 @@ def test_witness_agrees_and_disagrees(tmp_path, monkeypatch, capsys):
     assert code == 1 and sum(line.endswith(": DIFFERS") for line in out.splitlines()) == 1
 
 
+def test_a_mirror_lacking_the_tag_is_not_a_disagreement(tmp_path, monkeypatch, capsys):
+    """Found by the packages tutorial: a mirror that lags (v1.1.0 not pushed there yet) was reported DIFFERS."""
+    url = remote(tmp_path, "kinds", fobis_package("kinds"), tags=("v1.0.0",))
+    mirror = tmp_path / "mirror.git"
+    git(tmp_path, "clone", "-q", "--mirror", url, str(mirror))
+    git(tmp_path / "remotes" / "kinds", "tag", "v1.1.0")  # at the source only
+    _project(tmp_path, monkeypatch, f"{url} :: tag=v1.1.0 :: mirror=file://{mirror}")
+    assert _run(["fetch", "--no-build"], capsys)[0] == 0
+    code, out = cli("audit", "--witness")
+    assert code == 0, out
+    assert any(line.endswith(": agrees") for line in out.splitlines())
+    assert any(line.endswith(": lacks v1.1.0") for line in out.splitlines())
+
+
 class _FakeSWH(http.server.BaseHTTPRequestHandler):
     """The Software Heritage endpoints FoBiS calls, for one origin with one tag."""
 

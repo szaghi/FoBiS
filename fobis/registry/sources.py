@@ -82,7 +82,10 @@ def git_tags(url: str, anonymous: bool = False) -> list[str]:
     result = run_git("ls-remote", "--tags", url, timeout=120, anonymous=anonymous)
     if result.returncode != 0:
         lines = result.stderr.strip().splitlines()
-        raise SourceError(f"{url}: not a readable git repository ({lines[-1] if lines else 'git ls-remote failed'})")
+        # git's first fatal line says what failed ("... does not appear to be a git repository"); the last one is
+        # the advice "and the repository exists."
+        reason = next((ln for ln in lines if ln.startswith("fatal:")), lines[-1] if lines else "git ls-remote failed")
+        raise SourceError(f"{url}: not a readable git repository ({reason})")
     tags = []
     for line in result.stdout.splitlines():
         parts = line.split()

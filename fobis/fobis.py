@@ -426,7 +426,8 @@ def _fetch_dependencies(configuration, fetcher, print_n, print_w) -> list[dict] 
             elif not configuration.cliargs.update and name in lock and lock[name].get("resolved"):
                 parsed["tag"] = lock[name]["resolved"]
             else:
-                resolved_tag = fetcher.resolve_semver(name, parsed["url"], constraint)
+                mirrors = [m.strip() for m in parsed.get("mirror", "").split(",") if m.strip()]
+                resolved_tag = fetcher.resolve_semver(name, parsed["url"], constraint, mirrors)
                 parsed["tag"] = resolved_tag
 
         # Frozen mode: pin to lockfile commit
@@ -549,11 +550,15 @@ def _resolve_transitive(configuration, fetcher, deps, print_n, print_w):
             return None
         if "url" not in parsed or parsed.get("dev") == "true":
             return None
+        mirrors_of.setdefault(
+            normalise_source(parsed["url"]), [m.strip() for m in parsed.get("mirror", "").split(",") if m.strip()]
+        )
         return Requirement(
             name, parsed["url"], parsed.get("semver", ""), parsed.get("tag", ""),
             parsed.get("branch") or parsed.get("rev") or "", requirer,
         )  # fmt: skip
 
+    mirrors_of: dict[str, list[str]] = {}  # a source's mirrors: its tags and its clone come from them when it is down
     roots = [r for r in (requirement(n, s) for n, s in deps.items()) if r is not None]
     names = {normalise_source(r.url): r.name for r in roots}
 
@@ -561,7 +566,10 @@ def _resolve_transitive(configuration, fetcher, deps, print_n, print_w):
         name = names.setdefault(normalise_source(selection.url), selection.name)
         if name in {n for k, n in names.items() if k != normalise_source(selection.url)}:
             return []  # two sources under one name: reported once the graph is resolved
-        dep_dir, commit = fetcher.fetch(name, selection.url, tag=selection.tag or None, rev=selection.ref or None)
+        dep_dir, commit = fetcher.fetch(
+            name, selection.url, tag=selection.tag or None, rev=selection.ref or None,
+            mirrors=mirrors_of.get(normalise_source(selection.url), []),
+        )  # fmt: skip
         if not commit:
             return []
         config = configparser.RawConfigParser(strict=False)
@@ -577,11 +585,18 @@ def _resolve_transitive(configuration, fetcher, deps, print_n, print_w):
         return found
 
     def tags_of(url):
-        try:
-            return git_tags(url)
-        except SourceError as error:
-            print_w(f"Error: {error}")
-            return []
+        mirrors = mirrors_of.get(normalise_source(url), [])
+        for candidate in [url, *mirrors]:
+            try:
+                tags = git_tags(candidate)
+            except SourceError as error:
+                last = error
+                continue
+            if candidate != url:
+                print_n(f"Listing the tags of {url} from mirror {candidate}")
+            return tags
+        print_w(f"Error: {last}")
+        return []
 
     try:
         selected = select(roots, tags_of, requirements_of, warn=lambda m: print_w(f"Warning: {m}"))

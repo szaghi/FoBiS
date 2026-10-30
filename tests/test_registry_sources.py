@@ -211,6 +211,47 @@ def test_mirror_used_when_the_source_fails(tmp_path, monkeypatch, capsys):
     assert (project / ".fobis_deps" / "kinds" / "src" / "kinds.f90").is_file()
 
 
+@pytest.mark.parametrize("transitive", [False, True])
+def test_mirror_gives_the_versions_when_the_source_fails(tmp_path, monkeypatch, capsys, transitive):
+    """Found by the packages tutorial: a semver range listed the source's tags only, so a down source failed the
+    fetch although its mirror held every version (with transitive = true, the resolution's clone too)."""
+    url = remote(tmp_path, "kinds", fobis_package("kinds"), tags=("v1.0.0", "v1.2.0"))
+    mirror = tmp_path / "mirror.git"
+    git(tmp_path, "clone", "-q", "--mirror", url, str(mirror))
+    spec = f"file://{tmp_path}/gone :: semver=^1.0.0 :: mirror=file://{mirror}"
+    project = _project(tmp_path, monkeypatch, spec)
+    if transitive:
+        fobos = project / "fobos"
+        fobos.write_text(fobos.read_text() + "transitive = true\n")
+    code, out = _run(["fetch", "--no-build"], capsys)
+    assert code == 0, out
+    assert "from mirror" in out
+    assert (project / ".fobis_deps" / "kinds" / "src" / "kinds.f90").is_file()
+
+
+def test_a_clone_from_the_mirror_still_follows_the_source(tmp_path, monkeypatch, capsys):
+    """Found by the packages tutorial: a clone made from the mirror kept the mirror as its origin, so a release
+    published at the source only (mirrors lag) was never found: the source stays the authority."""
+    url = remote(tmp_path, "kinds", fobis_package("kinds"), tags=("v1.0.0",))
+    source = tmp_path / "remotes" / "kinds"
+    mirror = tmp_path / "mirror.git"
+    git(tmp_path, "clone", "-q", "--mirror", url, str(mirror))
+    away = tmp_path / "away"
+    source.rename(away)
+    project = _project(tmp_path, monkeypatch, f"{url} :: semver=^1.0.0 :: mirror=file://{mirror}")
+    assert _run(["fetch", "--no-build"], capsys)[0] == 0
+    away.rename(source)
+    (source / "NEWS").write_text("1.3\n")
+    git(source, "add", "-A")
+    git(source, "commit", "-q", "-m", "1.3")
+    git(source, "tag", "v1.3.0")
+    fobos = project / "fobos"
+    fobos.write_text(fobos.read_text().replace("semver=^1.0.0", "tag=v1.3.0"))
+    code, out = _run(["fetch", "--no-build"], capsys)
+    assert code == 0, out
+    assert (project / ".fobis_deps" / "kinds" / "NEWS").is_file()
+
+
 # ── publish ───────────────────────────────────────────────────────────────────
 
 

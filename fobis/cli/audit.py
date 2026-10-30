@@ -85,6 +85,9 @@ def cmd_audit(
                 except RegistryError as error:
                     row["witnesses"].append({"location": location, "commit": "", "agrees": None, "error": str(error)})
                     continue
+                if not commit:  # a mirror that lags: no testimony, not a disagreement
+                    row["witnesses"].append({"location": location, "commit": "", "agrees": None, "missing": tag})
+                    continue
                 agrees = commit == entry.get("commit", "")
                 row["witnesses"].append({"location": location, "commit": commit, "agrees": agrees})
                 if not agrees:
@@ -103,6 +106,7 @@ def cmd_audit(
                 typer.echo(f"    {advisory['id']} [{advisory['severity']}] {advisory['summary']} {advisory['url']}")
             for w in row["witnesses"]:
                 verdict = {True: "agrees", False: "DIFFERS", None: "unreachable"}[w["agrees"]]
+                verdict = f"lacks {w['missing']}" if w.get("missing") else verdict
                 typer.echo(f"    witness {w['location']}: {verdict}")
         for note in notes:
             typer.echo(f"note: {note}", err=True)
