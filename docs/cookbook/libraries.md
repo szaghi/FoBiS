@@ -25,7 +25,8 @@ How it works:
 
 Tutorial: [a library](/tutorial/first-steps/03-library),
 [a library from another project](/tutorial/growing/04-dependon), [rules](/tutorial/growing/05-rules),
-[other build systems](/tutorial/growing/07-export). Reference:
+[other build systems](/tutorial/growing/07-export),
+[several programs and a library for others](/tutorial/growing/10-targets). Reference:
 [`build`](/reference/build), [`install`](/reference/install), [`rule`](/reference/rule), [`fpm`](/reference/fpm),
 [`introspect`](/reference/introspect).
 

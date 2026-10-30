@@ -34,7 +34,8 @@ How it works:
    `<build_dir>`.
 
 Tutorial: [a first build](/tutorial/first-steps/01-first-build), [a fobos](/tutorial/first-steps/02-fobos),
-[templates and variables](/tutorial/growing/01-templates), [profiles and features](/tutorial/growing/02-profiles).
+[templates and variables](/tutorial/growing/01-templates), [profiles and features](/tutorial/growing/02-profiles),
+[one fobos, many machines](/tutorial/growing/09-machines).
 Reference: [`build`](/reference/build), [`clean`](/reference/clean), [`run`](/reference/run),
 [`check`](/reference/check), [`introspect`](/reference/introspect), [`new`](/reference/new),
 [every mode key](/fobos/), [compilers](/guide/compilers).

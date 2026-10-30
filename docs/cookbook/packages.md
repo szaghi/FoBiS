@@ -23,7 +23,8 @@ How it works:
    toolchain key (compiler family, version, and a digest of the compiler's path, MPI and flags), because module
    files work only with the compiler that wrote them.
 
-Tutorial: [quad as a package](/tutorial/growing/08-packages). Reference: [`index`](/reference/index-command),
+Tutorial: [quad as a package](/tutorial/growing/08-packages), and the whole
+[packages track](/tutorial/packages/01-index). Reference: [`index`](/reference/index-command),
 [`search`](/reference/search), [`info`](/reference/info), [`add`](/reference/add), [`publish`](/reference/publish),
 [`pkg`](/reference/pkg), [`audit`](/reference/audit).
 
