@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.14.0] — 2026-10-30
+### Added
+- **registry**: Let add and remove edit fpm.toml, filter by build system
+
+
 ## [3.13.0] — 2026-10-30
 ### Added
 - **registry**: Add fobis remove and copy an index entry's mirrors
