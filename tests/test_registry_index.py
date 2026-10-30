@@ -54,6 +54,13 @@ def test_schema_round_trip():
     assert load_index(dump_index(index)).to_dict() == index.to_dict()
 
 
+def test_dotted_package_name_round_trip():
+    index = load_index('schema = 1\n\n[package."odbc.f"]\nsource = "https://github.com/x/odbc.f"\n')
+    text = dump_index(index)
+    assert '[package."odbc.f"]' in text
+    assert list(load_index(text).packages) == ["odbc.f"]
+
+
 @pytest.mark.parametrize(
     ("text", "message"),
     [

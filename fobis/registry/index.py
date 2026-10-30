@@ -194,7 +194,9 @@ def dump_index(index: Index) -> str:
         lines.append(f"follows = {_toml_list(index.follows)}")
     for pname in sorted(index.packages, key=str.lower):
         package = index.packages[pname]
-        lines += ["", f"[package.{pname}]", f"source = {_toml_string(package.source)}"]
+        # a name may hold dots (odbc.f): bare, TOML would read a nested table
+        table = pname if "." not in pname else _toml_string(pname)
+        lines += ["", f"[package.{table}]", f"source = {_toml_string(package.source)}"]
         for key in ("description", "license", "recipe"):
             if getattr(package, key):
                 lines.append(f"{key} = {_toml_string(getattr(package, key))}")
