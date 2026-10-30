@@ -494,3 +494,17 @@ def test_readers_accept_an_index_from_a_newer_fobis_and_its_checker_does_not(tmp
     assert [p["name"] for p in document["packages"]] == ["a"] and "maintainers" in document["notices"][0]
     code, out = cli("index", "check", str(tmp_path / "idx" / "index.toml"))
     assert code == 2 and "unknown key(s) maintainers" in out
+
+
+def test_search_lines_up_the_sources(tmp_path, monkeypatch):
+    isolate(monkeypatch, tmp_path)
+    for name, package in (("lab", "kinds"), ("vendor", "kinds")):
+        (tmp_path / name).mkdir()
+        (tmp_path / name / "index.toml").write_text(
+            f'name = "{name}"\n[package.{package}]\nsource = "https://x/{name}"\n'
+        )
+    config = str(tmp_path / "config.ini")
+    UserConfig(path=config).set_indexes([("lab", str(tmp_path / "lab")), ("vendor", str(tmp_path / "vendor"))])
+    code, out = cli("search", "--config", config)
+    columns = {line.index("https://") for line in out.splitlines() if "https://" in line}
+    assert code == 0 and len(columns) == 1

@@ -332,7 +332,8 @@ def cmd_search(
         typer.echo("No package found.")
         return
     for package in found:
-        typer.echo(f"{package.index}:{package.name:<24} {package.source}")
+        qualified = f"{package.index}:{package.name}"  # padded whole: the sources line up whatever the index
+        typer.echo(f"{qualified:<28} {package.source}")
         if package.description:
             typer.echo(f"    {package.description}")
 
