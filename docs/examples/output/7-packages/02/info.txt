@@ -1,0 +1,8 @@
+$ fobis info vectors
+vectors  (file://~/remotes/vectors.git)
+  index     : lab
+  summary   : Small vectors of reals
+  license   : MIT
+  build     : fobis
+  versions  : v0.1.0
+  modules   : vectors

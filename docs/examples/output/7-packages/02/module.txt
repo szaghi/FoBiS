@@ -1,0 +1,3 @@
+$ fobis search --module vectors
+lab:vectors                  file://~/remotes/vectors.git
+    Small vectors of reals

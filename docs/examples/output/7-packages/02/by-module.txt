@@ -1,0 +1,3 @@
+$ fobis add --module vectors
+Added vectors = file://~/remotes/vectors.git :: semver=^0.1.0
+Run 'fobis fetch' to fetch it.

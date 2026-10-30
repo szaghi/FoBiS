@@ -1,0 +1,5 @@
+$ fobis search --build fobis
+lab:kinds                    file://~/remotes/kinds.git
+    Portable real kinds
+lab:vectors                  file://~/remotes/vectors.git
+    Small vectors of reals

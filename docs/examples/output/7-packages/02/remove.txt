@@ -1,0 +1,3 @@
+$ fobis remove timer
+Removed timer = file://~/remotes/timer.git :: semver=^1.0.0
+Run 'fobis fetch' to drop it from the build.

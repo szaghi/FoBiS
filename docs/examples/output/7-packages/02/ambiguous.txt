@@ -1,0 +1,5 @@
+$ fobis add kinds
+Error: kinds is in 2 indexes, name one of them:
+  lab:kinds  file://~/remotes/kinds.git
+  vendor:kinds  file://~/remotes/vendor-kinds.git
+[exit status 2]

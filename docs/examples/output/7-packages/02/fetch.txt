@@ -1,0 +1,11 @@
+$ fobis fetch
+Resolving semver '^1.0.0' for kinds...
+Resolved kinds semver '^1.0.0' → v1.0.0
+Cloning kinds from file://~/remotes/kinds.git
+Checking out v1.0.0 for kinds
+Resolving semver '^0.1.0' for vectors...
+Resolved vectors semver '^0.1.0' → v0.1.0
+Cloning vectors from file://~/remotes/vectors.git
+Checking out v0.1.0 for vectors
+Saved deps config to .fobis_deps/.deps_config.ini
+Saved lock file to .fobis_deps/fobos.lock

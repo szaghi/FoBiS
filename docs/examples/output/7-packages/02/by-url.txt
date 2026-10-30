@@ -1,0 +1,3 @@
+$ fobis add file://$HOME/remotes/timer.git
+Added timer = file://~/remotes/timer.git :: semver=^1.0.0
+Run 'fobis fetch' to fetch it.

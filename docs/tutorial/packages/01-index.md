@@ -69,3 +69,5 @@ from two different sources; the next chapter shows what that means when adding i
 Seed indexes, `fobis index build`, `fobis index check` (`--online`), `index add`, `index list`, `follows`, qualified
 names `INDEX:NAME`. Reference: [Index format](/reference/index-format), [`index`](/reference/index-command).
 :::
+
+Next: [find, add and remove](./02-add).

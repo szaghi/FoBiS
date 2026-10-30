@@ -115,6 +115,7 @@ This track leaves `quad` for a lab's libraries and a project, `solver`, that use
 | Chapter | You learn |
 |---|---|
 | [1. An index of your own](./packages/01-index) | seed indexes, `fobis index build`, `index check`, `index add`, `follows` |
+| [2. Find, add and remove](./packages/02-add) | `fobis search` (`--module`, `--build`), `info`, `add` (name, `INDEX:NAME`, `--module`, URL), `remove` |
 
 ## Running the examples yourself
 

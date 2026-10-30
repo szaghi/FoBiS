@@ -1,0 +1,13 @@
+[project]
+name    = solver
+version = 0.1.0
+
+[modes]
+modes = gnu
+
+[gnu]
+compiler  = gnu
+cflags    = -c -O2
+src       = ./src/
+build_dir = ./build/
+target    = src/solver.f90
