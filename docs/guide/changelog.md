@@ -4,6 +4,17 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.11.2] — 2026-10-30
+### Documentation
+- Show doctests and the package index in GIFs on the landing pages
+
+
+### Fixed
+- **registry**: Quote dotted package names when writing an index
+
+- **registry**: Read modules from fypp templates and skip README non-prose
+
+
 ## [3.11.1] — 2026-10-29
 ### Documentation
 - Link the public fortran-index from the README and the docs
