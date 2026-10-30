@@ -119,6 +119,7 @@ This track leaves `quad` for a lab's libraries and a project, `solver`, that use
 | [3. Versions](./packages/03-versions) | tags and ranges, `fetch --update`, `add --semver --force`, `transitive = true`, minimal version selection |
 | [4. Install for your compiler](./packages/04-install) | `fobis pkg install`, toolchain keys, `pkg path --pkgconfig`, `pkg upgrade`, `pkg uninstall` |
 | [5. Trust without a central server](./packages/05-trust) | mirrors, the lock's hashes, `fortran-advisories.toml`, `fobis audit`, `--witness` |
+| [6. Packages built with fpm and CMake](./packages/06-builds) | `fobis publish --index`, recipes, fpm and CMake packages in a FoBiS project |
 
 ## Running the examples yourself
 

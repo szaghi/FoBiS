@@ -1,0 +1,9 @@
+$ fobis build --quiet && ./build/solver
+
+Building src/solver.f90
+Compiling .fobis_deps/kinds/src/kinds.f90 serially
+Compiling .fobis_deps/vectors/src/vectors.f90 serially
+Compiling src/solver.f90 serially
+Linking build/solver
+Target src/solver.f90 has been successfully built
+ 4.000 METRES

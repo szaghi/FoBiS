@@ -1,0 +1,2 @@
+$ cd ~/src/strings && fobis publish --index ~/lab-index/index.toml --source file://$HOME/remotes/strings.git
+Added strings in ~/lab-index/index.toml (1 module(s))

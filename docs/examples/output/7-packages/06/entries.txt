@@ -1,0 +1,15 @@
+$ sed -n -e "/^\[package.cmath\]/,/^\$/p" -e "/^\[package.strings\]/,/^\$/p" ~/lab-index/index.toml
+[package.cmath]
+source = "file://~/remotes/cmath.git"
+recipe = "recipes/cmath.toml"
+description = "A clamp for Fortran, built with CMake."
+provides = ["cmath"]
+builds = ["cmake"]
+
+[package.strings]
+source = "file://~/remotes/strings.git"
+description = "Case conversion of strings"
+license = "MIT"
+provides = ["strings"]
+builds = ["fpm"]
+

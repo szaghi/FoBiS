@@ -1,0 +1,10 @@
+[dependencies]
+# added by fobis add from index lab
+kinds = file://~/remotes/kinds.git :: semver=^1.1.1 :: mirror=file://~/mirror/kinds.git
+# added by fobis add from index lab
+vectors = file://~/remotes/vectors.git :: semver=^0.2.0
+transitive = true
+# added by fobis add from index lab
+strings = file://~/remotes/strings.git :: semver=^1.0.0
+# added by fobis add from index lab
+cmath = file://~/remotes/cmath.git :: semver=^1.0.0 :: recipe=recipes/cmath.toml

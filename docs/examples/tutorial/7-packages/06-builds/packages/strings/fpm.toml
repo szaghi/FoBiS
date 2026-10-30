@@ -1,0 +1,4 @@
+name        = "strings"
+version     = "1.0.0"
+license     = "MIT"
+description = "Case conversion of strings"

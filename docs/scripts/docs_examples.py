@@ -28,7 +28,9 @@ identity and fixed commit dates, so commit hashes are reproducible); ``fobis`` i
 is ``$DOCS_FC`` (default ``gfortran-13``, the compiler of the CI, when installed). Variables named ``DOCS_*`` reach
 the sessions: ``DOCS_MPI_SETUP`` is the shell code that makes ``mpif90`` and ``mpirun`` available on this machine (for
 example ``source /usr/share/lmod/lmod/init/bash; module load openmpi``); without it the MPI chapters keep their outputs.
-``DOCS_CLUSTER_SETUP`` (Slurm and nvfortran) and ``DOCS_CLUSTER_CONFIG`` (a user config file holding the site's
+``DOCS_FPM_SETUP`` does the same for ``fpm`` (the fpm chapters of the packages track; for example
+``export PATH=/home/me/.local/bin:$PATH``: a session's HOME is a throwaway one). ``DOCS_CLUSTER_SETUP`` (Slurm and
+nvfortran) and ``DOCS_CLUSTER_CONFIG`` (a user config file holding the site's
 ``[scheduler]`` section, kept out of the repository) serve the cluster chapter, run with
 ``--chapter`` on the cluster's login node; ``DOCS_FOBIS`` replaces the ``fobis`` command (``python3 fobis.pyz`` where
 FoBiS's dependencies are not installed); ``DOCS_REDACT='OLD=NEW;...'`` replaces site names (host names, a Slurm

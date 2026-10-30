@@ -1,0 +1,5 @@
+$ fobis add strings && fobis add cmath
+Added strings = file://~/remotes/strings.git :: semver=^1.0.0
+Run 'fobis fetch' to fetch it.
+Added cmath = file://~/remotes/cmath.git :: semver=^1.0.0 :: recipe=recipes/cmath.toml
+Run 'fobis fetch' to fetch it.

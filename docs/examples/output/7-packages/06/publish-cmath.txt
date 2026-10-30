@@ -1,0 +1,2 @@
+$ cd ~/src/cmath && fobis publish --index ~/lab-index/index.toml --source file://$HOME/remotes/cmath.git
+Added cmath in ~/lab-index/index.toml (1 module(s))

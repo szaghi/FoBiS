@@ -1,0 +1,4 @@
+# Build cmath with CMake: the release configuration, its module files collected by FoBiS
+schema     = 1
+backend    = "cmake"
+cmake-args = ["-DCMAKE_BUILD_TYPE=Release"]

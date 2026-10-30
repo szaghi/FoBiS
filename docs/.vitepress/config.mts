@@ -108,6 +108,7 @@ const docs = [
           { text: '3. Versions',                 link: '/tutorial/packages/03-versions' },
           { text: '4. Install for your compiler', link: '/tutorial/packages/04-install' },
           { text: '5. Trust without a server',   link: '/tutorial/packages/05-trust' },
+          { text: '6. fpm and CMake packages',   link: '/tutorial/packages/06-builds' },
         ],
       },
     ],

@@ -1,0 +1,17 @@
+$ fobis fetch
+Dependency kinds already fetched (use --update to refresh)
+Checking out v1.1.1 for kinds
+Dependency vectors already fetched (use --update to refresh)
+Checking out v0.2.0 for vectors
+Cloning strings from file://~/remotes/strings.git
+Checking out v1.0.0 for strings
+Cloning cmath from file://~/remotes/cmath.git
+Checking out v1.0.0 for cmath
+Dependency kinds already fetched (use --update to refresh)
+Checking out v1.1.1 for kinds
+Dependency vectors already fetched (use --update to refresh)
+Checking out v0.2.0 for vectors
+Building strings with fpm and gfortran into .fobis_deps/.prefix/strings
+Building cmath with cmake and gfortran into .fobis_deps/.prefix/cmath
+Saved deps config to .fobis_deps/.deps_config.ini
+Saved lock file to .fobis_deps/fobos.lock

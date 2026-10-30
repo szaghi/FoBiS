@@ -1,0 +1,7 @@
+$ find .fobis_deps/.prefix -type f | sort
+.fobis_deps/.prefix/cmath/include/cmath.mod
+.fobis_deps/.prefix/cmath/lib/libcmath.a
+.fobis_deps/.prefix/cmath/lib/pkgconfig/cmath.pc
+.fobis_deps/.prefix/strings/include/strings.mod
+.fobis_deps/.prefix/strings/lib/libstrings.a
+.fobis_deps/.prefix/strings/lib/pkgconfig/strings.pc

@@ -70,3 +70,5 @@ accepted only when its tree is the one in the lock (see the [cookbook](/cookbook
 `fobis audit`, raising a minimum under minimal version selection, `fobis audit --witness`. Reference:
 [`audit`](/reference/audit).
 :::
+
+Next: [packages built with fpm and CMake](./06-builds).
