@@ -105,6 +105,7 @@ const docs = [
         items: [
           { text: '1. An index of your own',     link: '/tutorial/packages/01-index' },
           { text: '2. Find, add and remove',     link: '/tutorial/packages/02-add' },
+          { text: '3. Versions',                 link: '/tutorial/packages/03-versions' },
         ],
       },
     ],

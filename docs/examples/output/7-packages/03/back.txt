@@ -1,0 +1,3 @@
+$ fobis add lab:kinds --semver "^1.0.0" --force
+Replaced kinds = file://~/remotes/kinds.git :: semver=^1.0.0
+Run 'fobis fetch' to fetch it.

@@ -1,0 +1,8 @@
+$ fobis info lab:kinds
+kinds  (file://~/remotes/kinds.git)
+  index     : lab
+  summary   : Portable real kinds
+  license   : MIT
+  build     : fobis
+  versions  : v2.0.0, v1.1.0, v1.0.0
+  modules   : kinds

@@ -1,0 +1,5 @@
+$ grep -A3 "^\[kinds\]" .fobis_deps/fobos.lock
+[kinds]
+url = file://~/remotes/kinds.git
+commit = 46a1fb569bcb3c164a05d76628a03ec9cb55f432
+tree = 08e12355c5fd9358b2711d33563bfa84e0a58476

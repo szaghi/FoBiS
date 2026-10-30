@@ -1,0 +1,37 @@
+$ fobis build --quiet
+
+Building src/solver.f90
+Compiling .fobis_deps/kinds/src/kinds.f90 serially
+Compiling .fobis_deps/vectors/src/vectors.f90 serially
+.fobis_deps/vectors/src/vectors.f90:3:17:
+
+    3 | use kinds, only : R8P
+      |                 1
+Error: Symbol 'r8p' referenced at (1) not found in module 'kinds'
+.fobis_deps/vectors/src/vectors.f90:10:11:
+
+   10 |    real(R8P), intent(in) :: v(:) !< Vector.
+      |           1
+Error: Symbol 'r8p' at (1) has no IMPLICIT type
+.fobis_deps/vectors/src/vectors.f90:11:11:
+
+   11 |    real(R8P)             :: n    !< Its norm.
+      |           1
+Error: Symbol 'r8p' at (1) has no IMPLICIT type
+.fobis_deps/vectors/src/vectors.f90:8:34:
+
+    8 |    pure function norm(v) result(n)
+      |                                  1
+Error: Function result 'n' at (1) has no IMPLICIT type
+.fobis_deps/vectors/src/vectors.f90:8:23:
+
+    8 |    pure function norm(v) result(n)
+      |                       1
+Error: Symbol 'v' at (1) has no IMPLICIT type
+.fobis_deps/vectors/src/vectors.f90:8:23:
+
+    8 |    pure function norm(v) result(n)
+      |                       1
+Error: Argument 'v' of pure function 'norm' at (1) must be INTENT(IN) or VALUE
+
+[exit status 1]

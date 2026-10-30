@@ -1,0 +1,9 @@
+$ fobis add lab:kinds --semver "^2.0.0" --force && fobis fetch --update
+Replaced kinds = file://~/remotes/kinds.git :: semver=^2.0.0
+Run 'fobis fetch' to fetch it.
+Dependency kinds already fetched (use --update to refresh)
+Checking out v2.0.0 for kinds
+Dependency vectors already fetched (use --update to refresh)
+Checking out v0.2.0 for vectors
+Error: dependency resolution: kinds: (project) needs at least v2.0.0, but vectors requires ^1.1.0
+[exit status 1]

@@ -116,6 +116,7 @@ This track leaves `quad` for a lab's libraries and a project, `solver`, that use
 |---|---|
 | [1. An index of your own](./packages/01-index) | seed indexes, `fobis index build`, `index check`, `index add`, `follows` |
 | [2. Find, add and remove](./packages/02-add) | `fobis search` (`--module`, `--build`), `info`, `add` (name, `INDEX:NAME`, `--module`, URL), `remove` |
+| [3. Versions](./packages/03-versions) | tags and ranges, `fetch --update`, `add --semver --force`, `transitive = true`, minimal version selection |
 
 ## Running the examples yourself
 

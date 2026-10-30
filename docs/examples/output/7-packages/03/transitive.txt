@@ -1,0 +1,6 @@
+[dependencies]
+# added by fobis add from index lab
+kinds = file://~/remotes/kinds.git :: semver=^1.0.0
+# added by fobis add from index lab
+vectors = file://~/remotes/vectors.git :: semver=^0.2.0
+transitive = true

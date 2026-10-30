@@ -65,3 +65,5 @@ Each entry names a source and a range starting at the newest version. The fobos 
 URL, `fobis remove`. Reference: [`search`](/reference/search), [`add`](/reference/add),
 [`remove`](/reference/remove).
 :::
+
+Next: [versions](./03-versions).

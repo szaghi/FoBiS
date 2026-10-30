@@ -1,0 +1,5 @@
+$ grep -E "^\[|resolved|required_by" .fobis_deps/fobos.lock
+[kinds]
+resolved = v1.1.0
+[vectors]
+resolved = v0.2.0
