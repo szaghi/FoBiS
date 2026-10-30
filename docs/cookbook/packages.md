@@ -56,7 +56,16 @@ version.
 
 - **Indexes come in priority order.** The project fobos's `[indexes]` are searched first, then those of your user
   configuration. Indexes that an index `follows` are searched too, two levels deep by default (`--depth`).
-- **Remote indexes are cached** in `~/.fobis/indexes`; `fobis index update` or `--refresh` fetches them again.
+- **Remote indexes are cached** in `~/.fobis/indexes` (`FOBIS_INDEX_DIR` moves it); `fobis index update` or
+  `--refresh` fetches them again. `fobis index list` shows each index with its scope (project or user) and when it
+  was fetched; `fobis index remove NAME` forgets one.
+- **`search` matches names, descriptions and keywords**; `--module` matches the modules of each package's newest
+  version, as the index lists them.
+- **A followed index is named by its own `name`** (`mylab:kinds`), with a short suffix when two followed indexes
+  share a name: `fobis search` prints the qualified names to use.
+- **Private indexes:** a git index is read with your git credentials (an SSH URL, a credential helper), like any
+  clone. A static HTTP index must be public.
+- **`fobis index add` reads the index once** to check it; `--no-check` registers it without reading it (offline).
 
 ## Add a dependency by name
 
@@ -64,6 +73,7 @@ version.
 fobis add quad
 fobis add vendor:json --use fobos
 fobis add --module stringifor_string_t
+fobis add https://github.com/szaghi/PENF --tag v2.0.1
 ```
 
 <<< @/examples/output/2-growing/08/add.txt{console}
@@ -72,10 +82,32 @@ fobis add --module stringifor_string_t
 
 - **The range starts at the newest version** (`semver=^0.1.0`); `--semver`, `--tag`, `--rev` or `--branch` choose
   otherwise. A source with no version tag is added unpinned, with a warning.
+- **A URL needs no index at all:** `fobis add URL` reads the source's tags and writes the same kind of entry.
+- **Options of the entry:** `--as NAME` names the dependency in the fobos (default: the package's name, lower-case),
+  `--dev` makes it [test-only](./dependencies), `--use fobos` builds it as a library from its own fobos (`--mode`
+  chooses its mode), and `--force` replaces an entry of the same name.
+- **What the index knows is copied:** its `mirrors` become `:: mirror=URL[,URL]`, and its recipe is copied into the
+  project (see [CMake, make and other packages](#cmake-make-and-other-packages)).
 - **The fobos is edited line by line:** its comments and layout are kept, and a comment line records the index the
   name came from.
 - **Your project is a FoBiS project:** `add` writes into its fobos. The package added can be built with FoBiS, fpm,
   CMake or make: see [how a dependency is built](#how-a-dependency-is-built).
+
+## Update or remove a dependency
+
+```bash
+fobis fetch --update
+fobis add quad --semver "~0.2" --force
+fobis remove quad
+```
+
+- **`fetch --update` moves within the range** written in the fobos (`semver=^0.1.0`: the newest 0.x.y), and records
+  what it chose in `.fobis_deps/fobos.lock`. A `tag=` or `rev=` pin never moves.
+- **To change the range, add the package again** with `--force`: the entry is replaced, the rest of the fobos kept.
+- **`fobis remove NAME`** takes the entry out of the fobos, with its `add` comment and the recipe `add` copied for it.
+  The next `fetch` drops it from the build; its clone stays in `.fobis_deps/NAME` until you delete it.
+- **`fetch --frozen`** checks every dependency out at its locked commit, for a checkout that keeps `.fobis_deps/`
+  (see [dependencies](./dependencies)).
 
 ## Publish your package in an index
 
@@ -98,6 +130,8 @@ fobis index build --from-ecosystem --name me -o index.toml
 fobis index check index.toml --online
 ```
 
+- **The file format** is described in [Index format](/reference/index-format). `publish --index` and `index build`
+  rewrite the whole file, sorted by name: comments of a hand-written index are lost.
 - **`--from-ecosystem` publishes only public repositories.** It writes the HTTPS form of each origin and reads every
   source without your credentials: a private repository is left out, with a warning.
 - **Hand-written fields win** when an index is built again (a description, the `provides` list), and an index can
@@ -144,6 +178,8 @@ kinds = https://example.org/fortran/kinds/ :: semver=^1.0
 
 - **A published release never changes.** `publish --archive` refuses to rewrite a version, and `fetch` refuses an
   archive whose sha256 differs from the one it locked.
+- **An older release:** `--version TAG` publishes that tag instead of the latest one; `--name` sets the package name
+  when the fobos `[project]` has none.
 - **The manifest is found** at the URL itself, at `URL/fortran-releases.toml` or at
   `URL/.well-known/fortran-releases.toml`.
 - **A stable URL on your own domain:** an HTML page holding
@@ -225,6 +261,20 @@ pkg_check_modules(QUAD REQUIRED IMPORTED_TARGET quad)
 target_link_libraries(survey PkgConfig::QUAD)
 ```
 
+From a make or CMake project of your own, `fobis pkg path` gives the directories to use:
+
+```bash
+export PKG_CONFIG_PATH=$(fobis pkg path quad --pkgconfig)
+gfortran main.f90 $(pkg-config --cflags --libs quad)
+```
+
+- **Choosing what is built:** `--version` takes a range (`^9`) or an exact tag; `--compiler`, `--fc PATH` (a
+  compiler binary), `--mpi` (the MPI wrapper), `--cflags` and `--lflags` set the toolchain; `--mode` picks the mode
+  of a FoBiS package's fobos. `--force` rebuilds an installed package, `--verbose` shows the build's own output.
+- **Several toolchains:** a package installed for two keys is chosen with `--key` by `pkg path` and `pkg uninstall`;
+  `fobis pkg list` shows every key.
+- **The pkg-config name is the library's**, not always the package's: `ls $(fobis pkg path NAME --pkgconfig)` lists
+  the `.pc` files (stdlib installs one per component and `fortran_stdlib.pc` for all of them).
 - **The store is `~/.fobis/pkgs/<key>/<name>/<version>/`** (`FOBIS_PKGS_DIR` moves it). Installing with other flags
   (`--cflags`, `--mpi`, another compiler) gives another key: both stay installed.
 - **Applications are linked into `~/.local/bin`** (`--bin-dir`), never over a file that is not one of their links.
@@ -266,6 +316,29 @@ or `Makefile` is used as found.
   package's `.pc` whose directories do not exist (json-fortran 9.3.1 installs one) is replaced by one FoBiS writes.
 - **External libraries** (MPI, HDF5, BLAS) are never built: a recipe lists them in `externals`, and the package's own
   build finds them.
+
+## Offline, or on a cluster
+
+What needs a network, and what does not:
+
+| Command | Network |
+|---|---|
+| `search`, `--module` hints of `check` and `build --explain` | no, once the indexes are cached |
+| `info`, `add` | yes: they read the source's tags |
+| `fetch` | yes, unless every dependency is already fetched |
+| `build` | never: it reads `.fobis_deps/` |
+| `pkg install` | yes: it reads and builds the source |
+
+For a machine with no network at all, keep everything on a shared filesystem: an index in a directory
+(`fobis index add lab /shared/fortran/index`), releases published with `publish --archive` into another directory,
+and FoBiS itself as the single file `fobis.pyz` attached to each GitHub release (`python3 fobis.pyz build`). Those
+directories are sources like any URL: `add`, `fetch` and `pkg install` read them without a network.
+
+## Scripts and agents
+
+`search`, `info`, `add`, `remove`, `index list`, `index check`, `pkg install`, `pkg list` and `audit` print JSON with
+`--json`, and only JSON on stdout. An AI agent connected to [`fobis mcp`](./ai-setup) has three read-only tools for
+packages: `package_search`, `package_info` and `index_check`.
 
 ## Trust: locks, mirrors, advisories, archives
 

@@ -768,9 +768,15 @@ fobis add penf               # resolved ONCE: the fobos gets "penf = https://git
 fobis add vendor:json --use fobos
 fobis add --module stringifor_string_t
 fobis add https://host/repo --tag v1.2.0 --as kinds
+fobis add penf --semver "~2.1" --force   # change the range: the entry is replaced
+fobis remove penf            # the entry, its add comment and the recipe add copied; then fobis fetch
 ```
 
 `fetch` and `build` never read an index: after `add`, every index can disappear and the project still builds.
+`add` copies what the index knows into the fobos: the entry's `mirrors` as `:: mirror=...`, its recipe into
+`recipes/NAME.toml`. `fetch --update` moves within the written range. The project must be a FoBiS project (`add`
+edits its fobos); a dependency with an `fpm.toml` and no fobos is built by fpm (required on PATH), never compiled
+by FoBiS. The index file format: `docs/reference/index-format.md`.
 
 A source is any URL: a git repository (any host, `file://`), a static web directory serving
 `fortran-releases.toml` (written by `fobis publish --archive DIR`), or a page redirecting to either with
