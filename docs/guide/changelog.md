@@ -4,6 +4,15 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.12.0] — 2026-10-30
+### Added
+- **registry**: Build packages without a fobos with fpm only ⚠ BREAKING CHANGE
+
+
+### Fixed
+- **registry**: Find READMEs in any case and ignore placeholder licences
+
+
 ## [3.11.2] — 2026-10-30
 ### Documentation
 - Show doctests and the package index in GIFs on the landing pages
