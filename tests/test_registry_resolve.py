@@ -15,7 +15,7 @@ import pytest
 from fobis.fobis import run_fobis
 from fobis.registry.resolve import Requirement, ResolutionError, select
 from fobis.UserConfig import UserConfig
-from tests.registry_helpers import fobis_package, isolate, module_source, remote
+from tests.registry_helpers import fobis_package, git, isolate, module_source, remote
 
 pytestmark = pytest.mark.skipif(shutil.which("git") is None, reason="git")
 
@@ -209,3 +209,19 @@ def test_build_diagnosis_names_the_provider(tmp_path, monkeypatch, capsys):
     missing = next(d for d in diagnoses if d["kind"] == "missing-module")
     assert "penf is provided by lab:penf (https://h/PENF), listed in your package indexes." in missing["facts"]
     assert "run `fobis add lab:penf`, then `fobis fetch`" in missing["advice"]
+
+
+def test_a_newer_version_of_a_cloned_dependency_is_read(diamond, tmp_path, capsys):
+    """Found by the packages tutorial: the clone of b lacked its new tag, so the resolution read b's old requirements."""
+    assert _run(["fetch", "--no-build"], capsys)[0] == 0
+    assert _lock(diamond)["d"]["resolved"] == "v1.4.0"
+    b = tmp_path / "remotes" / "b"
+    (b / "fobos").write_text((b / "fobos").read_text().replace("semver=^1.3", "semver=^1.9"))
+    git(b, "commit", "-q", "-am", "b 1.1.0 needs d 1.9")
+    git(b, "tag", "v1.1.0")
+    fobos = diamond / "fobos"
+    fobos.write_text(fobos.read_text().replace(f"b = file://{b} :: semver=^1.0", f"b = file://{b} :: semver=^1.1"))
+    code, out = _run(["fetch", "--no-build"], capsys)
+    assert code == 0, out
+    lock = _lock(diamond)
+    assert lock["b"]["resolved"] == "v1.1.0" and lock["d"]["resolved"] == "v1.9.0"

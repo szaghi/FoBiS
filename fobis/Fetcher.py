@@ -451,6 +451,13 @@ class Fetcher:
                 self.failures.append(f"{name}: checkout of the locked commit {frozen_commit} failed")
         else:
             ref = tag or branch or rev
+            if ref and (tag or rev) and not recent and not update and not self._has_ref(dep_dir, ref):
+                # a clone made for an older pin lacks a newer tag or commit (a fobos edited to tag=v2, or the
+                # transitive resolution reading a dependency's newer version): fetch it instead of failing
+                self.print_n(f"Fetching {name}: {ref} is not in its clone yet")
+                result = syswork(["git", "-C", dep_dir, "fetch", "--tags"])
+                if result[0] != 0:
+                    self.print_w("Error fetching updates for " + name + ":\n" + result[1])
             if ref:
                 if not recent:
                     self.print_n("Checking out " + ref + " for " + name)
@@ -474,6 +481,11 @@ class Fetcher:
         sha_result = syswork(["git", "-C", dep_dir, "rev-parse", "HEAD"])
         commit_sha = sha_result[1].strip() if sha_result[0] == 0 else ""
         return dep_dir, commit_sha
+
+    @staticmethod
+    def _has_ref(dep_dir: str, ref: str) -> bool:
+        """Whether the clone at *dep_dir* knows *ref* (a tag or a commit)."""
+        return syswork(["git", "-C", dep_dir, "rev-parse", "--verify", "--quiet", ref + "^{commit}"])[0] == 0
 
     def _fetch_from_swh(self, name: str, url: str, tag: str, dep_dir: str, error: str) -> tuple[str, str]:
         """The last resort of a public git source: *tag* fetched from Software Heritage (see `registry.swh`)."""
