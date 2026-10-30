@@ -4,6 +4,43 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.16.0] — 2026-10-30
+### Documentation
+- **tutorial**: Add the chapter on one fobos for many machines
+
+- **tutorial**: Add the chapter on several programs and a library for others
+
+- **tutorial**: Start a packages track with an index of your own
+
+- **tutorial**: Find, add and remove packages in the packages track
+
+- **tutorial**: Versions in the packages track
+
+- **tutorial**: Install packages for your compiler in the packages track
+
+- **tutorial**: Trust without a central server in the packages track
+
+- **tutorial**: Packages built with fpm and CMake in the packages track
+
+- **tutorial**: An fpm project in the packages track
+
+- Link the new tutorials from the cookbook and the project notes
+
+
+### Fixed
+- Print messages without colour codes while the fobos is read
+
+- **registry**: Line up the sources in search output across indexes
+
+- **fetch**: Fetch a tag or commit an existing clone does not have yet
+
+- **pkg**: Build quietly on upgrade, as on install
+
+- **fetch**: Use mirrors for versions and keep the source as authority
+
+- **docs**: Ignore FoBiS's own version when comparing recorded outputs
+
+
 ## [3.15.0] — 2026-10-30
 ### Added
 - **registry**: Ignore unknown index keys when reading, refuse them when writing
