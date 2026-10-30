@@ -778,7 +778,9 @@ fobis remove penf            # the entry, its add comment and the recipe add cop
 when both) `add`/`remove` edit `fpm.toml`: `NAME = { git = URL, tag = NEWEST }` under the package's OWN fpm name
 (fpm requires it: no `--as`), exact pins only (no `--semver`), packages without an fpm.toml at that version refused;
 `fobis search --build fpm` lists what fpm can use (index field `builds`, FoBiS >= 3.14). In a FoBiS project a
-dependency with an `fpm.toml` and no fobos is built by fpm (required on PATH), never compiled by FoBiS. The index file format: `docs/reference/index-format.md`.
+dependency with an `fpm.toml` and no fobos is built by fpm (required on PATH), never compiled by FoBiS. The index file format: `docs/reference/index-format.md`; unknown keys are refused where an index is written
+(`index check`, `index build`, `publish --index`) and ignored with one note per index where it is read (`search`,
+`info`, `add`, `index add`); a newer `schema` is refused by both.
 
 A source is any URL: a git repository (any host, `file://`), a static web directory serving
 `fortran-releases.toml` (written by `fobis publish --archive DIR`), or a page redirecting to either with

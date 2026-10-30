@@ -63,6 +63,8 @@ def index_set(config: str | None = None, fobos: str = "fobos", depth: int = 2, r
     indexes = IndexSet(roots, depth=depth).load(refresh=refresh)
     for error in indexes.errors:
         typer.echo(f"warning: index {error}", err=True)
+    for notice in indexes.notices:
+        typer.echo(f"note: index {notice}", err=True)
     return indexes
 
 
@@ -94,10 +96,16 @@ def cmd_index_add(
     if check:
         try:
             text, provider = read_index_text(url, os.path.join(default_cache_root(), name), refresh=True)
-            index = load_index(text, origin=url)
+            index = load_index(text, origin=url, strict=False)  # someone else's index: never refused for a new key
         except RegistryError as error:
             _fail(str(error), 1)
         typer.echo(f"{name}: {len(index.packages)} package(s), {provider} index")
+        if index.ignored:
+            typer.echo(
+                f"note: index {name} uses keys unknown to this FoBiS ({', '.join(index.ignored)}): "
+                "upgrade FoBiS to use them",
+                err=True,
+            )
     cfg.set_indexes([*entries, (name, url)])
     typer.echo(f"Added index {name} = {url} to {cfg.path}")
 
@@ -170,6 +178,8 @@ def cmd_index_update(
     for loaded in indexes.loaded:
         via = f" (followed by {loaded.via})" if loaded.via else ""
         typer.echo(f"{loaded.qualifier}: {len(loaded.index.packages)} package(s){via}")
+    for notice in indexes.notices:
+        typer.echo(f"note: index {notice}", err=True)
     for error in indexes.errors:
         typer.echo(f"warning: index {error}", err=True)
     if indexes.errors and not indexes.loaded:
@@ -316,7 +326,7 @@ def cmd_search(
     if build is not None:  # an index built before `builds` existed lists none: those packages are not shown
         found = [p for p in found if build.lower() in p.builds]
     if as_json:
-        _echo_json({"packages": [p.to_dict() for p in found], "errors": indexes.errors})
+        _echo_json({"packages": [p.to_dict() for p in found], "errors": indexes.errors, "notices": indexes.notices})
         return
     if not found:
         typer.echo("No package found.")

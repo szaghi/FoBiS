@@ -80,6 +80,7 @@ class Index:
     follows: list[str] = field(default_factory=list)
     description: str = ""
     origin: str = ""  # URL or path it was read from
+    ignored: list[str] = field(default_factory=list)  # keys (and builds values) a tolerant read did not know
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -108,9 +109,14 @@ def _strings(value: Any, where: str) -> list[str]:
     return list(value)
 
 
-def load_index(text: str, origin: str = "") -> Index:
+def load_index(text: str, origin: str = "", strict: bool = True) -> Index:
     """
     Parse and validate an index.
+
+    Strict where an index is written (``index check``, ``index build``, ``publish --index``: its author can fix a
+    typo), tolerant where it is read (``search``, ``info``, ``add``: a reader cannot fix it, and a key it does not
+    know is a field added by a newer FoBiS). A tolerant read ignores unknown keys and unknown ``builds`` values and
+    lists them in ``Index.ignored``; a schema newer than this FoBiS is refused either way (a breaking change).
 
     Parameters
     ----------
@@ -118,6 +124,8 @@ def load_index(text: str, origin: str = "") -> Index:
       the TOML text
     origin : str
       where it was read from (for messages)
+    strict : bool
+      refuse unknown keys (default), or ignore them
 
     Raises
     ------
@@ -129,9 +137,11 @@ def load_index(text: str, origin: str = "") -> Index:
         data = _load_toml(text)
     except RegistryError as error:
         raise RegistryError(where + str(error)) from None
+    ignored: set[str] = set()
     unknown = sorted(set(data) - _TOP_KEYS)
-    if unknown:
+    if unknown and strict:
         raise RegistryError(where + f"unknown key(s) {', '.join(unknown)}")
+    ignored.update(unknown)
     schema = data.get("schema", SCHEMA)
     if not isinstance(schema, int) or schema < 1:
         raise RegistryError(where + "schema must be a positive integer")
@@ -154,8 +164,9 @@ def load_index(text: str, origin: str = "") -> Index:
         if not isinstance(entry, dict):
             raise RegistryError(where + f"[package.{pname}] must be a table")
         unknown = sorted(set(entry) - _PACKAGE_KEYS)
-        if unknown:
+        if unknown and strict:
             raise RegistryError(where + f"[package.{pname}]: unknown key(s) {', '.join(unknown)}")
+        ignored.update(unknown)
         source = entry.get("source")
         if not isinstance(source, str) or not source.strip():
             raise RegistryError(where + f"[package.{pname}]: 'source' (the package URL) is required")
@@ -172,15 +183,23 @@ def load_index(text: str, origin: str = "") -> Index:
                 builds=[b.lower() for b in _strings(entry.get("builds", []), f"[package.{pname}] builds")],
             )
             unknown_builds = sorted(set(package.builds) - set(BUILD_SYSTEMS))
-            if unknown_builds:
+            if unknown_builds and strict:
                 raise RegistryError(
                     f"[package.{pname}] builds: {', '.join(unknown_builds)} (known: {', '.join(BUILD_SYSTEMS)})"
                 )
+            if unknown_builds:
+                package.builds = [b for b in package.builds if b in BUILD_SYSTEMS]
+                ignored.update(f"builds = {b}" for b in unknown_builds)
         except RegistryError as error:
             raise RegistryError(where + str(error)) from None
         packages[pname] = package
     return Index(
-        name=name, packages=packages, follows=follows, description=str(data.get("description", "")), origin=origin
+        name=name,
+        packages=packages,
+        follows=follows,
+        description=str(data.get("description", "")),
+        origin=origin,
+        ignored=sorted(ignored),
     )
 
 
@@ -426,13 +445,14 @@ class IndexSet:
     depth: int = DEFAULT_DEPTH
     loaded: list[LoadedIndex] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
+    notices: list[str] = field(default_factory=list)  # one per index using keys this FoBiS does not know
 
     def load(self, refresh: bool = False, only: str | None = None, offline: bool = False) -> IndexSet:
         """
         Walk the graph; an index that cannot be read is recorded in ``errors`` and skipped. *offline*: a remote index
         is read from the cache only (a build or a check never reaches the network).
         """
-        self.loaded, self.errors = [], []
+        self.loaded, self.errors, self.notices = [], [], []
         seen: set[str] = set()
         queue: list[tuple[str, str, int, str]] = [(name, url, 0, "") for name, url in self.roots]
         used: set[str] = set()
@@ -448,10 +468,15 @@ class IndexSet:
                 continue
             try:
                 text, _ = read_index_text(url, cache, refresh=refresh)
-                index = load_index(text, origin=url)
+                index = load_index(text, origin=url, strict=False)
             except RegistryError as error:
                 self.errors.append(f"{name or url}: {error}")
                 continue
+            if index.ignored:
+                self.notices.append(
+                    f"{name or index.name or url} uses keys unknown to this FoBiS ({', '.join(index.ignored)}): "
+                    "upgrade FoBiS to use them"
+                )
             qualifier = name if depth == 0 else (index.name or _cache_name(url))
             if qualifier in used:  # two followed indexes with the same name: keep both, the later one qualified
                 qualifier = f"{qualifier}~{_cache_name(url)[-8:]}"

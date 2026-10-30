@@ -51,8 +51,13 @@ recipe      = "recipes/odbc.f.toml"
 
 ## Rules
 
-- **Unknown keys are refused**, `version` among them: an index never decides which version is built. A FoBiS older
-  than 3.14 does not know `builds` and refuses an index that has it.
+- **Unknown keys: strict where an index is written, tolerant where it is read.** `fobis index check`,
+  `index build` and `publish --index` refuse a key they do not know (a typo, or `version`: an index never decides
+  which version is built). `search`, `info`, `add` and `index add` ignore it, with one note per index: a key they do
+  not know was added by a newer FoBiS, and ignoring it changes nothing they do. A `schema` newer than FoBiS reads
+  (a breaking change) is refused by both.
+- **Before FoBiS 3.15 readers were strict too:** 3.11–3.14 refuse an index holding any key they do not know, so
+  3.11–3.13 cannot read an index carrying `builds`.
 - **Names** start with a letter or a digit and hold letters, digits, `_`, `.` and `-`. They are compared without
   regard to case. A name holding a dot is written quoted: `[package."odbc.f"]`.
 - **The same source in two indexes** is one package for `add`: a name both list for that source is not ambiguous.

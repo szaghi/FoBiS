@@ -462,3 +462,35 @@ def test_search_by_build_system(tmp_path, monkeypatch):
     assert code == 0 and [p["name"] for p in json.loads(out)["packages"]] == ["b"]
     code, out = cli("search", "--build", "scons", "--config", config)
     assert code == 2 and "one of fobis, fpm, cmake, make" in out
+
+
+FUTURE_INDEX = (  # written by a newer FoBiS: a key, a builds value and a forbidden key this one does not know
+    'name = "lab"\nmaintainers = ["x"]\n[package.a]\nsource = "https://x/a"\nbuilds = ["fpm", "meson"]\n'
+    'stars = 3\nversion = "1.0"\n'
+)
+
+
+def test_a_tolerant_read_ignores_what_it_does_not_know():
+    index = load_index(FUTURE_INDEX, strict=False)
+    assert index.ignored == ["builds = meson", "maintainers", "stars", "version"]
+    assert index.packages["a"].builds == ["fpm"]  # nothing read from an ignored key: version decides nothing
+    with pytest.raises(RegistryError, match="unknown key"):
+        load_index(FUTURE_INDEX)  # strict, as where an index is written
+    with pytest.raises(RegistryError, match="newer than this FoBiS"):
+        load_index("schema = 2\n", strict=False)  # a breaking change is refused either way
+
+
+def test_readers_accept_an_index_from_a_newer_fobis_and_its_checker_does_not(tmp_path, monkeypatch):
+    isolate(monkeypatch, tmp_path)
+    (tmp_path / "idx").mkdir()
+    (tmp_path / "idx" / "index.toml").write_text(FUTURE_INDEX)
+    config = str(tmp_path / "config.ini")
+    code, out = cli("index", "add", "lab", str(tmp_path / "idx"), "--config", config)
+    assert code == 0 and "note: index lab uses keys unknown to this FoBiS" in out
+    code, out = cli("search", "--build", "fpm", "--config", config)
+    assert code == 0 and "lab:a" in out and "upgrade FoBiS to use them" in out
+    code, out = cli("search", "--config", config, "--json")
+    document = json.loads(out[out.index("{") :])
+    assert [p["name"] for p in document["packages"]] == ["a"] and "maintainers" in document["notices"][0]
+    code, out = cli("index", "check", str(tmp_path / "idx" / "index.toml"))
+    assert code == 2 and "unknown key(s) maintainers" in out
