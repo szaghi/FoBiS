@@ -119,6 +119,7 @@ def cmd_add(
     parts += [f"use={use}"] if use else []
     parts += [f"mode={mode}"] if mode else []
     parts += ["dev"] if dev else []
+    parts += [f"mirror={','.join(entry.mirrors)}"] if entry is not None and entry.mirrors else []
     parts += [recipe_spec] if recipe_spec else []
     spec = " :: ".join(parts)
     comment = f"added by fobis add from index {entry.index}" if entry else ""

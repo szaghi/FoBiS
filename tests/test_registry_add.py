@@ -145,3 +145,54 @@ def test_build_needs_no_index_after_add(world, capsys):
         except SystemExit as exc:
             assert not exc.code, capsys.readouterr().out
     assert (world["project"] / "build" / "main").is_file()
+
+
+# ── fobis remove ──────────────────────────────────────────────────────────────
+
+
+def test_remove_takes_out_what_add_wrote(world):
+    cli("add", "penf", "--config", world["config"])
+    cli("add", "vendor:json", "--config", world["config"])
+    project = world["project"]
+    recipes = project / "recipes"
+    recipes.mkdir()
+    (recipes / "penf.toml").write_text('backend = "cmake"\n')  # as add copies an index recipe
+    text = (project / "fobos").read_text().replace("semver=^1.2.3", "semver=^1.2.3 :: recipe=recipes/penf.toml")
+    (project / "fobos").write_text(text)
+    code, out = cli("remove", "PENF")
+    assert code == 0 and "Removed penf" in out and "Removed its recipe" in out
+    assert not (recipes / "penf.toml").exists()
+    assert _deps(project) == {"json": f"{world['json_b']} :: semver=^1.0.0"}
+    assert (project / "fobos").read_text().count("# added by fobis add") == 1  # its comment line went with it
+
+
+def test_remove_keeps_a_recipe_the_user_named(world):
+    project = world["project"]
+    (project / "my-recipe.toml").write_text('backend = "cmake"\n')
+    set_entry(str(project / "fobos"), "vec", "https://x/vec :: recipe=my-recipe.toml")
+    code, out = cli("remove", "vec", "--json")
+    assert code == 0 and json.loads(out)["recipe_removed"] == ""
+    assert (project / "my-recipe.toml").is_file()
+
+
+def test_remove_errors(world):
+    set_entry(str(world["project"] / "fobos"), "penf", "https://x/PENF")
+    (world["project"] / "fobos").write_text((world["project"] / "fobos").read_text() + "deps_dir = deps\n")
+    code, out = cli("remove", "nothing")
+    assert code == 2 and "has no dependency nothing" in out
+    code, out = cli("remove", "deps_dir")
+    assert code == 2 and "a setting of [dependencies]" in out
+    code, out = cli("remove", "penf", "--fobos", "missing")
+    assert code == 2 and "missing not found" in out
+
+
+def test_add_copies_the_mirrors_of_the_index_entry(world):
+    index = world["root"] / "mine" / "index.toml"
+    index.write_text(index.read_text().replace(
+        '[package.penf]\n', '[package.penf]\nmirrors = ["https://m1/PENF", "https://m2/PENF"]\n'
+    ))  # fmt: skip
+    code, out = cli("add", "penf", "--config", world["config"], "--refresh")
+    assert code == 0, out
+    assert (
+        _deps(world["project"])["penf"] == f"{world['penf']} :: semver=^1.2.3 :: mirror=https://m1/PENF,https://m2/PENF"
+    )

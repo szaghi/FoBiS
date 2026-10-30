@@ -41,6 +41,7 @@ reads from the project, the [user configuration](./configuration) those of the m
 | [`search`](./search) | Search the configured package indexes (and the indexes they follow). |
 | [`info`](./info) | Show what a package's source holds: versions, build system, modules, licence. |
 | [`add`](./add) | Add a dependency to the fobos, resolved through the package indexes (the fobos gets its URL). |
+| [`remove`](./remove) | Remove a dependency from the fobos (and the recipe fobis add copied for it). |
 | [`publish`](./publish) | Publish the current project: a release archive for static hosting, an entry of an index. |
 | [`pkg`](./pkg) | Packages built for your compiler and installed in a store (install, list, uninstall, upgrade, path). |
 | [`audit`](./audit) | Report the advisories that affect the fetched dependencies (exit 1 when one does). |

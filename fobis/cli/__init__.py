@@ -51,6 +51,7 @@ from . import (  # noqa: F401
     publish,
     query,
     registry,
+    remove,
     review,
     rule,
     run,

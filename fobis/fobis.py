@@ -70,7 +70,7 @@ def main():
     sys.exit(0)
 
 
-PACKAGE_COMMANDS = (["index"], ["search"], ["info"], ["add"], ["publish"], ["pkg"], ["audit"])
+PACKAGE_COMMANDS = (["index"], ["search"], ["info"], ["add"], ["remove"], ["publish"], ["pkg"], ["audit"])
 
 
 def _prog_name():
