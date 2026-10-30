@@ -36,7 +36,9 @@ INDEX_FILE = "index.toml"
 DEFAULT_DEPTH = 2
 HTTP_TIMEOUT = 30
 
-_PACKAGE_KEYS = {"source", "description", "license", "keywords", "mirrors", "provides", "recipe"}
+_PACKAGE_KEYS = {"source", "description", "license", "keywords", "mirrors", "provides", "recipe", "builds"}
+# the build systems a package can carry a manifest for (``builds``): fobos, fpm.toml, CMakeLists.txt, Makefile
+BUILD_SYSTEMS = ("fobis", "fpm", "cmake", "make")
 _TOP_KEYS = {"schema", "name", "description", "follows", "package"}
 _NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 
@@ -57,11 +59,12 @@ class Package:
     mirrors: list[str] = field(default_factory=list)
     provides: list[str] = field(default_factory=list)
     recipe: str = ""
+    builds: list[str] = field(default_factory=list)  # build systems of the newest version (BUILD_SYSTEMS)
     index: str = ""  # the qualified name of the index it was read from (filled when loaded through an IndexSet)
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {"name": self.name, "source": self.source}
-        for key in ("description", "license", "keywords", "mirrors", "provides", "recipe", "index"):
+        for key in ("description", "license", "keywords", "mirrors", "provides", "recipe", "builds", "index"):
             value = getattr(self, key)
             if value:
                 data[key] = value
@@ -166,7 +169,13 @@ def load_index(text: str, origin: str = "") -> Index:
                 mirrors=_strings(entry.get("mirrors", []), f"[package.{pname}] mirrors"),
                 provides=[m.lower() for m in _strings(entry.get("provides", []), f"[package.{pname}] provides")],
                 recipe=str(entry.get("recipe", "")),
+                builds=[b.lower() for b in _strings(entry.get("builds", []), f"[package.{pname}] builds")],
             )
+            unknown_builds = sorted(set(package.builds) - set(BUILD_SYSTEMS))
+            if unknown_builds:
+                raise RegistryError(
+                    f"[package.{pname}] builds: {', '.join(unknown_builds)} (known: {', '.join(BUILD_SYSTEMS)})"
+                )
         except RegistryError as error:
             raise RegistryError(where + str(error)) from None
         packages[pname] = package
@@ -200,7 +209,7 @@ def dump_index(index: Index) -> str:
         for key in ("description", "license", "recipe"):
             if getattr(package, key):
                 lines.append(f"{key} = {_toml_string(getattr(package, key))}")
-        for key in ("keywords", "mirrors", "provides"):
+        for key in ("keywords", "mirrors", "provides", "builds"):
             if getattr(package, key):
                 lines.append(f"{key} = {_toml_list(getattr(package, key))}")
     return "\n".join(lines) + "\n"
@@ -568,7 +577,7 @@ def remove_cache(cache_root: str, name: str) -> None:
 
 def build_index(seeds: Index, probe: Any, keep: bool = True) -> tuple[Index, list[str]]:
     """
-    Fill an index from its seeds: each package's ``description``, ``license`` and ``provides`` come from probing
+    Fill an index from its seeds: each package's ``description``, ``license``, ``provides`` and ``builds`` come from probing
     its source (``probe(url) -> SourceInfo``); with *keep*, a field written by hand in the seeds wins.
 
     Returns
@@ -591,5 +600,7 @@ def build_index(seeds: Index, probe: Any, keep: bool = True) -> tuple[Index, lis
                 setattr(package, key, value)
         if info.modules and not (keep and package.provides):
             package.provides = list(info.modules)
+        if info.builds and not (keep and package.builds):
+            package.builds = list(info.builds)
         built.packages[name] = package
     return built, errors

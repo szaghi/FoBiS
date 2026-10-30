@@ -7,6 +7,7 @@ from __future__ import annotations
 import configparser
 import json
 import shutil
+import subprocess
 
 import pytest
 
@@ -196,3 +197,81 @@ def test_add_copies_the_mirrors_of_the_index_entry(world):
     assert (
         _deps(world["project"])["penf"] == f"{world['penf']} :: semver=^1.2.3 :: mirror=https://m1/PENF,https://m2/PENF"
     )
+
+
+# ── fpm projects ──────────────────────────────────────────────────────────────
+
+FPM_PACKAGE = {  # its fpm name differs in case from the index name: fpm requires the package's own name
+    "fpm.toml": 'name = "Vecs"\nversion = "0.3.0"\n',
+    "src/vecs.f90": "module vecs\nimplicit none\ninteger, parameter :: three = 3\nend module vecs\n",
+}
+
+
+@pytest.fixture
+def fpm_world(tmp_path, monkeypatch):
+    """An index listing an fpm package (two tags), an untagged one and a fobos-only one; an fpm project."""
+    vecs = remote(tmp_path, "vecs", FPM_PACKAGE, tags=("v0.2.0", "v0.3.0"))
+    loose = remote(tmp_path, "loose", {**FPM_PACKAGE, "fpm.toml": 'name = "loose"\n'}, tags=())
+    kinds = remote(tmp_path, "kinds", fobis_package("kinds"))
+    lines = ['name = "lab"']
+    for pname, source, builds in (("vecs", vecs, ["fpm"]), ("loose", loose, ["fpm"]), ("kinds", kinds, ["fobis"])):
+        lines += [f"[package.{pname}]", f'source = "{source}"', f"builds = {json.dumps(builds)}"]
+    (tmp_path / "lab").mkdir()
+    (tmp_path / "lab" / "index.toml").write_text("\n".join(lines) + "\n")
+    config = str(tmp_path / "config.ini")
+    UserConfig(path=config).set_indexes([("lab", str(tmp_path / "lab"))])
+    project = tmp_path / "app"
+    (project / "app").mkdir(parents=True)
+    (project / "fpm.toml").write_text('# my app\nname = "app"\n\n[build]\nauto-tests = false\n')
+    (project / "app" / "main.f90").write_text("program main\nuse vecs\nprint '(I0)', three\nend program main\n")
+    monkeypatch.chdir(project)
+    return {"config": config, "vecs": vecs, "project": project}
+
+
+def test_add_into_fpm_toml_pins_the_newest_tag_under_the_package_name(fpm_world):
+    code, out = cli("add", "vecs", "--config", fpm_world["config"])
+    assert code == 0, out
+    text = (fpm_world["project"] / "fpm.toml").read_text()
+    assert text.startswith('# my app\nname = "app"\n\n[build]\nauto-tests = false\n\n[dependencies]\n')
+    assert "# added by fobis add from index lab\n" in text
+    assert f'Vecs = {{ git = "{fpm_world["vecs"]}", tag = "v0.3.0" }}' in text
+    code, out = cli("add", "vecs", "--config", fpm_world["config"])
+    assert code == 2 and "already has dependency Vecs" in out
+    code, out = cli("add", "vecs", "--tag", "v0.2.0", "--force", "--dev", "--config", fpm_world["config"], "--json")
+    assert code == 0 and json.loads(out)["table"] == "dev-dependencies"
+
+
+def test_add_into_fpm_toml_refusals(fpm_world):
+    code, out = cli("add", "kinds", "--config", fpm_world["config"])
+    assert code == 1 and "has no fpm.toml at v1.0.0 (built with fobis): fpm cannot use it" in out
+    for option in (["--semver", "^0.3"], ["--as", "v"], ["--use", "fobos"]):
+        code, out = cli("add", "vecs", *option, "--config", fpm_world["config"])
+        assert code == 2 and "has no meaning in fpm.toml" in out
+    code, out = cli("add", "loose", "--config", fpm_world["config"])
+    assert code == 0 and "no semantic-version tag" in out
+    assert 'loose = { git = "' in (fpm_world["project"] / "fpm.toml").read_text()
+
+
+def test_remove_from_fpm_toml(fpm_world):
+    cli("add", "vecs", "--config", fpm_world["config"])
+    code, out = cli("remove", "VECS")
+    assert code == 0 and "Removed Vecs" in out
+    text = (fpm_world["project"] / "fpm.toml").read_text()
+    assert "Vecs" not in text and "added by fobis add" not in text
+    code, out = cli("remove", "vecs")
+    assert code == 2 and "has no dependency vecs" in out
+
+
+def test_an_entry_fpm_toml_holds_as_a_table_is_left_to_the_user(fpm_world):
+    manifest = fpm_world["project"] / "fpm.toml"
+    manifest.write_text(manifest.read_text() + '\n[dependencies.Vecs]\ngit = "x"\n')
+    code, out = cli("add", "vecs", "--config", fpm_world["config"])
+    assert code == 2 and "edit it by hand" in out
+
+
+@pytest.mark.skipif(shutil.which("fpm") is None or shutil.which("gfortran") is None, reason="fpm and gfortran")
+def test_fpm_builds_what_add_wrote(fpm_world):
+    cli("add", "vecs", "--config", fpm_world["config"])
+    run = subprocess.run(["fpm", "run"], cwd=fpm_world["project"], capture_output=True, text=True, timeout=600)
+    assert run.returncode == 0, run.stdout + run.stderr
+    assert run.stdout.strip().splitlines()[-1] == "3"

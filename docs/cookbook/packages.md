@@ -60,7 +60,8 @@ version.
   `--refresh` fetches them again. `fobis index list` shows each index with its scope (project or user) and when it
   was fetched; `fobis index remove NAME` forgets one.
 - **`search` matches names, descriptions and keywords**; `--module` matches the modules of each package's newest
-  version, as the index lists them.
+  version, as the index lists them, and `--build fpm` (or `fobis`, `cmake`, `make`) keeps the packages built with
+  that build system.
 - **A followed index is named by its own `name`** (`mylab:kinds`), with a short suffix when two followed indexes
   share a name: `fobis search` prints the qualified names to use.
 - **Private indexes:** a git index is read with your git credentials (an SSH URL, a credential helper), like any
@@ -90,8 +91,9 @@ fobis add https://github.com/szaghi/PENF --tag v2.0.1
   project (see [CMake, make and other packages](#cmake-make-and-other-packages)).
 - **The fobos is edited line by line:** its comments and layout are kept, and a comment line records the index the
   name came from.
-- **Your project is a FoBiS project:** `add` writes into its fobos. The package added can be built with FoBiS, fpm,
-  CMake or make: see [how a dependency is built](#how-a-dependency-is-built).
+- **In a FoBiS project** `add` writes into the fobos, and the package added can be built with FoBiS, fpm, CMake or
+  make: see [how a dependency is built](#how-a-dependency-is-built). In an fpm project it writes into `fpm.toml`: see
+  [fpm projects](#fpm-projects).
 
 ## Update or remove a dependency
 
@@ -108,6 +110,36 @@ fobis remove quad
   The next `fetch` drops it from the build; its clone stays in `.fobis_deps/NAME` until you delete it.
 - **`fetch --frozen`** checks every dependency out at its locked commit, for a checkout that keeps `.fobis_deps/`
   (see [dependencies](./dependencies)).
+
+## fpm projects
+
+In a project with an `fpm.toml` and no fobos, `add` and `remove` edit `fpm.toml` (`--fpm` chooses it when the
+project has both). The index finds the package; fpm fetches and builds it:
+
+```bash
+fobis search --build fpm json
+fobis add M_CLI2
+fpm build
+fobis remove M_CLI2
+```
+
+```toml
+[dependencies]
+# added by fobis add from index szaghi
+M_CLI2 = { git = "https://github.com/urbanjost/M_CLI2", tag = "1.0.0" }
+```
+
+- **The newest tag is pinned exactly:** fpm takes a `tag`, `rev` or `branch`, not a range, so `--semver` is refused.
+  To move to a newer version, add the package again with `--force`. `--dev` writes into `[dev-dependencies]`.
+- **The name is the package's own:** fpm requires the dependency's key to be the `name` in the package's `fpm.toml`,
+  so `add` reads it there (urbanjost's `M_change` repository is `M_match`) and refuses `--as`.
+- **The package must have an fpm.toml at that version:** fpm builds nothing else. A package with only a fobos, a
+  CMake or make build, or published as release archives is refused, with the build systems it has.
+- **fpm does the rest:** the package's own dependencies, its build and its lock are fpm's; `transitive`, `fetch`,
+  `fobos.lock` and the module-collision check are FoBiS's and do not apply. An index entry's `mirrors` cannot be
+  written (fpm has none).
+- **Comments and layout of `fpm.toml` are kept:** an entry is one line. An entry you wrote as a
+  `[dependencies.NAME]` table, or over several lines, is left to you.
 
 ## Publish your package in an index
 

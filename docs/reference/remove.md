@@ -18,6 +18,7 @@ Arguments: `NAME`
 | Option | Value | Default | Description |
 |---|---|---|---|
 | `--fobos`, `-f` | TEXT | `fobos` | The fobos to edit. |
+| `--fpm` |  |  | Edit fpm.toml (the default when the project has one and no fobos). |
 | `--json` |  |  | Machine-readable output. |
 
 <!-- cli:end -->

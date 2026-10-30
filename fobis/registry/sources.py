@@ -48,6 +48,7 @@ class SourceInfo:
     license: str = ""
     description: str = ""
     other_tags: list[str] = field(default_factory=list)  # tags that are not versions
+    builds: list[str] = field(default_factory=list)  # build systems with a manifest in the tree (index.BUILD_SYSTEMS)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -57,6 +58,7 @@ class SourceInfo:
             "latest": self.latest,
             "name": self.name,
             "backend": self.backend,
+            "builds": self.builds,
             "modules": self.modules,
             "license": self.license,
             "description": self.description,
@@ -123,6 +125,19 @@ def scan_modules(root: str, provided: bool = True) -> list[str]:
                 continue
             modules.update(m.lower() for m in _MODULE.findall(text))
     return sorted(modules)
+
+
+_BUILD_FILES = (
+    ("fobis", ("fobos",)),
+    ("fpm", ("fpm.toml",)),
+    ("cmake", ("CMakeLists.txt",)),
+    ("make", ("GNUmakefile", "Makefile", "makefile", "configure")),
+)
+
+
+def build_systems(root: str) -> list[str]:
+    """Every build system a source tree carries a manifest for, in `detect_backend`'s order of preference."""
+    return [b for b, files in _BUILD_FILES if any(os.path.isfile(os.path.join(root, f)) for f in files)]
 
 
 def detect_backend(root: str) -> str:
@@ -250,6 +265,7 @@ def inspect_tree(root: str, info: SourceInfo) -> SourceInfo:
         declared = ""  # fpm new's placeholder or a file name: the license file tells
     info.license = info.license or declared or detect_license(root)
     info.backend = detect_backend(root)
+    info.builds = build_systems(root)
     info.modules = scan_modules(library_dir(root, info.backend))
     return info
 

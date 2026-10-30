@@ -69,6 +69,7 @@ def test_dotted_package_name_round_trip():
         ('[package.a]\ndescription = "no source"\n', "'source' (the package URL) is required"),
         ('[package.a]\nsource = "u"\nversion = "1.0"\n', "unknown key(s) version"),
         ('[package."a b"]\nsource = "u"\n', "is not valid"),
+        ('[package.a]\nsource = "u"\nbuilds = ["scons"]\n', "builds: scons (known: fobis, fpm, cmake, make)"),
         ('[package.a]\nsource = "u"\nprovides = "m"\nmirrors = [1]\n', "mirrors must be a list of strings"),
         ("schema = [\n", "not valid TOML"),
     ],
@@ -435,3 +436,29 @@ def test_fpm_package_provides_its_library_dir_only(tmp_path):
     assert inspect_tree(str(tmp_path), SourceInfo(url="", provider="git")).modules == ["m_strings"]
     (tmp_path / "fpm.toml").write_text('name = "app"\n[library]\nsource-dir = "../outside"\n')
     assert inspect_tree(str(tmp_path), SourceInfo(url="", provider="git")).modules == []
+
+
+def test_builds_round_trip_and_detection(tmp_path):
+    from fobis.registry.sources import build_systems
+
+    index = load_index('[package.a]\nsource = "u"\nbuilds = ["FPM", "cmake"]\n')
+    assert index.packages["a"].builds == ["fpm", "cmake"]
+    assert load_index(dump_index(index)).to_dict() == index.to_dict()
+    for name in ("fpm.toml", "CMakeLists.txt", "fobos", "Makefile"):
+        (tmp_path / name).write_text("")
+    assert build_systems(str(tmp_path)) == ["fobis", "fpm", "cmake", "make"]
+
+
+def test_search_by_build_system(tmp_path, monkeypatch):
+    isolate(monkeypatch, tmp_path)
+    (tmp_path / "idx").mkdir()
+    (tmp_path / "idx" / "index.toml").write_text(
+        'name = "lab"\n[package.a]\nsource = "https://x/a"\nbuilds = ["fobis"]\n'
+        '[package.b]\nsource = "https://x/b"\nbuilds = ["fpm", "cmake"]\n[package.c]\nsource = "https://x/c"\n'
+    )
+    config = str(tmp_path / "config.ini")
+    UserConfig(path=config).set_indexes([("lab", str(tmp_path / "idx"))])
+    code, out = cli("search", "--build", "fpm", "--config", config, "--json")
+    assert code == 0 and [p["name"] for p in json.loads(out)["packages"]] == ["b"]
+    code, out = cli("search", "--build", "scons", "--config", config)
+    assert code == 2 and "one of fobis, fpm, cmake, make" in out

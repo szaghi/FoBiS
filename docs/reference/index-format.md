@@ -18,6 +18,7 @@ description = "Portable kind parameters"
 license     = "MIT"
 keywords    = ["kinds", "portability"]
 provides    = ["kinds", "kinds_io"]
+builds      = ["fobis", "fpm"]
 mirrors     = ["https://github.com/mylab/kinds"]
 
 [package."odbc.f"]
@@ -44,17 +45,20 @@ recipe      = "recipes/odbc.f.toml"
 | `license` | text | An SPDX identifier, shown by `info` and the catalogue. |
 | `keywords` | list of text | Matched by `fobis search`. |
 | `provides` | list of module names | The modules of the package's newest version, searched by `fobis search --module` and `fobis add --module`. Stored lower-case. |
+| `builds` | list of `fobis`, `fpm`, `cmake`, `make` | The build systems the newest version carries a manifest for (`fobos`, `fpm.toml`, `CMakeLists.txt`, a Makefile or `configure`). `fobis search --build fpm` lists the packages an fpm project can use. |
 | `mirrors` | list of URLs | Other copies of the source. `fobis add` copies them into the fobos as `:: mirror=URL[,URL]`, cloned in order when the source fails. |
 | `recipe` | path | A build recipe for a package without a fobos or fpm.toml, relative to the index. `fobis add` copies it into the project. |
 
 ## Rules
 
-- **Unknown keys are refused**, `version` among them: an index never decides which version is built.
+- **Unknown keys are refused**, `version` among them: an index never decides which version is built. A FoBiS older
+  than 3.14 does not know `builds` and refuses an index that has it.
 - **Names** start with a letter or a digit and hold letters, digits, `_`, `.` and `-`. They are compared without
   regard to case. A name holding a dot is written quoted: `[package."odbc.f"]`.
 - **The same source in two indexes** is one package for `add`: a name both list for that source is not ambiguous.
   `search` shows it once per index.
-- **Fields written by hand win:** `fobis index build` fills `description`, `license` and `provides` from each source,
+- **Fields written by hand win:** `fobis index build` fills `description`, `license`, `provides` and `builds` from
+  each source,
   and keeps every value already present in the seeds.
 - **`fobis publish --index` and `fobis index build` rewrite the whole file**, sorted by name: comments of a
   hand-written index are lost.

@@ -18,6 +18,7 @@ Arguments: `TERM`
 | Option | Value | Default | Description |
 |---|---|---|---|
 | `--module` | TEXT |  | Find the packages providing this module. |
+| `--build` | TEXT |  | Only packages built with fobis, fpm, cmake or make (as their index lists). |
 | `--config` | TEXT |  | User configuration file (default ~/.config/fobis/config.ini). |
 | `--fobos`, `-f` | TEXT | `fobos` | Project fobos whose [indexes] are searched first. |
 | `--depth` | INTEGER | `2` | How far 'follows' is walked (0: configured indexes only). |

@@ -774,9 +774,11 @@ fobis remove penf            # the entry, its add comment and the recipe add cop
 
 `fetch` and `build` never read an index: after `add`, every index can disappear and the project still builds.
 `add` copies what the index knows into the fobos: the entry's `mirrors` as `:: mirror=...`, its recipe into
-`recipes/NAME.toml`. `fetch --update` moves within the written range. The project must be a FoBiS project (`add`
-edits its fobos); a dependency with an `fpm.toml` and no fobos is built by fpm (required on PATH), never compiled
-by FoBiS. The index file format: `docs/reference/index-format.md`.
+`recipes/NAME.toml`. `fetch --update` moves within the written range. In an fpm project (an `fpm.toml`, no fobos; `--fpm`
+when both) `add`/`remove` edit `fpm.toml`: `NAME = { git = URL, tag = NEWEST }` under the package's OWN fpm name
+(fpm requires it: no `--as`), exact pins only (no `--semver`), packages without an fpm.toml at that version refused;
+`fobis search --build fpm` lists what fpm can use (index field `builds`, FoBiS >= 3.14). In a FoBiS project a
+dependency with an `fpm.toml` and no fobos is built by fpm (required on PATH), never compiled by FoBiS. The index file format: `docs/reference/index-format.md`.
 
 A source is any URL: a git repository (any host, `file://`), a static web directory serving
 `fortran-releases.toml` (written by `fobis publish --archive DIR`), or a page redirecting to either with

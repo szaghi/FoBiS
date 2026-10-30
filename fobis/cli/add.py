@@ -37,6 +37,9 @@ def cmd_add(
     dev: Annotated[bool, typer.Option("--dev", help="A test-only dependency.")] = False,
     force: Annotated[bool, typer.Option("--force", help="Replace an existing dependency of that name.")] = False,
     fobos: Annotated[str, typer.Option("--fobos", "-f", help="The fobos to edit.")] = "fobos",
+    fpm: Annotated[
+        bool, typer.Option("--fpm", help="Edit fpm.toml (the default when the project has one and no fobos).")
+    ] = False,
     config: _ConfigOpt = None,
     depth: _DepthOpt = 2,
     refresh: _RefreshOpt = False,
@@ -47,8 +50,16 @@ def cmd_add(
     from ..registry.index import RegistryError
     from ..registry.sources import default_name, probe
 
-    if not os.path.isfile(fobos):
-        _fail(f"{fobos} not found (fobis new creates a project with its fobos)")
+    manifest = os.path.join(os.path.dirname(fobos), "fpm.toml")
+    fpm = fpm or (not os.path.isfile(fobos) and os.path.isfile(manifest))
+    if fpm and not os.path.isfile(manifest):
+        _fail(f"{manifest} not found")
+    if not fpm and not os.path.isfile(fobos):
+        _fail(f"{fobos} not found (fobis new creates a project with its fobos; an fpm project has an fpm.toml)")
+    if fpm:
+        for option, value in (("--semver", semver), ("--use", use), ("--mode", mode), ("--as", as_name)):
+            if value:
+                _fail(f"{option} has no meaning in fpm.toml: {_FPM_REFUSED[option]}")
     pins = [k for k, v in (("semver", semver), ("tag", tag), ("rev", rev), ("branch", branch)) if v]
     if len(pins) > 1:
         _fail(f"give one of --semver, --tag, --rev, --branch, not {' and '.join('--' + p for p in pins)}")
@@ -76,6 +87,9 @@ def cmd_add(
         info = probe(url, inspect=False)
     except RegistryError as error:
         _fail(str(error), 1)
+    if fpm:
+        _add_to_fpm(manifest, url, info, entry, tag, rev, branch, dev, force, as_json)
+        return
     name = (as_name or (entry.name if entry else default_name(url))).lower()
     if not _DEP_NAME.match(name):
         _fail(f"{name!r} is not a valid dependency name (use --as NAME)")
@@ -138,3 +152,71 @@ def cmd_add(
         typer.echo(f"warning: {warning}", err=True)
     typer.echo(f"{'Replaced' if replaced else 'Added'} {name} = {spec}")
     typer.echo("Run 'fobis fetch' to fetch it.")
+
+
+_FPM_REFUSED = {
+    "--semver": "fpm takes an exact --tag, --rev or --branch (default: the newest tag)",
+    "--use": "fpm builds every dependency itself",
+    "--mode": "fpm builds every dependency itself",
+    "--as": "fpm requires the package's own name",
+}
+
+
+def _add_to_fpm(manifest, url, info, entry, tag, rev, branch, dev, force, as_json) -> None:
+    """
+    Write the package into fpm.toml as ``NAME = { git = URL, tag = ... }``: fpm fetches and builds it. fpm reads only
+    git sources with an fpm.toml, names a dependency after the package's own ``name`` and takes no version range, so
+    the newest tag is pinned exactly.
+    """
+    from ..fpm import FpmError, _toml_value, load_toml
+    from ..registry.fpmedit import FpmEditError, find, fpm_manifest_at, set_entry
+
+    if info.provider == "manifest":
+        _fail(f"{url} publishes release archives: fpm fetches git repositories only", 1)
+    if tag and tag not in info.versions + info.other_tags:
+        _fail(f"{url} has no tag {tag} (versions: {', '.join(info.versions[:8]) or 'none'})", 1)
+    ref_key, ref = next(((k, v) for k, v in (("tag", tag), ("rev", rev), ("branch", branch)) if v), ("", ""))
+    warning = ""
+    if not ref_key:
+        if info.latest:
+            ref_key, ref = "tag", info.latest
+        else:
+            warning = f"{url} has no semantic-version tag: the dependency follows its default branch (unpinned)"
+    try:
+        text = fpm_manifest_at(url, ref)
+    except OSError as error:
+        _fail(f"{url}: {error}", 1)
+    if text is None:
+        built = f" (built with {', '.join(entry.builds)})" if entry is not None and entry.builds else ""
+        _fail(f"{url} has no fpm.toml at {ref or 'its default branch'}{built}: fpm cannot use it", 1)
+    try:
+        name = str(load_toml(text).get("name") or "")
+    except (FpmError, ValueError) as error:
+        _fail(f"{url}: its fpm.toml is not readable: {error}", 1)
+    if not name:
+        _fail(f"{url}: its fpm.toml has no name", 1)
+    table = "dev-dependencies" if dev else "dependencies"
+    try:
+        if find(manifest, name, table) is not None and not force:
+            _fail(f"{manifest} already has dependency {name} (--force replaces it)")
+        value = _toml_value({"git": url, **({ref_key: ref} if ref_key else {})})
+        comment = f"added by fobis add from index {entry.index}" if entry else ""
+        replaced = set_entry(manifest, name, value, table=table, comment=comment)
+    except FpmEditError as error:
+        _fail(str(error))
+    notes = ["mirrors of the index entry are not written: fpm has no mirrors"] if entry and entry.mirrors else []
+    if as_json:
+        payload = {
+            "name": name,
+            "spec": value,
+            "source": url,
+            "index": entry.index if entry else "",
+            "replaced": replaced,
+        }
+        payload |= {"manifest": manifest, "table": table} | ({"warning": warning} if warning else {})
+        typer.echo(json.dumps(payload | ({"notes": notes} if notes else {}), indent=2))
+        return
+    for message in ([warning] if warning else []) + notes:
+        typer.echo(f"warning: {message}", err=True)
+    typer.echo(f"{'Replaced' if replaced else 'Added'} {name} = {value} in {manifest} [{table}]")
+    typer.echo("fpm fetches it at the next fpm build.")

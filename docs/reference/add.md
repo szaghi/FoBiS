@@ -28,6 +28,7 @@ Arguments: `PACKAGE`
 | `--dev` |  |  | A test-only dependency. |
 | `--force` |  |  | Replace an existing dependency of that name. |
 | `--fobos`, `-f` | TEXT | `fobos` | The fobos to edit. |
+| `--fpm` |  |  | Edit fpm.toml (the default when the project has one and no fobos). |
 | `--config` | TEXT |  | User configuration file (default ~/.config/fobis/config.ini). |
 | `--depth` | INTEGER | `2` | How far 'follows' is walked (0: configured indexes only). |
 | `--refresh` |  |  | Fetch the indexes again instead of using the cache. |

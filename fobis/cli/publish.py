@@ -111,6 +111,7 @@ def cmd_publish(
             description=info.description,
             license=info.license,
             provides=list(info.modules),
+            builds=list(info.builds),
             keywords=old.keywords if old else [],
             mirrors=old.mirrors if old else [],
             recipe=old.recipe if old else "",

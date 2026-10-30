@@ -294,6 +294,10 @@ def _ecosystem_seeds(config: str | None) -> list[tuple[str, str]]:
 def cmd_search(
     term: Annotated[str, typer.Argument(help="Words matched against names, descriptions and keywords.")] = "",
     module: Annotated[str | None, typer.Option("--module", help="Find the packages providing this module.")] = None,
+    build: Annotated[
+        str | None,
+        typer.Option("--build", help="Only packages built with fobis, fpm, cmake or make (as their index lists)."),
+    ] = None,
     config: _ConfigOpt = None,
     fobos: _FobosOpt = "fobos",
     depth: _DepthOpt = 2,
@@ -301,10 +305,16 @@ def cmd_search(
     as_json: _JsonOpt = False,
 ) -> None:
     """Search the configured package indexes (and the indexes they follow)."""
+    from ..registry.index import BUILD_SYSTEMS
+
+    if build is not None and build.lower() not in BUILD_SYSTEMS:
+        _fail(f"--build {build}: one of {', '.join(BUILD_SYSTEMS)}")
     indexes = index_set(config, fobos, depth, refresh)
     found = indexes.providers(module) if module else indexes.search(term)
     if term and module:
         found = [p for p in found if p in indexes.search(term)]
+    if build is not None:  # an index built before `builds` existed lists none: those packages are not shown
+        found = [p for p in found if build.lower() in p.builds]
     if as_json:
         _echo_json({"packages": [p.to_dict() for p in found], "errors": indexes.errors})
         return
@@ -353,7 +363,7 @@ def cmd_info(
     if info.description:
         typer.echo(f"  summary   : {info.description}")
     typer.echo(f"  license   : {info.license or 'unknown'}")
-    typer.echo(f"  build     : {info.backend or 'not recognised'}")
+    typer.echo(f"  build     : {', '.join(info.builds) or 'not recognised'}")
     shown = ", ".join(info.versions[:8]) + (f" (+{len(info.versions) - 8} older)" if len(info.versions) > 8 else "")
     typer.echo(f"  versions  : {shown or 'none (no semantic-version tag)'}")
     typer.echo(f"  modules   : {', '.join(info.modules) if info.modules else 'none found'}")
