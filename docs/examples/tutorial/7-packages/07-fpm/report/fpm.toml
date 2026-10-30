@@ -1,0 +1,6 @@
+# a colleague's report generator, built with fpm
+name    = "report"
+version = "0.1.0"
+
+[build]
+auto-tests = false

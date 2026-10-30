@@ -1,0 +1,2 @@
+$ cd ~/report && fpm run 2>/dev/null
+ANNUAL REPORT

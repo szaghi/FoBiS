@@ -60,3 +60,5 @@ installs them into `.fobis_deps/.prefix`:
 [how a dependency is built](/cookbook/packages#how-a-dependency-is-built),
 [CMake, make and other packages](/cookbook/packages#cmake-make-and-other-packages).
 :::
+
+Next: [an fpm project](./07-fpm).

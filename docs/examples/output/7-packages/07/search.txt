@@ -1,0 +1,3 @@
+$ fobis search --build fpm
+lab:strings                  file://~/remotes/strings.git
+    Case conversion of strings

@@ -1,0 +1,11 @@
+$ cat ~/report/fpm.toml
+# a colleague's report generator, built with fpm
+name    = "report"
+version = "0.1.0"
+
+[build]
+auto-tests = false
+
+[dependencies]
+# added by fobis add from index lab
+strings = { git = "file://~/remotes/strings.git", tag = "v1.0.0" }

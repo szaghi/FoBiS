@@ -1,0 +1,3 @@
+$ cd ~/report && fobis add cmath
+Error: file://~/remotes/cmath.git has no fpm.toml at v1.0.0 (built with cmake): fpm cannot use it
+[exit status 1]

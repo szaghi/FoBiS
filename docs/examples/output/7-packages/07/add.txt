@@ -1,0 +1,3 @@
+$ cd ~/report && fobis add strings
+Added strings = { git = "file://~/remotes/strings.git", tag = "v1.0.0" } in fpm.toml [dependencies]
+fpm fetches it at the next fpm build.
