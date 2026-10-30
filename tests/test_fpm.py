@@ -17,7 +17,7 @@ import sys
 import pytest
 
 from fobis.fobis import run_fobis
-from fobis.fpm import FpmError, fobos_from_fpm, parse_toml
+from fobis.fpm import FpmError, dump_toml, fobos_from_fpm, parse_toml
 
 HERE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fpm")
 
@@ -30,6 +30,14 @@ def test_reader_matches_tomllib(name):
     with open(os.path.join(HERE, f"{name}.toml"), encoding="utf-8") as handle:
         text = handle.read()
     assert parse_toml(text) == tomllib.loads(text)
+
+
+@pytest.mark.parametrize("name", ["StringiFor", "FLAP", "VTKFortran"])
+def test_dump_toml_round_trip(name):
+    # the fpm backend rewrites a package's manifest (no examples) with dump_toml: nothing else may change
+    with open(os.path.join(HERE, f"{name}.toml"), encoding="utf-8") as handle:
+        manifest = parse_toml(handle.read())
+    assert parse_toml(dump_toml(manifest)) == manifest
 
 
 def test_reader_corners():

@@ -248,6 +248,10 @@ def _toml_string(value: str) -> str:
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n") + '"'
 
 
+def _toml_key(key: str) -> str:
+    return key if re.match(r"^[A-Za-z0-9_-]+$", key) else _toml_string(key)
+
+
 def _toml_value(value: Any) -> str:
     if isinstance(value, bool):
         return "true" if value else "false"
@@ -256,8 +260,30 @@ def _toml_value(value: Any) -> str:
     if isinstance(value, list):
         return "[" + ", ".join(_toml_value(v) for v in value) + "]"
     if isinstance(value, dict):
-        return "{ " + ", ".join(f"{k} = {_toml_value(v)}" for k, v in value.items()) + " }"
+        return "{ " + ", ".join(f"{_toml_key(k)} = {_toml_value(v)}" for k, v in value.items()) + " }"
     return _toml_string(str(value))
+
+
+def dump_toml(manifest: dict) -> str:
+    """
+    A manifest as TOML: top-level values, then a ``[table]`` per table and a ``[[table]]`` per element of an array of
+    tables; deeper tables are written inline. Comments and layout are not kept (it writes a parsed manifest).
+    """
+
+    def is_tables(value: Any) -> bool:
+        return isinstance(value, list) and bool(value) and all(isinstance(v, dict) for v in value)
+
+    def body(table: dict) -> list[str]:
+        return [f"{_toml_key(k)} = {_toml_value(v)}" for k, v in table.items()]
+
+    lines = body({k: v for k, v in manifest.items() if not isinstance(v, dict) and not is_tables(v)})
+    for key, value in manifest.items():
+        if isinstance(value, dict):
+            lines += ["", f"[{_toml_key(key)}]", *body(value)]
+        elif is_tables(value):
+            for element in value:
+                lines += ["", f"[[{_toml_key(key)}]]", *body(element)]
+    return "\n".join(lines) + "\n"
 
 
 # ── fpm.toml -> fobos ──────────────────────────────────────────────────────────

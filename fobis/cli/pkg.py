@@ -103,7 +103,7 @@ def install_package(
         try:
             artifacts = install(
                 backend, src, toolchain, prefix, name, chosen or "0", facts["description"], mode=mode, recipe=recipe,
-                prefixes=tuple(prefixes), log=log,
+                prefixes=tuple(prefixes), log=log, warn=say,
             )  # fmt: skip
         except BackendError as error:
             shutil.rmtree(prefix, ignore_errors=True)

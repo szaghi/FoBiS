@@ -6,17 +6,20 @@ only with the compiler that wrote it). *Consume*: one contract whatever the buil
 prefix with ``lib/`` (libraries), ``include/`` (module files), ``bin/`` (applications), a ``.pc`` file per library
 (``lib/pkgconfig``) and the list of modules provided, so a FoBiS, CMake or make consumer links it the same way.
 
-Backends: ``fobis`` (the package's fobos, the mode matching the compiler family), ``fpm`` (``fpm install`` when fpm is
-on PATH, else the fpm.toml imported as a fobos and built by FoBiS), ``cmake`` and ``recipe`` (see `recipe`), ``make``.
+Backends: ``fobis`` (the package's fobos, the mode matching the compiler family), ``fpm`` (fpm itself, required on
+PATH: a package without a fobos is built by its own manifest, never by FoBiS), ``cmake`` and ``recipe`` (see `recipe`),
+``make``.
 """
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
 import shutil
 import subprocess
+import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
@@ -272,126 +275,93 @@ def drop_test_programs(src: str, log: Log = _quiet) -> None:
 # ── fpm ───────────────────────────────────────────────────────────────────────
 
 
-def install_fpm(src: str, toolchain: Toolchain, prefix: str, log: Log = _quiet) -> None:
-    """``fpm install`` with the toolchain when fpm is on PATH, else the manifest imported as a fobos (FoBiS builds)."""
+# position-independent code, so a fetched fpm library also links into a shared library of the project
+PIC_FLAGS = {"gnu": "-fPIC", "intel": "-fPIC", "intel_nextgen": "-fPIC", "nvfortran": "-fPIC", "pgi": "-fPIC",
+             "amd": "-fPIC", "opencoarrays-gnu": "-fPIC"}  # fmt: skip
+
+
+def install_fpm(
+    src: str,
+    toolchain: Toolchain,
+    prefix: str,
+    log: Log = _quiet,
+    applications: bool = True,
+    warn: Log = _quiet,
+    name: str = "",
+) -> None:
+    """
+    Build an fpm package with fpm itself (its manifest is the build: flags, preprocessing, C sources, its own
+    dependencies) and the consumer's compiler; fpm missing is an error: FoBiS never compiles an fpm package itself.
+
+    The library is built first, alone: a copy of the package whose manifest drops executables and examples (fpm
+    compiles every program it finds, and a demo that does not compile, as in M_CLI2 1.0.0, must not stop a library
+    that does; tests are not built without ``--tests``). Every library archive and module file of its build tree is
+    installed (fpm puts the objects of the package's dependencies in the package's archive). With *applications*,
+    ``fpm install`` then installs the programs of the manifest without its examples; a failure there is a warning.
+    """
     fpm = shutil.which("fpm")
-    if fpm:
-        flags = " ".join(f for f in (toolchain.cflags,) if f)
-        cmd = [
-            fpm,
-            "install",
-            "--prefix",
-            os.path.abspath(prefix),
-            "--compiler",
-            toolchain.path,
-            "--profile",
-            "release",
-        ]
-        cmd += ["--flag", flags] if flags else []
-        cmd += ["--c-compiler", toolchain.cc] if toolchain.cc and shutil.which(toolchain.cc) else []
-        log(run(cmd, src).strip())
-        # fpm installs a library only when the manifest says [install] library = true: the import builds it
-        if collect(prefix, "", "").modules or not os.path.isdir(os.path.join(src, "src")):
+    if not fpm:
+        raise BackendError(
+            "it is an fpm package and fpm is not on PATH: install fpm (https://fpm.fortran-lang.org) to build it"
+        )
+    flags = " ".join(f for f in (PIC_FLAGS.get(toolchain.family, ""), toolchain.cflags) if f)
+    options = ["--compiler", toolchain.path, "--profile", "release"]
+    options += ["--flag", flags] if flags else []
+    options += ["--c-compiler", toolchain.cc] if toolchain.cc and shutil.which(toolchain.cc) else []
+    with tempfile.TemporaryDirectory(prefix="fobis-fpm-") as scratch:
+        work = os.path.join(scratch, os.path.basename(os.path.normpath(src)))
+        shutil.copytree(
+            src, work, symlinks=True, ignore=lambda d, names: {".git", "build"} & set(names) if d == src else []
+        )
+        with open(os.path.join(work, "fpm.toml"), encoding="utf-8") as fh:
+            original = fh.read()
+        _write_manifest(work, original, programs=False)
+        log(run([fpm, "build", *options], work).strip())
+        _install_build_tree(os.path.join(work, "build"), prefix)
+        if not applications:
             return
-        log("fpm installed no library ([install] library is false): building it from the imported manifest")
-    install_fpm_imported(src, toolchain, prefix, log)
+        _write_manifest(work, original, programs=True)
+        # fpm 0.12 cannot read back the build/cache.toml it wrote (a git dependency's rev): it resolves again
+        with contextlib.suppress(FileNotFoundError):
+            os.remove(os.path.join(work, "build", "cache.toml"))
+        try:
+            log(run([fpm, "install", "--prefix", os.path.abspath(prefix), *options], work).strip())
+        except BackendError as error:
+            warn(f"warning: the applications of {name or os.path.basename(src)} were not installed: {error}")
 
 
-def install_fpm_imported(src: str, toolchain: Toolchain, prefix: str, log: Log = _quiet) -> None:
-    """
-    Build an fpm package without fpm: its manifest imported as ``fobos.fpm-import`` (FoBiS's import reproduces fpm's
-    flags), the release mode built, then the package assembled as fpm installs it: ``lib<name>.a`` from the objects
-    of the library's source directory, the module files it defines, and the programs of its executable directories
-    (never tests or examples).
-    """
-    from ..fpm import load_toml
-    from .sources import FORTRAN_SUFFIXES, scan_modules
+def _write_manifest(root: str, text: str, programs: bool) -> None:
+    """The package's fpm.toml without its examples and, unless *programs*, without its executables."""
+    from ..fpm import FpmError, dump_toml, load_toml
 
-    with open(os.path.join(src, "fpm.toml"), encoding="utf-8") as fh:
-        manifest = load_toml(fh.read())
-    name = str(manifest.get("name") or os.path.basename(src))
-    fobos = "fobos.fpm-import"
-    run(_fobis("fpm", "import", "--compiler", toolchain.family, "-o", fobos, "--force"), src)
-    modes = fobos_modes(src, fobos)
-    if "lib-static" in modes:  # a module named after the package: the import made a library mode
-        install_fobis(src, toolchain, prefix, mode="lib-static", fobos=fobos, log=log)
-        _fpm_applications(src, manifest, prefix, modes, toolchain, fobos, log)
-        return
-    mode = next((m for m in modes if m.endswith("-release")), modes[0])
-    library = manifest.get("library", {}) if isinstance(manifest.get("library"), dict) else {}
-    lib_src = os.path.join(src, str(library.get("source-dir", "src")))
-    # no library mode: a program using every module of the library makes FoBiS compile them all
-    stub = os.path.join(lib_src, "fobis_pkg_all_modules.f90")
-    modules = scan_modules(lib_src, provided=False) if os.path.isdir(lib_src) else []
-    if modules:
-        with open(stub, "w", encoding="utf-8") as fh:
-            fh.write("program fobis_pkg_all_modules\n" + "".join(f"use {m}\n" for m in modules) + "end program\n")
-    args = ["build", "-f", fobos, "--mode", mode, "--fc", toolchain.path, "--force-compile"]
-    args += ["--target", os.path.relpath(stub, src)] if modules else []
-    if toolchain.cflags or toolchain.lflags:
-        args += ["--variant", "pkg", "--variant-cflags", toolchain.cflags, "--variant-lflags", toolchain.lflags]
-    log(run(_fobis(*args), src).strip())
-    facts = json.loads(_after_brace(run(_fobis("introspect", "--buildoptions", "-f", fobos, "--mode", mode), src)))
-    options = facts["buildoptions"]
-    build_dir = os.path.normpath(os.path.join(src, options["build_dir"]))
-    obj_dir = os.path.join(build_dir, options["obj_dir"])
-    mod_dir = os.path.join(build_dir, options["mod_dir"])
-    if os.path.isdir(lib_src):
-        objects = []
-        for dirpath, _dirnames, filenames in os.walk(lib_src):
+    try:
+        manifest = load_toml(text)
+    except (FpmError, ValueError) as error:
+        raise BackendError(f"{os.path.join(root, 'fpm.toml')}: {error}") from error
+    build = manifest.get("build") if isinstance(manifest.get("build"), dict) else {}
+    manifest["build"] = {**build, "auto-examples": False} | ({} if programs else {"auto-executables": False})
+    manifest.pop("example", None)
+    if not programs:
+        manifest.pop("executable", None)
+    with open(os.path.join(root, "fpm.toml"), "w", encoding="utf-8") as fh:
+        fh.write(dump_toml(manifest))
+
+
+def _install_build_tree(build: str, prefix: str) -> None:
+    """Every library archive and module file fpm made (its fetched dependencies' sources aside)."""
+    for directory in sorted(os.listdir(build)) if os.path.isdir(build) else []:
+        if directory == "dependencies" or not os.path.isdir(os.path.join(build, directory)):
+            continue
+        for dirpath, _dirnames, filenames in os.walk(os.path.join(build, directory)):
             for filename in sorted(filenames):
-                if filename.lower().endswith((*FORTRAN_SUFFIXES, ".c")) and filename != os.path.basename(stub):
-                    stem = filename if filename.endswith(".c") else os.path.splitext(filename)[0]
-                    qualified = os.path.relpath(os.path.join(dirpath, filename), src).replace(os.sep, "_")
-                    for candidate in (stem + ".o", qualified + ".o"):
-                        if os.path.isfile(os.path.join(obj_dir, candidate)):
-                            objects.append(os.path.join(obj_dir, candidate))
-                            break
-        if objects:
-            os.makedirs(os.path.join(prefix, "lib"), exist_ok=True)
-            archive = os.path.join(prefix, "lib", f"lib{name}.a")
-            run(["ar", "rcs", archive, *objects], src, log)
-        os.makedirs(os.path.join(prefix, "include"), exist_ok=True)
-        for module in scan_modules(lib_src, provided=False):
-            mod = os.path.join(mod_dir, module + ".mod")
-            if os.path.isfile(mod):
-                shutil.copy2(mod, os.path.join(prefix, "include"))
-    if modules:
-        os.remove(stub)
-    _fpm_applications(src, manifest, prefix, modes, toolchain, fobos, log)
-
-
-def _fpm_applications(src, manifest, prefix, modes, toolchain, fobos, log) -> None:
-    """Build and copy the programs of the fpm executable directories (``app/`` by default): never tests or examples."""
-    app_dirs = [
-        os.path.join(src, str(e.get("source-dir", "app")))
-        for e in (manifest.get("executable") or [{"source-dir": "app"}])
-        if isinstance(e, dict)
-    ]
-    mode = next((m for m in modes if m.endswith("-release")), modes[0])
-    build_dir = None
-    for app_dir in sorted({d for d in app_dirs if os.path.isdir(d)}):
-        for filename in sorted(os.listdir(app_dir)):
-            if not filename.lower().endswith(FORTRAN_PROGRAM_SUFFIXES):
-                continue
-            target = os.path.relpath(os.path.join(app_dir, filename), src)
-            log(
-                run(
-                    _fobis("build", "-f", fobos, "--mode", mode, "--fc", toolchain.path, "--target", target), src
-                ).strip()
-            )
-            if build_dir is None:
-                facts = json.loads(
-                    _after_brace(run(_fobis("introspect", "--buildoptions", "-f", fobos, "--mode", mode), src))
-                )
-                build_dir = os.path.normpath(os.path.join(src, facts["buildoptions"]["build_dir"]))
-            binary = os.path.join(build_dir, os.path.splitext(filename)[0])
-            if os.path.isfile(binary) and os.access(binary, os.X_OK):
-                os.makedirs(os.path.join(prefix, "bin"), exist_ok=True)
-                shutil.copy2(binary, os.path.join(prefix, "bin"))
-
-
-FORTRAN_PROGRAM_SUFFIXES = (".f90", ".f", ".f95", ".f03", ".f08", ".fpp", ".for")
+                if filename.startswith("lib") and filename.endswith(".a"):
+                    target = os.path.join(prefix, "lib")
+                elif filename.endswith((".mod", ".smod")):
+                    target = os.path.join(prefix, "include")
+                else:
+                    continue
+                os.makedirs(target, exist_ok=True)
+                shutil.copy2(os.path.join(dirpath, filename), target)
 
 
 def _after_brace(text: str) -> str:
@@ -413,13 +383,15 @@ def install(
     recipe: object = None,
     prefixes: tuple[str, ...] = (),
     log: Log = _quiet,
+    applications: bool = True,
+    warn: Log = _quiet,
 ) -> Artifacts:
     """Build and install a package with *backend*; the `Artifacts` of the prefix (``.pc`` files written)."""
     os.makedirs(prefix, exist_ok=True)
     if backend == "fobis":
         install_fobis(src, toolchain, prefix, mode=mode, log=log)
     elif backend == "fpm":
-        install_fpm(src, toolchain, prefix, log=log)
+        install_fpm(src, toolchain, prefix, log=log, applications=applications, warn=warn, name=name)
     elif backend in ("cmake", "make", "recipe"):
         from .recipe import install_with
 

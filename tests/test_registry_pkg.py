@@ -199,22 +199,6 @@ def test_tests_and_examples_are_never_installed(tmp_path):
     assert sorted(os.listdir(tmp_path / "bin")) == ["hello"]
 
 
-def test_install_fpm_package_imported_without_fpm(tmp_path):
-    url = remote(
-        tmp_path,
-        "vecs",
-        {**FPM_LIB, "test/check.f90": "program check\nuse vecs\nend program check\n"},
-        tags=("v0.3.0",),
-    )
-    src = tmp_path / "vecs-src"
-    subprocess.run(["git", "clone", "-q", url, str(src)], check=True)
-    prefix = tmp_path / "prefix"
-    backends.install_fpm_imported(str(src), detect("gnu"), str(prefix))
-    artifacts = backends.collect(str(prefix), "vecs", "0.3.0")
-    assert artifacts.modules == ["vecs"] and [os.path.basename(p) for p in artifacts.libraries] == ["libvecs.a"]
-    assert artifacts.executables == []  # the test program is not an application
-
-
 def test_package_without_a_mode_for_the_compiler(tmp_path):
     files = fobis_package("kinds")
     files["fobos"] = files["fobos"].replace("compiler = gnu", "compiler = intel_nextgen")

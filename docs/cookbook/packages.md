@@ -74,6 +74,8 @@ fobis add --module stringifor_string_t
   otherwise. A source with no version tag is added unpinned, with a warning.
 - **The fobos is edited line by line:** its comments and layout are kept, and a comment line records the index the
   name came from.
+- **Your project is a FoBiS project:** `add` writes into its fobos. The package added can be built with FoBiS, fpm,
+  CMake or make: see [how a dependency is built](#how-a-dependency-is-built).
 
 ## Publish your package in an index
 
@@ -165,12 +167,41 @@ dependency and fetches them:
 - **An exact pin of your project wins** (`tag=`, `branch=`, `rev=`): a dependency's requirement it violates is a
   warning.
 - **Test-only and path dependencies of a dependency are not followed**, nor the dependencies of a release-manifest
-  source.
+  source. The dependencies of an fpm package are fetched by fpm (see
+  [how a dependency is built](#how-a-dependency-is-built)).
 - **Two dependencies defining the same module** are reported by every `fetch` before anything compiles: they could
   not be linked into one program.
 
 When a module is missing, `fobis check` and `fobis build --explain` name the package of your indexes that provides
 it, with the `fobis add INDEX:NAME` command that adds it (read from the cached indexes: no network).
+
+## How a dependency is built
+
+`fetch` builds each dependency with its own build system, using the compiler of your project's default mode, and
+`build` links what it installed:
+
+| The dependency has | It is built by |
+|---|---|
+| a `recipe=` (yours, or copied from an index by `add`) | the recipe |
+| a fobos | FoBiS, as part of your project (`use=sources`) or as a library (`use=fobos`) |
+| an `fpm.toml` and no fobos | fpm itself: `fpm build --profile release --compiler <your compiler>` |
+| a `CMakeLists.txt` or a `Makefile` only | CMake or make (see [below](#cmake-make-and-other-packages)) |
+
+An fpm package is installed into `.fobis_deps/.prefix/NAME`: its library archive and module files. Your build compiles
+none of its sources and none of its programs.
+
+- **fpm is required** for a dependency that has no fobos: without fpm on PATH, `fetch` fails and says so. FoBiS
+  never compiles an fpm package itself.
+- **Its own dependencies come with it:** fpm fetches what the package's `fpm.toml` requires and puts their objects
+  in the package's archive. FoBiS does not see them: `fobos.lock` and `--frozen` pin the package, not what fpm
+  fetched for it.
+- **The same module twice is an error:** when your fobos also fetches a package that an fpm dependency brings with
+  it, `fetch` names both and fails before anything compiles. Keep one of them.
+- **Only the compiler is passed to fpm**, with the release profile and `-fPIC`: the module files are your compiler's.
+  Your mode's other flags are not, so a flag changing the binary interface (`-fdefault-real-8`) does not reach an
+  fpm dependency.
+- **Examples and programs are not built:** fpm builds the library from a copy of the package whose manifest drops
+  them, so a demo that does not compile cannot stop the library.
 
 ## Install a package for your compiler
 
@@ -201,8 +232,9 @@ target_link_libraries(survey PkgConfig::QUAD)
 - **`uninstall` removes exactly what the install wrote**, recorded in `receipts.json`. `upgrade` stays within the
   range you asked for and on the same toolchain.
 - **FoBiS packages** are built in the mode of their fobos that uses your compiler family (a static library first),
-  after `fobis fetch` of their own dependencies. **fpm packages** use `fpm install` when fpm is on PATH, else their
-  manifest is imported and built by FoBiS.
+  after `fobis fetch` of their own dependencies. **fpm packages** are built by fpm, which must be on PATH: the
+  library first, then the applications with `fpm install` (an application that does not compile is a warning, the
+  library stays installed).
 - **Shared libraries:** the generated `.pc` files carry no run path (as usual for pkg-config). Link `--static`, or set
   `LD_LIBRARY_PATH` to the library directory.
 - `fobis install REPO` is unchanged: it installs into a prefix and keeps no record.

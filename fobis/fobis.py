@@ -611,9 +611,10 @@ def _resolve_transitive(configuration, fetcher, deps, print_n, print_w):
 
 def _built_by_backend(configuration, fetcher, name, parsed, dep_path, print_n, print_w):
     """
-    A dependency FoBiS cannot compile as sources (no fobos and a CMakeLists.txt or Makefile, or a ``recipe=`` in its
-    spec) is built and installed into ``<deps_dir>/.prefix/<name>`` with the compiler of the project's default mode;
-    the build then reads its module files and libraries from there. Returns that prefix, or None.
+    A dependency without a fobos is built by its own build system, never compiled by FoBiS as sources: an fpm.toml
+    -> fpm (required on PATH), else a CMakeLists.txt or Makefile, or a ``recipe=`` in its spec (which wins). It is
+    installed into ``<deps_dir>/.prefix/<name>`` with the compiler of the project's default mode; the build then reads
+    its module files and libraries from there. Returns that prefix, or None (a fobos: FoBiS compiles it).
     """
     import json as _json
 
@@ -636,7 +637,7 @@ def _built_by_backend(configuration, fetcher, name, parsed, dep_path, print_n, p
         fetcher.failures.append(f"{name}: {error}")
         return None
     backend = recipe.backend if recipe else detect_backend(dep_path)
-    if backend not in ("cmake", "make", "recipe") or (
+    if backend not in ("fpm", "cmake", "make", "recipe") or (
         recipe is None and os.path.isfile(os.path.join(dep_path, "fobos"))
     ):
         return None
@@ -656,7 +657,16 @@ def _built_by_backend(configuration, fetcher, name, parsed, dep_path, print_n, p
     if os.path.isdir(prefix):
         shutil.rmtree(prefix)
     try:
-        install(backend, os.path.abspath(dep_path), toolchain, os.path.abspath(prefix), name, "0", recipe=recipe)
+        install(
+            backend,
+            os.path.abspath(dep_path),
+            toolchain,
+            os.path.abspath(prefix),
+            name,
+            "0",
+            recipe=recipe,
+            applications=False,
+        )  # fmt: skip  (a dependency is linked: its programs are not needed)
     except BackendError as error:
         print_w(f"Error: {name}: {error}")
         fetcher.failures.append(f"{name}: {backend} build failed")
@@ -667,15 +677,24 @@ def _built_by_backend(configuration, fetcher, name, parsed, dep_path, print_n, p
 def _check_module_collisions(deps_info, fetcher, print_w) -> None:
     """
     Two fetched dependencies defining the same module cannot be linked into one program: report it before anything
-    compiles (a failure of the fetch). Modules of tests, examples and vendored copies are not counted.
+    compiles (a failure of the fetch). Modules of tests, examples and vendored copies are not counted. A dependency
+    built by its own build system counts the module files it installed: for an fpm package these include the
+    packages fpm fetched for it, which FoBiS never sees otherwise.
     """
     from .registry.sources import scan_modules
 
     owners: dict[str, list[str]] = {}
     for dep in deps_info:
-        if os.path.isdir(dep["path"]):
-            for module in scan_modules(dep["path"]):
-                owners.setdefault(module, []).append(dep["name"])
+        if dep.get("prefix") and os.path.isdir(dep["prefix"]):
+            modules = sorted(
+                {f[:-4].lower() for _d, _s, files in os.walk(dep["prefix"]) for f in files if f.endswith(".mod")}
+            )
+        elif os.path.isdir(dep["path"]):
+            modules = scan_modules(dep["path"])
+        else:
+            modules = []
+        for module in modules:
+            owners.setdefault(module, []).append(dep["name"])
     for module, names in sorted(owners.items()):
         if len(names) > 1:
             print_w(
