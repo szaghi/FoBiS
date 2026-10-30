@@ -1,0 +1,3 @@
+$ fobis index check ~/typo.toml
+Error: index ~/typo.toml: [package.kinds]: unknown key(s) keyword
+[exit status 2]

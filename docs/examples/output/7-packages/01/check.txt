@@ -1,0 +1,2 @@
+$ fobis index check ~/lab-index/index.toml --online
+~/lab-index/index.toml: valid index 'lab', 2 package(s)

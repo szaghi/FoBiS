@@ -1,0 +1,9 @@
+$ cat ~/vendor-index/index.toml
+# a vendor's index: its own kinds, and it follows the lab's
+schema  = 1
+name    = "vendor"
+follows = ["~/lab-index"]
+
+[package.kinds]
+source      = "file://~/remotes/vendor-kinds.git"
+description = "A vendor's real kinds, with its own tuning"

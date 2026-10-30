@@ -1,0 +1,16 @@
+[project]
+name    = kinds
+summary = Portable real kinds
+license = MIT
+
+[modes]
+modes = lib
+
+[lib]
+compiler  = gnu
+cflags    = -c -O2
+src       = ./src/
+build_dir = ./build/
+target    = src/kinds.f90
+mklib     = static
+output    = libkinds.a

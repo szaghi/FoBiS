@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# publish NAME TAG: commit the package's working copy ~/src/NAME, tag it, and push both to ~/remotes/NAME.git
+# (@HOME@ in its files becomes the home directory: a fobos names its dependencies by absolute file:// URLs)
+set -euo pipefail
+name=$1 tag=$2 src=~/src/$1 remote=~/remotes/$1.git
+cd "$src"
+{ grep -rl --exclude-dir=.git "@HOME@" . || true; } | xargs -r sed -i "s|@HOME@|$HOME|g"
+[ -d .git ] || git init -q -b main
+git add -A
+git commit -q -m "$name $tag" || true
+git tag "$tag"
+[ -d "$remote" ] || git init -q --bare -b main "$remote"
+git push -q "$remote" main "$tag"

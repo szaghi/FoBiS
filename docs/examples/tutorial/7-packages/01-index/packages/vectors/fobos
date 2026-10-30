@@ -1,0 +1,19 @@
+[project]
+name    = vectors
+summary = Small vectors of reals
+license = MIT
+
+[modes]
+modes = lib
+
+[lib]
+compiler  = gnu
+cflags    = -c -O2
+src       = ./src/
+build_dir = ./build/
+target    = src/vectors.f90
+mklib     = static
+output    = libvectors.a
+
+[dependencies]
+kinds = file://@HOME@/remotes/kinds.git :: semver=^1.0.0

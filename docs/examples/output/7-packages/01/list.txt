@@ -1,0 +1,3 @@
+$ fobis index list
+lab              dir   user     local                      ~/lab-index
+vendor           dir   user     local                      ~/vendor-index

@@ -99,6 +99,13 @@ const docs = [
           { text: '9. An agent under the gate',  link: '/tutorial/ai/09-agent' },
         ],
       },
+      {
+        text: '7. Packages and indexes',
+        collapsed: false,
+        items: [
+          { text: '1. An index of your own',     link: '/tutorial/packages/01-index' },
+        ],
+      },
     ],
   },
   {

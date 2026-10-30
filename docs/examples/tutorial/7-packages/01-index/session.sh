@@ -1,0 +1,17 @@
+# the lab's packages are git repositories with version tags (published by a small script, not shown); the lab lists
+# them in an index of its own, built from seeds; a vendor publishes another index that follows the lab's
+quiet 'mkdir -p ~/bin ~/src && cp "$DOCS_CHAPTER/publish" ~/bin/publish && cp -R "$DOCS_CHAPTER/packages/." ~/src/'
+quiet '~/bin/publish kinds v1.0.0 && ~/bin/publish vectors v0.1.0 && ~/bin/publish vendor-kinds v3.2.0 && ~/bin/publish timer v1.0.0'
+quiet 'mkdir -p ~/lab-index && sed "s|@HOME@|$HOME|g" "$DOCS_CHAPTER/seeds.toml" > ~/lab-index/seeds.toml'
+show seeds 'cat ~/lab-index/seeds.toml'
+show build 'cd ~/lab-index && fobis index build seeds.toml -o index.toml'
+show index 'cat ~/lab-index/index.toml'
+show check 'fobis index check ~/lab-index/index.toml --online'
+quiet 'sed "s/^keywords/keyword/" ~/lab-index/index.toml > ~/typo.toml'
+show typo 'fobis index check ~/typo.toml'
+show add 'fobis index add lab ~/lab-index'
+quiet 'mkdir -p ~/vendor-index && sed "s|@HOME@|$HOME|g" "$DOCS_CHAPTER/vendor-index.toml" > ~/vendor-index/index.toml'
+show vendor 'cat ~/vendor-index/index.toml'
+show add-vendor 'fobis index add vendor ~/vendor-index'
+show list 'fobis index list'
+show search 'fobis search'

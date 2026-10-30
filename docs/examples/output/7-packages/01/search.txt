@@ -1,0 +1,7 @@
+$ fobis search
+lab:kinds                    file://~/remotes/kinds.git
+    Portable real kinds
+lab:vectors                  file://~/remotes/vectors.git
+    Small vectors of reals
+vendor:kinds                 file://~/remotes/vendor-kinds.git
+    A vendor's real kinds, with its own tuning

@@ -1,0 +1,2 @@
+$ cd ~/lab-index && fobis index build seeds.toml -o index.toml
+Wrote index.toml: 2 package(s)

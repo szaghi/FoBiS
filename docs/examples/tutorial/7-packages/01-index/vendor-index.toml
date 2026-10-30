@@ -1,0 +1,8 @@
+# a vendor's index: its own kinds, and it follows the lab's
+schema  = 1
+name    = "vendor"
+follows = ["@HOME@/lab-index"]
+
+[package.kinds]
+source      = "file://@HOME@/remotes/vendor-kinds.git"
+description = "A vendor's real kinds, with its own tuning"

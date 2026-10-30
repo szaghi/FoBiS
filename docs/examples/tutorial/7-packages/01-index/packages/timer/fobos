@@ -1,0 +1,16 @@
+[project]
+name    = timer
+summary = Wall-clock timing
+license = MIT
+
+[modes]
+modes = lib
+
+[lib]
+compiler  = gnu
+cflags    = -c -O2
+src       = ./src/
+build_dir = ./build/
+target    = src/timer.f90
+mklib     = static
+output    = libtimer.a

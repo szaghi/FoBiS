@@ -1,0 +1,12 @@
+$ cat ~/lab-index/seeds.toml
+# the lab's packages: a source each; index build reads the rest from the sources
+schema = 1
+name   = "lab"
+description = "The packages of our lab"
+
+[package.kinds]
+source   = "file://~/remotes/kinds.git"
+keywords = ["kinds", "precision"]
+
+[package.vectors]
+source = "file://~/remotes/vectors.git"

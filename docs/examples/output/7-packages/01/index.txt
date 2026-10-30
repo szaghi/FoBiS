@@ -1,0 +1,19 @@
+$ cat ~/lab-index/index.toml
+schema = 1
+name = "lab"
+description = "The packages of our lab"
+
+[package.kinds]
+source = "file://~/remotes/kinds.git"
+description = "Portable real kinds"
+license = "MIT"
+keywords = ["kinds", "precision"]
+provides = ["kinds"]
+builds = ["fobis"]
+
+[package.vectors]
+source = "file://~/remotes/vectors.git"
+description = "Small vectors of reals"
+license = "MIT"
+provides = ["vectors"]
+builds = ["fobis"]

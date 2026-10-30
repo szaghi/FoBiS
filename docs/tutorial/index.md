@@ -7,7 +7,8 @@ title: Tutorials
 The tutorials follow one project, `quad`: a small library of quadrature rules (the trapezoidal and Simpson rules) and
 a program that uses it. It starts as three source files and no build script, and grows track by track: modes, a
 library, tests, dependencies, then verified numerical results, a linted and reviewed code, and an AI assistant that
-works under the same checks.
+works under the same checks. The seventh track leaves `quad` for a lab's libraries, used by name through package
+indexes.
 
 Each track is a sequence of chapters, from the simplest to the most demanding; a track assumes the previous ones.
 Every command output shown is the real one: the pages include what the commands printed when
@@ -23,6 +24,7 @@ Every command output shown is the real one: the pages include what the commands 
 | [4. Code quality](./quality/01-lint) | advanced | the linter, baselines and fixes, reviewing a change, querying the code, verified modernisation, C and Python bindings |
 | [5. Verified numerics](./numerics/01-cases) | advanced | cases and references, shadow builds and the compiler matrix, error and uncertainty assessment, differential runs, benchmarks, the gate, profiling, clusters |
 | [6. AI-assisted development](./ai/01-model) | expert | a local model, explained failures, questions answered from the sources, generated tests, merge conflicts, an agent working under the gate |
+| [7. Packages and indexes](./packages/01-index) | intermediate | a lab's libraries as packages: an index of its own, finding and adding by name, versions, installing for a compiler, trust without a central server, fpm and CMake packages, fpm projects |
 
 
 ### 1. First steps
@@ -105,6 +107,14 @@ flowchart LR
 | [7. Commit messages](./ai/07-commit) | `fobis commit`, `--show-facts` |
 | [8. Merge conflicts](./ai/08-merge) | `fobis merge-assist`, compiled proposals |
 | [9. An agent under the gate](./ai/09-agent) | `fobis mcp`, an agent calling the gate |
+
+### 7. Packages and indexes
+
+This track leaves `quad` for a lab's libraries and a project, `solver`, that uses them.
+
+| Chapter | You learn |
+|---|---|
+| [1. An index of your own](./packages/01-index) | seed indexes, `fobis index build`, `index check`, `index add`, `follows` |
 
 ## Running the examples yourself
 
