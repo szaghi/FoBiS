@@ -19,6 +19,8 @@ from ..SemVer import Version
 from .index import RegistryError, run_git
 
 FORTRAN_SUFFIXES = (".f", ".for", ".fpp", ".f77", ".f90", ".f95", ".f03", ".f08", ".f18", ".f23", ".ftn")
+# fypp templates (stdlib) are scanned too: a literal `module NAME` is the module; a templated name is skipped
+MODULE_SUFFIXES = (*FORTRAN_SUFFIXES, ".fypp")
 _MODULE = re.compile(r"^\s*module\s+(?!procedure\b|function\b|subroutine\b)([a-z_]\w*)\s*(?:!.*)?$", re.I | re.M)
 _SKIP_DIRS = {".git", ".fobis_deps", ".fobis", "build", "node_modules", "_build"}
 # modules under these directories are not what a package provides: tests, examples, vendored copies of other packages
@@ -112,7 +114,7 @@ def scan_modules(root: str, provided: bool = True) -> list[str]:
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = sorted(d for d in dirnames if d.lower() not in skip and not d.startswith("."))
         for filename in filenames:
-            if not filename.lower().endswith(FORTRAN_SUFFIXES):
+            if not filename.lower().endswith(MODULE_SUFFIXES):
                 continue
             try:
                 with open(os.path.join(dirpath, filename), encoding="utf-8", errors="replace") as fh:
@@ -164,18 +166,38 @@ def detect_license(root: str) -> str:
     return ""
 
 
+_LINK = re.compile(r"!?\[([^\]]*)\]\([^)]*\)")
+_LIST_ITEM = re.compile(r"^([*+-]|\d+[.)])\s")
+_LINK_DEFINITION = re.compile(r"^\[[^\]]*\]:")
+
+
+def _prose(line: str) -> str:
+    """
+    A README line as plain text, or '' when it is not prose: headings, badges, HTML, rules, tables, quotes, code
+    fences, list items (often a table of contents), link definitions and lines holding only links.
+    """
+    text = line.strip()
+    if not text or text.startswith(("#", "[!", "![", "<", "=", "-", "|", ">", "```", ".. ")):
+        return ""
+    if _LIST_ITEM.match(text) or _LINK_DEFINITION.match(text):
+        return ""
+    plain = _LINK.sub(r"\1", text)
+    if not re.sub(r"[\W_]+", "", _LINK.sub("", text)):
+        return ""  # only links and separators: a table of contents
+    return re.sub(r"\*\*|__|`", "", plain).strip()
+
+
 def _readme_description(root: str) -> str:
-    """The first prose line of the README (no heading, badge, HTML or blank line), at most 160 characters."""
+    """The first prose line of the README (see `_prose`), at most 160 characters."""
     for name in ("README.md", "README.rst", "README", "README.txt"):
         path = os.path.join(root, name)
         if not os.path.isfile(path):
             continue
         with open(path, encoding="utf-8", errors="replace") as fh:
             for line in fh:
-                text = line.strip()
-                if not text or text.startswith(("#", "[!", "![", "<", "=", "-", "|", ">", "[![", "```")):
-                    continue
-                return text[:160]
+                text = _prose(line)
+                if text:
+                    return text[:160]
     return ""
 
 
@@ -213,7 +235,10 @@ def inspect_tree(root: str, info: SourceInfo) -> SourceInfo:
     """Fill *info* with the facts of the source tree at *root*."""
     facts = read_manifests(root)
     info.name = info.name or facts["name"]
-    info.description = info.description or facts["description"] or _readme_description(root)
+    described = facts["description"]
+    if described.lower() in {"", facts["name"].lower(), os.path.basename(os.path.normpath(root)).lower()}:
+        described = ""  # a manifest repeating the package name says nothing
+    info.description = info.description or described or _readme_description(root)
     info.license = info.license or facts["license"] or detect_license(root)
     info.backend = detect_backend(root)
     info.modules = scan_modules(library_dir(root, info.backend))

@@ -20,7 +20,7 @@ from fobis.registry.index import (
     provider_of,
     read_index_text,
 )
-from fobis.registry.sources import probe, scan_modules, sort_versions
+from fobis.registry.sources import SourceInfo, inspect_tree, probe, scan_modules, sort_versions
 from fobis.UserConfig import UserConfig
 from tests.registry_helpers import cli, fobis_package, git, isolate, remote, static_server
 
@@ -260,6 +260,40 @@ def test_scan_modules_skips_module_procedures(tmp_path):
         "end module A\nsubmodule (a) s\nend submodule\n"
     )
     assert scan_modules(tmp_path) == ["a"]
+
+
+def test_scan_modules_reads_fypp_templates(tmp_path):
+    # stdlib writes its sources as fypp templates: a literal name counts, a templated one cannot be known
+    (tmp_path / "s.fypp").write_text("#:include 'common.fypp'\nmodule stdlib_strings\nend module\n")
+    (tmp_path / "t.fypp").write_text("module stdlib_blas_${k}$\nend module\n")
+    assert scan_modules(tmp_path) == ["stdlib_strings"]
+
+
+@pytest.mark.parametrize(
+    ("readme", "expected"),
+    [
+        # stdlib: a table of contents before the prose
+        ("# stdlib\n\n* [Goals](#goals)\n* [Usage](#usage)\n\nFortran Standard Library\n", "Fortran Standard Library"),
+        # HASTY: a navigation line of links only
+        ("[What is it?](#what) | [Features](#features)\n\nA hash table.\n", "A hash table."),
+        # FEATS: a link definition used as a comment
+        ("[This document is formatted with GFM.]:#\n\nTask scheduling.\n", "Task scheduling."),
+        (
+            "**ForDiff**: a library for `numerical` [differentiation](https://x.org)\n",
+            "ForDiff: a library for numerical differentiation",
+        ),
+        ("1. step one\n+ item\n\nProse.\n", "Prose."),
+    ],
+)
+def test_readme_description_skips_what_is_not_prose(tmp_path, readme, expected):
+    (tmp_path / "README.md").write_text(readme)
+    assert inspect_tree(str(tmp_path), SourceInfo(url="u", provider="git")).description == expected
+
+
+def test_manifest_description_repeating_the_name_is_ignored(tmp_path):
+    (tmp_path / "fpm.toml").write_text('name = "quaff"\ndescription = "quaff"\n')
+    (tmp_path / "README.md").write_text("Quantities for Fortran.\n")
+    assert inspect_tree(str(tmp_path), SourceInfo(url="u", provider="git")).description == "Quantities for Fortran."
 
 
 def test_index_build_from_seeds_and_ecosystem(tmp_path):
