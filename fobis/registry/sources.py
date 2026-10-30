@@ -189,8 +189,9 @@ def _prose(line: str) -> str:
 
 def _readme_description(root: str) -> str:
     """The first prose line of the README (see `_prose`), at most 160 characters."""
-    for name in ("README.md", "README.rst", "README", "README.txt"):
-        path = os.path.join(root, name)
+    names = {name.lower(): name for name in os.listdir(root)} if os.path.isdir(root) else {}
+    for wanted in ("readme.md", "readme.rst", "readme", "readme.txt"):  # any case: readme.md is common
+        path = os.path.join(root, names.get(wanted, wanted))
         if not os.path.isfile(path):
             continue
         with open(path, encoding="utf-8", errors="replace") as fh:
@@ -199,6 +200,11 @@ def _readme_description(root: str) -> str:
                 if text:
                     return text[:160]
     return ""
+
+
+# manifest licence values that name no licence: fpm new writes "license", others name the file
+_NOT_A_LICENSE = {"", "license", "licence", "?", "unknown", "none", "other", "see license", "see license file"}
+_LICENSE_FILE = re.compile(r"^(licen[cs]e|copying)(\.\w+)?$", re.I)
 
 
 def read_manifests(root: str) -> dict[str, str]:
@@ -239,7 +245,10 @@ def inspect_tree(root: str, info: SourceInfo) -> SourceInfo:
     if described.lower() in {"", facts["name"].lower(), os.path.basename(os.path.normpath(root)).lower()}:
         described = ""  # a manifest repeating the package name says nothing
     info.description = info.description or described or _readme_description(root)
-    info.license = info.license or facts["license"] or detect_license(root)
+    declared = facts["license"]
+    if declared.lower() in _NOT_A_LICENSE or _LICENSE_FILE.match(declared):
+        declared = ""  # fpm new's placeholder or a file name: the license file tells
+    info.license = info.license or declared or detect_license(root)
     info.backend = detect_backend(root)
     info.modules = scan_modules(library_dir(root, info.backend))
     return info

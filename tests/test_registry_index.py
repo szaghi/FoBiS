@@ -296,6 +296,25 @@ def test_manifest_description_repeating_the_name_is_ignored(tmp_path):
     assert inspect_tree(str(tmp_path), SourceInfo(url="u", provider="git")).description == "Quantities for Fortran."
 
 
+def test_readme_found_in_any_case(tmp_path):
+    (tmp_path / "readme.md").write_text("# x\n\nDislocation dynamics.\n")
+    assert inspect_tree(str(tmp_path), SourceInfo(url="u", provider="git")).description == "Dislocation dynamics."
+
+
+@pytest.mark.parametrize("declared", ["license", "LICENSE", "LICENSE.md", "?", "COPYING"])
+def test_manifest_license_naming_no_license_gives_way_to_the_file(tmp_path, declared):
+    # fpm new writes license = "license"; some manifests name the file instead of the licence
+    (tmp_path / "fpm.toml").write_text(f'name = "x"\nlicense = "{declared}"\n')
+    (tmp_path / "LICENSE").write_text("MIT License\n\nPermission is hereby granted, free of charge, to any person\n")
+    assert inspect_tree(str(tmp_path), SourceInfo(url="u", provider="git")).license == "MIT"
+
+
+def test_manifest_license_is_kept_when_it_names_one(tmp_path):
+    (tmp_path / "fpm.toml").write_text('name = "x"\nlicense = "BSD-3-Clause"\n')
+    (tmp_path / "LICENSE").write_text("MIT License\n\nPermission is hereby granted, free of charge, to any person\n")
+    assert inspect_tree(str(tmp_path), SourceInfo(url="u", provider="git")).license == "BSD-3-Clause"
+
+
 def test_index_build_from_seeds_and_ecosystem(tmp_path):
     penf = remote(tmp_path, "PENF", fobis_package("penf", "portable kinds"))
     flap = remote(tmp_path, "FLAP", fobis_package("flap", "command line arguments parser"))
