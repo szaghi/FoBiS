@@ -1,0 +1,6 @@
+$ grep -A4 "^\[package.kinds\]" ~/lab-index/index.toml
+[package.kinds]
+source = "file://~/remotes/kinds.git"
+mirrors = ["file://~/mirror/kinds.git"]
+description = "Portable real kinds"
+license = "MIT"

@@ -107,6 +107,7 @@ const docs = [
           { text: '2. Find, add and remove',     link: '/tutorial/packages/02-add' },
           { text: '3. Versions',                 link: '/tutorial/packages/03-versions' },
           { text: '4. Install for your compiler', link: '/tutorial/packages/04-install' },
+          { text: '5. Trust without a server',   link: '/tutorial/packages/05-trust' },
         ],
       },
     ],

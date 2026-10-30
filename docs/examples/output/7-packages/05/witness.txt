@@ -1,0 +1,6 @@
+$ fobis audit --witness
+kinds                v1.1.1       ok
+    witness file://~/remotes/kinds.git: agrees
+    witness file://~/mirror/kinds.git: lacks v1.1.1
+vectors              v0.2.0       ok
+    witness file://~/remotes/vectors.git: agrees

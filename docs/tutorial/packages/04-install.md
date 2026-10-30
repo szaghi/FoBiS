@@ -49,3 +49,5 @@ version qualifies; `pkg install lab:vectors --version "^0.2"` would have kept th
 `pkg upgrade`, `pkg uninstall`. Reference: [`pkg`](/reference/pkg),
 [install a package for your compiler](/cookbook/packages#install-a-package-for-your-compiler).
 :::
+
+Next: [trust without a central server](./05-trust).

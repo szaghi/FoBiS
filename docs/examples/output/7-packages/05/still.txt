@@ -1,0 +1,17 @@
+$ fobis fetch --update && fobis audit
+Dependency kinds already fetched (use --update to refresh)
+Checking out v1.0.0 for kinds
+Dependency vectors already fetched (use --update to refresh)
+Checking out v0.2.0 for vectors
+Dependency kinds already fetched (use --update to refresh)
+Checking out v1.1.0 for kinds
+Updating kinds
+Checking out v1.1.0 for kinds
+Updating vectors
+Checking out v0.2.0 for vectors
+Saved deps config to .fobis_deps/.deps_config.ini
+Saved lock file to .fobis_deps/fobos.lock
+kinds                v1.1.0       AFFECTED
+    KINDS-2026-001 [medium] R4P selected 6 digits but a range too narrow for single-precision data https://example.org/lab/kinds/issues/1
+vectors              v0.2.0       ok
+[exit status 1]

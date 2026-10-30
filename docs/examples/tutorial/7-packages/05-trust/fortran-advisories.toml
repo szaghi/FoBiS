@@ -1,0 +1,9 @@
+# kinds publishes advisories about its own versions, on its default branch
+schema = 1
+
+[[advisory]]
+id       = "KINDS-2026-001"
+affected = ">=1.1.0, <1.1.1"
+severity = "medium"
+summary  = "R4P selected 6 digits but a range too narrow for single-precision data"
+url      = "https://example.org/lab/kinds/issues/1"

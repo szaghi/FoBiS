@@ -1,0 +1,17 @@
+$ fobis add lab:kinds --semver "^1.1.1" --force && fobis fetch && fobis audit
+Replaced kinds = file://~/remotes/kinds.git :: semver=^1.1.1 :: mirror=file://~/mirror/kinds.git
+Run 'fobis fetch' to fetch it.
+Dependency kinds already fetched (use --update to refresh)
+Fetching kinds: v1.1.1 is not in its clone yet
+Checking out v1.1.1 for kinds
+Dependency vectors already fetched (use --update to refresh)
+Checking out v0.2.0 for vectors
+Dependency kinds already fetched (use --update to refresh)
+Checking out v1.1.1 for kinds
+Warning: dependency 'kinds' HEAD (928a5bfd4b09) does not match fobos.lock (46a1fb569bcb). Run 'fobis fetch --update' to refresh.
+Dependency vectors already fetched (use --update to refresh)
+Checking out v0.2.0 for vectors
+Saved deps config to .fobis_deps/.deps_config.ini
+Saved lock file to .fobis_deps/fobos.lock
+kinds                v1.1.1       ok
+vectors              v0.2.0       ok
