@@ -620,3 +620,18 @@ def test_varset_missing_dollar_prefix_still_warns():
         warns = _capture_varset_warnings(root, content, varset="broken")
         assert any("without a leading '$'" in m for m in warns)
         assert any("defines no variables" in m for m in warns)
+
+
+def test_an_error_while_reading_the_fobos_has_no_colour_codes(tmp_path, monkeypatch, capsys):
+    """Colours are off unless --colors: the fobos is read before they were switched off, so its errors had them."""
+    import pytest
+
+    from fobis.fobis import run_fobis
+
+    (tmp_path / "fobos").write_text("[varset:laptop]\n$TUNE = -mtune=native\n\n[default]\ncompiler = gnu\n")
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(SystemExit):
+        run_fobis(fake_args=["build", "--varset", "nowhere"])
+    out = capsys.readouterr()
+    assert "varset 'nowhere' is not defined" in out.out + out.err
+    assert "\x1b[" not in out.out + out.err

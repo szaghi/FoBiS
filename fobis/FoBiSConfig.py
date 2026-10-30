@@ -69,7 +69,9 @@ class FoBiSConfig:
         if "cliargs" not in _shared:
             sys.exit(_result.exit_code)
         self.cliargs = _shared["cliargs"]
-        self.colors = Colors()
+        # the command line's choice from the start: messages printed while the fobos is read (an unknown varset)
+        # must not carry colour codes when colours are off
+        self.colors = Colors(enabled=getattr(self.cliargs, "colors", False))
         self.fobos = Fobos(cliargs=self.cliargs, print_n=self.print_b, print_w=self.print_r)
         self.colors = Colors(enabled=getattr(self.cliargs, "colors", False))  # reset colors accordingly fobos options
         self._postinit()
