@@ -339,6 +339,8 @@ _VOLATILE = (
     (re.compile(r'"(duration|elapsed)": [0-9.]+'), r'"\1": N'),
     # the compiler's full version: compared only when the major version is the recorded one
     (re.compile(r"GNU Fortran \([^)]*\) \d+\.\d+\.\d+"), "GNU Fortran VERSION"),
+    # FoBiS's own version (the stamp of a generated .pc file): a release must not make a recorded output stale
+    (re.compile(r"\bFoBiS\.py v\d+\.\d+\.\d+\b"), "FoBiS.py VERSION"),
     (re.compile(r"\b0x[0-9a-f]{6,}\b"), "0xADDRESS"),
     (re.compile(r"\b\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(\.\d+)?\b"), "DATETIME"),  # "generated" stamps
 )
