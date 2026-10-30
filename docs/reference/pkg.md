@@ -76,5 +76,6 @@ Arguments: `NAME`
 |---|---|---|---|
 | `--config` | TEXT |  | User configuration file (default ~/.config/fobis/config.ini). |
 | `--bin-dir` | TEXT |  | Where applications are linked. |
+| `--verbose` |  |  | Show the build's own output. |
 
 <!-- cli:end -->

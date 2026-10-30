@@ -172,6 +172,7 @@ def test_upgrade_follows_the_original_range(tmp_path):
     git(repo, "tag", "v2.0.0")  # outside ^1.0
     code, out = cli("pkg", "upgrade", "kinds")
     assert code == 0 and "v1.0.0 -> v1.1.0" in out, out
+    assert "Compiling" not in out  # quiet as pkg install: the build's output only with --verbose
     code, out = cli("pkg", "list", "--json")
     assert [r["version"] for r in json.loads(out)["packages"]] == ["v1.1.0"]
 

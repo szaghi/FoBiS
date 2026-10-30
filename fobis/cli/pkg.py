@@ -267,6 +267,7 @@ def cmd_pkg_upgrade(
     name: Annotated[str | None, typer.Argument(help="Upgrade only this package (default: all).")] = None,
     config: _ConfigOpt = None,
     bin_dir: Annotated[str | None, typer.Option("--bin-dir", help="Where applications are linked.")] = None,
+    verbose: Annotated[bool, typer.Option("--verbose", help="Show the build's own output.")] = False,
 ) -> None:
     """Install the newest version allowed by the original request, for the same toolchain; remove the old one."""
     from ..registry.index import RegistryError
@@ -301,7 +302,14 @@ def cmd_pkg_upgrade(
                 f"installing {target} for {current.key}, the old install stays",
                 err=True,
             )
-        new = install_package(receipt.source, current, version=target, bin_dir=bin_dir, config=config)
+        new = install_package(
+            receipt.source,
+            current,
+            version=target,
+            bin_dir=bin_dir,
+            config=config,
+            log=(lambda m: typer.echo(m, err=True)) if verbose else (lambda _m: None),
+        )  # fmt: skip  (as pkg install: the build's own output only with --verbose)
         if current.key == receipt.key and not new["already"]:
             store.remove(receipt)
         typer.echo(f"{receipt.name}: {receipt.version} -> {new['version']} ({current.key})")
