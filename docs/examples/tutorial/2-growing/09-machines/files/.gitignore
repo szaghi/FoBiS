@@ -1,0 +1,4 @@
+build/
+.fobis_deps/
+*.tar.gz
+fobos.local

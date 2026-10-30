@@ -1,0 +1,109 @@
+[include]
+paths = machines.fobos
+        ?fobos.local
+
+[project]
+name    = quad
+version = 0.1.0
+authors = Ada Fortran
+
+[modes]
+modes = debug release static shared coverage openmp mpi
+
+[features]
+checks = -DQUAD_CHECKS
+
+[common-variables]
+$PROGRAM = src/integrate.F90
+$LIBRARY = src/quad_rules.F90
+$OPT     = -O2
+
+[template-gnu]
+compiler        = gnu
+src             = ./src/
+cflags_heritage = True
+
+[template-library]
+template    = template-gnu
+target      = $LIBRARY
+track_build = True
+
+[debug]
+help          = Checks on, no optimisation
+template      = template-gnu
+build_profile = debug
+features      = checks
+cflags        = -c
+src       = ./src/ ./test/
+build_dir = ./build/debug/
+target    = $PROGRAM
+
+[release]
+help          = Optimised
+template      = template-gnu
+build_profile = release
+cflags        = -c $TUNE
+cflags.gnu    = -fimplicit-none
+cflags.intel  = -warn all
+post_build    = smoke
+build_dir = ./build/release/
+target    = $PROGRAM
+
+[static]
+help      = The library, static
+template  = template-library
+cflags    = -c $OPT
+build_dir = ./build/static/
+mklib     = static
+output    = libquad.a
+
+[shared]
+help      = The library, shared
+template  = template-library
+cflags    = -c $OPT -fPIC
+build_dir = ./build/shared/
+mklib     = shared
+output    = libquad.so
+
+[coverage]
+help      = Instrumented for coverage
+template  = template-gnu
+cflags    = -c -O0 -g
+coverage  = True
+src       = ./src/ ./test/
+build_dir = ./build/coverage/
+target    = $PROGRAM
+
+[openmp]
+help          = The sweep, multi-threaded with OpenMP
+template      = template-gnu
+build_profile = release
+cflags        = -c
+openmp        = True
+build_dir     = ./build/openmp/
+target        = src/sweep.F90
+
+[mpi]
+help          = Simpson's rule split among MPI processes
+template      = template-gnu
+build_profile = release
+cflags        = -c
+mpi           = True
+build_dir     = ./build/mpi/
+target        = src/integrate_mpi.F90
+
+[rule-smoke]
+help = The last line of the program's output
+rule = ./build/release/integrate | tail -n 1
+
+[rule-errors]
+help = The table of errors, from the release build
+rule = fobis run --mode release
+
+[rule-dist]
+help     = A source archive
+rule_rm  = rm -f quad-0.1.0.tar.gz
+rule_tar = tar czf quad-0.1.0.tar.gz fobos src test
+
+[dependencies]
+penf = https://github.com/szaghi/PENF :: tag=v2.0.1

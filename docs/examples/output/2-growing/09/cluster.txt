@@ -1,0 +1,27 @@
+$ fobis introspect --buildoptions --mode release --varset cluster
+{
+  "buildoptions": {
+    "mode": "release",
+    "build_dir": "./build/release/",
+    "obj_dir": "./obj/",
+    "mod_dir": "./mod/",
+    "mklib": "",
+    "jobs": 1,
+    "qualified_keys": [
+      {
+        "key": "cflags.gnu",
+        "kind": "compiler",
+        "value": "-fimplicit-none",
+        "applied": true,
+        "how": "appended",
+        "result": "-O3 -funroll-loops -c -mtune=znver3 -fimplicit-none"
+      },
+      {
+        "key": "cflags.intel",
+        "kind": "compiler",
+        "value": "-warn all",
+        "applied": false
+      }
+    ]
+  }
+}

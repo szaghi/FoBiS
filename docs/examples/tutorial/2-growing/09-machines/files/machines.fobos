@@ -1,0 +1,8 @@
+[varsets]
+default = laptop
+
+[varset:laptop]
+$TUNE = -mtune=native
+
+[varset:cluster]
+$TUNE = -mtune=znver3

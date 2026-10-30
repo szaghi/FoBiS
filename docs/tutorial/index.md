@@ -52,6 +52,7 @@ flowchart LR
 | [6. Continuous integration](./growing/06-ci) | `fobis check`, `--json`, a CI workflow |
 | [7. Other build systems](./growing/07-export) | `fobis fpm export`, `--makefile` |
 | [8. quad as a package](./growing/08-packages) | `fobis publish`, `index`, `search`, `info`, `add`, `transitive = true`, `pkg install`, `audit` |
+| [9. One fobos, many machines](./growing/09-machines) | `[varset:NAME]`, `--varset`, `cflags.gnu`, `[include]`, `?fobos.local` |
 
 ### 3. Many repositories
 

@@ -1,0 +1,15 @@
+# one fobos for a laptop and a cluster: values chosen by machine (varsets), flags chosen by compiler (qualified keys),
+# the machines in their own file, and a developer's own values in an optional, git-ignored one
+excerpt include fobos '[include]'
+show machines 'cat machines.fobos'
+excerpt release fobos '[release]'
+show varsets 'fobis introspect --varsets'
+show laptop 'fobis introspect --buildoptions --mode release'
+show cluster 'fobis introspect --buildoptions --mode release --varset cluster'
+show default 'fobis build --mode release --quiet --force-compile'
+show build 'fobis build --mode release --varset cluster --quiet'
+show unknown 'fobis build --mode release --varset nowhere'
+quiet 'printf "[varset:laptop]\n\$TUNE = -mtune=generic\n" > fobos.local'
+show local 'cat fobos.local && git status --short'
+show override 'fobis introspect --buildoptions --mode release'
+quiet 'rm fobos.local'

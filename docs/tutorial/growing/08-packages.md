@@ -110,5 +110,4 @@ public FoBiS and fpm projects ([catalogue](https://szaghi.github.io/fortran-inde
 `fobis audit`. Reference: [Packages and indexes](/cookbook/packages).
 :::
 
-This is the end of the second track. The [third](../ecosystem/01-register) leaves `quad` for a while: a family of
-projects that depend on each other, managed together.
+Next: [one fobos, many machines](./09-machines).

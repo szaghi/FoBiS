@@ -1,0 +1,6 @@
+$ cat fobos.local && git status --short
+[varset:laptop]
+$TUNE = -mtune=generic
+ M .gitignore
+ M fobos
+?? machines.fobos

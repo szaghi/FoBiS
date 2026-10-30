@@ -1,0 +1,16 @@
+$ fobis introspect --varsets
+{
+  "varsets": {
+    "default": [
+      "laptop"
+    ],
+    "varsets": {
+      "laptop": {
+        "$TUNE": "-mtune=native"
+      },
+      "cluster": {
+        "$TUNE": "-mtune=znver3"
+      }
+    }
+  }
+}

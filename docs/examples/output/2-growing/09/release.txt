@@ -1,0 +1,10 @@
+[release]
+help          = Optimised
+template      = template-gnu
+build_profile = release
+cflags        = -c $TUNE
+cflags.gnu    = -fimplicit-none
+cflags.intel  = -warn all
+post_build    = smoke
+build_dir = ./build/release/
+target    = $PROGRAM

@@ -1,0 +1,4 @@
+$ fobis build --mode release --varset nowhere
+Error: varset 'nowhere' is not defined.
+  Available varsets: cluster, laptop
+[exit status 1]
