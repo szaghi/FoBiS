@@ -1,0 +1,8 @@
+[static]
+help      = The library, static
+template  = template-library
+cflags    = -c $OPT
+build_dir = ./build/static/
+mklib     = static
+output    = libquad.a
+pkgconfig = True

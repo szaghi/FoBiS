@@ -53,6 +53,7 @@ flowchart LR
 | [7. Other build systems](./growing/07-export) | `fobis fpm export`, `--makefile` |
 | [8. quad as a package](./growing/08-packages) | `fobis publish`, `index`, `search`, `info`, `add`, `transitive = true`, `pkg install`, `audit` |
 | [9. One fobos, many machines](./growing/09-machines) | `[varset:NAME]`, `--varset`, `cflags.gnu`, `[include]`, `?fobos.local` |
+| [10. Several programs and a library for others](./growing/10-targets) | `[target.NAME]`, `--target-filter`, `pkgconfig = True`, `--compile-commands` |
 
 ### 3. Many repositories
 

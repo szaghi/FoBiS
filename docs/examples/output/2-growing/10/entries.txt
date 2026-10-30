@@ -1,0 +1,9 @@
+$ grep -o "\"file\": \"[^\"]*/quad/\(src\|test\)/[^\"]*\"" compile_commands.json
+"file": "~/quad/src/integrands.F90"
+"file": "~/quad/src/integrate.F90"
+"file": "~/quad/src/integrate_mpi.F90"
+"file": "~/quad/src/quad_rules.F90"
+"file": "~/quad/src/sweep.F90"
+"file": "~/quad/test/polynomials.F90"
+"file": "~/quad/test/test_exactness.F90"
+"file": "~/quad/test/test_order.F90"

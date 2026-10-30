@@ -41,6 +41,7 @@ const docs = [
           { text: '7. Other build systems',      link: '/tutorial/growing/07-export' },
           { text: '8. quad as a package',        link: '/tutorial/growing/08-packages' },
           { text: '9. One fobos, many machines', link: '/tutorial/growing/09-machines' },
+          { text: '10. Programs and a library', link: '/tutorial/growing/10-targets' },
         ],
       },
       {

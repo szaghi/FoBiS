@@ -1,0 +1,2 @@
+$ cd ~ && gfortran use_quad.f90 $(PKG_CONFIG_PATH=quad/build/static pkg-config --cflags --libs quad) -o use_quad && ./use_quad
+ 1.00000

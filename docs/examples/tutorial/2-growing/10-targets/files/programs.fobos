@@ -1,0 +1,16 @@
+[modes]
+modes = programs
+
+[programs]
+help      = Every program of quad, each with its own flags
+compiler  = gnu
+cflags    = -c -O2
+src       = ./src/
+build_dir = ./build/programs/
+
+[target.integrate]
+source = src/integrate.F90
+
+[target.sweep]
+source = src/sweep.F90
+openmp = True

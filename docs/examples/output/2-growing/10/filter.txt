@@ -1,0 +1,6 @@
+$ fobis build -f programs.fobos --target-filter sweep --quiet
+
+Building src/sweep.F90
+Nothing to compile, all objects are up-to-date
+Linking build/programs/sweep
+Target src/sweep.F90 has been successfully built

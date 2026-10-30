@@ -66,5 +66,4 @@ with an optional `?file`, `fobis introspect --varsets` and `--buildoptions`. Ref
 [includes](/cookbook/build#split-a-fobos-into-files).
 :::
 
-This is the end of the second track. The [third](../ecosystem/01-register) leaves `quad` for a while: a family of
-projects that depend on each other, managed together.
+Next: [several programs and a library for others](./10-targets).

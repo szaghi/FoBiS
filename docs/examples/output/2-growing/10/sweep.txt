@@ -1,0 +1,3 @@
+$ OMP_NUM_THREADS=2 ./build/programs/sweep | tail -n 2
+  2048        3.9218E-07        5.7732E-14
+  4096        9.8046E-08        3.9968E-15
