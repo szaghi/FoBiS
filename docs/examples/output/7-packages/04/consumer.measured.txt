@@ -1,0 +1,2 @@
+$ cd ~ && export PKG_CONFIG_PATH=$(fobis pkg path vectors --pkgconfig) && gfortran length.f90 $(pkg-config --cflags --libs vectors) -o length && ./length
+ 3.000

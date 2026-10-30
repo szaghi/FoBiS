@@ -1,0 +1,2 @@
+$ fobis pkg list
+No package installed (fobis pkg install NAME).

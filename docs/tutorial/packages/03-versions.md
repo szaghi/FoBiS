@@ -61,3 +61,5 @@ Version tags, `semver=^X.Y.Z` ranges, `fetch --update`, `fobis add --semver --fo
 [versions and ranges](/cookbook/dependencies#a-version-range),
 [dependencies of dependencies](/cookbook/packages#dependencies-of-dependencies).
 :::
+
+Next: [install for your compiler](./04-install).

@@ -1,0 +1,2 @@
+$ fobis pkg path vectors --pkgconfig
+~/.fobis/pkgs/gnu-13.4.0-c19ce216/vectors/0.2.0/lib/pkgconfig

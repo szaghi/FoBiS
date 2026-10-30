@@ -1,0 +1,2 @@
+$ fobis pkg list
+vectors              v0.2.0       gnu-13.4.0-c19ce216          fobis  file://~/remotes/vectors.git

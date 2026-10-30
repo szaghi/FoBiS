@@ -1,0 +1,5 @@
+$ fobis pkg install lab:vectors
+Building vectors v0.2.0 with gfortran (gnu-13.4.0-c19ce216), fobis
+Installed vectors v0.2.0 for gnu-13.4.0-c19ce216 in ~/.fobis/pkgs/gnu-13.4.0-c19ce216/vectors/0.2.0
+  modules : kinds, vectors
+  use it  : export PKG_CONFIG_PATH=~/.fobis/pkgs/gnu-13.4.0-c19ce216/vectors/0.2.0/lib/pkgconfig

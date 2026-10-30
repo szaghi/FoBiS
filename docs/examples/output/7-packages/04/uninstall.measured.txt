@@ -1,0 +1,2 @@
+$ fobis pkg uninstall vectors
+Removed vectors v0.2.1 (gnu-13.4.0-c19ce216): 4 file(s) and link(s)
