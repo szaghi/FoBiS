@@ -70,8 +70,11 @@ docs(fetch): clarify use=fobos vs use=sources behaviour
 ### Running the test suite
 
 ```bash
-# Full suite
+# Full suite, one worker per CPU (pytest-xdist)
 make test
+
+# Without the tutorial replay (tests/test_docs_examples.py, the slowest test by far)
+pytest -n auto --ignore tests/test_docs_examples.py
 
 # Single test module
 pytest tests/test_build.py

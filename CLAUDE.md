@@ -11,7 +11,7 @@ FoBiS.py is a Python CLI tool that automatically builds modern Fortran projects 
 ### Common tasks (via Makefile)
 ```bash
 make dev    # pip install -e ".[dev]"
-make test   # pytest
+make test   # pytest -n auto (pytest-xdist: one worker per CPU)
 make lint   # ruff check + format check (no fixes)
 make fmt    # ruff check --fix + ruff format
 make clean  # remove dist/, *.egg-info/, .pytest_cache/, .ruff_cache/, __pycache__/
@@ -69,8 +69,9 @@ python -m build
 
 ### Testing
 ```bash
-# Run the full test suite
+# Run the full test suite (serial; -n auto runs it on every CPU: ~1.5 min instead of ~6 locally)
 pytest
+pytest -n auto
 
 # Run a single test file
 pytest tests/test_build.py

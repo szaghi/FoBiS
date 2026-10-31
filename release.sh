@@ -136,7 +136,12 @@ mkdir -p docs/guide
 git-cliff --tag "v${NEW_VER}" -o docs/guide/changelog.md
 
 info "Running test suite"
-.venv/bin/pytest
+# in parallel when pytest-xdist is installed (a venv made before it joined the dev extras lacks it)
+if .venv/bin/python -c "import xdist" 2>/dev/null; then
+    .venv/bin/pytest -n auto
+else
+    .venv/bin/pytest
+fi
 
 # ── commit, tag, push ─────────────────────────────────────────────────────────
 STAGE="committed"

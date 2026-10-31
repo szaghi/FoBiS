@@ -8,6 +8,8 @@ _PUBLIC = Path(__file__).parent.parent / "docs" / "public"
 
 def pytest_sessionfinish(session, exitstatus):
     """After the test run: write coverage.json and coverage-badge.json to docs/public/."""
+    if hasattr(session.config, "workerinput"):
+        return  # a pytest-xdist worker: the controller writes them once the workers' data is combined
     _PUBLIC.mkdir(parents=True, exist_ok=True)
     try:
         import coverage as coverage_lib

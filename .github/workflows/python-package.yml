@@ -36,7 +36,7 @@ jobs:
       run: pip install -e ".[dev]"
     - name: Run pytest with coverage
       # the tutorial replay runs in its own job (docs-examples)
-      run: pytest --ignore tests/test_docs_examples.py
+      run: pytest -n auto --ignore tests/test_docs_examples.py
     - name: Upload coverage report
       uses: actions/upload-artifact@v7
       with:

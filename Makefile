@@ -13,7 +13,7 @@ dev: $(VENV)/bin/activate
 
 ## Run test suite
 test: dev
-	$(VENV)/bin/pytest
+	$(VENV)/bin/pytest -n auto
 
 ## Check linting (no fixes)
 lint: dev
