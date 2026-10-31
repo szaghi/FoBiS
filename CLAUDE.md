@@ -40,12 +40,13 @@ The `standalone` target vendors the full runtime dependency closure into one `di
 
 ### CI / release pipeline
 
-The `python-package.yml` workflow has four jobs:
+The `python-package.yml` workflow's jobs:
 
 | Job | Trigger | What it does |
 |-----|---------|--------------|
 | `lint` | push/PR to master, tag `v*` | ruff check + format |
-| `test` | push/PR to master, tag `v*` | pytest on ubuntu + gfortran |
+| `test` | push/PR to master, tag `v*` | pytest on ubuntu + gfortran, with coverage, without the tutorial replay |
+| `docs-examples` | push/PR to master, tag `v*` | `tests/test_docs_examples.py` alone (the tutorial replay), coverage off |
 | `build` | push/PR to master, tag `v*` | smoke-test entry points across 3 OS × 4 Python |
 | `publish` | tag `v*` only | `python -m build` + PyPI OIDC publish |
 

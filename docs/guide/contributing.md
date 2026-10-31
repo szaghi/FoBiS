@@ -105,24 +105,25 @@ FoBiS.py uses [Ruff](https://docs.astral.sh/ruff/) for both linting and formatti
 
 ## CI pipeline
 
-Every push to `master` (and every PR targeting `master`) runs four jobs:
+Every push to `master` (and every PR targeting `master`) runs these jobs in parallel:
 
 ```
-lint ──┐
-       ├──► publish  (tag v* only)
-test ──┤
-       │
-build ─┘  (3 OS × 4 Python versions)
+lint ──────────┐
+test ──────────┤
+docs-examples ─┼──► publish  (tag v* only)
+wheel-roundtrip┤
+build ─────────┘  (3 OS × 3 Python versions)
 ```
 
 | Job | Runs on | What it checks |
 |-----|---------|----------------|
 | `lint` | ubuntu, Python 3.12 | `ruff check` + `ruff format --check` |
-| `test` | ubuntu, Python 3.12 + gfortran | full `pytest` suite |
+| `test` | ubuntu, Python 3.12 + gfortran | `pytest` suite with coverage, without the tutorial replay |
+| `docs-examples` | ubuntu, Python 3.12 + gfortran | `tests/test_docs_examples.py` alone: replays the tutorials |
 | `build` | ubuntu / macOS / Windows × Python 3.10–3.12 | `pip install -e .` + entry-point smoke test |
 | `publish` | ubuntu, Python 3.12 | builds wheel/sdist, pushes to PyPI via OIDC |
 
-`publish` only runs when the commit is a `v*` tag **and** all three other jobs pass.
+`publish` only runs when the commit is a `v*` tag **and** all the other jobs pass.
 
 ::: tip Before opening a PR
 Run `make lint && make test` locally. The CI will reject PRs that fail either check, and fixing them after the fact costs extra round-trips.
