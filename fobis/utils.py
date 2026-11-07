@@ -199,6 +199,30 @@ def traverse_recursive(parsed_file, path=None):
         path.pop()
 
 
+def dependency_closure(parsed_file):
+    """
+    Return parsed_file followed by all its direct and indirect dependencies, each once, in depth-first pre-order.
+
+    The order is the one of ``unique_seq`` over the ends of the paths ``traverse_recursive`` yields (in a graph without
+    cycles, self-dependencies aside, a file's first visit expands everything below it, so a later visit adds nothing;
+    ``dependency_cycles`` reports every other cycle before the closures are built): that walk enumerates every
+    path, whose number grows exponentially with the files that share dependencies (tens of millions for one file of a
+    large project), while this one visits each file once.
+    """
+    closure = []
+    seen = set()
+    stack = [parsed_file]
+    while stack:
+        current = stack.pop()
+        if current in seen:
+            continue
+        seen.add(current)
+        closure.append(current)
+        # reversed, so that the first direct dependency is the next one popped (the recursive walk's order)
+        stack.extend(dep for dep in reversed(current.pfile_dep) if dep not in seen)
+    return closure
+
+
 def unique_seq(seq):
     """
     The function unique_seq returns the input sequence removing duplicated elements but peserving the original order.

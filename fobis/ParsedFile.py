@@ -104,7 +104,7 @@ from subprocess import STDOUT, CalledProcessError, check_output
 
 from .Dependency import Dependency
 from .Doctest import Doctest
-from .utils import is_c_header, is_c_source, traverse_recursive, unique_seq
+from .utils import dependency_closure, is_c_header, is_c_source
 
 # definition of regular expressions
 __str_apex__ = r"('|" + r'")'
@@ -805,8 +805,5 @@ class ParsedFile:
         """
         Create a complete list of all dependencies direct and indirect.
         """
-        self.pfile_dep_all = []
-        for path in traverse_recursive(self):
-            self.pfile_dep_all.append(path[-1])
-        self.pfile_dep_all = unique_seq(self.pfile_dep_all)
+        self.pfile_dep_all = dependency_closure(self)
         return
