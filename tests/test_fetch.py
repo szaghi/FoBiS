@@ -533,6 +533,6 @@ def test_parse_dep_spec_semver_only():
 
 
 @pytest.mark.parametrize("n", range(1, 5))
-def test_fetch_dep_integration(monkeypatch, n):
+def test_fetch_dep_integration(monkeypatch, tmp_path, n):
     """Test fetch dependency integration scenario n."""
-    assert run_build(monkeypatch, f"fetch-dep-test{n}"), f"fetch-dep-test{n} failed"
+    assert run_build(monkeypatch, f"fetch-dep-test{n}", tmp_path), f"fetch-dep-test{n} failed"

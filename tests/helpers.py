@@ -16,10 +16,33 @@ OPENCOARRAYS = shutil.which("caf") is not None
 PREFORM = shutil.which("PreForM.py") is not None
 
 
-def run_build(monkeypatch, directory):
-    """Run a build scenario. Returns True on success."""
+# Fixtures whose inputs (../build-test2/precompiled/, ../build-test{3,7,9}/lib/) are made by build-test1's finalize rule.
+BUILT_BY_BUILD_TEST1 = {"build-test2", "build-test3", "build-test7", "build-test9"}
+
+
+def _copy_fixture(directory, tmp_path):
+    """Copy the fixture *directory* into *tmp_path*, keeping its name (rules reach siblings as ../NAME); return it.
+
+    Each test builds in its own copy: built in place, the fixtures were shared state between parallel workers
+    (pytest -n auto), and builds rewrote tracked files (build-test24's preprocessed sources).
+    """
+    copy = os.path.join(str(tmp_path), directory)
+    shutil.copytree(os.path.join(TESTS_DIR, directory), copy, symlinks=True)
+    return copy
+
+
+def run_build(monkeypatch, directory, tmp_path):
+    """Run a build scenario in a copy of its fixture under *tmp_path*. Returns True on success."""
     build_ok = False
-    monkeypatch.chdir(os.path.join(TESTS_DIR, directory))
+    fixture = _copy_fixture(directory, tmp_path)
+    if directory in BUILT_BY_BUILD_TEST1:
+        # what a serial run got from the previous test: build-test1 built, then its finalize rule writing into the
+        # copy made above (copied after, the copy would find the directory the rule's mkdir -p made)
+        monkeypatch.chdir(_copy_fixture("build-test1", tmp_path))
+        run_fobis(fake_args=["clean", "-f", "fobos"])
+        run_fobis(fake_args=["build", "-f", "fobos"])
+        run_fobis(fake_args=["rule", "-f", "fobos", "-ex", "finalize"])
+    monkeypatch.chdir(fixture)
 
     run_fobis(fake_args=["clean", "-f", "fobos"])
 
