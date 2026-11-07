@@ -85,9 +85,10 @@ STUB = textwrap.dedent(
             for piece in (answer[: len(answer) // 2], answer[len(answer) // 2 :]):
                 chunk = {"choices": [{"delta": {"content": piece}}]}
                 self.wfile.write(f"data: {json.dumps(chunk)}\\n\\n".encode())
-            self.wfile.write(b"data: [DONE]\\n\\n")
+            # logged before [DONE]: the client returns on [DONE] and reads the log at once (a race on a busy runner)
             print("slot print_timing: eval time = 10 ms / 5 tokens (2 ms per token, 500.00 tokens per second)",
                   flush=True)
+            self.wfile.write(b"data: [DONE]\\n\\n")
 
     HTTPServer((opt("--host"), int(opt("--port"))), Handler).serve_forever()
     """
