@@ -16,6 +16,7 @@ Usage::
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -139,10 +140,22 @@ def _cell(text: str) -> str:
     return text.replace("|", "\\|").replace("\n", " ").replace("<", "&lt;").replace(">", "&gt;")
 
 
+def _type_name(param) -> str:
+    """The parameter's type name, as click spells it (text, integer, choice, path, ...)."""
+    if hasattr(param, "type"):  # Typer < 0.29: a click parameter
+        return getattr(param.type, "name", "") or ""
+    # Typer >= 0.29 vendors click and keeps the annotation: an enum is a choice, a list or tuple its item type
+    if param.type_descriptor.is_choice:
+        return "choice"
+    name = param.bare_type()
+    item = re.fullmatch(r"(?:list|tuple)\[(.*)\]", name)
+    return (item.group(1) if item else name).lower()
+
+
 def _value(param) -> str:
     if param.is_flag or param.count:
         return ""
-    name = getattr(param.type, "name", "") or ""
+    name = _type_name(param)
     # the type names change between Typer releases (0.24: text, integer range; 0.27: str, int range)
     for kind, words in (("TEXT", ("text", "str", "string")), ("INTEGER", ("integer", "int")), ("FLOAT", ("float",))):
         if name.replace(" range", "") in words:
