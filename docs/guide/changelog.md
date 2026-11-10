@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.16.2] — 2026-11-10
+### Added
+- **scaffold**: A project hook in release.sh for the files a release must also update
+
+
 ## [3.16.1] — 2026-11-07
 ### Performance
 - **build**: Visit each file once when collecting its dependencies
