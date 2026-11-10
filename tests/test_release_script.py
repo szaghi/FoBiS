@@ -149,3 +149,89 @@ def test_die_before_confirmation_prints_no_recovery_hint(repo):
     assert result.returncode == 1
     assert "working tree is dirty" in result.stderr
     assert "FAILED at stage" not in result.stdout + result.stderr
+
+
+# ── The project hook: scripts/release_hook.sh ────────────────────────────────
+HOOK = """#!/usr/bin/env bash
+# --check TAG: refuse a version README.md has no line for; TAG: write it there and print the file
+set -euo pipefail
+if [[ "$1" == --check ]]; then
+   grep -q "^next: $2$" README.md || { echo "README.md: no 'next: $2' line" >&2; exit 3; }
+   exit 0
+fi
+sed -i.bak "s/^next: $1$/released: $1/" README.md && rm -f README.md.bak
+{body}
+"""
+
+
+def add_hook(repo, body: str = "echo README.md", next_version: str = "v1.0.1", executable: bool = True):
+    """A committed hook and the README.md it updates."""
+    (repo / "README.md").write_text(f"next: {next_version}\n")
+    hook = repo / "scripts" / "release_hook.sh"
+    hook.write_text(HOOK.replace("{body}", body))
+    hook.chmod(0o755 if executable else 0o644)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "chore: a release hook")
+    git(repo, "push", "-q")
+
+
+def test_hook_files_are_committed_with_the_release(repo):
+    add_hook(repo)
+    result = release(repo)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "release_hook.sh: 1 file(s) to commit" in result.stdout
+    assert git(repo, "log", "-1", "--format=%s") == "chore(release): v1.0.1"
+    assert set(git(repo, "show", "--name-only", "--format=", "HEAD").split()) == {
+        "CHANGELOG.md",
+        "VERSION",
+        "README.md",
+    }
+    assert (repo / "README.md").read_text() == "released: v1.0.1\n"
+    assert not git(repo, "status", "--porcelain")
+
+
+def test_hook_check_failure_stops_before_any_change(repo):
+    add_hook(repo, next_version="v2.0.0")  # README.md is ready for another version
+    head = git(repo, "rev-parse", "HEAD")
+    result = release(repo)
+    out = result.stdout + result.stderr
+    assert result.returncode == 1
+    assert "README.md: no 'next: v1.0.1' line" in result.stderr  # the hook's own message is shown
+    assert "release_hook.sh --check v1.0.1 failed" in result.stderr
+    assert "Proceed?" not in out and "FAILED at stage" not in out
+    assert git(repo, "rev-parse", "HEAD") == head
+    assert not git(repo, "status", "--porcelain")
+
+
+def test_hook_failure_after_confirmation_hint_restores_the_tree(repo):
+    add_hook(repo, body="echo README.md; exit 4")  # changes README.md, then fails
+    head = git(repo, "rev-parse", "HEAD")
+    result = release(repo)
+    out = result.stdout + result.stderr
+    assert result.returncode == 1
+    assert "release_hook.sh v1.0.1 failed" in out
+    assert "FAILED at stage: bumped" in out
+    assert "may have changed other files" in out
+    assert git(repo, "rev-parse", "HEAD") == head
+    for command in hint_commands(out):
+        subprocess.run(command, cwd=repo, shell=True, check=True)
+    git(repo, "checkout", "HEAD", "--", "README.md")  # the hint's advice: git status shows what the hook changed
+    assert not git(repo, "status", "--porcelain")
+
+
+@pytest.mark.parametrize("printed", ["NOT_A_FILE.md", "/etc/hostname", "../origin.git/HEAD"])
+def test_hook_output_must_name_files_of_the_repository(repo, printed):
+    add_hook(repo, body=f"echo README.md; echo {printed}")
+    result = release(repo)
+    assert result.returncode == 1
+    assert f"printed '{printed}'" in result.stderr
+    assert git(repo, "log", "-1", "--format=%s") == "chore: a release hook"  # nothing committed
+
+
+def test_hook_not_executable_is_not_run(repo):
+    add_hook(repo, executable=False)
+    result = release(repo)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "release_hook.sh is not executable: not run" in result.stdout + result.stderr
+    assert (repo / "README.md").read_text() == "next: v1.0.1\n"  # untouched
+    assert set(git(repo, "show", "--name-only", "--format=", "HEAD").split()) == {"CHANGELOG.md", "VERSION"}

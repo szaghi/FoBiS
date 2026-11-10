@@ -372,7 +372,8 @@ default branch, uploads the coverage outputs it wrote under `docs/`; `docs.yml` 
 deploys the VitePress site and the coverage badge from those outputs, without running the coverage again (a manual
 dispatch, or a project whose own `ci.yml` uploads nothing, runs it itself); `release.yml` publishes the release notes when a tag is pushed; `install.yml` smoke-tests the install methods the
 project has (make, CMake, FoBiS, fpm) after a release. `scripts/release.sh vX.Y.Z` (or `--patch`/`--minor`/`--major`)
-regenerates `CHANGELOG.md` with git-cliff, updates `VERSION` (and the `fpm.toml` version), commits, tags and pushes.
+regenerates `CHANGELOG.md` with git-cliff, updates `VERSION` (and the `fpm.toml` version), runs the project's
+[release hook](#a-release-hook-for-the-project-s-own-files) when it has one, commits, tags and pushes.
 `scripts/run_tests.sh` runs every test binary in `exe/`: those named `*mpi*` under `mpirun -np N` (`--np N`, default
 2), the others directly; a `*_xfail_*` test must fail, a test with a `<name>.result` file (the doctests) must print
 that result, and `--vmem KB` caps each test's virtual memory.
@@ -414,11 +415,41 @@ apt_packages = libopenmpi-dev openmpi-bin zlib1g-dev
 skip         = scripts/release.sh
 ```
 
-- **`skip` is for a deliberate customisation** (a `release.sh` that also bumps a CMake version): the file stays out
-  of `status --strict`, `sync`, `init`, the dashboard's Drift column and `fobis ecosystem scaffold`.
+- **`skip` is for a deliberate customisation:** the file stays out of `status --strict`, `sync`, `init`, the
+  dashboard's Drift column and `fobis ecosystem scaffold`, and stops receiving the template's fixes. For the files a
+  release must also update (a CMake version, a README status line) use the
+  [release hook](#a-release-hook-for-the-project-s-own-files) instead: `release.sh` stays the template's.
 - **MPI in CI:** the packages go in `apt_packages`; running the tests under `mpirun` is `scripts/run_tests.sh --np N`.
 - **Old layouts are replaced:** a `run-coverage` action, an `install.sh` or a `cliff.toml` hardcoding the repository,
   a `release.yml` that also deployed the docs are all `OUTDATED`, and `sync` writes the current files.
+
+### A release hook for the project's own files
+
+A version kept somewhere `release.sh` does not know (a README status line, a CMake `project(VERSION)`, an install
+page's tag) goes in an executable `scripts/release_hook.sh`: the project's own file, which the scaffold never writes
+or checks. `release.sh` runs it twice, from the repository root:
+
+| When | Call | The hook |
+|---|---|---|
+| pre-flight, before the confirmation | `scripts/release_hook.sh --check vX.Y.Z` | exits non-zero to stop the release before anything changes |
+| after `VERSION` and `fpm.toml`, before the commit | `scripts/release_hook.sh vX.Y.Z` | updates its files and prints their paths, one per line, relative to the repository root |
+
+The printed files are committed with `CHANGELOG.md` and `VERSION` in the `chore(release)` commit. A printed line
+that is not a file of the repository stops the release (so a stray `echo` cannot add anything to the commit); a
+non-zero exit stops it too, and the recovery hint names the files to restore. A hook that is not executable is not
+run (`release.sh` warns). Without a hook, `release.sh` does what the list above says.
+
+```bash
+#!/usr/bin/env bash
+# scripts/release_hook.sh: the CMake version follows VERSION
+set -euo pipefail
+if [[ "$1" == --check ]]; then
+  grep -q '^project(.* VERSION ' CMakeLists.txt   # refuse a release the hook cannot write
+  exit 0
+fi
+sed -i.bak -E "s/^(project\(.* VERSION )[0-9.]+/\1${1#v}/" CMakeLists.txt && rm -f CMakeLists.txt.bak
+echo CMakeLists.txt
+```
 
 ## Shared boilerplate across the projects
 
