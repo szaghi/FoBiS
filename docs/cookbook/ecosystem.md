@@ -413,6 +413,8 @@ The `[scaffold]` section holds the project's own knobs; without it every file re
 apt_packages    = libopenmpi-dev openmpi-bin zlib1g-dev
 ; the container image the CI test job and the docs build job run in, instead of the setup-build-env action
 toolchain_image = ghcr.io/szaghi/fortran-toolchains:gnu-16.2
+; Debian packages the image lacks, installed in that container before the jobs' steps (with toolchain_image only)
+toolchain_packages = libx11-dev libwayland-dev
 ; managed files this project owns (globs): reported SKIPPED, never written by sync or init
 skip            = scripts/release.sh
 ```
@@ -425,7 +427,9 @@ skip            = scripts/release.sh
 - **A toolchain image for CI:** with `toolchain_image`, `ci.yml` (the test job) and `docs.yml` (the build job) run in
   that container, and their `setup-build-env` step goes: the image holds the compiler, MPI, HDF5 and the tools (FoBiS,
   ford, formal, gcovr, jq), so nothing is installed while a job runs and nothing depends on the Ubuntu archive or a
-  PPA. `apt_packages` is then unused by them (the image is the environment); `install.yml` keeps testing the installation
+  PPA. `apt_packages` is then unused by them (the image is the environment: installing the runner's packages there, an
+  HDF5 beside the image's own, could shadow what the image built); what a project needs and the image lacks (a GUI
+  library's X11 headers) goes in `toolchain_packages`, installed by one `apt-get` step after the checkout; `install.yml` keeps testing the installation
   on the bare runner. The image must be pullable by the runner (public, or granted to the repository). A new toolchain
   for all the projects is one value per `fobos`, then `fobis scaffold sync`. Unset, both workflows are the bare-runner
   ones.

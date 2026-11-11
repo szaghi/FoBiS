@@ -1404,12 +1404,17 @@ class Fobos:
           'toolchain_image' (str): the container image the CI test and docs
           build jobs run in (e.g. 'ghcr.io/szaghi/fortran-toolchains:gnu-16.2'),
           which then replaces the setup-build-env action, empty string if unset;
+          'toolchain_packages' (str): space-separated Debian packages installed
+          in that container before the job's steps (what the image lacks, e.g.
+          the X11 headers of a GUI library), used only with toolchain_image,
+          empty string if unset;
           and 'skip' (list of str): globs of the managed files the project owns
           (deliberately customised), which scaffold never writes, empty if unset.
         """
         config = {
             "apt_packages": "",
             "toolchain_image": "",
+            "toolchain_packages": "",
             "skip": [],
         }
         if self.fobos and self.fobos.has_section("scaffold"):
@@ -1417,6 +1422,8 @@ class Fobos:
                 config["apt_packages"] = self.fobos.get("scaffold", "apt_packages").strip()
             if self.fobos.has_option("scaffold", "toolchain_image"):
                 config["toolchain_image"] = self.fobos.get("scaffold", "toolchain_image").strip()
+            if self.fobos.has_option("scaffold", "toolchain_packages"):
+                config["toolchain_packages"] = self.fobos.get("scaffold", "toolchain_packages").strip()
             if self.fobos.has_option("scaffold", "skip"):
                 config["skip"] = self.fobos.get("scaffold", "skip").split()
         return config

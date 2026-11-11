@@ -200,8 +200,20 @@ def get_project_vars(fobos=None, overrides=None, cwd=None):
             # tools: the setup-build-env step goes. Unset, both workflows render byte-identical to the old verbatim
             # files (setup-build-env on the bare runner).
             vars_dict["SCAFFOLD_CONTAINER"] = f"\n    container: {scaffold_cfg['toolchain_image']}"
-            vars_dict["SCAFFOLD_CI_SETUP"] = ""
-            vars_dict["SCAFFOLD_DOCS_SETUP"] = ""
+            # what the image lacks (a GUI library's X11 headers, ...): installed in the container before the steps;
+            # apt_packages stays the bare runner's (installed in the image, it could shadow the image's own builds)
+            pkgs = scaffold_cfg.get("toolchain_packages", "").split()
+            setup = ""
+            if pkgs:
+                lines = "".join(f" \\\n          {pkg}" for pkg in pkgs)
+                setup = (
+                    "\n\n    - name: Packages the toolchain image lacks\n"
+                    "      run: |\n"
+                    "        apt-get update\n"
+                    f"        apt-get install -y --no-install-recommends{lines}"
+                )
+            vars_dict["SCAFFOLD_CI_SETUP"] = setup
+            vars_dict["SCAFFOLD_DOCS_SETUP"] = setup
 
         info = fobos.get_project_info()
         if info.get("name"):

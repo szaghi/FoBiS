@@ -663,12 +663,13 @@ def test_sync_dry_run_does_not_create_symlink(tmp_path):
 class _FakeFobos:
     """Minimal fobos stub exposing the two getters get_project_vars consumes."""
 
-    def __init__(self, apt_packages="", toolchain_image=""):
+    def __init__(self, apt_packages="", toolchain_image="", toolchain_packages=""):
         self._apt = apt_packages
         self._image = toolchain_image
+        self._image_pkgs = toolchain_packages
 
     def get_scaffold_config(self):
-        return {"apt_packages": self._apt, "toolchain_image": self._image}
+        return {"apt_packages": self._apt, "toolchain_image": self._image, "toolchain_packages": self._image_pkgs}
 
     def get_project_info(self):
         return {
@@ -719,9 +720,12 @@ _SETUP_STEP = "    - name: Setup build environment\n      uses: ./.github/action
 _IMAGE = "ghcr.io/szaghi/fortran-toolchains:gnu-16.2"
 
 
-def _render_workflow(tmp_path, dest, toolchain_image=""):
-    """Render the managed workflow *dest* with the given [scaffold] toolchain_image."""
-    s = Scaffolder(project_vars=get_project_vars(fobos=_FakeFobos(toolchain_image=toolchain_image)), cwd=str(tmp_path))
+def _render_workflow(tmp_path, dest, toolchain_image="", toolchain_packages="", apt_packages=""):
+    """Render the managed workflow *dest* with the given [scaffold] toolchain_image and packages."""
+    fobos = _FakeFobos(
+        apt_packages=apt_packages, toolchain_image=toolchain_image, toolchain_packages=toolchain_packages
+    )
+    s = Scaffolder(project_vars=get_project_vars(fobos=fobos), cwd=str(tmp_path))
     entry = s.manifest[dest]
     assert entry["category"] == "templated"
     return s._get_canonical(entry)
@@ -749,6 +753,27 @@ def test_toolchain_image_set_runs_jobs_in_container(tmp_path):
     assert "setup-build-env" not in docs
     deploy = docs.split("\n  deploy:\n")[1]
     assert "container:" not in deploy
+    assert "apt-get" not in ci and "apt-get" not in docs  # no toolchain_packages: nothing installed
+
+
+def test_toolchain_packages_installed_in_the_container(tmp_path):
+    """[scaffold] toolchain_packages → one apt-get step right after the checkout of the containerised jobs;
+    apt_packages (the bare runner's) is not installed in the image."""
+    pkgs = "libx11-dev libwayland-dev imagemagick"
+    for dest in (".github/workflows/ci.yml", ".github/workflows/docs.yml"):
+        rendered = _render_workflow(tmp_path, dest, _IMAGE, pkgs, apt_packages="libhdf5-dev")
+        step = rendered.split("    - name: Packages the toolchain image lacks\n")
+        assert len(step) == 2, dest
+        assert "apt-get install -y --no-install-recommends \\\n          libx11-dev" in step[1]
+        assert "imagemagick" in step[1] and "libhdf5-dev" not in rendered
+        assert rendered.index("Packages the toolchain image lacks") > rendered.index("actions/checkout")
+        assert "{{SCAFFOLD_" not in rendered
+
+
+def test_toolchain_packages_ignored_without_an_image(tmp_path):
+    """toolchain_packages alone (no toolchain_image) → the bare-runner workflows, unchanged."""
+    for dest in (".github/workflows/ci.yml", ".github/workflows/docs.yml"):
+        assert _render_workflow(tmp_path, dest, "", "libx11-dev") == _render_workflow(tmp_path, dest)
 
 
 # ── Scaffold run_tests.sh --np (MPI) support ──────────────────────────────────
