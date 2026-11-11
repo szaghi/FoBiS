@@ -448,6 +448,20 @@ that is not a file of the repository stops the release (so a stray `echo` cannot
 non-zero exit stops it too, and the recovery hint names the files to restore. A hook that is not executable is not
 run (`release.sh` warns). Without a hook, `release.sh` does what the list above says.
 
+**CMake:** a version written into `project()` would go stale, so `release.sh` refuses it in the pre-flight, before
+any change, unless the project has a hook. With a hook, the version must equal the new one once the hook has run,
+or the release stops before the commit. The simplest way needs no hook: `CMakeLists.txt` reads `VERSION` (as PENF
+does):
+
+```cmake
+# the version is read from the VERSION file (vX.Y.Z), updated by scripts/release.sh
+file(STRINGS "${CMAKE_CURRENT_LIST_DIR}/VERSION" penf_version LIMIT_COUNT 1)
+string(REGEX REPLACE "^v" "" penf_version "${penf_version}")
+project(PENF VERSION ${penf_version} LANGUAGES Fortran)
+```
+
+A hook keeps a written version instead:
+
 ```bash
 #!/usr/bin/env bash
 # scripts/release_hook.sh: the CMake version follows VERSION

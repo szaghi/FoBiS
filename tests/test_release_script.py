@@ -235,3 +235,55 @@ def test_hook_not_executable_is_not_run(repo):
     assert "release_hook.sh is not executable: not run" in result.stdout + result.stderr
     assert (repo / "README.md").read_text() == "next: v1.0.1\n"  # untouched
     assert set(git(repo, "show", "--name-only", "--format=", "HEAD").split()) == {"CHANGELOG.md", "VERSION"}
+
+
+# ── CMake: a version written into project() ───────────────────────────────────
+def add_cmake(repo, project_line: str):
+    """A committed CMakeLists.txt whose project() line is *project_line*."""
+    (repo / "CMakeLists.txt").write_text(f"cmake_minimum_required(VERSION 3.13)\n{project_line}\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "build: cmake")
+    git(repo, "push", "-q")
+
+
+def test_cmake_literal_version_is_refused_before_any_change(repo):
+    add_cmake(repo, "project(Demo VERSION 0.9.9 LANGUAGES Fortran)")
+    head = git(repo, "rev-parse", "HEAD")
+    result = release(repo)
+    out = result.stdout + result.stderr
+    assert result.returncode == 1
+    assert "CMakeLists.txt declares project(... VERSION 0.9.9)" in result.stderr
+    assert "Proceed?" not in out and "FAILED at stage" not in out
+    assert git(repo, "rev-parse", "HEAD") == head
+    assert not git(repo, "status", "--porcelain")
+
+
+def test_cmake_version_read_from_version_file_is_accepted(repo):
+    add_cmake(repo, "project(Demo VERSION ${demo_version} LANGUAGES Fortran)")
+    result = release(repo)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_cmake_literal_version_kept_by_the_hook_is_committed(repo):
+    add_cmake(repo, "project(Demo VERSION 1.0.0 LANGUAGES Fortran)")
+    add_hook(
+        repo,
+        body='sed -i.bak "s/VERSION 1.0.0 /VERSION 1.0.1 /" CMakeLists.txt && rm -f CMakeLists.txt.bak\n'
+        "echo README.md; echo CMakeLists.txt",
+    )
+    result = release(repo)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "project(Demo VERSION 1.0.1 " in (repo / "CMakeLists.txt").read_text()
+    assert "CMakeLists.txt" in git(repo, "show", "--name-only", "--format=", "HEAD").split()
+
+
+def test_cmake_literal_version_left_stale_by_the_hook_stops_before_the_commit(repo):
+    add_cmake(repo, "project(Demo VERSION 1.0.0 LANGUAGES Fortran)")
+    add_hook(repo)  # updates README.md only
+    head = git(repo, "rev-parse", "HEAD")
+    result = release(repo)
+    out = result.stdout + result.stderr
+    assert result.returncode == 1
+    assert "still declares project(... VERSION 1.0.0)" in out and "1.0.1 expected" in out
+    assert "FAILED at stage: bumped" in out
+    assert git(repo, "rev-parse", "HEAD") == head
