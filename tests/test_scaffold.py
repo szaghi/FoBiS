@@ -663,11 +663,12 @@ def test_sync_dry_run_does_not_create_symlink(tmp_path):
 class _FakeFobos:
     """Minimal fobos stub exposing the two getters get_project_vars consumes."""
 
-    def __init__(self, apt_packages=""):
+    def __init__(self, apt_packages="", toolchain_image=""):
         self._apt = apt_packages
+        self._image = toolchain_image
 
     def get_scaffold_config(self):
-        return {"apt_packages": self._apt}
+        return {"apt_packages": self._apt, "toolchain_image": self._image}
 
     def get_project_info(self):
         return {
@@ -710,6 +711,44 @@ def test_apt_packages_set_appends_continuation_lines(tmp_path):
     # Still inside the single apt-install block (before update-alternatives).
     apt_block = rendered.split("update-alternatives")[0]
     assert "libopenmpi-dev" in apt_block and "openmpi-bin" in apt_block
+
+
+# ── Scaffolder [scaffold] toolchain_image: CI and docs jobs in a container ─────
+
+_SETUP_STEP = "    - name: Setup build environment\n      uses: ./.github/actions/setup-build-env"
+_IMAGE = "ghcr.io/szaghi/fortran-toolchains:gnu-16.2"
+
+
+def _render_workflow(tmp_path, dest, toolchain_image=""):
+    """Render the managed workflow *dest* with the given [scaffold] toolchain_image."""
+    s = Scaffolder(project_vars=get_project_vars(fobos=_FakeFobos(toolchain_image=toolchain_image)), cwd=str(tmp_path))
+    entry = s.manifest[dest]
+    assert entry["category"] == "templated"
+    return s._get_canonical(entry)
+
+
+def test_toolchain_image_unset_keeps_setup_build_env(tmp_path):
+    """No [scaffold] toolchain_image → ci.yml and docs.yml set up the bare runner, no container."""
+    for dest in (".github/workflows/ci.yml", ".github/workflows/docs.yml"):
+        rendered = _render_workflow(tmp_path, dest)
+        assert "{{SCAFFOLD_" not in rendered
+        assert "container:" not in rendered
+        assert _SETUP_STEP in rendered
+    docs = _render_workflow(tmp_path, ".github/workflows/docs.yml")
+    assert "extra-pip-packages: formal-ford2vitepress" in docs
+
+
+def test_toolchain_image_set_runs_jobs_in_container(tmp_path):
+    """[scaffold] toolchain_image → the CI test job and the docs build job run in it, without setup-build-env;
+    the Pages deploy job stays on the bare runner."""
+    ci = _render_workflow(tmp_path, ".github/workflows/ci.yml", _IMAGE)
+    assert f"  test:\n    runs-on: ubuntu-latest\n    container: {_IMAGE}\n" in ci
+    assert "setup-build-env" not in ci
+    docs = _render_workflow(tmp_path, ".github/workflows/docs.yml", _IMAGE)
+    assert docs.count(f"    container: {_IMAGE}\n") == 1
+    assert "setup-build-env" not in docs
+    deploy = docs.split("\n  deploy:\n")[1]
+    assert "container:" not in deploy
 
 
 # ── Scaffold run_tests.sh --np (MPI) support ──────────────────────────────────

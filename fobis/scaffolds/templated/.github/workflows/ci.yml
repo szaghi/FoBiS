@@ -13,17 +13,14 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest{{SCAFFOLD_CONTAINER}}
     permissions:
       contents: read
 
     steps:
 
     - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Setup build environment
-      uses: ./.github/actions/setup-build-env
+      uses: actions/checkout@v4{{SCAFFOLD_CI_SETUP}}
 
     - name: Fetch dependencies
       if: hashFiles('**/.deps_config.ini') != ''

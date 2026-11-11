@@ -974,7 +974,7 @@ Add custom include extensions: `fobis build --inc .cmn`.
 | `[rule-NAME]` | Custom shell rule for `fobis rule --ex NAME` |
 | `[dependencies]` | GitHub-hosted build dependencies (used by `fetch`) |
 | `[project]` | Metadata: `name`, `authors`, `version`, `summary`, `repository`, `website`, `email`, `year` |
-| `[scaffold]` | Optional `fobis scaffold` knobs: `apt_packages = …` (extra CI system packages), `skip = <globs>` (project-owned managed files, never synced) |
+| `[scaffold]` | Optional `fobis scaffold` knobs: `apt_packages = …` (extra CI system packages), `toolchain_image = <image>` (the CI test and docs build jobs run in this container instead of `setup-build-env`), `skip = <globs>` (project-owned managed files, never synced) |
 | `[ecosystem]` | How `fobis ecosystem` treats the project: `check` (commands for `ecosystem check`), `release_exclude` (globs whose changes call for no release) |
 
 ---

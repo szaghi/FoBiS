@@ -38,6 +38,11 @@ Install, fetch, build, test, coverage:
   test fails, so the step fails too.
 - **Several compilers:** a job matrix over `--mode` (one mode per compiler) or over `--compiler`; for the compilers
   of a workstation or a cluster loaded by environment modules, see [HPC and clusters](./hpc).
+- **A recent compiler with its MPI and HDF5:** run the job in a container image that holds them, built by the same
+  compiler (the `.mod` files of `mpi_f08` and `hdf5` are read only by the compiler that wrote them): the job's
+  `container:` key names the image, and nothing is installed while it runs. For the scaffolded workflows it is
+  `toolchain_image` in the `[scaffold]` section of the fobos, see
+  [What scaffold manages](./ecosystem#what-scaffold-manages).
 
 A first step that fails fast, before compiling anything: `fobis check` resolves every file's dependencies.
 

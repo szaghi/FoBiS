@@ -361,8 +361,8 @@ adds this boilerplate.
 
 | Category | Files | `sync` |
 |---|---|---|
-| verbatim | `.github/workflows/ci.yml`, `docs.yml`, `install.yml`, `.github/actions/run-coverage-analysis/action.yml`, `scripts/release.sh`, `scripts/run_tests.sh`, `scripts/install.sh`, `scripts/compute-coverage.sh`, `docs/package.json`, `cliff.toml`, `LICENSE.gpl3.md` | overwrites |
-| templated | `.github/workflows/release.yml` (`{{NAME}}`), `.github/actions/setup-build-env/action.yml` (`{{SCAFFOLD_APT_PACKAGES}}`) | overwrites with the rendered text |
+| verbatim | `.github/workflows/install.yml`, `.github/actions/run-coverage-analysis/action.yml`, `scripts/release.sh`, `scripts/run_tests.sh`, `scripts/install.sh`, `scripts/compute-coverage.sh`, `docs/package.json`, `cliff.toml`, `LICENSE.gpl3.md` | overwrites |
+| templated | `.github/workflows/release.yml` (`{{NAME}}`), `.github/actions/setup-build-env/action.yml` (`{{SCAFFOLD_APT_PACKAGES}}`), `.github/workflows/ci.yml` and `docs.yml` (`toolchain_image`) | overwrites with the rendered text |
 | init-only | `fobos`, `fpm.toml`, `docs/ford.md` (rendered when created), `docs/guide/contributing.md` | never: yours after `init` |
 | patched | `docs/.vitepress/config.mts` (rendered when created) | only inserts the `build: { target: 'es2022' }` block into `vite: {` |
 | symlink | `CONTRIBUTING.md` -> `docs/guide/contributing.md` | creates or repairs the link, never writes through it |
@@ -410,9 +410,11 @@ The `[scaffold]` section holds the project's own knobs; without it every file re
 ```ini
 [scaffold]
 ; extra system packages for the CI build environment, appended to its apt install line
-apt_packages = libopenmpi-dev openmpi-bin zlib1g-dev
+apt_packages    = libopenmpi-dev openmpi-bin zlib1g-dev
+; the container image the CI test job and the docs build job run in, instead of the setup-build-env action
+toolchain_image = ghcr.io/szaghi/fortran-toolchains:gnu-16.2
 ; managed files this project owns (globs): reported SKIPPED, never written by sync or init
-skip         = scripts/release.sh
+skip            = scripts/release.sh
 ```
 
 - **`skip` is for a deliberate customisation:** the file stays out of `status --strict`, `sync`, `init`, the
@@ -420,6 +422,13 @@ skip         = scripts/release.sh
   release must also update (a CMake version, a README status line) use the
   [release hook](#a-release-hook-for-the-project-s-own-files) instead: `release.sh` stays the template's.
 - **MPI in CI:** the packages go in `apt_packages`; running the tests under `mpirun` is `scripts/run_tests.sh --np N`.
+- **A toolchain image for CI:** with `toolchain_image`, `ci.yml` (the test job) and `docs.yml` (the build job) run in
+  that container, and their `setup-build-env` step goes: the image holds the compiler, MPI, HDF5 and the tools (FoBiS,
+  ford, formal, gcovr, jq), so nothing is installed while a job runs and nothing depends on the Ubuntu archive or a
+  PPA. `apt_packages` is then unused by them (the image is the environment); `install.yml` keeps testing the installation
+  on the bare runner. The image must be pullable by the runner (public, or granted to the repository). A new toolchain
+  for all the projects is one value per `fobos`, then `fobis scaffold sync`. Unset, both workflows are the bare-runner
+  ones.
 - **Old layouts are replaced:** a `run-coverage` action, an `install.sh` or a `cliff.toml` hardcoding the repository,
   a `release.yml` that also deployed the docs are all `OUTDATED`, and `sync` writes the current files.
 

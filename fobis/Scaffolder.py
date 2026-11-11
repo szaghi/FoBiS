@@ -124,6 +124,20 @@ def _git(command, cwd=None):
     return f"git {command}"
 
 
+# The setup-build-env step of ci.yml and docs.yml, rendered when no [scaffold] toolchain_image is set (each is appended
+# to the checkout step, hence the leading blank line).
+_CI_SETUP = """
+
+    - name: Setup build environment
+      uses: ./.github/actions/setup-build-env"""
+_DOCS_SETUP = """
+
+    - name: Setup build environment
+      uses: ./.github/actions/setup-build-env
+      with:
+        extra-pip-packages: formal-ford2vitepress"""
+
+
 def get_project_vars(fobos=None, overrides=None, cwd=None):
     """
     Build the project variables dict from fobos metadata, git, and defaults.
@@ -166,6 +180,9 @@ def get_project_vars(fobos=None, overrides=None, cwd=None):
         "YEAR": str(datetime.date.today().year),
         "DEPENDENCIES": "",
         "SCAFFOLD_APT_PACKAGES": "",
+        "SCAFFOLD_CONTAINER": "",
+        "SCAFFOLD_CI_SETUP": _CI_SETUP,
+        "SCAFFOLD_DOCS_SETUP": _DOCS_SETUP,
     }
 
     if fobos is not None:
@@ -178,6 +195,13 @@ def get_project_vars(fobos=None, overrides=None, cwd=None):
             # the gcc/gfortran/g++ block above it.
             pkgs = scaffold_cfg["apt_packages"].split()
             vars_dict["SCAFFOLD_APT_PACKAGES"] = "".join(f" \\\n          {pkg}" for pkg in pkgs)
+        if scaffold_cfg.get("toolchain_image"):
+            # The CI test job and the docs build job run in the toolchain image, which holds the compilers and the
+            # tools: the setup-build-env step goes. Unset, both workflows render byte-identical to the old verbatim
+            # files (setup-build-env on the bare runner).
+            vars_dict["SCAFFOLD_CONTAINER"] = f"\n    container: {scaffold_cfg['toolchain_image']}"
+            vars_dict["SCAFFOLD_CI_SETUP"] = ""
+            vars_dict["SCAFFOLD_DOCS_SETUP"] = ""
 
         info = fobos.get_project_info()
         if info.get("name"):

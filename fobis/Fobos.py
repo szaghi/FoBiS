@@ -1401,16 +1401,22 @@ class Fobos:
           dict with keys 'apt_packages' (str): space-separated extra system
           packages to install in the CI build environment (e.g.
           'libopenmpi-dev openmpi-bin' or 'zlib1g-dev'), empty string if unset;
+          'toolchain_image' (str): the container image the CI test and docs
+          build jobs run in (e.g. 'ghcr.io/szaghi/fortran-toolchains:gnu-16.2'),
+          which then replaces the setup-build-env action, empty string if unset;
           and 'skip' (list of str): globs of the managed files the project owns
           (deliberately customised), which scaffold never writes, empty if unset.
         """
         config = {
             "apt_packages": "",
+            "toolchain_image": "",
             "skip": [],
         }
         if self.fobos and self.fobos.has_section("scaffold"):
             if self.fobos.has_option("scaffold", "apt_packages"):
                 config["apt_packages"] = self.fobos.get("scaffold", "apt_packages").strip()
+            if self.fobos.has_option("scaffold", "toolchain_image"):
+                config["toolchain_image"] = self.fobos.get("scaffold", "toolchain_image").strip()
             if self.fobos.has_option("scaffold", "skip"):
                 config["skip"] = self.fobos.get("scaffold", "skip").split()
         return config

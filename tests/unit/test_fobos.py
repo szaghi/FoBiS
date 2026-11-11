@@ -195,12 +195,21 @@ def test_get_scaffold_config_apt_packages(tmp_path):
     assert cfg["apt_packages"] == "libopenmpi-dev openmpi-bin"
 
 
+def test_get_scaffold_config_toolchain_image(tmp_path):
+    """get_scaffold_config() parses toolchain_image from [scaffold]."""
+    _write_fobos(tmp_path, "[default]\ncompiler = gnu\n[scaffold]\ntoolchain_image = ghcr.io/o/t:gnu-16.2\n")
+    fobos = Fobos(cliargs=_ns(tmp_path / "fobos"))
+    cfg = fobos.get_scaffold_config()
+    assert cfg["toolchain_image"] == "ghcr.io/o/t:gnu-16.2"
+
+
 def test_get_scaffold_config_empty_when_no_section(tmp_path):
     """get_scaffold_config() returns defaults when [scaffold] is absent."""
     _write_fobos(tmp_path, "[default]\ncompiler = gnu\n")
     fobos = Fobos(cliargs=_ns(tmp_path / "fobos"))
     cfg = fobos.get_scaffold_config()
     assert cfg["apt_packages"] == ""
+    assert cfg["toolchain_image"] == ""
 
 
 # ---------------------------------------------------------------------------
