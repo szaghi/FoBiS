@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.16.4] — 2026-11-11
+### Fixed
+- **scaffold**: The toolchain PPA only for a GCC the runner's Ubuntu lacks
+
+
 ## [3.16.3] — 2026-11-10
 ### Fixed
 - **docs**: The CLI reference generator on Typer 0.29, which vendors click
