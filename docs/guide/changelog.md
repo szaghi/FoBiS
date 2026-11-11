@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.16.6] — 2026-11-11
+### Added
+- **scaffold**: Release.sh refuses a CMake project version it would leave stale
+
+
 ## [3.16.5] — 2026-11-11
 ### Added
 - **scaffold**: Toolchain_image, the CI and docs jobs in a container
