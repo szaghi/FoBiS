@@ -4,6 +4,17 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.16.9] — 2026-11-12
+### Documentation
+- **site**: New visual identity, Futatsu no tsuki in the Denshi ink
+
+- **examples**: Regenerate the scaffold sync output of the ecosystem tutorial
+
+
+### Fixed
+- **scaffold**: The coverage pack of ci.yml fails instead of packing nothing
+
+
 ## [3.16.8] — 2026-11-12
 ### Fixed
 - **docs**: The dashboard tutorial measures its file with du, not ls
