@@ -1,9 +1,10 @@
-// Default theme + client-side Mermaid rendering.
+// Default theme + the FoBiS identity (custom.css) + client-side Mermaid rendering.
 //
 // The markdown fence hook in config.mts turns ```mermaid blocks into <pre class="mermaid">; here they are
 // rendered with the `mermaid` package after each page load, and again when the dark mode toggles
 // (vitepress-plugin-mermaid does the same, but does not support VitePress 2).
 import DefaultTheme from 'vitepress/theme'
+import './custom.css'  // the Sumi family identity: Futatsu no tsuki in Denshi
 import { nextTick, onMounted, watch } from 'vue'
 import { useData, useRoute } from 'vitepress'
 

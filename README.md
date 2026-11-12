@@ -1,5 +1,10 @@
 <div align="center">
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/public/logo-dark.svg">
+  <img src="docs/public/logo.svg" width="160" alt="FoBiS">
+</picture>
+
 # FoBiS — Fortran Building System
 
 [![Latest Version](https://img.shields.io/pypi/v/FoBiS.py.svg)](https://pypi.org/project/FoBiS.py/)

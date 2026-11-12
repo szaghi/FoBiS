@@ -1,0 +1,114 @@
+/* FoBiS · Futatsu no tsuki in Denshi 電子
+   The Sumi family hand (brushed marks, carved seal, brushed AMR ground) in the cyber ink:
+   sumi on washi by day; by night the AMR ground is a cyan circuit and Phobos and the seal are neon magenta. */
+@import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --sumi-ground: #f3ede1;
+  --sumi-ground-alt: #ebe3d3;
+  --sumi-ground-raised: #f7f2e8;
+  --sumi-line: #ddd4c3;
+  --sumi-ink: #1d1b18;
+  --sumi-ink-muted: #5f5a52;
+  --sumi-mesh: #6f6a62;
+  --sumi-link: #9a0f7d;
+  --sumi-seal: #b0128f;
+  --sumi-action: #9a0f7d;
+  --sumi-action-pressed: #7d0c66;
+  --sumi-on-action: #ffffff;
+  --sumi-focus-ring: #1d1b18;
+}
+
+.dark {
+  --sumi-ground: #07070f;
+  --sumi-ground-alt: #0a0a16;
+  --sumi-ground-raised: #0e0e1c;
+  --sumi-line: #1c1c36;
+  --sumi-ink: #e8f6ff;
+  --sumi-ink-muted: #9fb2c8;
+  --sumi-mesh: #19d3ff;
+  --sumi-link: #ff7ae3;
+  --sumi-seal: #ff3fd8;
+  --sumi-action: #ff3fd8;
+  --sumi-action-pressed: #ec6fd2;
+  --sumi-on-action: #14110d;
+  --sumi-focus-ring: #19d3ff;
+}
+
+:root, .dark {
+  --vp-font-family-base: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --vp-font-family-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --vp-c-bg: var(--sumi-ground);
+  --vp-c-bg-alt: var(--sumi-ground-alt);
+  --vp-c-bg-elv: var(--sumi-ground-raised);
+  --vp-c-bg-soft: var(--sumi-ground-alt);
+  --vp-c-divider: var(--sumi-line);
+  --vp-c-border: var(--sumi-mesh);
+  --vp-c-gutter: var(--sumi-line);
+
+  --vp-c-text-1: var(--sumi-ink);
+  --vp-c-text-2: var(--sumi-ink-muted);
+  --vp-c-text-3: var(--sumi-ink-muted);
+
+  --vp-c-brand-1: var(--sumi-link);
+  --vp-c-brand-2: var(--sumi-action-pressed);
+  --vp-c-brand-3: var(--sumi-action);
+  --vp-c-brand-soft: color-mix(in srgb, var(--sumi-link) 14%, transparent);
+
+  --vp-button-brand-bg: var(--sumi-action);
+  --vp-button-brand-border: var(--sumi-action);
+  --vp-button-brand-text: var(--sumi-on-action);
+  --vp-button-brand-hover-bg: var(--sumi-action-pressed);
+  --vp-button-brand-hover-border: var(--sumi-action-pressed);
+  --vp-button-brand-hover-text: var(--sumi-on-action);
+  --vp-button-brand-active-bg: var(--sumi-action-pressed);
+  --vp-button-brand-active-text: var(--sumi-on-action);
+  --vp-button-alt-bg: transparent;
+  --vp-button-alt-border: var(--sumi-mesh);
+  --vp-button-alt-text: var(--sumi-ink);
+  --vp-button-alt-hover-bg: var(--sumi-ground-alt);
+  --vp-button-alt-hover-border: var(--sumi-ink);
+  --vp-button-alt-hover-text: var(--sumi-ink);
+
+  --vp-c-tip-1: var(--sumi-link);
+  --vp-c-tip-soft: color-mix(in srgb, var(--sumi-seal) 12%, transparent);
+
+  --vp-code-block-bg: var(--sumi-ground-alt);
+  --vp-code-color: var(--sumi-ink);
+  --vp-code-bg: var(--sumi-ground-alt);
+
+  --vp-home-hero-name-color: var(--sumi-ink);
+  --vp-home-hero-image-background-image: none;
+  --vp-home-hero-image-filter: none;
+}
+
+/* the name is set in the family display face */
+.VPHero .name, .VPHero .name .clip, .VPNavBarTitle .title {
+  font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', serif;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.VPHero .name .clip { background: none; -webkit-text-fill-color: var(--sumi-ink); color: var(--sumi-ink); }
+.VPHero .text { color: var(--sumi-link); font-weight: 600; }
+
+/* the hero mark: larger, never behind a glow or a gradient */
+.VPHero .image-container { width: 320px; height: 320px; }
+.VPHero .image-src { max-width: 320px; max-height: 320px; }
+@media (max-width: 960px) {
+  .VPHero .image-container { width: 240px; height: 240px; }
+  .VPHero .image-src { max-width: 240px; max-height: 240px; }
+}
+
+/* feature cards: raised paper, hairline border, no tinted icon box */
+.VPFeature { background: var(--sumi-ground-raised); border: 1px solid var(--sumi-line); border-radius: 8px; }
+.VPFeature .icon { background: none; width: 48px; height: 48px; }
+
+/* buttons near-square, like the seal */
+.VPButton { border-radius: 4px; }
+
+/* keyboard focus: a solid 2px ring with a 2px gap of ground */
+a:focus-visible, button:focus-visible, .VPButton:focus-visible {
+  outline: 2px solid var(--sumi-focus-ring);
+  outline-offset: 2px;
+}

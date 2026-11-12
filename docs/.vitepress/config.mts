@@ -203,6 +203,16 @@ export default defineConfig({
   title: 'FoBiS.py',
   description: 'Fortran Building System — automatic dependency-resolving build tool for modern Fortran projects',
   base: '/FoBiS/',
+  // VitePress does not add the base to head hrefs: they carry /FoBiS/ explicitly
+  head: [
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/FoBiS/favicon.svg' }],
+    ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/FoBiS/favicon-32.png' }],
+    ['link', { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/FoBiS/favicon-16.png' }],
+    ['link', { rel: 'icon', href: '/FoBiS/favicon.ico', sizes: '48x48' }],
+    ['link', { rel: 'apple-touch-icon', sizes: '180x180', href: '/FoBiS/apple-touch-icon.png' }],
+    ['meta', { name: 'theme-color', media: '(prefers-color-scheme: light)', content: '#f3ede1' }],
+    ['meta', { name: 'theme-color', media: '(prefers-color-scheme: dark)', content: '#07070f' }],
+  ],
   markdown: {
     math: true,
     languageAlias: {
@@ -245,6 +255,8 @@ export default defineConfig({
     },
   },
   themeConfig: {
+    logo: { light: '/logo-nav.svg', dark: '/logo-nav-dark.svg', alt: 'FoBiS' },
+    siteTitle: 'FoBiS',
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Get started', link: '/guide/', activeMatch: '^/guide/(index|installation|shell-completion|compilers)?$' },

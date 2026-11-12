@@ -4,6 +4,10 @@ layout: home
 hero:
   name: FoBiS
   text: The Fortran Building System
+  image:
+    light: /logo.svg
+    dark: /logo-dark.svg
+    alt: FoBiS · Mars and its two moons, Phobos and Deimos, brushed over a refined AMR grid
   tagline: Builds modern Fortran projects with no makefile, by reading the sources. Then tests them, checks their numerical results, lints and reviews them, and gives an AI assistant the facts to work on them, with every claim checked.
   actions:
     - theme: brand
@@ -23,47 +27,47 @@ hero:
       link: https://github.com/szaghi/FoBiS
 
 features:
-  - icon: ⚡
+  - icon: { light: /icons/no-makefile.svg, dark: /icons/no-makefile-dark.svg, width: 48, height: 48 }
     title: Builds with no makefile
     details: FoBiS parses every source for modules, uses and includes, and compiles in dependency order, incrementally, in parallel, C files included. fobis new starts a project; a fobos file names the modes (debug, release, a library); editors get a compile_commands.json.
     link: /tutorial/first-steps/01-first-build
     linkText: A first build
-  - icon: 📦
+  - icon: { light: /icons/dependencies.svg, dark: /icons/dependencies-dark.svg, width: 48, height: 48 }
     title: Dependencies from GitHub
     details: Declare FoBiS projects in [dependencies]; fobis fetch clones them at a tag, branch, commit or semver range and locks the commits. Build them with your sources, or as libraries with their own fobos; use a local directory as is, or a dependency for the tests only.
     link: /tutorial/first-steps/05-dependencies
     linkText: Dependencies
-  - icon: 📚
+  - icon: { light: /icons/packages.svg, dark: /icons/packages-dark.svg, width: 48, height: 48 }
     title: Packages by name
     details: Package indexes list projects by source URL, with no central server; fobis search finds a package or the module you need, fobis add writes its URL into your fobos, fobis pkg install builds it with your compiler. A public index of FoBiS and fpm packages is fortran-index.
     link: /cookbook/packages
     linkText: Packages and indexes
-  - icon: 🧪
+  - icon: { light: /icons/tests.svg, dark: /icons/tests-dark.svg, width: 48, height: 48 }
     title: Tests, doctests, coverage
     details: Every program in test/ is a test, run in parallel or through mpirun; checks in the documentation comments are doctests; an instrumented mode and fobis coverage give the report, and a threshold for CI.
     link: /tutorial/first-steps/04-tests
     linkText: Tests
-  - icon: 🎯
+  - icon: { light: /icons/verification.svg, dark: /icons/verification-dark.svg, width: 48, height: 48 }
     title: Verified numerical results
     details: Declare cases and the quantities they print; compare them with references within tolerances, across compilers and checked builds, against the previous revision, with confidence intervals on timings and estimates of rounding and discretisation error.
     link: /cookbook/verification#accept-results-then-catch-a-change
     linkText: Verification
-  - icon: 🩺
+  - icon: { light: /icons/linter.svg, dark: /icons/linter-dark.svg, width: 48, height: 48 }
     title: A linter that sees the build
     details: Bug-prone, obsolescent and non-portable constructs, OpenMP data races, OpenACC and MPI defects, analysed with the defines of the mode you build. Baselines, inline suppressions with reasons, automatic fixes, SARIF, reviews of the lines a change touches.
     link: /cookbook/analysis
     linkText: Linting
-  - icon: 🤖
+  - icon: { light: /icons/ai.svg, dark: /icons/ai-dark.svg, width: 48, height: 48 }
     title: AI assistance on facts
     details: Explanations of failed builds and crashes, answers cited from the standards and your sources, tests kept only when they build, run and check. Local open models; an MCP server gives any agent the same tools.
     link: /ai/
     linkText: Analysis and AI
-  - icon: 🧭
+  - icon: { light: /icons/ecosystem.svg, dark: /icons/ecosystem-dark.svg, width: 48, height: 48 }
     title: Many repositories as one
     details: A dashboard of releases due, CI, drift and stale pins across your projects; commands in dependency order; a check of everything downstream before you release; the release train.
     link: /cookbook/ecosystem
     linkText: Ecosystem
-  - icon: 🖥️
+  - icon: { light: /icons/clusters.svg, dark: /icons/clusters-dark.svg, width: 48, height: 48 }
     title: From a laptop to a cluster
     details: The same cases, tests and benchmarks submitted through Slurm, with the node's facts in the provenance; profiles from gprof, callgrind and Nsight Systems mapped to your procedures. One offline file for air-gapped machines.
     link: /cookbook/hpc#declare-the-scheduler
