@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.16.8] — 2026-11-12
+### Fixed
+- **docs**: The dashboard tutorial measures its file with du, not ls
+
+
 ## [3.16.7] — 2026-11-11
 ### Added
 - **scaffold**: Toolchain_packages, what the toolchain image lacks installed in the container
