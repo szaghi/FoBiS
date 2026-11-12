@@ -430,7 +430,10 @@ skip            = scripts/release.sh
   PPA. `apt_packages` is then unused by them (the image is the environment: installing the runner's packages there, an
   HDF5 beside the image's own, could shadow what the image built); what a project needs and the image lacks (a GUI
   library's X11 headers) goes in `toolchain_packages`, installed by one `apt-get` step after the checkout; `install.yml` keeps testing the installation
-  on the bare runner. The image must be pullable by the runner (public, or granted to the repository). A new toolchain
+  on the bare runner. The image must be pullable by the runner (public, or granted to the repository), and must let
+  git work on the checkout: `actions/checkout` marks the workspace safe only in a temporary `HOME`, so the image sets
+  `git config --system --add safe.directory '*'`, or every later `git` (the coverage outputs that `ci.yml` packs for
+  `docs.yml`) dies with "detected dubious ownership" as root on a checkout owned by the runner user. A new toolchain
   for all the projects is one value per `fobos`, then `fobis scaffold sync`. Unset, both workflows are the bare-runner
   ones.
 - **Old layouts are replaced:** a `run-coverage` action, an `install.sh` or a `cliff.toml` hardcoding the repository,
