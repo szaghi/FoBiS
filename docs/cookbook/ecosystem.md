@@ -341,6 +341,8 @@ fobis scaffold list                       # the managed files by category
 | `PATCH` | a required configuration fragment is missing: `sync` inserts it |
 | `MANUAL` | the fragment cannot be inserted unambiguously: `sync` prints it for you to add |
 | `UNRENDERED` | a project-owned file still holds `{{VAR}}` placeholders: fill them, or delete it and run `init` |
+| `RETIRED` | a file the scaffold no longer uses: `sync` deletes it (after showing it and asking), and the directories it empties |
+| `UNMANAGED` | a hand-written file where the scaffold manages one when a `[scaffold]` key is set: set the key (then `sync` writes it) or list it in `skip` |
 
 - **No consent, no write.** `sync` asks per file (Enter means yes); when no answer is possible (no terminal, stdin at
   end of file, CI, a pipe) the answer is no. Unattended runs need `--yes`.

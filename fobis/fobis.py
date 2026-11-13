@@ -987,6 +987,7 @@ def run_fobis_scaffold(configuration):
         print_n=configuration.print_b,
         print_w=configuration.print_r,
         skip=configuration.fobos.get_scaffold_config()["skip"],
+        config=configuration.fobos.get_scaffold_config(),
     )
     action = configuration.cliargs.action
     if action == "status":

@@ -1291,3 +1291,151 @@ def test_install_sh_fobis_fetches_deps_then_builds(tmp_path):
     assert res.returncode == 0, res.stderr
     calls = [line.split("/")[-1] for line in log.read_text().splitlines()]
     assert calls == ["fobis fetch", "fobis build --mode gnu"]
+
+
+# ── Conditional (when = KEY) and retired manifest entries (GH #211 step 1) ───
+
+
+def _inject_entry(s, dest, category="templated", when=None, source="verbatim/cliff.toml"):
+    """Add a synthetic manifest entry (a conditional or a retired one) so its states are testable in isolation."""
+    s.manifest[dest] = {
+        "source": None if category == "retired" else source,
+        "category": category,
+        "executable": False,
+        "target": None,
+        "patches": [],
+        "when": when,
+    }
+    return dest
+
+
+def _states(s):
+    return dict(s.drift())
+
+
+def test_when_entry_active_only_with_its_key(tmp_path):
+    s, _ = _make_scaffolder(tmp_path)
+    dest = _inject_entry(s, ".github/workflows/fpm.yml", when="fpm")
+    assert _states(s)[dest] == "inactive"  # key unset, file absent: not drift
+    for value in ("", "false", "No", "off", "0"):
+        s.config = {"fpm": value}
+        assert not s._active(s.manifest[dest]), value
+    for value in ("true", "linux-gnu macos-gnu", ["src/tests"], True):
+        s.config = {"fpm": value}
+        assert s._active(s.manifest[dest]), value
+    s.config = {"fpm": "true"}
+    assert _states(s)[dest] == "missing"
+
+
+def test_when_entry_hand_written_is_unmanaged_drift(tmp_path):
+    s, messages = _make_scaffolder(tmp_path)
+    dest = _inject_entry(s, ".github/workflows/fpm.yml", when="fpm")
+    (tmp_path / ".github/workflows").mkdir(parents=True)
+    (tmp_path / dest).write_text("name: my own fpm\n", encoding="utf-8")
+    assert _states(s)[dest] == "unmanaged"
+    messages.clear()
+    s.status(files_glob=dest)
+    assert any("UNMANAGED" in m and "[scaffold] fpm" in m for m in messages)
+    with pytest.raises(SystemExit):
+        s.status(files_glob=dest, strict=True)
+    # sync never touches it: the key decides
+    s.sync(yes=True, files_glob=dest)
+    assert (tmp_path / dest).read_text(encoding="utf-8") == "name: my own fpm\n"
+    # skip silences it like any managed file
+    s.skip = [dest]
+    assert _states(s)[dest] == "skipped"
+
+
+def test_when_entry_inactive_is_not_listed_by_status_nor_created(tmp_path):
+    s, messages = _make_scaffolder(tmp_path)
+    dest = _inject_entry(s, ".github/workflows/matrix.yml", when="matrix")
+    messages.clear()
+    s.status(files_glob=dest, strict=True)  # no drift: no exit
+    assert not any(dest in m for m in messages)
+    s.init(yes=True)
+    assert not (tmp_path / dest).exists()
+    s.sync(yes=True, files_glob=dest)
+    assert not (tmp_path / dest).exists()
+    s.config = {"matrix": "linux-gnu"}
+    s.sync(yes=True, files_glob=dest)
+    assert (tmp_path / dest).exists()
+
+
+def test_when_init_only_present_is_the_projects(tmp_path):
+    """A project-owned conditional file (init-only) is never UNMANAGED: it is the project's whatever the key."""
+    s, _ = _make_scaffolder(tmp_path)
+    dest = _inject_entry(s, "scripts/ci/matrix.sh", category="init-only", when="matrix")
+    (tmp_path / "scripts/ci").mkdir(parents=True)
+    (tmp_path / dest).write_text("echo mine\n", encoding="utf-8")
+    assert _states(s)[dest] == "inactive"
+
+
+def test_retired_entry_present_is_drift_and_sync_deletes_it(tmp_path):
+    s, messages = _make_scaffolder(tmp_path)
+    dest = _inject_entry(s, ".github/actions/old-action/action.yml", category="retired")
+    assert dest not in _states(s)  # absent: not listed
+    (tmp_path / ".github/actions/old-action").mkdir(parents=True)
+    (tmp_path / ".github/actions/keep").mkdir(parents=True)
+    (tmp_path / dest).write_text("name: old\nruns: {}\n", encoding="utf-8")
+    assert _states(s)[dest] == "retired"
+    messages.clear()
+    s.status(files_glob=dest)
+    assert any("RETIRED" in m for m in messages)
+    with pytest.raises(SystemExit):
+        s.status(files_glob=dest, strict=True)
+    # dry run: shown (as a deletion diff), kept
+    messages.clear()
+    s.sync(dry_run=True, files_glob=dest)
+    assert (tmp_path / dest).exists()
+    assert any("-name: old" in m for m in messages)
+    # a refused or unanswerable prompt keeps it
+    with patch("fobis.Scaffolder.typer.confirm", side_effect=EOFError):
+        s.sync(files_glob=dest)
+    assert (tmp_path / dest).exists()
+    with patch("fobis.Scaffolder.typer.confirm", return_value=False):
+        s.sync(files_glob=dest)
+    assert (tmp_path / dest).exists()
+    # --yes deletes it and the directory it empties, not a sibling nor the parent still holding one
+    s.sync(yes=True, files_glob=dest)
+    assert not (tmp_path / dest).exists()
+    assert not (tmp_path / ".github/actions/old-action").exists()
+    assert (tmp_path / ".github/actions/keep").is_dir()
+    assert dest not in _states(s)
+
+
+def test_retired_entry_deletion_removes_emptied_parents_not_the_root(tmp_path):
+    s, _ = _make_scaffolder(tmp_path)
+    dest = _inject_entry(s, ".github/actions/old/action.yml", category="retired")
+    (tmp_path / ".github/actions/old").mkdir(parents=True)
+    (tmp_path / dest).write_text("x\n", encoding="utf-8")
+    s.sync(yes=True, files_glob=dest)
+    assert not (tmp_path / ".github").exists()
+    assert tmp_path.is_dir()
+
+
+def test_retired_and_conditional_entries_in_list(tmp_path):
+    s, messages = _make_scaffolder(tmp_path)
+    _inject_entry(s, ".github/workflows/fpm.yml", when="fpm")
+    _inject_entry(s, ".github/actions/old/action.yml", category="retired")
+    messages.clear()
+    s.list_files()
+    text = "\n".join(messages)
+    assert ".github/workflows/fpm.yml (when [scaffold] fpm is set)" in text
+    assert "Retired files" in text and ".github/actions/old/action.yml" in text
+
+
+def test_ecosystem_drift_counts_retired_and_unmanaged_not_inactive(tmp_path, monkeypatch):
+    from fobis import Ecosystem as eco_mod
+
+    s, _ = _make_scaffolder(tmp_path)
+    for dest in list(s.manifest):
+        del s.manifest[dest]
+    _inject_entry(s, ".github/workflows/fpm.yml", when="fpm")  # inactive
+    _inject_entry(s, ".github/workflows/matrix.yml", when="matrix")  # unmanaged
+    _inject_entry(s, ".github/actions/old/action.yml", category="retired")  # retired
+    (tmp_path / ".github/workflows").mkdir(parents=True)
+    (tmp_path / ".github/actions/old").mkdir(parents=True)
+    (tmp_path / ".github/workflows/matrix.yml").write_text("x\n", encoding="utf-8")
+    (tmp_path / ".github/actions/old/action.yml").write_text("x\n", encoding="utf-8")
+    monkeypatch.setattr(eco_mod, "scaffold_for", lambda path: s)
+    assert eco_mod._scaffold_drift(str(tmp_path)) == 2

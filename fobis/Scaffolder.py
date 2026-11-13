@@ -283,7 +283,7 @@ class Scaffolder:
     greenfield creation (init), and manifest listing (list).
     """
 
-    def __init__(self, project_vars, cwd=None, print_n=None, print_w=None, skip=None):
+    def __init__(self, project_vars, cwd=None, print_n=None, print_w=None, skip=None, config=None):
         """
         Parameters
         ----------
@@ -298,9 +298,13 @@ class Scaffolder:
         skip : list[str] | None
             Globs of managed files the project owns (fobos ``[scaffold] skip``): reported as
             ``skipped`` and never written by sync or init.
+        config : dict | None
+            The fobos ``[scaffold]`` configuration (``Fobos.get_scaffold_config()``): a manifest entry
+            with ``when = KEY`` is managed only when ``config[KEY]`` is set.
         """
         self.vars = dict(project_vars)
         self.skip = list(skip or [])
+        self.config = dict(config or {})
         self.cwd = cwd or os.getcwd()
         self.print_n = print_n or print_fake
         self.print_w = print_w or print_fake
@@ -354,6 +358,8 @@ class Scaffolder:
                 "target": cp.get(dest, "target", fallback=None),
                 # patched entries name one or more [patch:*] fragments to guarantee
                 "patches": [p.strip() for p in cp.get(dest, "patch", fallback="").split() if p.strip()],
+                # a conditional entry: managed only when this fobos [scaffold] key is set
+                "when": cp.get(dest, "when", fallback=None),
             }
         return entries
 
@@ -532,6 +538,41 @@ class Scaffolder:
         """Return True when the project owns *dest* (fobos ``[scaffold] skip``)."""
         return any(fnmatch.fnmatch(dest, glob) for glob in self.skip)
 
+    def _active(self, entry):
+        """
+        Return True when *entry* is managed for this project.
+
+        A retired entry never is; a ``when = KEY`` entry is when the fobos ``[scaffold]`` KEY is set: a non-empty
+        value other than ``false``/``no``/``off``/``0`` (``fpm = true``, ``matrix = linux-gnu macos-gnu``).
+        """
+        if entry["category"] == "retired":
+            return False
+        key = entry.get("when")
+        if not key:
+            return True
+        value = self.config.get(key, "")
+        if isinstance(value, (list, tuple)):
+            return bool(value)
+        if isinstance(value, bool):
+            return value
+        value = str(value).strip()
+        return bool(value) and value.lower() not in ("false", "no", "off", "0")
+
+    def _remove_file(self, abs_path) -> bool:
+        """Delete a retired file, then the directories it leaves empty (never the project root)."""
+        try:
+            os.remove(abs_path)
+            parent = os.path.dirname(abs_path)
+            root = os.path.abspath(self.cwd)
+            while os.path.abspath(parent) != root and os.path.isdir(parent) and not os.listdir(parent):
+                os.rmdir(parent)
+                parent = os.path.dirname(parent)
+        except OSError as exc:
+            self.print_w(f"  Error    {os.path.relpath(abs_path, self.cwd)}: {exc.strerror or exc}")
+            self.write_failures.append(os.path.relpath(abs_path, self.cwd))
+            return False
+        return True
+
     # ------------------------------------------------------------------
     # Public commands
     # ------------------------------------------------------------------
@@ -552,8 +593,13 @@ class Scaffolder:
             ``symlink`` (not a link to the canonical target), ``manual`` (a config
             fragment needs manual insertion), ``patch`` (a config fragment can be
             inserted by sync), ``unrendered`` (a project-owned file still holds
-            ``{{VAR}}`` placeholders), ``outdated`` and ``skipped`` (owned by the
-            project, never synced: not drift).
+            ``{{VAR}}`` placeholders), ``outdated``, ``skipped`` (owned by the
+            project, never synced: not drift), ``retired`` (a file the scaffold no
+            longer uses is present: sync deletes it), ``unmanaged`` (a conditional
+            file is present while its fobos ``[scaffold]`` key is unset: hand-written)
+            and ``inactive`` (a conditional file absent with its key unset, or a
+            project-owned conditional file: not drift). A retired file that is absent
+            is not listed.
         """
         states = []
         for dest, entry in self.manifest.items():
@@ -563,6 +609,16 @@ class Scaffolder:
                 states.append((dest, "skipped"))
                 continue
             abs_dest = os.path.join(self.cwd, dest)
+            if entry["category"] == "retired":
+                if os.path.lexists(abs_dest):
+                    states.append((dest, "retired"))
+                continue
+            if not self._active(entry):
+                # a hand-written file where the scaffold could manage one is drift; a project-owned (init-only)
+                # file is the project's whatever the key
+                present = os.path.lexists(abs_dest) and entry["category"] not in ("init-only", "patched")
+                states.append((dest, "unmanaged" if present else "inactive"))
+                continue
             if entry["category"] == "symlink":
                 # Drift = root is missing or not a symlink to the canonical target
                 if self._symlink_ok(abs_dest, entry["target"]):
@@ -617,6 +673,8 @@ class Scaffolder:
             if state == "skipped":
                 self.print_n(f"  SKIPPED  {dest} (project-owned: fobos [scaffold] skip)")
                 continue
+            if state == "inactive":
+                continue
             any_drift = True
             if state == "missing":
                 self.print_w(f"  MISSING  {dest}")
@@ -629,6 +687,11 @@ class Scaffolder:
             elif state == "unrendered":
                 tokens = ", ".join(self._unrendered(self._read_file(os.path.join(self.cwd, dest))))
                 self.print_w(f"  UNRENDERED {dest} ({tokens} left unfilled — edit it, or delete it and run init)")
+            elif state == "retired":
+                self.print_w(f"  RETIRED  {dest} (no longer used — sync deletes it)")
+            elif state == "unmanaged":
+                key = self.manifest[dest]["when"]
+                self.print_w(f"  UNMANAGED {dest} (hand-written — set fobos [scaffold] {key} to manage it, or skip it)")
             else:
                 self.print_n(f"  OUTDATED {dest}")
         if strict and any_drift:
@@ -650,6 +713,24 @@ class Scaffolder:
         changed = 0
         for dest, entry in self.manifest.items():
             if not self._filter(dest, files_glob) or self._skipped(dest):
+                continue
+            if entry["category"] == "retired":
+                abs_dest = os.path.join(self.cwd, dest)
+                if not os.path.lexists(abs_dest):
+                    continue
+                old = "" if os.path.islink(abs_dest) else self._read_file(abs_dest)
+                self.print_n(f"\n--- {dest} (retired: no longer used) ---")
+                self.print_n(self._unified_diff(old, "", dest) or "  (delete)")
+                if dry_run:
+                    continue
+                if not yes and not self._confirm(f"Delete {dest}?"):
+                    continue
+                if self._remove_file(abs_dest):
+                    self.print_n(f"  Deleted  {dest}")
+                    changed += 1
+                continue
+            if not self._active(entry):
+                # the key decides: a hand-written file stays the project's until the key is set
                 continue
             if entry["category"] == "init-only":
                 continue
@@ -773,6 +854,8 @@ class Scaffolder:
 
         created = 0
         for dest, entry in self.manifest.items():
+            if not self._active(entry):
+                continue
             if self._skipped(dest):
                 self.print_n(f"  skipped  {dest}")
                 continue
@@ -800,13 +883,18 @@ class Scaffolder:
         """List all managed template files grouped by category."""
         verbatim = [d for d, e in self.manifest.items() if e["category"] == "verbatim"]
         templated = [d for d, e in self.manifest.items() if e["category"] == "templated"]
+
+        def when(dest):
+            key = self.manifest[dest].get("when")
+            return f" (when [scaffold] {key} is set)" if key else ""
+
         self.print_n("Verbatim files (copied as-is, SHA-256 drift detection):")
         for dest in verbatim:
-            self.print_n(f"  {dest}")
+            self.print_n(f"  {dest}{when(dest)}")
         self.print_n("")
         self.print_n("Templated files ({{VAR}} substitution, rendered drift detection):")
         for dest in templated:
-            self.print_n(f"  {dest}")
+            self.print_n(f"  {dest}{when(dest)}")
         symlinks = [(d, e["target"]) for d, e in self.manifest.items() if e["category"] == "symlink"]
         if symlinks:
             self.print_n("")
@@ -819,3 +907,9 @@ class Scaffolder:
             self.print_n("Patched files (project-owned; sync guarantees named config fragments):")
             for dest, names in patched:
                 self.print_n(f"  {dest} ({', '.join(names)})")
+        retired = [d for d, e in self.manifest.items() if e["category"] == "retired"]
+        if retired:
+            self.print_n("")
+            self.print_n("Retired files (no longer used; sync deletes them):")
+            for dest in retired:
+                self.print_n(f"  {dest}")

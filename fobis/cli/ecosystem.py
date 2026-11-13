@@ -483,7 +483,7 @@ def cmd_ecosystem_scaffold_status(
             drifting += 1
             continue
         states = scaffold_for(project.path).drift(files_glob=files)
-        bad = [(d, s) for d, s in states if s not in ("ok", "skipped")]
+        bad = [(d, s) for d, s in states if s not in ("ok", "skipped", "inactive")]
         skipped = [d for d, s in states if s == "skipped"]
         drifting += bool(bad)
         typer.echo(f"{name}: {'in sync' if not bad else f'{len(bad)} not in sync'}")
@@ -519,7 +519,9 @@ def cmd_ecosystem_scaffold_sync(
             typer.echo(f"{name}: {project.error}")
             failed.append(name)
             continue
-        drift = [d for d, s in scaffold_for(project.path).drift(files_glob=files) if s not in ("ok", "skipped")]
+        drift = [
+            d for d, s in scaffold_for(project.path).drift(files_glob=files) if s not in ("ok", "skipped", "inactive")
+        ]
         if not drift:
             typer.echo(f"{name}: in sync")
             continue

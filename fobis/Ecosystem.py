@@ -631,7 +631,7 @@ def _scaffold_drift(path: str) -> int | None:
         drift = scaffold_for(path).drift()
     except (Exception, SystemExit):
         return None
-    return sum(1 for _, state in drift if state not in ("ok", "skipped"))
+    return sum(1 for _, state in drift if state not in ("ok", "skipped", "inactive"))
 
 
 def _pin(dep: str, locked: str, head: str | None, dep_path: str) -> Pin:
@@ -986,12 +986,14 @@ def scaffold_for(path: str, print_n=print, print_w=print):
     from .Scaffolder import Scaffolder, get_project_vars
 
     fobos = _read_fobos(os.path.join(path, "fobos"))
+    config = fobos.get_scaffold_config()
     return Scaffolder(
         get_project_vars(fobos=fobos, cwd=path),
         cwd=path,
         print_n=print_n,
         print_w=print_w,
-        skip=fobos.get_scaffold_config()["skip"],
+        skip=config["skip"],
+        config=config,
     )
 
 
