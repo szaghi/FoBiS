@@ -4,6 +4,27 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.17.0] — 2026-11-13
+### Added
+- **scaffold**: Conditional and retired manifest entries
+
+- **scaffold**: The [scaffold] keys of the reusable-workflow callers
+
+- **scaffold**: The CI workflows call the fortran-toolchains reusable workflows ⚠ BREAKING CHANGE
+
+- **scaffold**: Optional workflows managed by their [scaffold] keys
+
+- **scaffold**: Show a deprecated [scaffold] key wherever drift is shown
+
+
+### Documentation
+- **scaffold**: The callers of the fortran-toolchains workflows, the optional workflows, the migration
+
+
+### Fixed
+- **scaffold**: Keep a retired action still in use, create the matrix script, read every image tag
+
+
 ## [3.16.9] — 2026-11-12
 ### Documentation
 - **site**: New visual identity, Futatsu no tsuki in the Denshi ink
