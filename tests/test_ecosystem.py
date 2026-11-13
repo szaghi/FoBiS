@@ -1136,3 +1136,31 @@ def test_cli_add_and_remove(git_env, tmp_path):
     result = runner.invoke(app, ["ecosystem", "remove", "-c", cfg, "B", "Z"])
     assert result.exit_code == 1 and "Z: not registered" in result.output
     assert UserConfig(path=cfg).ecosystem_entries == ["B"]
+
+
+def test_scaffold_deprecated_key_is_shown_not_counted(git_env, tmp_path):
+    """A deprecated [scaffold] key (toolchain_image, GH #211): status, the dashboard (a "!" after the drift, JSON
+    scaffold_deprecated) and ecosystem scaffold status show it; it is not drift."""
+    image = "ghcr.io/szaghi/fortran-toolchains:gnu-16.2"
+    repo = make_project(tmp_path, "A", extra=f"[scaffold]\ntoolchain_image = {image}")
+    plain = make_project(tmp_path, "B")
+    (s,) = Ecosystem([str(repo)]).collect(fetch=False, ci=False)
+    assert s.scaffold_deprecated == ["toolchain_image: use toolchain = linux-gnu"]
+    assert s.to_dict()["scaffold_deprecated"] == s.scaffold_deprecated
+    assert f"{s.drift}!" in render_table([s], color=False)
+    (p,) = Ecosystem([str(plain)]).collect(fetch=False, ci=False)
+    assert p.scaffold_deprecated == [] and f"{p.drift}!" not in render_table([p], color=False)
+
+    messages = []
+    scaffolder = eco_mod.scaffold_for(str(repo), print_n=messages.append, print_w=messages.append)
+    scaffolder.status(files_glob="cliff.toml")
+    assert messages[0] == "  DEPRECATED [scaffold] toolchain_image: use toolchain = linux-gnu"
+    scaffolder.sync(yes=True, files_glob="cliff.toml")
+    scaffolder.status(files_glob="cliff.toml", strict=True)  # in sync: the notice alone is no drift, no exit
+
+    cfg = write_config(tmp_path, "A")
+    out = CliRunner().invoke(app, ["ecosystem", "scaffold", "status", "-c", cfg, "--files", "cliff.toml"])
+    assert out.exit_code == 0
+    assert (
+        "A: in sync" in out.output and "DEPRECATED [scaffold] toolchain_image: use toolchain = linux-gnu" in out.output
+    )

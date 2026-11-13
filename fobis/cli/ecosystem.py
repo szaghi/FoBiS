@@ -482,11 +482,14 @@ def cmd_ecosystem_scaffold_status(
             typer.echo(f"{name}: {project.error}")
             drifting += 1
             continue
-        states = scaffold_for(project.path).drift(files_glob=files)
+        scaffolder = scaffold_for(project.path)
+        states = scaffolder.drift(files_glob=files)
         bad = [(d, s) for d, s in states if s not in ("ok", "skipped", "inactive")]
         skipped = [d for d, s in states if s == "skipped"]
         drifting += bool(bad)
         typer.echo(f"{name}: {'in sync' if not bad else f'{len(bad)} not in sync'}")
+        for notice in scaffolder.config.get("deprecated", []):  # a warning, not drift
+            typer.echo(f"  {'DEPRECATED':<9} [scaffold] {notice}")
         for dest, state in bad:
             typer.echo(f"  {state.upper():<9}{dest}")
         for dest in skipped:

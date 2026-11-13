@@ -321,6 +321,8 @@ class ProjectStatus:
     pushed: bool = False
     ci: str = "unknown"
     drift: int | None = None
+    # notices of deprecated fobos [scaffold] keys still in use (toolchain_image): shown as "!" after the drift
+    scaffold_deprecated: list[str] = field(default_factory=list)
     pins: list[Pin] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     state: str = "ok"
@@ -512,6 +514,7 @@ class Ecosystem:
         status.pushed = bool(status.head) and bool(_git(path, "branch", "-r", "--contains", "HEAD")[1])
         status.ci = _ci_status(project.slug, status.head, status.pushed) if use_gh else "unknown"
         status.drift = _scaffold_drift(path)
+        status.scaffold_deprecated = _scaffold_deprecated(path)
         locks = project.lock()
         for dep in project.deps:
             key = self.dep_key(project.name, dep)
@@ -632,6 +635,14 @@ def _scaffold_drift(path: str) -> int | None:
     except (Exception, SystemExit):
         return None
     return sum(1 for _, state in drift if state not in ("ok", "skipped", "inactive"))
+
+
+def _scaffold_deprecated(path: str) -> list[str]:
+    """Return the notices of the deprecated fobos [scaffold] keys the project still uses (empty if unknown)."""
+    try:
+        return list(scaffold_for(path).config.get("deprecated", []))
+    except (Exception, SystemExit):
+        return []
 
 
 def _pin(dep: str, locked: str, head: str | None, dep_path: str) -> Pin:
@@ -1325,6 +1336,8 @@ def _cells(status: ProjectStatus) -> list[tuple[str, str]]:
         unreleased = (f"{status.unreleased} ({status.bump}{target})", _YELLOW)
     ci_colour = {"passing": _GREEN, "failing": _RED, "running": _YELLOW, "not pushed": _YELLOW}.get(status.ci, _DIM)
     drift = ("?", _DIM) if status.drift is None else (str(status.drift), _YELLOW if status.drift else _GREEN)
+    if status.scaffold_deprecated:  # a deprecated [scaffold] key: "!" after the count
+        drift = (drift[0] + "!", _YELLOW)
     bad_pins = [p for p in status.pins if p.state not in ("current", "path")]
     local = [f"{p.dep} at {p.path}" for p in status.pins if p.state == "path"]
     if not status.pins:

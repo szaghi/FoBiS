@@ -99,7 +99,7 @@ One row per project: git state, release state, CI, boilerplate drift, dependency
 | Version / tag | the `VERSION` file (else a literal fobos `[project] version`) against the latest reachable tag | they differ (highlighted) |
 | Unreleased | commits since the tag, how many are releasable, the bump and the next version | something to release |
 | CI | GitHub Actions at HEAD: `passing`, `failing`, `running`, `none` (no run), `not pushed`, `unknown` | `failing` |
-| Drift | scaffold-managed files not in sync, project-owned ones excluded (`?` when it cannot be computed) | not 0 |
+| Drift | scaffold-managed files not in sync, project-owned ones excluded (`?` when it cannot be computed); a `!` after the count: a deprecated `[scaffold]` key in use (JSON `scaffold_deprecated`) | not 0, or `!` |
 | Pins | the ecosystem dependencies not at their head, with their state | `stale`, `unlocked`, `diverged` |
 
 The Unreleased cell reads `0`; `N (minor -> v1.1.0)` when every commit is releasable; `N, R to release (...)`; or
@@ -343,6 +343,7 @@ fobis scaffold list                       # the managed files by category
 | `UNRENDERED` | a project-owned file still holds `{{VAR}}` placeholders: fill them, or delete it and run `init` |
 | `RETIRED` | a file the scaffold no longer uses: `sync` deletes it (after showing it and asking), and the directories it empties |
 | `UNMANAGED` | a hand-written file where the scaffold manages one when a `[scaffold]` key is set: set the key (then `sync` writes it) or list it in `skip` |
+| `DEPRECATED` | printed first: a deprecated `[scaffold]` key in use, and what replaces it; a warning, not drift (`--strict` ignores it) |
 
 - **No consent, no write.** `sync` asks per file (Enter means yes); when no answer is possible (no terminal, stdin at
   end of file, CI, a pipe) the answer is no. Unattended runs need `--yes`.
@@ -443,8 +444,9 @@ skip               = scripts/release.sh
   toolchain version reaches every project without a sync (the ids carry no version); another toolchain is one value
   per `fobos`, then `fobis scaffold sync`.
 - **`toolchain_image` is deprecated:** a fobos that still names an image
-  (`toolchain_image = ghcr.io/szaghi/fortran-toolchains:gnu-16.2`) gets the toolchain of its vendor (`linux-gnu`);
-  replace it with `toolchain`.
+  (`toolchain_image = ghcr.io/szaghi/fortran-toolchains:gnu-16.2`) gets the toolchain of its vendor (`linux-gnu`),
+  and `status`, `fobis ecosystem scaffold status` and the dashboard (`!` in the Drift column) say to replace it with
+  `toolchain`.
 - **Old layouts are replaced:** the workflows written in full before the callers (#211), a `run-coverage` action, an
   `install.sh` or a `cliff.toml` hardcoding the repository, a `release.yml` that also deployed the docs are all
   `OUTDATED`, and `sync` writes the current files; the `setup-build-env` and `run-coverage-analysis` actions are

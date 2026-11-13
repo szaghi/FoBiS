@@ -648,6 +648,9 @@ class Scaffolder:
             Exit non-zero if any drift is detected (for CI use).
         """
         any_drift = False
+        # a deprecated fobos [scaffold] key still in use: a warning, not drift (the rendered files are the same)
+        for notice in self.config.get("deprecated", []):
+            self.print_w(f"  DEPRECATED [scaffold] {notice}")
         for dest, state in self.drift(files_glob=files_glob):
             if state == "ok":
                 self.print_n(f"  OK       {dest}")
