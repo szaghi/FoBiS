@@ -206,5 +206,7 @@ rules only, no model, as fast as `fobis lint`. The hook files:
 
 `fobis scaffold` keeps a project's CI workflows, release script and documentation boilerplate in line with a
 template (`status` lists the files `OK`, `OUTDATED` or `MISSING`, `sync` updates them after showing the diff), and
-`fobis ecosystem` does it for every project of a group. Tutorial: [shared boilerplate](/tutorial/ecosystem/05-scaffold).
+`fobis ecosystem` does it for every project of a group. The workflows are thin callers of the reusable workflows of
+[fortran-toolchains](https://github.com/szaghi/fortran-toolchains) (tests with coverage, documentation, release,
+install test, in toolchain images with the compilers, MPI and HDF5 built in), so one fix there reaches every project. Tutorial: [shared boilerplate](/tutorial/ecosystem/05-scaffold).
 More in [Many projects](./ecosystem).

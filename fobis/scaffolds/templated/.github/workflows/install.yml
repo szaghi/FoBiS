@@ -1,0 +1,30 @@
+name: Install
+
+# A published release installed as its users do, on a fresh runner (gcc of the fortran-toolchains GCC major, CMake,
+# fpm, FoBiS; no image): the release's install.sh builds its tarball with each build system the tarball carries (make,
+# cmake, fobis), and fpm builds its fpm.toml, by the reusable workflow of fortran-toolchains
+# (https://github.com/szaghi/fortran-toolchains). Called by release.yml right after the release; dispatch it to test a
+# release again. The release is public when this runs: a failure flags a broken release, it cannot block it. Managed
+# by fobis scaffold: the fobos [scaffold] apt_packages are installed on the runner first.
+on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: the release tag to install (e.g. v1.2.3)
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    uses: szaghi/fortran-toolchains/.github/workflows/install.yml@v1
+    with:
+      tag: ${{ inputs.tag }}
+      apt-packages: '{{SCAFFOLD_INSTALL_PACKAGES}}'

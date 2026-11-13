@@ -346,7 +346,7 @@ fobis scaffold list                       # the managed files by category
 
 - **No consent, no write.** `sync` asks per file (Enter means yes); when no answer is possible (no terminal, stdin at
   end of file, CI, a pipe) the answer is no. Unattended runs need `--yes`.
-- **`init`** creates `src/`, `docs/`, `.github/workflows/`, `.github/actions/` and `scripts/`, then every missing
+- **`init`** creates `src/`, `docs/`, `.github/workflows/` and `scripts/`, then every missing
   managed file; an existing file is left alone (`exists`). It asks for the project variables it cannot resolve;
   `--yes` asks nothing and leaves them empty.
 - **Plain `status` exits 0** whatever drifts; only `--strict` turns drift into exit 1. Pin the FoBiS version in that CI
@@ -363,17 +363,24 @@ adds this boilerplate.
 
 | Category | Files | `sync` |
 |---|---|---|
-| verbatim | `.github/workflows/install.yml`, `.github/actions/run-coverage-analysis/action.yml`, `scripts/release.sh`, `scripts/run_tests.sh`, `scripts/install.sh`, `scripts/compute-coverage.sh`, `docs/package.json`, `cliff.toml`, `LICENSE.gpl3.md` | overwrites |
-| templated | `.github/workflows/release.yml` (`{{NAME}}`), `.github/actions/setup-build-env/action.yml` (`{{SCAFFOLD_APT_PACKAGES}}`), `.github/workflows/ci.yml` and `docs.yml` (`toolchain_image`) | overwrites with the rendered text |
+| verbatim | `scripts/release.sh`, `scripts/run_tests.sh`, `scripts/install.sh`, `scripts/compute-coverage.sh`, `docs/package.json`, `cliff.toml`, `LICENSE.gpl3.md` | overwrites |
+| templated | `.github/workflows/ci.yml`, `docs.yml`, `release.yml` (`{{NAME}}`) and `install.yml`, with the `[scaffold]` keys below | overwrites with the rendered text |
 | init-only | `fobos`, `fpm.toml`, `docs/ford.md` (rendered when created), `docs/guide/contributing.md` | never: yours after `init` |
 | patched | `docs/.vitepress/config.mts` (rendered when created) | only inserts the `build: { target: 'es2022' }` block into `vite: {` |
 | symlink | `CONTRIBUTING.md` -> `docs/guide/contributing.md` | creates or repairs the link, never writes through it |
+| retired | `.github/actions/setup-build-env/action.yml`, `.github/actions/run-coverage-analysis/action.yml` | deletes them (after asking) |
 
-What the files do: `ci.yml` builds and tests (a newer push to the same branch cancels the running check) and, on the
-default branch, uploads the coverage outputs it wrote under `docs/`; `docs.yml` runs when that CI run succeeds and
-deploys the VitePress site and the coverage badge from those outputs, without running the coverage again (a manual
-dispatch, or a project whose own `ci.yml` uploads nothing, runs it itself); `release.yml` publishes the release notes when a tag is pushed; `install.yml` smoke-tests the install methods the
-project has (make, CMake, FoBiS, fpm) after a release. `scripts/release.sh vX.Y.Z` (or `--patch`/`--minor`/`--major`)
+What the files do: the four workflows are a few lines each, calling the reusable workflows of
+[fortran-toolchains](https://github.com/szaghi/fortran-toolchains) at its major tag `@v1`, where their inputs are
+documented (its README). `ci.yml` runs the tests with coverage (`FoBiS.py fetch` when the project has dependencies,
+then `FoBiS.py rule --ex makecoverage-analysis`) in the project's toolchain image (a newer push to the same branch
+cancels the running check) and, on the default branch, packs the coverage outputs it wrote under `docs/`; `docs.yml`
+runs when that CI run succeeds and deploys the VitePress site (formal through `docs/package.json`'s `predocs:build`)
+with the coverage badge from those outputs, without running the coverage again (a manual dispatch runs it itself);
+`release.yml` publishes the release of a pushed tag (the source tarball, the tag's `CHANGELOG.md` section,
+`scripts/install.sh`), then runs `install.yml`, which installs that release on a fresh runner with each build system
+its tarball carries (make, CMake, FoBiS, fpm). A fix in those workflows reaches every project through `@v1` without a
+sync; a new key or input needs one. `scripts/release.sh vX.Y.Z` (or `--patch`/`--minor`/`--major`)
 regenerates `CHANGELOG.md` with git-cliff, updates `VERSION` (and the `fpm.toml` version), runs the project's
 [release hook](#a-release-hook-for-the-project-s-own-files) when it has one, commits, tags and pushes.
 `scripts/run_tests.sh` runs every test binary in `exe/`: those named `*mpi*` under `mpirun -np N` (`--np N`, default
@@ -411,35 +418,36 @@ The `[scaffold]` section holds the project's own knobs; without it every file re
 
 ```ini
 [scaffold]
-; extra system packages for the CI build environment, appended to its apt install line
-apt_packages    = libopenmpi-dev openmpi-bin zlib1g-dev
-; the container image the CI test job and the docs build job run in, instead of the setup-build-env action
-toolchain_image = ghcr.io/szaghi/fortran-toolchains:gnu-16.2
-; Debian packages the image lacks, installed in that container before the jobs' steps (with toolchain_image only)
+; the toolchain the CI, docs and optional workflows run on, a version-less fortran-toolchains id (default linux-gnu;
+; linux-nvhpc, linux-oneapi): the reusable workflows resolve it to the current image
+toolchain          = linux-gnu
+; Debian packages the image lacks, installed in it before the jobs' steps
 toolchain_packages = libx11-dev libwayland-dev
+; Ubuntu packages the release install test needs on its fresh runner (install.yml)
+apt_packages       = zlib1g-dev libhdf5-dev
 ; managed files this project owns (globs): reported SKIPPED, never written by sync or init
-skip            = scripts/release.sh
+skip               = scripts/release.sh
 ```
 
 - **`skip` is for a deliberate customisation:** the file stays out of `status --strict`, `sync`, `init`, the
   dashboard's Drift column and `fobis ecosystem scaffold`, and stops receiving the template's fixes. For the files a
   release must also update (a CMake version, a README status line) use the
   [release hook](#a-release-hook-for-the-project-s-own-files) instead: `release.sh` stays the template's.
-- **MPI in CI:** the packages go in `apt_packages`; running the tests under `mpirun` is `scripts/run_tests.sh --np N`.
-- **A toolchain image for CI:** with `toolchain_image`, `ci.yml` (the test job) and `docs.yml` (the build job) run in
-  that container, and their `setup-build-env` step goes: the image holds the compiler, MPI, HDF5 and the tools (FoBiS,
-  ford, formal, gcovr, jq), so nothing is installed while a job runs and nothing depends on the Ubuntu archive or a
-  PPA. `apt_packages` is then unused by them (the image is the environment: installing the runner's packages there, an
-  HDF5 beside the image's own, could shadow what the image built); what a project needs and the image lacks (a GUI
-  library's X11 headers) goes in `toolchain_packages`, installed by one `apt-get` step after the checkout; `install.yml` keeps testing the installation
-  on the bare runner. The image must be pullable by the runner (public, or granted to the repository), and must let
-  git work on the checkout: `actions/checkout` marks the workspace safe only in a temporary `HOME`, so the image sets
-  `git config --system --add safe.directory '*'`, or every later `git` (the coverage outputs that `ci.yml` packs for
-  `docs.yml`) dies with "detected dubious ownership" as root on a checkout owned by the runner user. A new toolchain
-  for all the projects is one value per `fobos`, then `fobis scaffold sync`. Unset, both workflows are the bare-runner
-  ones.
-- **Old layouts are replaced:** a `run-coverage` action, an `install.sh` or a `cliff.toml` hardcoding the repository,
-  a `release.yml` that also deployed the docs are all `OUTDATED`, and `sync` writes the current files.
+- **MPI in CI:** the images hold MPI and HDF5 built by their compiler; running the tests under `mpirun` is
+  `scripts/run_tests.sh --np N`.
+- **The toolchain image is the environment:** the image of `toolchain` holds the compiler, MPI, HDF5 and the tools
+  (FoBiS, formal, gcovr, Node, fpm, CMake), so nothing is installed while a job runs and nothing depends on the Ubuntu
+  archive or a PPA. What a project needs and the image lacks (a GUI library's X11 headers) goes in
+  `toolchain_packages`; `apt_packages` is only for the install test, which runs on a fresh runner on purpose. A new
+  toolchain version reaches every project without a sync (the ids carry no version); another toolchain is one value
+  per `fobos`, then `fobis scaffold sync`.
+- **`toolchain_image` is deprecated:** a fobos that still names an image
+  (`toolchain_image = ghcr.io/szaghi/fortran-toolchains:gnu-16.2`) gets the toolchain of its vendor (`linux-gnu`);
+  replace it with `toolchain`.
+- **Old layouts are replaced:** the workflows written in full before the callers (#211), a `run-coverage` action, an
+  `install.sh` or a `cliff.toml` hardcoding the repository, a `release.yml` that also deployed the docs are all
+  `OUTDATED`, and `sync` writes the current files; the `setup-build-env` and `run-coverage-analysis` actions are
+  `RETIRED`, and `sync` deletes them.
 
 ### A release hook for the project's own files
 
@@ -670,8 +678,8 @@ check           = fobis build --mode tests-gnu
 release_exclude = docs/* .github/* *.md scripts/*
 
 [scaffold]
-apt_packages = libopenmpi-dev
-skip         = scripts/release.sh
+toolchain = linux-gnu
+skip      = scripts/release.sh
 ```
 
 The `[project]` keys feed the templates (above) and `version`, the dashboard's Version column; the

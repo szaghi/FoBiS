@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -216,7 +217,7 @@ def test_scaffolder_loads_manifest(tmp_path):
     for _dest, entry in manifest.items():
         assert "source" in entry
         assert "category" in entry
-        assert entry["category"] in ("verbatim", "templated", "init-only", "symlink", "patched")
+        assert entry["category"] in ("verbatim", "templated", "init-only", "symlink", "patched", "retired")
 
 
 def test_scaffolder_render_substitutes_vars(tmp_path):
@@ -661,15 +662,15 @@ def test_sync_dry_run_does_not_create_symlink(tmp_path):
 
 
 class _FakeFobos:
-    """Minimal fobos stub exposing the two getters get_project_vars consumes."""
+    """Minimal fobos stub exposing the getters get_project_vars consumes."""
 
-    def __init__(self, apt_packages="", toolchain_image="", toolchain_packages=""):
+    def __init__(self, apt_packages="", toolchain="linux-gnu", toolchain_packages=""):
         self._apt = apt_packages
-        self._image = toolchain_image
+        self._toolchain = toolchain
         self._image_pkgs = toolchain_packages
 
     def get_scaffold_config(self):
-        return {"apt_packages": self._apt, "toolchain_image": self._image, "toolchain_packages": self._image_pkgs}
+        return {"apt_packages": self._apt, "toolchain": self._toolchain, "toolchain_packages": self._image_pkgs}
 
     def get_project_info(self):
         return {
@@ -687,93 +688,114 @@ class _FakeFobos:
         return {}
 
 
-def test_apt_packages_empty_renders_setup_build_env_unchanged(tmp_path):
-    """No [scaffold] apt_packages → setup-build-env renders byte-identical to its template-with-empty-var."""
-    vars_no_apt = get_project_vars(fobos=_FakeFobos(apt_packages=""))
-    assert vars_no_apt["SCAFFOLD_APT_PACKAGES"] == ""
-    s = Scaffolder(project_vars=vars_no_apt, cwd=str(tmp_path))
-    entry = s.manifest[".github/actions/setup-build-env/action.yml"]
-    assert entry["category"] == "templated"
-    rendered = s._get_canonical(entry)
-    # The placeholder vanished: no dangling braces, last apt target is the g++ line.
-    assert "{{SCAFFOLD_APT_PACKAGES}}" not in rendered
-    assert "g++-${{ inputs.gcc-version }}\n" in rendered
+_TOOLCHAINS = "szaghi/fortran-toolchains/.github/workflows/"
 
 
-def test_apt_packages_set_appends_continuation_lines(tmp_path):
-    """[scaffold] apt_packages → each package appended as a '\\'-continued apt line."""
-    vars_apt = get_project_vars(fobos=_FakeFobos(apt_packages="libopenmpi-dev openmpi-bin"))
-    assert vars_apt["SCAFFOLD_APT_PACKAGES"] == " \\\n          libopenmpi-dev \\\n          openmpi-bin"
-    s = Scaffolder(project_vars=vars_apt, cwd=str(tmp_path))
-    entry = s.manifest[".github/actions/setup-build-env/action.yml"]
-    rendered = s._get_canonical(entry)
-    assert "libopenmpi-dev" in rendered
-    assert "openmpi-bin" in rendered
-    # Still inside the single apt-install block (before update-alternatives).
-    apt_block = rendered.split("update-alternatives")[0]
-    assert "libopenmpi-dev" in apt_block and "openmpi-bin" in apt_block
-
-
-# ── Scaffolder [scaffold] toolchain_image: CI and docs jobs in a container ─────
-
-_SETUP_STEP = "    - name: Setup build environment\n      uses: ./.github/actions/setup-build-env"
-_IMAGE = "ghcr.io/szaghi/fortran-toolchains:gnu-16.2"
-
-
-def _render_workflow(tmp_path, dest, toolchain_image="", toolchain_packages="", apt_packages=""):
-    """Render the managed workflow *dest* with the given [scaffold] toolchain_image and packages."""
-    fobos = _FakeFobos(
-        apt_packages=apt_packages, toolchain_image=toolchain_image, toolchain_packages=toolchain_packages
-    )
-    s = Scaffolder(project_vars=get_project_vars(fobos=fobos), cwd=str(tmp_path))
+def _rendered_workflow(tmp_path, dest, **cfg):
+    """Render the managed workflow *dest* with the given [scaffold] configuration, parsed as YAML."""
+    yaml = pytest.importorskip("yaml")
+    s = Scaffolder(project_vars=get_project_vars(fobos=_FakeFobos(**cfg)), cwd=str(tmp_path))
     entry = s.manifest[dest]
     assert entry["category"] == "templated"
-    return s._get_canonical(entry)
+    text = s._get_canonical(entry)
+    assert not re.search(r"\{\{[A-Z_]+\}\}", text), dest  # every project variable rendered (${{ }} is GitHub's)
+    wf = yaml.safe_load(text)
+    wf["on"] = wf.pop(True, wf.get("on"))  # YAML 1.1 loads the bare key `on` as the boolean True
+    return text, wf
 
 
-def test_toolchain_image_unset_keeps_setup_build_env(tmp_path):
-    """No [scaffold] toolchain_image → ci.yml and docs.yml set up the bare runner, no container."""
-    for dest in (".github/workflows/ci.yml", ".github/workflows/docs.yml"):
-        rendered = _render_workflow(tmp_path, dest)
-        assert "{{SCAFFOLD_" not in rendered
-        assert "container:" not in rendered
-        assert _SETUP_STEP in rendered
-    docs = _render_workflow(tmp_path, ".github/workflows/docs.yml")
-    assert "extra-pip-packages: formal-ford2vitepress" in docs
+def test_ci_workflow_calls_the_reusable_test_workflow(tmp_path):
+    """ci.yml (GH #211): a caller of fortran-toolchains' test.yml@v1 with the [scaffold] toolchain and packages."""
+    _, wf = _rendered_workflow(tmp_path, ".github/workflows/ci.yml")
+    assert wf["on"]["push"] == {"branches": ["**"], "tags-ignore": ["**"]} and "pull_request" in wf["on"]
+    assert wf["concurrency"]["cancel-in-progress"] is True
+    assert wf["permissions"] == {"contents": "read"}
+    assert list(wf["jobs"]) == ["test"]
+    test = wf["jobs"]["test"]
+    assert test["uses"] == _TOOLCHAINS + "test.yml@v1"
+    assert test["with"] == {"toolchain": "linux-gnu", "apt-packages": ""}
+    _, wf = _rendered_workflow(
+        tmp_path, ".github/workflows/ci.yml", toolchain="linux-oneapi", toolchain_packages="libx11-dev libxext-dev"
+    )
+    assert wf["jobs"]["test"]["with"] == {"toolchain": "linux-oneapi", "apt-packages": "libx11-dev libxext-dev"}
 
 
-def test_toolchain_image_set_runs_jobs_in_container(tmp_path):
-    """[scaffold] toolchain_image → the CI test job and the docs build job run in it, without setup-build-env;
-    the Pages deploy job stays on the bare runner."""
-    ci = _render_workflow(tmp_path, ".github/workflows/ci.yml", _IMAGE)
-    assert f"  test:\n    runs-on: ubuntu-latest\n    container: {_IMAGE}\n" in ci
-    assert "setup-build-env" not in ci
-    docs = _render_workflow(tmp_path, ".github/workflows/docs.yml", _IMAGE)
-    assert docs.count(f"    container: {_IMAGE}\n") == 1
-    assert "setup-build-env" not in docs
-    deploy = docs.split("\n  deploy:\n")[1]
-    assert "container:" not in deploy
-    assert "apt-get" not in ci and "apt-get" not in docs  # no toolchain_packages: nothing installed
+def test_docs_workflow_calls_the_reusable_docs_workflow(tmp_path):
+    """docs.yml: after a successful CI run, docs.yml@v1 with the four permissions its jobs request (GitHub checks
+    them at startup, even when nothing deploys)."""
+    _, wf = _rendered_workflow(tmp_path, ".github/workflows/docs.yml", toolchain="linux-nvhpc", toolchain_packages="x")
+    assert wf["on"]["workflow_run"] == {"workflows": ["CI"], "types": ["completed"]}
+    assert "workflow_dispatch" in wf["on"]
+    assert wf["permissions"] == {"contents": "read", "actions": "read", "pages": "write", "id-token": "write"}
+    docs = wf["jobs"]["docs"]
+    assert docs["uses"] == _TOOLCHAINS + "docs.yml@v1"
+    assert docs["with"] == {"toolchain": "linux-nvhpc", "apt-packages": "x"}
 
 
-def test_toolchain_packages_installed_in_the_container(tmp_path):
-    """[scaffold] toolchain_packages → one apt-get step right after the checkout of the containerised jobs;
-    apt_packages (the bare runner's) is not installed in the image."""
-    pkgs = "libx11-dev libwayland-dev imagemagick"
-    for dest in (".github/workflows/ci.yml", ".github/workflows/docs.yml"):
-        rendered = _render_workflow(tmp_path, dest, _IMAGE, pkgs, apt_packages="libhdf5-dev")
-        step = rendered.split("    - name: Packages the toolchain image lacks\n")
-        assert len(step) == 2, dest
-        assert "apt-get install -y --no-install-recommends \\\n          libx11-dev" in step[1]
-        assert "imagemagick" in step[1] and "libhdf5-dev" not in rendered
-        assert rendered.index("Packages the toolchain image lacks") > rendered.index("actions/checkout")
-        assert "{{SCAFFOLD_" not in rendered
+def test_release_workflow_calls_release_then_install(tmp_path):
+    """release.yml: release.yml@v1, then the project's install.yml from here (a release published with
+    GITHUB_TOKEN starts no workflow, GH #203), with the tag passed explicitly."""
+    _, release = _rendered_workflow(tmp_path, ".github/workflows/release.yml")
+    _, install = _rendered_workflow(tmp_path, ".github/workflows/install.yml", apt_packages="zlib1g-dev")
+    assert release["name"] == "Release Demo"
+    assert release["on"]["push"]["tags"] == ["v[0-9]+.[0-9]+.[0-9]+"]
+    assert release["permissions"] == {"contents": "write"}
+    assert release["jobs"]["release"]["uses"] == _TOOLCHAINS + "release.yml@v1"
+    caller = release["jobs"]["install"]
+    assert caller["uses"] == "./.github/workflows/install.yml"
+    assert caller["needs"] == "release"
+    assert caller["with"]["tag"] == "${{ github.ref_name }}"
+    assert caller["permissions"] == install["permissions"] == {"contents": "read"}
+    assert "release" not in install["on"]
+    assert install["on"]["workflow_call"]["inputs"]["tag"]["required"] is True
+    assert install["on"]["workflow_dispatch"]["inputs"]["tag"]["required"] is True
+    job = install["jobs"]["install"]
+    assert job["uses"] == _TOOLCHAINS + "install.yml@v1"
+    assert job["with"] == {"tag": "${{ inputs.tag }}", "apt-packages": "zlib1g-dev"}
 
 
-def test_toolchain_packages_ignored_without_an_image(tmp_path):
-    """toolchain_packages alone (no toolchain_image) → the bare-runner workflows, unchanged."""
-    for dest in (".github/workflows/ci.yml", ".github/workflows/docs.yml"):
-        assert _render_workflow(tmp_path, dest, "", "libx11-dev") == _render_workflow(tmp_path, dest)
+def test_core_workflows_keep_no_inline_setup(tmp_path):
+    """Nothing of the inline workflows is left: no local actions, no setup-node, no ubuntu-latest, no @v4."""
+    for dest in ("ci", "docs", "release", "install"):
+        text, _ = _rendered_workflow(tmp_path, f".github/workflows/{dest}.yml")
+        for gone in ("setup-build-env", "run-coverage-analysis", "setup-node", "ubuntu-latest", "@v4", "container:"):
+            assert gone not in text, (dest, gone)
+
+
+def test_quoted_inputs_survive_a_quote(tmp_path):
+    """A value is rendered inside a single-quoted scalar: a quote in it (doubled) still parses back unchanged."""
+    _, wf = _rendered_workflow(tmp_path, ".github/workflows/ci.yml", toolchain_packages="it's")
+    assert wf["jobs"]["test"]["with"]["apt-packages"] == "it's"
+
+
+def test_retired_actions_are_in_the_manifest(tmp_path):
+    s, _ = _make_scaffolder(tmp_path)
+    for dest in (".github/actions/setup-build-env/action.yml", ".github/actions/run-coverage-analysis/action.yml"):
+        assert s.manifest[dest]["category"] == "retired" and s.manifest[dest]["source"] is None
+
+
+def test_sync_migrates_an_old_layout(tmp_path):
+    """A project scaffolded before #211: the two actions are RETIRED, the four workflows OUTDATED; one sync rewrites
+    the workflows as callers and deletes the actions (and .github/actions)."""
+    s, _ = _make_scaffolder(tmp_path)
+    for rel in (".github/actions/setup-build-env/action.yml", ".github/actions/run-coverage-analysis/action.yml"):
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel).write_text("name: old\nruns:\n  using: composite\n", encoding="utf-8")
+    (tmp_path / ".github/workflows").mkdir(parents=True)
+    for name in ("ci", "docs", "release", "install"):
+        (tmp_path / f".github/workflows/{name}.yml").write_text("name: old\n", encoding="utf-8")
+    states = dict(s.drift())
+    assert states[".github/actions/setup-build-env/action.yml"] == "retired"
+    assert states[".github/actions/run-coverage-analysis/action.yml"] == "retired"
+    for name in ("ci", "docs", "release", "install"):
+        assert states[f".github/workflows/{name}.yml"] == "outdated"
+    s.sync(yes=True, files_glob=".github/*")
+    assert not (tmp_path / ".github/actions").exists()
+    states = dict(s.drift(files_glob=".github/*"))
+    assert all(state in ("ok", "inactive") for state in states.values()), states
+    assert "uses: szaghi/fortran-toolchains/.github/workflows/test.yml@v1" in (
+        tmp_path / ".github/workflows/ci.yml"
+    ).read_text(encoding="utf-8")
 
 
 # ── Scaffold run_tests.sh --np (MPI) support ──────────────────────────────────
@@ -1071,97 +1093,14 @@ def _cliff_heading(tag):
     return re.sub(r"\{\{ timestamp[^}]*\}\}", "2026-01-31", line)
 
 
-@pytest.mark.parametrize("heading_tag", ["v1.2.3", None])
-def test_release_workflow_extracts_cliff_changelog_section(tmp_path, heading_tag):
-    """The notes script in release.yml must match the version heading that the
-    scaffolded cliff.toml writes (GH #202: cliff.toml strips the tag's "v", the
-    workflow searched for it, every release got the fallback text).  Headings
-    that keep the "v" (heading_tag="v1.2.3") must match as well."""
-    import subprocess
-    import sys
-    import textwrap
+def test_cliff_heading_matches_the_release_notes_extraction():
+    """The release notes are the tag's CHANGELOG.md section, extracted by fortran-toolchains' release workflow
+    (scripts/release-notes.py: a heading ``## [v?X.Y.Z]``): the heading the scaffolded cliff.toml writes must match it
+    (GH #202: cliff.toml strips the tag's "v", the old inline script searched for it)."""
+    import re
 
-    workflow = _scaffold_text("templated/.github/workflows/release.yml")
-    script = textwrap.dedent(workflow.split("<<'PYEOF'\n", 1)[1].split("PYEOF", 1)[0])
-    heading = _cliff_heading("v1.2.3") if heading_tag is None else f"## [{heading_tag}] — 2026-01-31"
-    changelog = tmp_path / "CHANGELOG.md"
-    changelog.write_text(
-        f"# Changelog\n\n{heading}\n\n### Bug fixes\n- Fix the reader\n\n## [1.2.2] — 2026-01-01\n\n### Bug fixes\n- Older fix\n",
-        encoding="utf-8",
-    )
-    out = subprocess.run(
-        [sys.executable, "-", "v1.2.3", str(changelog)], input=script, capture_output=True, text=True, check=True
-    ).stdout
-    assert out.startswith(heading)
-    assert "- Fix the reader" in out
-    assert "Older fix" not in out
-    assert "See CHANGELOG.md for details" not in out
-
-
-# ── Install smoke test: release.yml must run install.yml itself ─────────────
-
-
-def _workflow(rel):
-    yaml = pytest.importorskip("yaml")
-    wf = yaml.safe_load(_scaffold_text(rel))
-    # YAML 1.1 loads the bare key `on` as the boolean True
-    wf["on"] = wf.pop(True, wf.get("on"))
-    return wf
-
-
-def test_release_workflow_runs_install_smoke_test():
-    """A release published with GITHUB_TOKEN triggers no `release: published`
-    workflow (GH #203): install.yml must be a reusable workflow called by
-    release.yml after publishing, with the tag passed explicitly."""
-    release = _workflow("templated/.github/workflows/release.yml")
-    install = _workflow("verbatim/.github/workflows/install.yml")
-
-    assert "release" not in install["on"]
-    assert install["on"]["workflow_call"]["inputs"]["tag"]["required"] is True
-    assert install["on"]["workflow_dispatch"]["inputs"]["tag"]["required"] is True
-    # in a called workflow github.event is the caller's (tag push) event
-    assert "github.event.release" not in _scaffold_text("verbatim/.github/workflows/install.yml")
-    assert install["jobs"]["install"]["env"]["TAG"] == "${{ inputs.tag }}"
-
-    caller = release["jobs"]["install"]
-    assert caller["uses"] == "./.github/workflows/install.yml"
-    assert caller["needs"] == "release"
-    assert caller["with"]["tag"] == "${{ github.ref_name }}"
-    # a called workflow can only narrow the caller's permissions
-    assert caller["permissions"] == install["permissions"]
-
-
-def test_release_workflow_publishes_only_from_tags():
-    """workflow_dispatch from a branch must not publish a release named after it."""
-    release = _workflow("templated/.github/workflows/release.yml")
-    assert release["jobs"]["release"]["if"] == "startsWith(github.ref, 'refs/tags/v')"
-
-
-def test_install_workflow_builds_fpm_from_the_release_tag():
-    """The fpm step must test the released tag, not the default-branch head."""
-    install = _workflow("verbatim/.github/workflows/install.yml")
-    fpm = next(st for st in install["jobs"]["install"]["steps"] if st.get("name") == "FPM")
-    assert '--branch "$TAG"' in fpm["run"]
-
-
-def test_install_workflow_sets_up_build_env_before_any_build():
-    """Every build step needs the CI compiler, apt_packages and FoBiS (GH #204):
-    setup-build-env must run first, from the released tag, and each build step
-    must be skipped when the project lacks that build system."""
-    steps = _workflow("verbatim/.github/workflows/install.yml")["jobs"]["install"]["steps"]
-    names = [st.get("name") for st in steps]
-    checkout = steps[names.index("Checkout local actions")]
-    assert checkout["with"]["ref"] == "${{ inputs.tag }}"
-    setup = names.index("Setup build environment")
-    assert steps[setup]["uses"] == "./.github/actions/setup-build-env"
-    assert names.index("Checkout local actions") < setup
-    builds = [
-        i for i, st in enumerate(steps) if "run" in st and ("install.sh" in st["run"] or "fpm build" in st["run"])
-    ]
-    assert builds and min(builds) > setup
-    for i in builds:
-        assert "hashFiles(" in steps[i]["if"]
-        assert "pipx" not in steps[i]["run"]
+    heading = _cliff_heading("v1.2.3")
+    assert re.match(r"^## \[v?1\.2\.3\]", heading), heading
 
 
 # ── install.sh: dependencies are fetched once the build is known to happen ───
