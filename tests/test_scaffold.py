@@ -1456,7 +1456,8 @@ def test_optional_workflows_are_conditional_entries(tmp_path):
     for dest, key in _OPTIONAL.items():
         assert s.manifest[dest]["when"] == key and s.manifest[dest]["category"] == "templated"
     script = s.manifest["scripts/ci/matrix.sh"]
-    assert script["when"] == "matrix" and script["category"] == "init-only" and script["executable"]
+    assert script["when"] == "matrix matrix_script=scripts/ci/matrix.sh"
+    assert script["category"] == "init-only" and script["executable"]
 
 
 def test_generated_checks_call_the_reusable_generated_workflow(tmp_path):
@@ -1513,7 +1514,13 @@ def test_optional_workflows_follow_their_keys(tmp_path):
     for dest in [*_OPTIONAL, "scripts/ci/matrix.sh"]:
         assert not (tmp_path / dest).exists(), dest
     assert all(state != "missing" for dest, state in s.drift() if dest in _OPTIONAL)
-    s.config = {"docs_examples": "docs/examples", "doctests_sync": "src/tests", "fpm": "true", "matrix": "linux-gnu"}
+    s.config = {
+        "docs_examples": "docs/examples",
+        "doctests_sync": "src/tests",
+        "fpm": "true",
+        "matrix": "linux-gnu",
+        "matrix_script": "scripts/ci/matrix.sh",
+    }
     s.vars.update(
         SCAFFOLD_DOCS_EXAMPLES="docs/examples", SCAFFOLD_DOCTESTS_SYNC="src/tests", SCAFFOLD_MATRIX="linux-gnu"
     )
@@ -1522,9 +1529,7 @@ def test_optional_workflows_follow_their_keys(tmp_path):
     assert states["scripts/ci/matrix.sh"] == "missing"
     s.sync(yes=True)
     assert all((tmp_path / dest).exists() for dest in _OPTIONAL)
-    assert not (tmp_path / "scripts/ci/matrix.sh").exists()  # init-only: init's job
-    s.init(yes=True)
-    script = tmp_path / "scripts/ci/matrix.sh"
+    script = tmp_path / "scripts/ci/matrix.sh"  # a missing conditional init-only file: sync creates it too
     assert script.exists() and os.access(script, os.X_OK)
     script.write_text("echo mine\n", encoding="utf-8")
     s.sync(yes=True)
@@ -1535,3 +1540,83 @@ def test_optional_workflows_follow_their_keys(tmp_path):
     states = dict(s.drift())
     assert all(states[dest] == "unmanaged" for dest in _OPTIONAL)
     assert states["scripts/ci/matrix.sh"] == "inactive"
+
+
+# ── Review fixes (GH #211 step 7) ────────────────────────────────────────────
+
+
+def test_retired_file_still_used_is_kept(tmp_path):
+    """A retired action a remaining workflow still uses (a project-owned hdf5.yml, a skipped install.yml) is reported
+    with its users and never deleted: the deletion would break those jobs."""
+    s, messages = _make_scaffolder(tmp_path)
+    dest = ".github/actions/setup-build-env/action.yml"
+    (tmp_path / ".github/actions/setup-build-env").mkdir(parents=True)
+    (tmp_path / dest).write_text("name: old\n", encoding="utf-8")
+    (tmp_path / ".github/workflows").mkdir(parents=True)
+    hdf5 = tmp_path / ".github/workflows/hdf5.yml"
+    hdf5.write_text("jobs:\n  t:\n    steps:\n    - uses: ./.github/actions/setup-build-env\n", encoding="utf-8")
+    messages.clear()
+    s.status(files_glob=dest)
+    assert any("RETIRED" in m and "still used by .github/workflows/hdf5.yml" in m for m in messages)
+    s.sync(yes=True, files_glob=dest)
+    assert (tmp_path / dest).exists()
+    # a longer name sharing the prefix is not a use
+    hdf5.write_text("    - uses: ./.github/actions/setup-build-env-2\n", encoding="utf-8")
+    assert s._retired_users(dest) == []
+    s.sync(yes=True, files_glob=dest)
+    assert not (tmp_path / dest).exists()
+
+
+def test_retired_file_under_a_symlinked_directory_is_not_deleted(tmp_path):
+    s, _ = _make_scaffolder(tmp_path / "p")
+    outside = tmp_path / "outside" / "setup-build-env"
+    outside.mkdir(parents=True)
+    (outside / "action.yml").write_text("x\n", encoding="utf-8")
+    (tmp_path / "p" / ".github").mkdir(parents=True)
+    os.symlink(tmp_path / "outside", tmp_path / "p" / ".github" / "actions")
+    s.sync(yes=True, files_glob=".github/actions/*")
+    assert (outside / "action.yml").exists()
+    assert s.write_failures == [".github/actions/setup-build-env/action.yml"]
+
+
+def test_matrix_script_follows_matrix_script(tmp_path):
+    """The default script is managed only while matrix.yml runs it: with another matrix_script, nothing is created
+    and nothing is reported missing."""
+    s, _ = _make_scaffolder(tmp_path)
+    s.config = {"matrix": "linux-gnu", "matrix_script": "scripts/ci/run.sh"}
+    assert dict(s.drift())["scripts/ci/matrix.sh"] == "inactive"
+    s.init(yes=True)
+    s.sync(yes=True)
+    assert not (tmp_path / "scripts/ci/matrix.sh").exists()
+    s.config["matrix_script"] = "scripts/ci/matrix.sh"
+    assert dict(s.drift())["scripts/ci/matrix.sh"] == "missing"
+    with patch("fobis.Scaffolder.typer.confirm", side_effect=EOFError):  # no consent: not created
+        s.sync(files_glob="scripts/ci/matrix.sh")
+    assert not (tmp_path / "scripts/ci/matrix.sh").exists()
+    s.sync(yes=True, files_glob="scripts/ci/matrix.sh")
+    assert (tmp_path / "scripts/ci/matrix.sh").exists()
+
+
+def test_retired_action_used_only_by_managed_workflows_goes_in_one_sync(tmp_path):
+    """The old managed ci.yml uses run-coverage-analysis: status and a dry run count it as rewritten (no blocking
+    user); a full sync rewrites ci.yml first, then deletes the action. Refusing ci.yml keeps the action."""
+    s, messages = _make_scaffolder(tmp_path)
+    dest = ".github/actions/run-coverage-analysis/action.yml"
+    (tmp_path / ".github/actions/run-coverage-analysis").mkdir(parents=True)
+    (tmp_path / dest).write_text("name: old\n", encoding="utf-8")
+    (tmp_path / ".github/workflows").mkdir(parents=True)
+    ci = tmp_path / ".github/workflows/ci.yml"
+    ci.write_text("jobs:\n  t:\n    steps:\n    - uses: ./.github/actions/run-coverage-analysis\n", encoding="utf-8")
+    messages.clear()
+    s.status(files_glob=dest)
+    assert any("RETIRED" in m and "sync deletes it" in m for m in messages)
+    messages.clear()
+    s.sync(dry_run=True, files_glob=".github/*")
+    assert any("(retired: no longer used)" in m for m in messages)
+    # ci.yml refused, the deletion accepted: the action stays (a real sync sees the old ci.yml)
+    with patch("fobis.Scaffolder.typer.confirm", side_effect=lambda prompt, default=True: "Delete" in prompt):
+        s.sync(files_glob=".github/*")
+    assert (tmp_path / dest).exists()
+    s.sync(yes=True, files_glob=".github/*")
+    assert not (tmp_path / dest).exists()
+    assert "test.yml@v1" in ci.read_text(encoding="utf-8")

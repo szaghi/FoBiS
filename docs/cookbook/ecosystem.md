@@ -342,7 +342,7 @@ fobis scaffold list                       # the managed files by category
 | `PATCH` | a required configuration fragment is missing: `sync` inserts it |
 | `MANUAL` | the fragment cannot be inserted unambiguously: `sync` prints it for you to add |
 | `UNRENDERED` | a project-owned file still holds `{{VAR}}` placeholders: fill them, or delete it and run `init` |
-| `RETIRED` | a file the scaffold no longer uses: `sync` deletes it (after showing it and asking), and the directories it empties |
+| `RETIRED` | a file the scaffold no longer uses: `sync` deletes it (after showing it and asking, after rewriting the managed workflows), and the directories it empties; while a project-owned workflow still uses it (listed), it is kept |
 | `UNMANAGED` | a hand-written file where the scaffold manages one when a `[scaffold]` key is set: set the key (then `sync` writes it) or list it in `skip` |
 | `DEPRECATED` | printed first: a deprecated `[scaffold]` key in use, and what replaces it; a warning, not drift (`--strict` ignores it) |
 
@@ -444,8 +444,9 @@ skip               = scripts/release.sh
   `toolchain_packages`; `apt_packages` is only for the install test, which runs on a fresh runner on purpose. A new
   toolchain version reaches every project without a sync (the ids carry no version); another toolchain is one value
   per `fobos`, then `fobis scaffold sync`.
-- **`toolchain_image` is deprecated:** a fobos that still names an image
-  (`toolchain_image = ghcr.io/szaghi/fortran-toolchains:gnu-16.2`) gets the toolchain of its vendor (`linux-gnu`),
+- **`toolchain_image` is deprecated:** a fobos that still names a fortran-toolchains image
+  (`toolchain_image = ghcr.io/szaghi/fortran-toolchains:gnu-16.2`, a date tag or a digest pin too) gets the toolchain
+  of its vendor (`linux-gnu`),
   and `status`, `fobis ecosystem scaffold status` and the dashboard (`!` in the Drift column) say to replace it with
   `toolchain`.
 - **Old layouts are replaced:** the workflows written in full before the callers (#211), a `run-coverage` action, an
@@ -483,9 +484,10 @@ matrix_msys2_packages = sdl3 mesa
   runs `bash scripts/sync_doctests.sh`; a project without the script gets a failing check naming it. What a
   regeneration needs first (another project built, a tool) goes in the script. The doctests themselves run in CI, so
   `doctests-sync.yml` only checks that the committed ones match the sources.
-- **The matrix script** is `scripts/ci/matrix.sh` unless `matrix_script` names another: `fobis scaffold init` creates
-  a default one once (build the fobos mode `tests-$TOOLCHAIN_FAMILY`, with the family `gnu`, `nvf` or `intel` of the
-  toolchain, then `scripts/run_tests.sh`), and it is the project's from then on. It gets the toolchain's
+- **The matrix script** is `scripts/ci/matrix.sh` unless `matrix_script` names another: `sync` (or `init`) creates a
+  default one once when it is missing (build the fobos mode `tests-$TOOLCHAIN_FAMILY`, with the family `gnu`, `nvf`
+  or `intel` of the toolchain, then `scripts/run_tests.sh`), and it is the project's from then on. With another
+  `matrix_script`, that script is yours to write. It gets the toolchain's
   environment: `FC`, `CC`, `CXX`, `TOOLCHAIN`, `TOOLCHAIN_OS`, `TOOLCHAIN_FAMILY`.
 - **A hand-written workflow with the same name** while its key is unset is `UNMANAGED`: set the key, then `sync`
   replaces it, or list it in `skip` to keep it yours.
@@ -504,7 +506,9 @@ Then, in the fobos `[scaffold]` section: replace `toolchain_image = ...:gnu-16.2
 (`status` warns until then), move the packages the CI image needs from `apt_packages` to `toolchain_packages`
 (`apt_packages` is the install test's now), and set the keys of the checks the project wrote by hand
 (`docs_examples`, `doctests_sync`, `fpm`, `matrix`): `status` reports those workflows `UNMANAGED` until their key is
-set, then `sync` replaces them. Commit the result as usual.
+set, then `sync` replaces them. A retired action that a workflow of the project's own still uses (a hand-written
+`hdf5.yml` with `uses: ./.github/actions/setup-build-env`) is kept, and `status` names that workflow: move it to a
+reusable workflow or its own steps, then `sync` deletes the action. Commit the result as usual.
 
 ### A release hook for the project's own files
 

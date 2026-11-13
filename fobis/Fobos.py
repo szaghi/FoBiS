@@ -1403,7 +1403,7 @@ class Fobos:
     }
     _TOOLCHAIN_ID = re.compile(r"^(linux|macos|windows)-[a-z][a-z0-9]*$")
     # a fortran-toolchains image tag: <vendor>-<version>[-flavour] (gnu-16.2, nvhpc-26.9-lite, oneapi-2026.2)
-    _IMAGE_TAG = re.compile(r"^([a-z][a-z0-9]*)-[0-9][0-9.]*(-[a-z]+)?$")
+    _IMAGE_TAG = re.compile(r"^([a-z][a-z0-9]*)-[0-9][0-9.]*(-[a-z]+)?(-[0-9]{8})?$")
 
     def get_scaffold_config(self) -> dict[str, Any]:
         """
@@ -1450,8 +1450,10 @@ class Fobos:
                 config["skip"] = self.fobos.get("scaffold", "skip").split()
         if config["toolchain_image"]:
             image = config["toolchain_image"]
-            tag = image.rsplit(":", 1)[1] if ":" in image.rsplit("/", 1)[-1] else ""
-            match = self._IMAGE_TAG.match(tag)
+            name = image.split("@", 1)[0]  # a digest pin (…:gnu-16.2@sha256:…) keeps its tag before the @
+            repo, _, tag = name.rpartition(":") if ":" in name.rsplit("/", 1)[-1] else (name, "", "")
+            # a fortran-toolchains image (any registry or owner): <vendor>-<version>[-flavour][-YYYYMMDD]
+            match = self._IMAGE_TAG.match(tag) if repo.rsplit("/", 1)[-1] == "fortran-toolchains" else None
             if not config["toolchain"]:
                 if not match:
                     self.print_w(

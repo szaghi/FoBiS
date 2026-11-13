@@ -524,15 +524,22 @@ class Scaffolder:
         """
         Return True when *entry* is managed for this project.
 
-        A retired entry never is; a ``when = KEY`` entry is when the fobos ``[scaffold]`` KEY is set: a non-empty
-        value other than ``false``/``no``/``off``/``0`` (``fpm = true``, ``matrix = linux-gnu macos-gnu``).
+        A retired entry never is; a ``when = KEY [KEY2=VALUE ...]`` entry is when every condition holds: the fobos
+        ``[scaffold]`` KEY is set (a non-empty value other than ``false``/``no``/``off``/``0``: ``fpm = true``,
+        ``matrix = linux-gnu macos-gnu``), KEY2 equals VALUE (``matrix_script=scripts/ci/matrix.sh``: the default
+        script is managed only while the matrix workflow runs it).
         """
         if entry["category"] == "retired":
             return False
-        key = entry.get("when")
-        if not key:
-            return True
+        conditions = (entry.get("when") or "").split()
+        return all(self._condition(c) for c in conditions)
+
+    def _condition(self, condition):
+        """One ``when`` condition: ``KEY`` (set) or ``KEY=VALUE`` (equal)."""
+        key, sep, expected = condition.partition("=")
         value = self.config.get(key, "")
+        if sep:
+            return " ".join(str(value).split()) == expected
         if isinstance(value, (list, tuple)):
             return bool(value)
         if isinstance(value, bool):
@@ -540,13 +547,73 @@ class Scaffolder:
         value = str(value).strip()
         return bool(value) and value.lower() not in ("false", "no", "off", "0")
 
+    def _when_keys(self, entry):
+        """The fobos [scaffold] keys a conditional entry names (for the UNMANAGED hint)."""
+        return " and ".join(c.partition("=")[0] for c in (entry.get("when") or "").split())
+
+    def _rewritten(self, rel):
+        """True when sync rewrites *rel* from a template (a managed, active, not skipped verbatim/templated file)."""
+        entry = self.manifest.get(rel)
+        return (
+            entry is not None
+            and entry["category"] in ("verbatim", "templated")
+            and self._active(entry)
+            and not self._skipped(rel)
+        )
+
+    def _retired_users(self, dest, synced=True):
+        """
+        Return the project's files still using the retired *dest*: a workflow or action naming its local path
+        (``./.github/actions/NAME`` for an action's ``action.yml``). A file still used is never deleted. With
+        *synced*, the files sync rewrites from a template are left out (their templates use no retired file): what
+        a full sync would leave using it.
+        """
+        ref = "./" + (os.path.dirname(dest) if os.path.basename(dest) in ("action.yml", "action.yaml") else dest)
+        users = []
+        github = os.path.join(self.cwd, ".github")
+        for root, _dirs, files in os.walk(github):
+            for name in files:
+                if not name.endswith((".yml", ".yaml")):
+                    continue
+                path = os.path.join(root, name)
+                rel = os.path.relpath(path, self.cwd)
+                if rel == dest or (synced and self._rewritten(rel)):
+                    continue
+                try:
+                    text = self._read_file(path)
+                except OSError:
+                    continue
+                if re.search(re.escape(ref) + r"(?![\w./-])", text):
+                    users.append(rel)
+        return sorted(users)
+
+    def _inside(self, abs_path):
+        """True when no directory between the project root and *abs_path* is a symlink (nothing outside reached)."""
+        root = os.path.abspath(self.cwd)
+        parent = os.path.dirname(os.path.abspath(abs_path))
+        while parent != root:
+            if os.path.islink(parent) or not parent.startswith(root + os.sep):
+                return False
+            parent = os.path.dirname(parent)
+        return True
+
     def _remove_file(self, abs_path) -> bool:
-        """Delete a retired file, then the directories it leaves empty (never the project root)."""
+        """Delete a retired file, then the directories it leaves empty (never the project root, nothing through a
+        symlinked directory)."""
+        if not self._inside(abs_path):
+            self.print_w(f"  Error    {os.path.relpath(abs_path, self.cwd)}: under a symlinked directory: not deleted")
+            self.write_failures.append(os.path.relpath(abs_path, self.cwd))
+            return False
         try:
             os.remove(abs_path)
             parent = os.path.dirname(abs_path)
             root = os.path.abspath(self.cwd)
-            while os.path.abspath(parent) != root and os.path.isdir(parent) and not os.listdir(parent):
+            while (
+                os.path.abspath(parent) != root
+                and not os.path.islink(parent)
+                and os.path.isdir(parent)
+                and not os.listdir(parent)
+            ):
                 os.rmdir(parent)
                 parent = os.path.dirname(parent)
         except OSError as exc:
@@ -673,9 +740,16 @@ class Scaffolder:
                 tokens = ", ".join(self._unrendered(self._read_file(os.path.join(self.cwd, dest))))
                 self.print_w(f"  UNRENDERED {dest} ({tokens} left unfilled — edit it, or delete it and run init)")
             elif state == "retired":
-                self.print_w(f"  RETIRED  {dest} (no longer used — sync deletes it)")
+                users = self._retired_users(dest)
+                if users:
+                    self.print_w(
+                        f"  RETIRED  {dest} (no longer used by the scaffold, still used by {', '.join(users)}: "
+                        "sync keeps it until they no longer use it)"
+                    )
+                else:
+                    self.print_w(f"  RETIRED  {dest} (no longer used — sync deletes it)")
             elif state == "unmanaged":
-                key = self.manifest[dest]["when"]
+                key = self._when_keys(self.manifest[dest])
                 self.print_w(f"  UNMANAGED {dest} (hand-written — set fobos [scaffold] {key} to manage it, or skip it)")
             else:
                 self.print_n(f"  OUTDATED {dest}")
@@ -696,12 +770,19 @@ class Scaffolder:
             Optional glob pattern to limit scope.
         """
         changed = 0
-        for dest, entry in self.manifest.items():
+        # retired files last: the managed workflows that used them are rewritten first
+        entries = sorted(self.manifest.items(), key=lambda item: item[1]["category"] == "retired")
+        for dest, entry in entries:
             if not self._filter(dest, files_glob) or self._skipped(dest):
                 continue
             if entry["category"] == "retired":
                 abs_dest = os.path.join(self.cwd, dest)
                 if not os.path.lexists(abs_dest):
+                    continue
+                # a dry run assumes the managed workflows rewritten; a real sync, retired files last, sees the files
+                users = self._retired_users(dest, synced=dry_run)
+                if users:
+                    self.print_w(f"\n--- {dest} (retired, kept: still used by {', '.join(users)}) ---")
                     continue
                 old = "" if os.path.islink(abs_dest) else self._read_file(abs_dest)
                 self.print_n(f"\n--- {dest} (retired: no longer used) ---")
@@ -718,6 +799,17 @@ class Scaffolder:
                 # the key decides: a hand-written file stays the project's until the key is set
                 continue
             if entry["category"] == "init-only":
+                # a conditional one (the matrix workflow's script) exists because its key asked for it: sync creates it
+                # when missing, as init would; never rewrites it
+                abs_dest = os.path.join(self.cwd, dest)
+                if not entry.get("when") or os.path.lexists(abs_dest):
+                    continue
+                self.print_n(f"\n--- {dest} ---\n  (new file, then the project's)")
+                if dry_run or (not yes and not self._confirm(f"Create {dest}?")):
+                    continue
+                if self._write_file(abs_dest, self._get_canonical(entry), executable=entry["executable"]):
+                    self.print_n(f"  Written  {dest}")
+                    changed += 1
                 continue
 
             if entry["category"] == "patched":

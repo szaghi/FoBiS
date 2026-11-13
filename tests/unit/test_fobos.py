@@ -197,10 +197,12 @@ def test_get_scaffold_config_apt_packages(tmp_path):
 
 def test_get_scaffold_config_toolchain_image(tmp_path):
     """get_scaffold_config() parses toolchain_image from [scaffold]."""
-    _write_fobos(tmp_path, "[default]\ncompiler = gnu\n[scaffold]\ntoolchain_image = ghcr.io/o/t:gnu-16.2\n")
+    _write_fobos(
+        tmp_path, "[default]\ncompiler = gnu\n[scaffold]\ntoolchain_image = ghcr.io/o/fortran-toolchains:gnu-16.2\n"
+    )
     fobos = Fobos(cliargs=_ns(tmp_path / "fobos"))
     cfg = fobos.get_scaffold_config()
-    assert cfg["toolchain_image"] == "ghcr.io/o/t:gnu-16.2"
+    assert cfg["toolchain_image"] == "ghcr.io/o/fortran-toolchains:gnu-16.2"
 
 
 def test_get_scaffold_config_empty_when_no_section(tmp_path):
@@ -273,6 +275,9 @@ def test_get_scaffold_config_every_key(tmp_path):
         ("ghcr.io/szaghi/fortran-toolchains:nvhpc-26.9", "linux-nvhpc"),
         ("ghcr.io/szaghi/fortran-toolchains:oneapi-2026.2", "linux-oneapi"),
         ("ghcr.io/szaghi/fortran-toolchains:gnu-16.2-lite", "linux-gnu"),
+        ("ghcr.io/szaghi/fortran-toolchains:gnu-16.2-20261113", "linux-gnu"),  # the date-pinned tags
+        ("ghcr.io/szaghi/fortran-toolchains:nvhpc-26.9-lite-20261113", "linux-nvhpc"),
+        ("ghcr.io/szaghi/fortran-toolchains:oneapi-2026.2@sha256:" + "0" * 64, "linux-oneapi"),  # a digest pin
     ],
 )
 def test_get_scaffold_config_toolchain_image_is_mapped_and_deprecated(tmp_path, image, toolchain):
@@ -292,6 +297,7 @@ def test_get_scaffold_config_toolchain_wins_over_the_image(tmp_path):
     "body",
     [
         "toolchain_image = docker.io/library/gcc:latest\n",  # not a fortran-toolchains tag, no toolchain to fall back
+        "toolchain_image = docker.io/library/gcc:gcc-14\n",  # a tag of the right shape, another image
         "toolchain_image = ghcr.io/szaghi/fortran-toolchains\n",  # no tag
         "toolchain = gnu-16.2\n",
         "toolchain = solaris-gnu\n",
