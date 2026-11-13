@@ -1,13 +1,13 @@
 $ fobis ecosystem dashboard --no-ci --json | head -40
 {
-  "generated": "2026-10-14T07:40:20",
+  "generated": "2026-11-13T19:18:33",
   "projects": [
     {
       "name": "core",
       "path": "~/eco/core",
       "slug": "",
       "branch": "master",
-      "head": "c3b0b47c7baf7e9829850d56422b49edb28c04c7",
+      "head": "e5b49b714361bcca71566a6cd07f51a2b116f058",
       "dirty": 0,
       "ahead": 0,
       "behind": 0,
@@ -21,6 +21,7 @@ $ fobis ecosystem dashboard --no-ci --json | head -40
       "pushed": true,
       "ci": "unknown",
       "drift": 0,
+      "scaffold_deprecated": [],
       "pins": [],
       "errors": [],
       "state": "unreleased"
@@ -30,7 +31,7 @@ $ fobis ecosystem dashboard --no-ci --json | head -40
       "path": "~/eco/mathx",
       "slug": "",
       "branch": "master",
-      "head": "fae4cf37304e82904e1bb9f6a09fea5b2f46ff9f",
+      "head": "eba0e2f05b866f32280d83fe19b0a03f5b19bd4c",
       "dirty": 0,
       "ahead": 0,
       "behind": 0,
@@ -38,4 +39,3 @@ $ fobis ecosystem dashboard --no-ci --json | head -40
       "version": "v1.0.0",
       "tag": "v1.0.0",
       "unreleased": 1,
-      "releasable": 0,

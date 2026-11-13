@@ -6,7 +6,9 @@ title: 5. Shared boilerplate
 
 Every project of a family carries the same files besides its code: CI workflows, release and test scripts, the
 documentation's configuration, the licence. `fobis scaffold` keeps them identical to FoBiS's templates (with each
-project's name and URLs filled in), and the ecosystem checks them all:
+project's name and URLs filled in), and the ecosystem checks them all. The CI workflows are a few lines each: they call
+the reusable workflows of [fortran-toolchains](https://github.com/szaghi/fortran-toolchains), which run the tests, the
+documentation, the release and its install test in toolchain images:
 
 <<< @/examples/output/3-ecosystem/05/status.txt{console}
 

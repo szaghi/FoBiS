@@ -3,10 +3,10 @@ $ cd mathx && fobis scaffold sync --yes && git status --short
 --- .github/workflows/ci.yml ---
 --- a/.github/workflows/ci.yml
 +++ b/.github/workflows/ci.yml
-@@ -61,4 +61,3 @@
-         path: coverage-docs.tgz
-         if-no-files-found: error
-         retention-days: 1
+@@ -25,4 +25,3 @@
+     with:
+       toolchain: 'linux-gnu'
+       apt-packages: ''
 -# local edit
 
   Written  .github/workflows/ci.yml

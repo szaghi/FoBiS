@@ -2,8 +2,6 @@ $ cd mathx && fobis scaffold status
   OUTDATED .github/workflows/ci.yml
   OK       .github/workflows/docs.yml
   OK       .github/workflows/install.yml
-  OK       .github/actions/setup-build-env/action.yml
-  OK       .github/actions/run-coverage-analysis/action.yml
   SKIPPED  scripts/release.sh (project-owned: fobos [scaffold] skip)
   OK       scripts/run_tests.sh
   OK       scripts/install.sh

@@ -27,7 +27,7 @@ How to write one, with examples: [Building](/cookbook/build#write-a-fobos).
 | `[lint]` | Rules selected and ignored, the baseline | [Code quality](/cookbook/analysis#choose-the-rules) |
 | `[case:NAME]`, `[verification]`, `[assess:NAME]`, `[bench:NAME]`, `[gate]` | Cases, references, assessments, benchmarks, the gate | [Verifying results](/cookbook/verification) |
 | `[scheduler]` | Slurm settings (also in the user configuration) | [HPC and clusters](/cookbook/hpc#declare-the-scheduler) |
-| `[scaffold]`, `[ecosystem]` | Shared boilerplate, the ecosystem's checks and release rule | [Many projects](/cookbook/ecosystem) |
+| `[scaffold]`, `[ecosystem]` | Shared boilerplate (the CI toolchain, the optional workflows, the files a project owns), the ecosystem's checks and release rule | [Many projects](/cookbook/ecosystem) |
 
 ## Every mode key
 

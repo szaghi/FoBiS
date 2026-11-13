@@ -314,7 +314,7 @@ Tests use **pytest** and live in `tests/`:
 | `tests/test_rules.py` | 1 custom rule scenario |
 | `tests/test_template.py` | Circular template detection |
 | `tests/test_fetch.py` | Fetcher unit tests + 4 integration scenarios |
-| `tests/test_scaffold.py` | `scaffold` subcommand (GH #164) |
+| `tests/test_scaffold.py` | `scaffold` subcommand (GH #164): manifest categories, `when` and retired entries, the `[scaffold]` keys as variables, the rendered callers of the fortran-toolchains reusable workflows parsed as YAML (GH #211) |
 | `tests/test_tree.py` | `tree` inter-project dependency rendering (GH #167) |
 | `tests/test_externals.py` | `Externals` — automatic external library detection (GH #169) |
 | `tests/test_semver.py` | `SemVer` — version constraint resolution (GH #171) |

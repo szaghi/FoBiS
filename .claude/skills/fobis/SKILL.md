@@ -90,10 +90,18 @@ fobis commit             # generate a Conventional-Commits message via a local L
 - `doctests`: `--keep-volatile-doctests`, `--exclude-from-doctests`, `--doctests-preprocessor cpp|fpp`.
 - `scaffold`: subcommands `status` (`--strict` for CI), `sync` (`--dry-run`, `--yes/-y`),
   `init` (`--yes/-y`), `list`. All take `--fobos/-f`; `status`/`sync` take `--files GLOB`.
-  Manages four artifact categories — verbatim (SHA-256 synced), templated (`{{VAR}}`-rendered;
-  reads the optional fobos `[scaffold]` section, e.g. `apt_packages`), init-only (created once,
-  project-owned, e.g. `docs/guide/contributing.md`), and symlink (`CONTRIBUTING.md` → the
-  canonical contributing page; never written through). Fobos `[scaffold] skip = <globs>` marks
+  Manages verbatim (SHA-256 synced), templated (`{{VAR}}`-rendered from the fobos `[scaffold]`
+  section), init-only (created once, project-owned, e.g. `docs/guide/contributing.md`), patched,
+  symlink (`CONTRIBUTING.md` → the canonical contributing page; never written through) and retired
+  files (no longer used: `RETIRED`, sync deletes them). The CI workflows are thin callers of the
+  fortran-toolchains reusable workflows `@v1`: `ci.yml` (test with coverage), `docs.yml` (after CI:
+  site + coverage badge + Pages), `release.yml` + `install.yml`; keys `toolchain` (version-less id,
+  default `linux-gnu`), `toolchain_packages` (in the image), `apt_packages` (the install test's fresh
+  runner); optional workflows managed while their key is set (`when`): `docs_examples = <paths>`,
+  `doctests_sync = <paths>`, `fpm = true`, `matrix = <ids>` (+ `matrix_script`, `matrix_display`,
+  `matrix_brew_packages`, `matrix_msys2_packages`); a hand-written one with its key unset is
+  `UNMANAGED`. `toolchain_image` is deprecated (mapped by vendor; `DEPRECATED` warning, dashboard
+  `!`). Fobos `[scaffold] skip = <globs>` marks
   managed files the project owns (e.g. a customised `scripts/release.sh`): reported `SKIPPED`, not
   drift, never written. A confirmation that cannot be answered (no tty) means *no*; `--yes` is the
   unattended path (and makes `init` prompt for nothing).
@@ -729,8 +737,13 @@ check           = fobis build --mode tests-gnu   ; `check` commands, one per lin
 release_exclude = docs/* .github/* *.md scripts/*
 
 [scaffold]
+; the toolchain of CI, docs and the optional workflows (default linux-gnu)
+toolchain     = linux-gnu
+; optional workflows (docs-examples.yml, fpm.yml)
+docs_examples = docs/examples
+fpm           = true
 ; project-owned managed files
-skip = scripts/release.sh
+skip          = scripts/release.sh
 ```
 
 Pins: `current`, `stale` (run `fobis ecosystem fetch`), `ahead`, `diverged`, `unlocked` (never

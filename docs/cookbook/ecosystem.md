@@ -314,7 +314,8 @@ fobis ecosystem impact core --format json
 ## Shared boilerplate in one project
 
 `fobis scaffold` keeps the boilerplate of a project identical to the templates bundled in FoBiS, with the project's
-name and URLs filled in: no template repository, no extra tool.
+name and URLs filled in: no template repository, no extra tool. Its CI workflows are thin callers of the reusable
+workflows of [fortran-toolchains](https://github.com/szaghi/fortran-toolchains) ([below](#what-scaffold-manages)).
 
 <<< @/examples/output/3-ecosystem/05/project.txt{console}
 
@@ -489,6 +490,21 @@ matrix_msys2_packages = sdl3 mesa
 - **A hand-written workflow with the same name** while its key is unset is `UNMANAGED`: set the key, then `sync`
   replaces it, or list it in `skip` to keep it yours.
 - **Unset again**, a key leaves its workflow in place, reported `UNMANAGED`: delete it, or set the key back.
+
+### From the full workflows to the callers
+
+A project scaffolded before the workflows called fortran-toolchains (FoBiS 3.16 and earlier) moves in one sync:
+
+```bash
+fobis scaffold status       # the 4 workflows OUTDATED, setup-build-env and run-coverage-analysis RETIRED
+fobis scaffold sync         # the callers written, the 2 actions deleted (each shown first, then asked)
+```
+
+Then, in the fobos `[scaffold]` section: replace `toolchain_image = ...:gnu-16.2` with `toolchain = linux-gnu`
+(`status` warns until then), move the packages the CI image needs from `apt_packages` to `toolchain_packages`
+(`apt_packages` is the install test's now), and set the keys of the checks the project wrote by hand
+(`docs_examples`, `doctests_sync`, `fpm`, `matrix`): `status` reports those workflows `UNMANAGED` until their key is
+set, then `sync` replaces them. Commit the result as usual.
 
 ### A release hook for the project's own files
 
