@@ -1,0 +1,28 @@
+name: Doctests sync
+
+# The committed doctests must match the library sources they are extracted from: scripts/sync_doctests.sh extracts
+# them in the project's toolchain image, then any change or new file under the fobos [scaffold] doctests_sync paths
+# fails with the diff, by the reusable workflow of fortran-toolchains (https://github.com/szaghi/fortran-toolchains).
+# CI runs them. Managed by fobis scaffold while [scaffold] doctests_sync is set.
+on:
+  push:
+    branches: ["**"]
+    tags-ignore: ["**"]
+  pull_request:
+
+# a newer push to the same ref supersedes the running check
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    uses: szaghi/fortran-toolchains/.github/workflows/generated.yml@v1
+    with:
+      command: bash scripts/sync_doctests.sh
+      paths: '{{SCAFFOLD_DOCTESTS_SYNC}}'
+      toolchain: '{{SCAFFOLD_TOOLCHAIN}}'
+      apt-packages: '{{SCAFFOLD_TOOLCHAIN_PACKAGES}}'

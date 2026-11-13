@@ -365,7 +365,8 @@ adds this boilerplate.
 |---|---|---|
 | verbatim | `scripts/release.sh`, `scripts/run_tests.sh`, `scripts/install.sh`, `scripts/compute-coverage.sh`, `docs/package.json`, `cliff.toml`, `LICENSE.gpl3.md` | overwrites |
 | templated | `.github/workflows/ci.yml`, `docs.yml`, `release.yml` (`{{NAME}}`) and `install.yml`, with the `[scaffold]` keys below | overwrites with the rendered text |
-| init-only | `fobos`, `fpm.toml`, `docs/ford.md` (rendered when created), `docs/guide/contributing.md` | never: yours after `init` |
+| templated, optional | `.github/workflows/docs-examples.yml`, `doctests-sync.yml`, `fpm.yml`, `matrix.yml`, each while its `[scaffold]` key is set ([below](#optional-workflows)) | overwrites with the rendered text |
+| init-only | `fobos`, `fpm.toml`, `docs/ford.md` (rendered when created), `docs/guide/contributing.md`; `scripts/ci/matrix.sh` while `matrix` is set | never: yours after `init` |
 | patched | `docs/.vitepress/config.mts` (rendered when created) | only inserts the `build: { target: 'es2022' }` block into `vite: {` |
 | symlink | `CONTRIBUTING.md` -> `docs/guide/contributing.md` | creates or repairs the link, never writes through it |
 | retired | `.github/actions/setup-build-env/action.yml`, `.github/actions/run-coverage-analysis/action.yml` | deletes them (after asking) |
@@ -448,6 +449,44 @@ skip               = scripts/release.sh
   `install.sh` or a `cliff.toml` hardcoding the repository, a `release.yml` that also deployed the docs are all
   `OUTDATED`, and `sync` writes the current files; the `setup-build-env` and `run-coverage-analysis` actions are
   `RETIRED`, and `sync` deletes them.
+
+### Optional workflows
+
+Four more checks are managed when the project asks for them, one `[scaffold]` key each. Each is its own workflow
+(its own check and badge), calling a reusable workflow of fortran-toolchains like the four above:
+
+```ini
+[scaffold]
+; docs-examples.yml: scripts/docs_examples.sh regenerates the committed outputs of the documentation's examples,
+; then any change or new file under these paths fails with the diff
+docs_examples = docs/examples docs/public/figures
+; doctests-sync.yml: scripts/sync_doctests.sh extracts the doctests from the sources, then the same check here
+doctests_sync = src/tests
+; fpm.yml: fpm test and fpm build --profile release, with the toolchain's compilers
+fpm           = true
+; matrix.yml: the project's script on every toolchain listed, Linux ones in their images, macOS and Windows on
+; their runners
+matrix                = linux-gnu linux-nvhpc linux-oneapi macos-gnu windows-gnu
+; the default script
+matrix_script         = scripts/ci/matrix.sh
+; GUI programs: Xvfb with the -gui image, Mesa on Windows
+matrix_display        = true
+; what macOS's Homebrew and Windows's MSYS2 must add (Linux: toolchain_packages)
+matrix_brew_packages  = sdl3
+matrix_msys2_packages = sdl3 mesa
+```
+
+- **The scripts are the project's.** `docs-examples.yml` runs `bash scripts/docs_examples.sh` and `doctests-sync.yml`
+  runs `bash scripts/sync_doctests.sh`; a project without the script gets a failing check naming it. What a
+  regeneration needs first (another project built, a tool) goes in the script. The doctests themselves run in CI, so
+  `doctests-sync.yml` only checks that the committed ones match the sources.
+- **The matrix script** is `scripts/ci/matrix.sh` unless `matrix_script` names another: `fobis scaffold init` creates
+  a default one once (build the fobos mode `tests-$TOOLCHAIN_FAMILY`, with the family `gnu`, `nvf` or `intel` of the
+  toolchain, then `scripts/run_tests.sh`), and it is the project's from then on. It gets the toolchain's
+  environment: `FC`, `CC`, `CXX`, `TOOLCHAIN`, `TOOLCHAIN_OS`, `TOOLCHAIN_FAMILY`.
+- **A hand-written workflow with the same name** while its key is unset is `UNMANAGED`: set the key, then `sync`
+  replaces it, or list it in `skip` to keep it yours.
+- **Unset again**, a key leaves its workflow in place, reported `UNMANAGED`: delete it, or set the key back.
 
 ### A release hook for the project's own files
 

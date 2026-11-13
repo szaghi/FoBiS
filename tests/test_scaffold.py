@@ -281,7 +281,11 @@ def test_status_reports_outdated_for_modified_file(tmp_path):
 
 def test_status_init_only_present_reports_ok(tmp_path):
     s, messages = _make_scaffolder(tmp_path)
-    init_only_entry = next((dest, entry) for dest, entry in s.manifest.items() if entry["category"] == "init-only")
+    init_only_entry = next(
+        (dest, entry)
+        for dest, entry in s.manifest.items()
+        if entry["category"] == "init-only" and not entry.get("when")
+    )
     dest, _entry = init_only_entry
     abs_path = tmp_path / dest
     abs_path.parent.mkdir(parents=True, exist_ok=True)
@@ -350,7 +354,9 @@ def test_sync_skips_up_to_date_files(tmp_path):
 def test_sync_skips_init_only_files(tmp_path):
     s, messages = _make_scaffolder(tmp_path)
     # Write wrong content to an init-only file
-    init_only_dest = next(dest for dest, entry in s.manifest.items() if entry["category"] == "init-only")
+    init_only_dest = next(
+        dest for dest, entry in s.manifest.items() if entry["category"] == "init-only" and not entry.get("when")
+    )
     abs_path = tmp_path / init_only_dest
     abs_path.parent.mkdir(parents=True, exist_ok=True)
     abs_path.write_text("custom content that sync must not touch", encoding="utf-8")
@@ -694,7 +700,7 @@ _TOOLCHAINS = "szaghi/fortran-toolchains/.github/workflows/"
 def _rendered_workflow(tmp_path, dest, **cfg):
     """Render the managed workflow *dest* with the given [scaffold] configuration, parsed as YAML."""
     yaml = pytest.importorskip("yaml")
-    s = Scaffolder(project_vars=get_project_vars(fobos=_FakeFobos(**cfg)), cwd=str(tmp_path))
+    s = Scaffolder(project_vars=get_project_vars(fobos=_KeysFobos(**cfg)), cwd=str(tmp_path))
     entry = s.manifest[dest]
     assert entry["category"] == "templated"
     text = s._get_canonical(entry)
@@ -1432,3 +1438,100 @@ def test_scaffold_key_variables_defaults_and_quoting():
     # rendered inside single-quoted YAML scalars: a quote is doubled
     q = get_project_vars(fobos=_KeysFobos(matrix_script="scripts/ci/it's.sh"))
     assert q["SCAFFOLD_MATRIX_SCRIPT"] == "scripts/ci/it''s.sh"
+
+
+# ── Optional workflows, managed while their [scaffold] key is set (GH #211 step 4) ───
+
+
+_OPTIONAL = {
+    ".github/workflows/docs-examples.yml": "docs_examples",
+    ".github/workflows/doctests-sync.yml": "doctests_sync",
+    ".github/workflows/fpm.yml": "fpm",
+    ".github/workflows/matrix.yml": "matrix",
+}
+
+
+def test_optional_workflows_are_conditional_entries(tmp_path):
+    s, _ = _make_scaffolder(tmp_path)
+    for dest, key in _OPTIONAL.items():
+        assert s.manifest[dest]["when"] == key and s.manifest[dest]["category"] == "templated"
+    script = s.manifest["scripts/ci/matrix.sh"]
+    assert script["when"] == "matrix" and script["category"] == "init-only" and script["executable"]
+
+
+def test_generated_checks_call_the_reusable_generated_workflow(tmp_path):
+    for dest, command, paths in (
+        (".github/workflows/docs-examples.yml", "bash scripts/docs_examples.sh", "docs/examples docs/public/figures"),
+        (".github/workflows/doctests-sync.yml", "bash scripts/sync_doctests.sh", "src/tests"),
+    ):
+        key = "docs_examples" if "examples" in dest else "doctests_sync"
+        _, wf = _rendered_workflow(tmp_path, dest, toolchain="linux-oneapi", toolchain_packages="x11", **{key: paths})
+        assert wf["on"]["push"] == {"branches": ["**"], "tags-ignore": ["**"]} and "pull_request" in wf["on"]
+        assert wf["permissions"] == {"contents": "read"}
+        check = wf["jobs"]["check"]
+        assert check["uses"] == _TOOLCHAINS + "generated.yml@v1"
+        assert check["with"] == {"command": command, "paths": paths, "toolchain": "linux-oneapi", "apt-packages": "x11"}
+
+
+def test_fpm_workflow_calls_the_reusable_fpm_workflow(tmp_path):
+    _, wf = _rendered_workflow(tmp_path, ".github/workflows/fpm.yml", fpm="true", toolchain="linux-gnu")
+    assert wf["jobs"]["fpm"]["uses"] == _TOOLCHAINS + "fpm.yml@v1"
+    assert wf["jobs"]["fpm"]["with"] == {"toolchain": "linux-gnu", "apt-packages": ""}
+
+
+def test_matrix_workflow_calls_the_reusable_matrix_workflow(tmp_path):
+    _, wf = _rendered_workflow(
+        tmp_path,
+        ".github/workflows/matrix.yml",
+        matrix="linux-gnu linux-nvhpc macos-gnu windows-gnu",
+        matrix_script="scripts/ci/platforms.sh",
+        matrix_display="true",
+        toolchain_packages="libx11-dev",
+        matrix_brew_packages="sdl3",
+        matrix_msys2_packages="sdl3 mesa",
+    )
+    job = wf["jobs"]["matrix"]
+    assert job["uses"] == _TOOLCHAINS + "matrix.yml@v1"
+    assert job["with"] == {
+        "toolchains": "linux-gnu linux-nvhpc macos-gnu windows-gnu",
+        "script": "scripts/ci/platforms.sh",
+        "display": True,  # a boolean input: rendered unquoted
+        "apt-packages": "libx11-dev",
+        "brew-packages": "sdl3",
+        "msys2-packages": "sdl3 mesa",
+    }
+    _, wf = _rendered_workflow(tmp_path, ".github/workflows/matrix.yml", matrix="linux-gnu")
+    assert wf["jobs"]["matrix"]["with"]["display"] is False
+    assert wf["jobs"]["matrix"]["with"]["script"] == "scripts/ci/matrix.sh"
+
+
+def test_optional_workflows_follow_their_keys(tmp_path):
+    """Keys unset: nothing created, nothing listed; set: init and sync write them, init creates the matrix script
+    once and sync never rewrites it; a hand-written one with its key unset is UNMANAGED."""
+    s, _ = _make_scaffolder(tmp_path)
+    s.init(yes=True)
+    for dest in [*_OPTIONAL, "scripts/ci/matrix.sh"]:
+        assert not (tmp_path / dest).exists(), dest
+    assert all(state != "missing" for dest, state in s.drift() if dest in _OPTIONAL)
+    s.config = {"docs_examples": "docs/examples", "doctests_sync": "src/tests", "fpm": "true", "matrix": "linux-gnu"}
+    s.vars.update(
+        SCAFFOLD_DOCS_EXAMPLES="docs/examples", SCAFFOLD_DOCTESTS_SYNC="src/tests", SCAFFOLD_MATRIX="linux-gnu"
+    )
+    states = dict(s.drift())
+    assert all(states[dest] == "missing" for dest in _OPTIONAL)
+    assert states["scripts/ci/matrix.sh"] == "missing"
+    s.sync(yes=True)
+    assert all((tmp_path / dest).exists() for dest in _OPTIONAL)
+    assert not (tmp_path / "scripts/ci/matrix.sh").exists()  # init-only: init's job
+    s.init(yes=True)
+    script = tmp_path / "scripts/ci/matrix.sh"
+    assert script.exists() and os.access(script, os.X_OK)
+    script.write_text("echo mine\n", encoding="utf-8")
+    s.sync(yes=True)
+    assert script.read_text(encoding="utf-8") == "echo mine\n"
+    assert all(state in ("ok", "skipped") for dest, state in s.drift() if dest in [*_OPTIONAL, str(script)])
+    # the key unset again: the files are hand-written now
+    s.config = {}
+    states = dict(s.drift())
+    assert all(states[dest] == "unmanaged" for dest in _OPTIONAL)
+    assert states["scripts/ci/matrix.sh"] == "inactive"
