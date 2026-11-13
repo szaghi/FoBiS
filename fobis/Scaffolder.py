@@ -183,10 +183,37 @@ def get_project_vars(fobos=None, overrides=None, cwd=None):
         "SCAFFOLD_CONTAINER": "",
         "SCAFFOLD_CI_SETUP": _CI_SETUP,
         "SCAFFOLD_DOCS_SETUP": _DOCS_SETUP,
+        # the inputs of the fortran-toolchains reusable workflows (GH #211), rendered inside single-quoted YAML
+        # scalars: a value never breaks the YAML (a ' is doubled)
+        "SCAFFOLD_TOOLCHAIN": "linux-gnu",
+        "SCAFFOLD_TOOLCHAIN_PACKAGES": "",
+        "SCAFFOLD_INSTALL_PACKAGES": "",
+        "SCAFFOLD_DOCS_EXAMPLES": "",
+        "SCAFFOLD_DOCTESTS_SYNC": "",
+        "SCAFFOLD_MATRIX": "",
+        "SCAFFOLD_MATRIX_SCRIPT": "scripts/ci/matrix.sh",
+        "SCAFFOLD_MATRIX_DISPLAY": "false",
+        "SCAFFOLD_MATRIX_BREW_PACKAGES": "",
+        "SCAFFOLD_MATRIX_MSYS2_PACKAGES": "",
     }
 
     if fobos is not None:
         scaffold_cfg = fobos.get_scaffold_config()
+        for var, key in (
+            ("SCAFFOLD_TOOLCHAIN", "toolchain"),
+            ("SCAFFOLD_TOOLCHAIN_PACKAGES", "toolchain_packages"),
+            ("SCAFFOLD_INSTALL_PACKAGES", "apt_packages"),
+            ("SCAFFOLD_DOCS_EXAMPLES", "docs_examples"),
+            ("SCAFFOLD_DOCTESTS_SYNC", "doctests_sync"),
+            ("SCAFFOLD_MATRIX", "matrix"),
+            ("SCAFFOLD_MATRIX_SCRIPT", "matrix_script"),
+            ("SCAFFOLD_MATRIX_DISPLAY", "matrix_display"),
+            ("SCAFFOLD_MATRIX_BREW_PACKAGES", "matrix_brew_packages"),
+            ("SCAFFOLD_MATRIX_MSYS2_PACKAGES", "matrix_msys2_packages"),
+        ):
+            value = " ".join(str(scaffold_cfg.get(key) or "").split())
+            if value:
+                vars_dict[var] = value.replace("'", "''")
         if scaffold_cfg.get("apt_packages"):
             # Render the package list as a trailing apt-line continuation so the
             # templated setup-build-env action stays byte-identical to the old

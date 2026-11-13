@@ -224,3 +224,86 @@ def test_case_insensitive_option(tmp_path):
     fobos = Fobos(cliargs=ns)
     # configparser default behaviour lowercases keys
     assert fobos.fobos.has_option("default", "compiler")
+
+
+# ---------------------------------------------------------------------------
+# [scaffold] keys of the reusable-workflow callers (GH #211 step 2)
+# ---------------------------------------------------------------------------
+
+
+def _scaffold(tmp_path, body):
+    _write_fobos(tmp_path, "[default]\ncompiler = gnu\n[scaffold]\n" + body)
+    return Fobos(cliargs=_ns(tmp_path / "fobos")).get_scaffold_config()
+
+
+def test_get_scaffold_config_defaults(tmp_path):
+    _write_fobos(tmp_path, "[default]\ncompiler = gnu\n")
+    cfg = Fobos(cliargs=_ns(tmp_path / "fobos")).get_scaffold_config()
+    assert cfg["toolchain"] == "linux-gnu"
+    assert cfg["matrix_script"] == "scripts/ci/matrix.sh"
+    assert cfg["matrix_display"] == "false"
+    for key in ("toolchain_packages", "apt_packages", "docs_examples", "doctests_sync", "fpm", "matrix"):
+        assert cfg[key] == "", key
+    assert cfg["deprecated"] == [] and cfg["skip"] == []
+
+
+def test_get_scaffold_config_every_key(tmp_path):
+    cfg = _scaffold(
+        tmp_path,
+        "toolchain = linux-oneapi\ntoolchain_packages = libx11-dev\n  libwayland-dev\napt_packages = zlib1g-dev\n"
+        "docs_examples = docs/examples docs/public/figures\ndoctests_sync = src/tests\nfpm = true\n"
+        "matrix = linux-gnu macos-gnu windows-gnu\nmatrix_script = scripts/ci/platforms.sh\nmatrix_display = True\n"
+        "matrix_brew_packages = sdl3\nmatrix_msys2_packages = sdl3 mesa\n",
+    )
+    assert cfg["toolchain"] == "linux-oneapi"
+    assert cfg["toolchain_packages"] == "libx11-dev libwayland-dev"  # a continued value is one word list
+    assert cfg["apt_packages"] == "zlib1g-dev"
+    assert cfg["docs_examples"] == "docs/examples docs/public/figures"
+    assert cfg["doctests_sync"] == "src/tests" and cfg["fpm"] == "true"
+    assert cfg["matrix"] == "linux-gnu macos-gnu windows-gnu"
+    assert cfg["matrix_script"] == "scripts/ci/platforms.sh" and cfg["matrix_display"] == "true"
+    assert cfg["matrix_brew_packages"] == "sdl3" and cfg["matrix_msys2_packages"] == "sdl3 mesa"
+    assert cfg["deprecated"] == []
+
+
+@pytest.mark.parametrize(
+    "image, toolchain",
+    [
+        ("ghcr.io/szaghi/fortran-toolchains:gnu-16.2", "linux-gnu"),
+        ("ghcr.io/szaghi/fortran-toolchains:nvhpc-26.9", "linux-nvhpc"),
+        ("ghcr.io/szaghi/fortran-toolchains:oneapi-2026.2", "linux-oneapi"),
+        ("ghcr.io/szaghi/fortran-toolchains:gnu-16.2-lite", "linux-gnu"),
+    ],
+)
+def test_get_scaffold_config_toolchain_image_is_mapped_and_deprecated(tmp_path, image, toolchain):
+    cfg = _scaffold(tmp_path, f"toolchain_image = {image}\n")
+    assert cfg["toolchain"] == toolchain
+    assert cfg["toolchain_image"] == image
+    assert cfg["deprecated"] == [f"toolchain_image: use toolchain = {toolchain}"]
+
+
+def test_get_scaffold_config_toolchain_wins_over_the_image(tmp_path):
+    cfg = _scaffold(tmp_path, "toolchain = linux-nvhpc\ntoolchain_image = ghcr.io/x/y:gnu-16.2\n")
+    assert cfg["toolchain"] == "linux-nvhpc"
+    assert cfg["deprecated"] == ["toolchain_image: use toolchain = linux-nvhpc"]
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "toolchain_image = docker.io/library/gcc:latest\n",  # not a fortran-toolchains tag, no toolchain to fall back
+        "toolchain_image = ghcr.io/szaghi/fortran-toolchains\n",  # no tag
+        "toolchain = gnu-16.2\n",
+        "toolchain = solaris-gnu\n",
+        "matrix = linux-gnu macOS-gnu\n",
+        "matrix_display = maybe\n",
+    ],
+)
+def test_get_scaffold_config_declaration_errors_exit_2(tmp_path, body):
+    errors = []
+    _write_fobos(tmp_path, "[default]\ncompiler = gnu\n[scaffold]\n" + body)
+    fobos = Fobos(cliargs=_ns(tmp_path / "fobos"), print_w=errors.append)
+    with pytest.raises(SystemExit) as exc:
+        fobos.get_scaffold_config()
+    assert exc.value.code == 2
+    assert errors and errors[0].startswith("Error: [scaffold]")

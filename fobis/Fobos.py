@@ -1386,46 +1386,95 @@ class Fobos:
                 info["year"] = self.fobos.get("project", "year").strip()
         return info
 
+    # the fobos [scaffold] keys of the reusable-workflow callers (GH #211): name -> default
+    _SCAFFOLD_KEYS = {
+        "apt_packages": "",
+        "toolchain": "",
+        "toolchain_image": "",
+        "toolchain_packages": "",
+        "docs_examples": "",
+        "doctests_sync": "",
+        "fpm": "",
+        "matrix": "",
+        "matrix_script": "scripts/ci/matrix.sh",
+        "matrix_display": "false",
+        "matrix_brew_packages": "",
+        "matrix_msys2_packages": "",
+    }
+    _TOOLCHAIN_ID = re.compile(r"^(linux|macos|windows)-[a-z][a-z0-9]*$")
+    # a fortran-toolchains image tag: <vendor>-<version>[-flavour] (gnu-16.2, nvhpc-26.9-lite, oneapi-2026.2)
+    _IMAGE_TAG = re.compile(r"^([a-z][a-z0-9]*)-[0-9][0-9.]*(-[a-z]+)?$")
+
     def get_scaffold_config(self) -> dict[str, Any]:
         """
         Parse the optional [scaffold] section and return scaffold parameters.
 
         These drive per-project rendering of templated scaffold artifacts (see
-        the scaffold feature). All values are empty when the section or option
-        is absent, so an unparametrised project renders the scaffold defaults
-        unchanged.
+        the scaffold feature). Values absent from the section take their defaults,
+        so an unparametrised project renders the scaffold defaults unchanged.
 
         Returns
         -------
         dict
-          dict with keys 'apt_packages' (str): space-separated extra system
-          packages to install in the CI build environment (e.g.
-          'libopenmpi-dev openmpi-bin' or 'zlib1g-dev'), empty string if unset;
-          'toolchain_image' (str): the container image the CI test and docs
-          build jobs run in (e.g. 'ghcr.io/szaghi/fortran-toolchains:gnu-16.2'),
-          which then replaces the setup-build-env action, empty string if unset;
-          'toolchain_packages' (str): space-separated Debian packages installed
-          in that container before the job's steps (what the image lacks, e.g.
-          the X11 headers of a GUI library), used only with toolchain_image,
-          empty string if unset;
-          and 'skip' (list of str): globs of the managed files the project owns
-          (deliberately customised), which scaffold never writes, empty if unset.
+          'toolchain' (str): the version-less toolchain id the CI, docs and
+          optional workflows run on (``linux-gnu``, ``linux-nvhpc``,
+          ``linux-oneapi``; the fortran-toolchains reusable workflows resolve it
+          to an image), default ``linux-gnu``; 'toolchain_packages' (str):
+          Debian packages installed in that image first (what it lacks, e.g. a
+          GUI library's X11 headers); 'apt_packages' (str): Ubuntu packages of
+          the fresh runner the release install test runs on; 'docs_examples',
+          'doctests_sync' (str): the paths the docs-examples and doctests-sync
+          checks compare, unset when the project has no such check; 'fpm' (str):
+          ``true`` for the fpm workflow; 'matrix' (str): the toolchain ids of the
+          matrix workflow, with 'matrix_script' (default
+          ``scripts/ci/matrix.sh``), 'matrix_display' (``true``/``false``),
+          'matrix_brew_packages' and 'matrix_msys2_packages'; 'toolchain_image'
+          (str): deprecated, mapped to 'toolchain' by the image's vendor when
+          'toolchain' is unset; 'deprecated' (list of str): a notice per
+          deprecated key in use; 'skip' (list of str): globs of the managed
+          files the project owns (deliberately customised), which scaffold never
+          writes.
+
+        A toolchain id other than ``<os>-<family>`` (os linux, macos, windows),
+        or a toolchain_image whose tag is not a fortran-toolchains one, is a
+        declaration error (exit 2).
         """
-        config = {
-            "apt_packages": "",
-            "toolchain_image": "",
-            "toolchain_packages": "",
-            "skip": [],
-        }
+        config: dict[str, Any] = dict(self._SCAFFOLD_KEYS)
+        config["deprecated"] = []
+        config["skip"] = []
         if self.fobos and self.fobos.has_section("scaffold"):
-            if self.fobos.has_option("scaffold", "apt_packages"):
-                config["apt_packages"] = self.fobos.get("scaffold", "apt_packages").strip()
-            if self.fobos.has_option("scaffold", "toolchain_image"):
-                config["toolchain_image"] = self.fobos.get("scaffold", "toolchain_image").strip()
-            if self.fobos.has_option("scaffold", "toolchain_packages"):
-                config["toolchain_packages"] = self.fobos.get("scaffold", "toolchain_packages").strip()
+            for key in self._SCAFFOLD_KEYS:
+                if self.fobos.has_option("scaffold", key):
+                    config[key] = " ".join(self.fobos.get("scaffold", key).split())
             if self.fobos.has_option("scaffold", "skip"):
                 config["skip"] = self.fobos.get("scaffold", "skip").split()
+        if config["toolchain_image"]:
+            image = config["toolchain_image"]
+            tag = image.rsplit(":", 1)[1] if ":" in image.rsplit("/", 1)[-1] else ""
+            match = self._IMAGE_TAG.match(tag)
+            if not config["toolchain"]:
+                if not match:
+                    self.print_w(
+                        f"Error: [scaffold] toolchain_image = {image}: not a fortran-toolchains image tag "
+                        "(<vendor>-<version>); set toolchain instead (e.g. toolchain = linux-gnu)"
+                    )
+                    sys.exit(2)
+                config["toolchain"] = f"linux-{match.group(1)}"
+            config["deprecated"].append(f"toolchain_image: use toolchain = {config['toolchain']}")
+        if not config["toolchain"]:
+            config["toolchain"] = "linux-gnu"
+        ids = [("toolchain", config["toolchain"])] + [("matrix", t) for t in config["matrix"].split()]
+        for key, toolchain in ids:
+            if not self._TOOLCHAIN_ID.match(toolchain):
+                self.print_w(
+                    f"Error: [scaffold] {key}: {toolchain!r} is not a toolchain id "
+                    "(<os>-<family>, os linux, macos or windows: linux-gnu, macos-gnu, ...)"
+                )
+                sys.exit(2)
+        if config["matrix_display"].lower() not in ("true", "false"):
+            self.print_w(f"Error: [scaffold] matrix_display = {config['matrix_display']}: true or false")
+            sys.exit(2)
+        config["matrix_display"] = config["matrix_display"].lower()
         return config
 
     def get_version(self) -> str:

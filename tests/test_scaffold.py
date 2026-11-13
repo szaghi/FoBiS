@@ -1439,3 +1439,57 @@ def test_ecosystem_drift_counts_retired_and_unmanaged_not_inactive(tmp_path, mon
     (tmp_path / ".github/actions/old/action.yml").write_text("x\n", encoding="utf-8")
     monkeypatch.setattr(eco_mod, "scaffold_for", lambda path: s)
     assert eco_mod._scaffold_drift(str(tmp_path)) == 2
+
+
+# ── The [scaffold] keys as template variables (GH #211 step 2) ────────────────
+
+
+class _KeysFobos(_FakeFobos):
+    """A fobos stub returning a full [scaffold] configuration."""
+
+    def __init__(self, **cfg):
+        super().__init__()
+        self._cfg = cfg
+
+    def get_scaffold_config(self):
+        base = super().get_scaffold_config()
+        base.update({"skip": [], "deprecated": []})
+        base.update(self._cfg)
+        return base
+
+
+def test_scaffold_keys_become_template_variables():
+    v = get_project_vars(
+        fobos=_KeysFobos(
+            toolchain="linux-oneapi",
+            toolchain_packages="libx11-dev  libwayland-dev",
+            apt_packages="zlib1g-dev",
+            docs_examples="docs/examples docs/public/figures",
+            doctests_sync="src/tests",
+            matrix="linux-gnu macos-gnu",
+            matrix_script="scripts/ci/platforms.sh",
+            matrix_display="true",
+            matrix_brew_packages="sdl3",
+            matrix_msys2_packages="sdl3 mesa",
+        )
+    )
+    assert v["SCAFFOLD_TOOLCHAIN"] == "linux-oneapi"
+    assert v["SCAFFOLD_TOOLCHAIN_PACKAGES"] == "libx11-dev libwayland-dev"
+    assert v["SCAFFOLD_INSTALL_PACKAGES"] == "zlib1g-dev"
+    assert v["SCAFFOLD_DOCS_EXAMPLES"] == "docs/examples docs/public/figures"
+    assert v["SCAFFOLD_DOCTESTS_SYNC"] == "src/tests"
+    assert v["SCAFFOLD_MATRIX"] == "linux-gnu macos-gnu"
+    assert v["SCAFFOLD_MATRIX_SCRIPT"] == "scripts/ci/platforms.sh"
+    assert v["SCAFFOLD_MATRIX_DISPLAY"] == "true"
+    assert v["SCAFFOLD_MATRIX_BREW_PACKAGES"] == "sdl3"
+    assert v["SCAFFOLD_MATRIX_MSYS2_PACKAGES"] == "sdl3 mesa"
+
+
+def test_scaffold_key_variables_defaults_and_quoting():
+    v = get_project_vars(fobos=None)
+    assert v["SCAFFOLD_TOOLCHAIN"] == "linux-gnu"
+    assert v["SCAFFOLD_MATRIX_SCRIPT"] == "scripts/ci/matrix.sh" and v["SCAFFOLD_MATRIX_DISPLAY"] == "false"
+    assert v["SCAFFOLD_TOOLCHAIN_PACKAGES"] == "" and v["SCAFFOLD_MATRIX"] == ""
+    # rendered inside single-quoted YAML scalars: a quote is doubled
+    q = get_project_vars(fobos=_KeysFobos(matrix_script="scripts/ci/it's.sh"))
+    assert q["SCAFFOLD_MATRIX_SCRIPT"] == "scripts/ci/it''s.sh"
