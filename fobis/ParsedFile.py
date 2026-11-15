@@ -187,7 +187,15 @@ __str_program__ = (
 )  # eventual eol white space and or comment
 __str_mpifh__ = r"(.*)" + __str_kw_mpifh__ + r"(.*)"
 __regex_use_mod__ = re.compile(__str_use_mod__)
+__str_linemarker_include__ = (
+    r"^#\s+"  # preprocessor linemarker start
+    + r"\d+"  # line number of the line following the marker
+    + r"\s+"
+    + r'"(?P<name>[^"]+)"'  # file the line number refers to
+    + r"(?P<flags>(?:\s+\d+)*)"  # flags: 1 entering an include, 3 system header, ...
+)
 __regex_include__ = re.compile(__str_include__)
+__regex_linemarker_include__ = re.compile(__str_linemarker_include__)
 __regex_program__ = re.compile(__str_program__)
 __regex_module__ = re.compile(__str_module__)
 __regex_submodule__ = re.compile(__str_submodule__)
@@ -376,6 +384,38 @@ def _needs_preprocessing(extension: str, inc: list[str]) -> bool:
     return len(extension) >= 2 and extension.startswith(".") and extension[1:].isupper()
 
 
+def _linemarker_includes(source: str) -> list[str]:
+    """
+    Names of the files the preprocessor included into *source*, first seen first.
+
+    The preprocessor replaces every ``#include "file"`` with the file's contents,
+    leaving a linemarker with flag ``1`` where the inclusion starts.  System
+    headers (flag ``3``) and pseudo-files such as ``<built-in>`` are compiler
+    infrastructure, not project dependencies, and are skipped.
+
+    Parameters
+    ----------
+    source : str
+        Preprocessed source text, linemarkers included.
+
+    Returns
+    -------
+    list[str]
+        Included file names, in order of first appearance.
+    """
+    names: list[str] = []
+    for line in source.split("\n"):
+        matching = __regex_linemarker_include__.match(line)
+        if matching is None:
+            continue
+        flags = matching.group("flags").split()
+        name = matching.group("name")
+        if "1" in flags and "3" not in flags and not (name.startswith("<") and name.endswith(">")):
+            if name not in names:
+                names.append(name)
+    return names
+
+
 class ParsedFile:
     """ParsedFile is an object that handles a single parsed file, its attributes and methods."""
 
@@ -519,6 +559,7 @@ class ParsedFile:
             self._parse_c()
             return
 
+        preprocessed = False
         if _needs_preprocessing(self.extension, inc):
             preprocessor_exist = False
             for path in os.environ["PATH"].split(os.pathsep):
@@ -552,6 +593,7 @@ class ParsedFile:
                         )
                     )
                     source = source.replace("\\n", "\n")
+                    preprocessed = True
                 except CalledProcessError:
                     # cpp failed (e.g. missing include path the user must
                     # provide).  Fall back to the raw file so dependency
@@ -602,6 +644,12 @@ class ParsedFile:
                 if not re.match(__regex_mpifh__, line):
                     dep = Dependency(dtype="include", name=matching.group("name"))
                     self.dependencies.append(dep)
+
+        if preprocessed:
+            # cpp has already expanded every `#include` into its contents: the
+            # include dependency survives only in the linemarkers it leaves behind.
+            for name in _linemarker_includes(source):
+                self.dependencies.append(Dependency(dtype="include", name=name))
 
         if self.module:
             self.doctest = Doctest()

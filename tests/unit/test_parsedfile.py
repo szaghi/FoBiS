@@ -1,5 +1,7 @@
 """Unit tests for fobis.ParsedFile — uses tmp_path, no compiler needed."""
 
+import os
+
 import pytest
 
 from fobis.ParsedFile import ParsedFile
@@ -229,6 +231,53 @@ def test_parse_include_single_quotes(tmp_path):
     pf.parse()
     dep_names = [d.name for d in pf.dependencies]
     assert "defs.inc" in dep_names
+
+
+# ---------------------------------------------------------------------------
+# cpp linemarkers: a #include'd file is a dependency of the includer
+# ---------------------------------------------------------------------------
+
+
+def test_parse_cpp_include_dependency_from_linemarker(tmp_path, monkeypatch):
+    """A file cpp #includes into a preprocessed source is recorded as an include dependency.
+
+    cpp expands `#include "body.INC"` before the parser reads the source, so the
+    include line is gone; its linemarkers (`# 1 "body.INC" 1`) still tell which
+    files were pulled in.  System headers (flag 3) and pseudo-files such as
+    `<built-in>` are compiler infrastructure, not project dependencies.
+    """
+    (tmp_path / "src").mkdir()
+    # A file named `cpp` in PATH is all ParsedFile checks before preprocessing;
+    # check_output itself is stubbed with a synthetic cpp output.
+    _write(tmp_path, "cpp", "")
+    monkeypatch.setenv("PATH", str(tmp_path) + os.pathsep + os.environ["PATH"])
+    preprocessed = (
+        '# 1 "src/m.F90"\n'
+        '# 1 "<built-in>"\n'
+        '# 1 "<command-line>"\n'
+        '# 1 "src/m.F90"\n'
+        '# 1 "src/body.INC" 1\n'
+        '# 1 "src/deep.INC" 1\n'
+        "z = 3\n"
+        '# 2 "src/body.INC" 2\n'
+        "y = 1\n"
+        '# 7 "src/m.F90" 2\n'
+        "module mymod\n"
+        '# 1 "/usr/include/stdio.h" 1 3\n'
+        '# 5 "/usr/include/stdio.h" 3\n'
+        '# 8 "src/m.F90" 2\n'
+        "end module mymod\n"
+    )
+    monkeypatch.setattr("fobis.ParsedFile.check_output", lambda *args, **kwargs: preprocessed)
+    src = _write(tmp_path, "src/m.F90", '#include "body.INC"\nmodule mymod\nend module mymod\n')
+    pf = ParsedFile(name=src)
+    pf.parse()
+    dep_names = [d.name for d in pf.dependencies if d.type == "include"]
+    assert "src/body.INC" in dep_names
+    assert "src/deep.INC" in dep_names
+    assert not any("stdio.h" in name for name in dep_names)
+    assert not any(name.startswith("<") for name in dep_names)
+    assert "src/m.F90" not in dep_names
 
 
 # ---------------------------------------------------------------------------
