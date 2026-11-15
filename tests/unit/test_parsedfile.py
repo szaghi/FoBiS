@@ -280,6 +280,14 @@ def test_parse_cpp_include_dependency_from_linemarker(tmp_path, monkeypatch):
     assert "src/m.F90" not in dep_names
 
 
+def test_linemarker_includes_unescape_the_file_name():
+    """cpp escapes backslashes and double quotes in a linemarker's file name (Windows paths)."""
+    from fobis.ParsedFile import _linemarker_includes
+
+    source = '# 1 "src\\\\inc\\\\body.INC" 1\n# 1 "odd\\"name.INC" 1\n# 2 "src\\\\m.F90" 2\n'
+    assert _linemarker_includes(source) == ["src\\inc\\body.INC", 'odd"name.INC']
+
+
 # ---------------------------------------------------------------------------
 # nomodlib detection
 # ---------------------------------------------------------------------------

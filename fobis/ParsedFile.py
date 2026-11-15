@@ -191,7 +191,7 @@ __str_linemarker_include__ = (
     r"^#\s+"  # preprocessor linemarker start
     + r"\d+"  # line number of the line following the marker
     + r"\s+"
-    + r'"(?P<name>[^"]+)"'  # file the line number refers to
+    + r'"(?P<name>(?:[^"\\]|\\.)+)"'  # file the line number refers to (cpp escapes \\ and " in it)
     + r"(?P<flags>(?:\s+\d+)*)"  # flags: 1 entering an include, 3 system header, ...
 )
 __regex_include__ = re.compile(__str_include__)
@@ -409,7 +409,7 @@ def _linemarker_includes(source: str) -> list[str]:
         if matching is None:
             continue
         flags = matching.group("flags").split()
-        name = matching.group("name")
+        name = re.sub(r"\\(.)", r"\1", matching.group("name"))
         if "1" in flags and "3" not in flags and not (name.startswith("<") and name.endswith(">")):
             if name not in names:
                 names.append(name)
@@ -649,7 +649,7 @@ class ParsedFile:
             # cpp has already expanded every `#include` into its contents: the
             # include dependency survives only in the linemarkers it leaves behind.
             for name in _linemarker_includes(source):
-                self.dependencies.append(Dependency(dtype="include", name=name))
+                self.dependencies.append(Dependency(dtype="include", name=name, located=True))
 
         if self.module:
             self.doctest = Doctest()

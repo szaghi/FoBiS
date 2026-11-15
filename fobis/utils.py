@@ -313,6 +313,8 @@ def dependency_hiearchy(builder, pfiles, print_w=None, force_compile=False):
     else:
         print_wm = print_w
 
+    # an include the preprocessor located (its linemarkers) is matched by path: the name is relative to the cwd
+    by_path = {os.path.abspath(pfile.name): fnum for fnum, pfile in enumerate(pfiles)}
     # direct dependencies list used after for building indirect (complete) dependencies list
     for parsed_file in pfiles:
         parsed_file.pfile_dep = []
@@ -347,6 +349,19 @@ def dependency_hiearchy(builder, pfiles, print_w=None, force_compile=False):
                             + "' that is unreachable"
                         )
                         # sys.exit(1)
+            if dep.type == "include" and dep.located:
+                fnum = by_path.get(os.path.abspath(dep.name), -1)
+                if fnum > -1:
+                    dep.file = pfiles[fnum].name
+                    pfiles[fnum].program = pfiles[fnum].module = pfiles[fnum].nomodlib = False
+                    pfiles[fnum].include = True
+                    if pfiles[fnum] not in parsed_file.pfile_dep:
+                        parsed_file.pfile_dep.append(pfiles[fnum])
+                else:
+                    # outside the sources (an include directory, a library's headers): the preprocessor found it, so
+                    # it is no unresolved dependency; its include directory is already among the flags
+                    dep.external = True
+                continue
             if dep.type == "include":
                 dep.file, fnum = include_is_in(pfiles=pfiles, include=dep.name)
                 if fnum > -1:

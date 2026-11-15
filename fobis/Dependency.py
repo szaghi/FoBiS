@@ -27,7 +27,7 @@ import os
 class Dependency:
     """Dependency is an object that handles a single file dependency, its attributes and methods."""
 
-    def __init__(self, dtype="", name="", dfile=""):
+    def __init__(self, dtype="", name="", dfile="", located=False):
         """
         Parameters
         ----------
@@ -37,6 +37,9 @@ class Dependency:
           name of dependency: module name for "use" type or file name for include type
         file : {""}
           file name containing module in the case of "use" type
+        located : {False}
+          an include whose name is the path the preprocessor opened (relative to the cwd, or absolute), not a name to
+          look up in the include directories
 
         Attributes
         ----------
@@ -46,6 +49,7 @@ class Dependency:
         self.file = dfile
         # a module defined outside the project whose .mod file was found in an include directory
         self.external = False
+        self.located = located
 
     def __str__(self):
         string = []
