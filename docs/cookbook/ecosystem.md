@@ -365,8 +365,8 @@ adds this boilerplate.
 
 | Category | Files | `sync` |
 |---|---|---|
-| verbatim | `scripts/release.sh`, `scripts/run_tests.sh`, `scripts/install.sh`, `scripts/compute-coverage.sh`, `docs/package.json`, `cliff.toml`, `LICENSE.gpl3.md` | overwrites |
-| templated | `.github/workflows/ci.yml`, `docs.yml`, `release.yml` (`{{NAME}}`) and `install.yml`, with the `[scaffold]` keys below | overwrites with the rendered text |
+| verbatim | `scripts/release.sh`, `scripts/run_tests.sh`, `scripts/compute-coverage.sh`, `docs/package.json`, `cliff.toml`, `LICENSE.gpl3.md` | overwrites |
+| templated | `.github/workflows/ci.yml`, `docs.yml`, `release.yml` (`{{NAME}}`) and `install.yml`, with the `[scaffold]` keys below; `scripts/install.sh`, the [one-line installer](./installer), with the `[installer]` keys | overwrites with the rendered text |
 | templated, optional | `.github/workflows/docs-examples.yml`, `doctests-sync.yml`, `fpm.yml`, `matrix.yml`, each while its `[scaffold]` key is set ([below](#optional-workflows)) | overwrites with the rendered text |
 | init-only | `fobos`, `fpm.toml`, `docs/ford.md` (rendered when created), `docs/guide/contributing.md`; `scripts/ci/matrix.sh` while `matrix` is set | never: yours after `init` |
 | patched | `docs/.vitepress/config.mts` (rendered when created) | only inserts the `build: { target: 'es2022' }` block into `vite: {` |
@@ -381,8 +381,8 @@ cancels the running check) and, on the default branch, packs the coverage output
 runs when that CI run succeeds and deploys the VitePress site (formal through `docs/package.json`'s `predocs:build`)
 with the coverage badge from those outputs, without running the coverage again (a manual dispatch runs it itself);
 `release.yml` publishes the release of a pushed tag (the source tarball, the tag's `CHANGELOG.md` section,
-`scripts/install.sh`), then runs `install.yml`, which installs that release on a fresh runner with each build system
-its tarball carries (make, CMake, FoBiS, fpm). A fix in those workflows reaches every project through `@v1` without a
+`scripts/install.sh`, the [one-line installer](./installer)), then runs `install.yml`, which installs that release on
+a fresh runner with each build system its tarball carries (make, CMake, FoBiS, fpm). A fix in those workflows reaches every project through `@v1` without a
 sync; a new key or input needs one. `scripts/release.sh vX.Y.Z` (or `--patch`/`--minor`/`--major`)
 regenerates `CHANGELOG.md` with git-cliff, updates `VERSION` (and the `fpm.toml` version), runs the project's
 [release hook](#a-release-hook-for-the-project-s-own-files) when it has one, commits, tags and pushes.

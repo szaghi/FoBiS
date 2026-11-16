@@ -103,7 +103,13 @@ fobis commit             # generate a Conventional-Commits message via a local L
   `UNMANAGED`. `toolchain_image` is deprecated (mapped by vendor; `DEPRECATED` warning, dashboard
   `!`). Fobos `[scaffold] skip = <globs>` marks
   managed files the project owns (e.g. a customised `scripts/release.sh`): reported `SKIPPED`, not
-  drift, never written. A confirmation that cannot be answered (no tty) means *no*; `--yes` is the
+  drift, never written. `scripts/install.sh` is the one-line installer (templated, GH #217:
+  `curl -fsSL .../releases/latest/download/install.sh | bash -s -- [--build fobis|fpm|cmake|make]
+  [--fc FC|--gnu|--intel|--nvidia] [--prefix DIR] [--tag T] [--uninstall] [--dry-run] [--deps]`; one
+  build system shipped = used, several = `--build`, else a tty menu, else fobis > fpm > cmake > make;
+  per-compiler install `lib/<name>/<fc>-<ver>/` + pkg-config + manifest), configured by the fobos
+  `[installer]` section: `repository`, `name`, `mode_gnu|intel|nvidia` (default `static-<family>`, nvidia
+  `static-nvf`), `pre`/`check` (fobos rules), `apt`/`brew` (`--deps`), `pkgconfig`, `make_lib`/`make_mod`. A confirmation that cannot be answered (no tty) means *no*; `--yes` is the
   unattended path (and makes `init` prompt for nothing).
 - `commit`: `--provider/--backend/-b managed|ollama|openai`, `--url/-u`, `--model/-m`, `--api-key-env`,
   `--max-diff`, `--refine-passes`, `--apply` (runs `git commit`), `--config/-c`, `--show-config`,

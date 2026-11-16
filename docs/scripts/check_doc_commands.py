@@ -148,7 +148,7 @@ def check(command: str, root) -> str | None:
 
 # sections that are not modes: their keys are checked by their own parsers
 OTHER_SECTIONS = re.compile(
-    r"modes|common-variables|project|dependencies|features|test|lint|gate|scheduler|verification|ecosystem|scaffold"
+    r"modes|common-variables|project|dependencies|features|test|lint|gate|scheduler|verification|ecosystem|scaffold|installer"
     r"|coverage|indexes"
     r"|include|externals|pkgconfig|examples?|llm|varsets|rule-.*|(case|assess|bench|varset|example|test|feature"
     r"|feature-group):.*|(target|example)\..*",

@@ -122,6 +122,7 @@ const docs = [
       { text: 'Libraries and other build systems', link: '/cookbook/libraries' },
       { text: 'Dependencies',                      link: '/cookbook/dependencies' },
       { text: 'Packages and indexes',              link: '/cookbook/packages' },
+      { text: 'One-line installer',                link: '/cookbook/installer' },
       { text: 'Testing',                           link: '/cookbook/testing' },
       { text: 'Verifying results',                 link: '/cookbook/verification' },
       { text: 'Code quality',                      link: '/cookbook/analysis' },
