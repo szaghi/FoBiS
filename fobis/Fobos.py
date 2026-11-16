@@ -1493,6 +1493,7 @@ class Fobos:
         "pkgconfig": "true",
         "make_lib": "",
         "make_mod": "",
+        "headers": "",
     }
 
     def get_installer_config(self) -> dict[str, str]:
@@ -1512,7 +1513,8 @@ class Fobos:
           rules run before the build and after the install, default none; 'apt', 'brew' (str): the system packages
           ``--deps`` installs; 'pkgconfig' (str): ``true``/``false``, write a pkg-config file, default ``true``;
           'make_lib', 'make_mod' (str): where a make build without an install target leaves the libraries and the
-          modules.
+          modules; 'headers' (str): the files (globs, relative to the sources) the project's users include, installed
+          next to the modules by the builds that do not install them.
 
         An unknown key, a 'pre'/'check' naming no ``[rule-<name>]`` section, or a 'pkgconfig' other than true/false
         is a declaration error (exit 2).

@@ -48,6 +48,7 @@ BREW_PACKAGES='{{INSTALLER_BREW}}'
 PKGCONFIG='{{INSTALLER_PKGCONFIG}}'     # true: write <name>.pc
 MAKE_LIB='{{INSTALLER_MAKE_LIB}}'       # make builds without an install target: where the libraries and modules are
 MAKE_MOD='{{INSTALLER_MAKE_MOD}}'
+HEADERS='{{INSTALLER_HEADERS}}'         # files (globs) the project's users include: installed next to the modules
 
 # ---- messages -------------------------------------------------------------------------------------------------------
 if [ -t 2 ]; then
@@ -327,6 +328,27 @@ case $BUILD in
     fi
     ;;
 esac
+
+# ---- stage 5b: the header files ---------------------------------------------------------------------------------------
+# a build that does not install them itself (FoBiS, fpm and make install modules only) gets them in every directory it
+# installed module files in, so the -I of the pkg-config file finds them
+if [ -n "$HEADERS" ]; then
+  snapshot > "$WORK/after"
+  comm -13 "$WORK/before" "$WORK/after" > "$WORK/new"
+  moddirs=$(grep -E '\.s?mod$' "$WORK/new" | sed -e '/\//!s|.*|.|' -e 's|/[^/]*$||' | sort -u)
+  [ -n "$moddirs" ] || die "[installer] headers: the build installed no module file to put them next to"
+  set -f; patterns=($HEADERS); set +f
+  for pattern in "${patterns[@]}"; do
+    matched=0
+    for f in $pattern; do
+      [ -f "$f" ] || continue
+      matched=1
+      awk -F/ -v b="${f##*/}" '$NF == b {found = 1} END {exit !found}' "$WORK/new" && continue   # the build installed it
+      for d in $moddirs; do cp "$f" "$PREFIX/$d/" || die "installing $f failed"; done
+    done
+    [ "$matched" = 1 ] || die "[installer] headers: $pattern matches no file of the sources"
+  done
+fi
 
 # ---- stage 6: pkg-config --------------------------------------------------------------------------------------------
 snapshot > "$WORK/after"

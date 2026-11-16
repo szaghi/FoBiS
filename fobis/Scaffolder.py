@@ -191,6 +191,7 @@ def get_project_vars(fobos=None, overrides=None, cwd=None):
         "INSTALLER_PKGCONFIG": "true",
         "INSTALLER_MAKE_LIB": "",
         "INSTALLER_MAKE_MOD": "",
+        "INSTALLER_HEADERS": "",
     }
     installer_cfg = {}
 
@@ -267,7 +268,7 @@ def get_project_vars(fobos=None, overrides=None, cwd=None):
     vars_dict["INSTALLER_REPOSITORY"] = slug
     vars_dict["INSTALLER_NAME"] = vars_dict["REPOSITORY_NAME"] or vars_dict["NAME"]
     for key, value in installer_cfg.items():
-        if value or key in ("pre", "check", "apt", "brew", "make_lib", "make_mod"):
+        if value or key in ("pre", "check", "apt", "brew", "make_lib", "make_mod", "headers"):
             if key == "repository" and not value:
                 continue
             if key == "name" and not value:

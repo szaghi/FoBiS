@@ -326,7 +326,16 @@ def test_get_installer_config_defaults(tmp_path):
         cfg["mode_gnu"] == "static-gnu" and cfg["mode_intel"] == "static-intel" and cfg["mode_nvidia"] == "static-nvf"
     )
     assert cfg["pkgconfig"] == "true"
-    assert cfg["pre"] == cfg["check"] == cfg["apt"] == cfg["brew"] == cfg["make_lib"] == cfg["repository"] == ""
+    assert (
+        cfg["pre"]
+        == cfg["check"]
+        == cfg["apt"]
+        == cfg["brew"]
+        == cfg["make_lib"]
+        == cfg["headers"]
+        == cfg["repository"]
+        == ""
+    )
 
 
 def test_get_installer_config_every_key(tmp_path):
@@ -336,7 +345,7 @@ def test_get_installer_config_every_key(tmp_path):
         "[default]\ncompiler = gnu\n[rule-native]\nrule = true\n[rule-smoke]\nrule = true\n"
         "[installer]\nrepository = o/figure\nname = figure\nmode_gnu = figure-gnu\nmode_intel = figure-intel\n"
         "mode_nvidia = figure-nvf\npre = native\ncheck = smoke\napt = libx11-dev\n      libwayland-dev\n"
-        "brew = sdl3\npkgconfig = False\nmake_lib = lib\nmake_mod = mod\n",
+        "brew = sdl3\npkgconfig = False\nmake_lib = lib\nmake_mod = mod\nheaders = src/a.H\n   src/*.inc\n",
     )
     cfg = Fobos(cliargs=_ns(tmp_path / "fobos")).get_installer_config()
     assert cfg == {
@@ -352,6 +361,7 @@ def test_get_installer_config_every_key(tmp_path):
         "pkgconfig": "false",
         "make_lib": "lib",
         "make_mod": "mod",
+        "headers": "src/a.H src/*.inc",
     }
 
 

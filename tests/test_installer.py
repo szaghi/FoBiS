@@ -304,6 +304,34 @@ def test_make_without_install_target_copies_the_declared_dirs(tmp_path):
     )
 
 
+def test_headers_are_installed_next_to_the_modules(tmp_path):
+    """[installer] headers: files a build does not install go where it installed the modules, globs allowed."""
+    for tool in ("gfortran", "make"):
+        if not shutil.which(tool):
+            pytest.skip(f"{tool} not available")
+    src = tmp_path / "src-headers"
+    shutil.copytree(FIXTURE, src)
+    text = (src / "makefile").read_text(encoding="utf-8")
+    (src / "makefile").write_text(text.split("\ninstall:")[0] + "\n", encoding="utf-8")
+    (src / "src" / "demo.H").write_text("#define DEMO 1\n", encoding="utf-8")
+    (src / "src" / "demo_extra.inc").write_text("! extra\n", encoding="utf-8")
+    prefix = tmp_path / "prefix"
+    env = _real_env(tmp_path)
+    args = ("--source", str(src), "--build", "make", "--fc", "gfortran")
+    missing = _run(
+        _render(tmp_path, make_lib=".", make_mod=".", headers="src/none.H"), env, *args, "--prefix", str(tmp_path / "p")
+    )
+    assert missing.returncode == 1 and "src/none.H matches no file" in missing.stderr
+    script = _render(tmp_path, make_lib=".", make_mod=".", headers="src/demo.H src/*.inc")
+    out = _run(script, env, *args, "--prefix", str(prefix))
+    assert out.returncode == 0, out.stderr
+    (incdir,) = (prefix / "include" / "demo").glob("*")
+    assert sorted(p.name for p in incdir.iterdir()) == ["demo.H", "demo.mod", "demo_extra.inc"]
+    out = _run(script, env, "--uninstall", "--prefix", str(prefix))
+    assert out.returncode == 0, out.stderr
+    assert [p for p in prefix.rglob("*") if p.is_file() and "venv" not in p.parts] == []
+
+
 def test_pre_and_check_rules_run(tmp_path):
     """[installer] pre and check: fobos rules run before the build and after the install (PREFIX exported)."""
     for tool in ("gfortran", "fobis"):

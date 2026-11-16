@@ -96,6 +96,7 @@ mode_nvidia = finer-static-nvf
 | `apt`, `brew` | none | the system packages `--deps` installs, on Debian/Ubuntu and on macOS |
 | `pkgconfig` | `true` | write the pkg-config file (`false` when the build installs its own `<name>.pc`, which is kept anyway) |
 | `make_lib`, `make_mod` | none | for a makefile without an `install` target: where the libraries and the module files are after `make` |
+| `headers` | none | the files (globs, relative to the sources) your users include, such as a header of macros: every build that does not install them (FoBiS, fpm and make install module files only) gets them next to its module files, on the pkg-config `-I` path |
 
 A `pre` or `check` rule is a fobos rule, run by FoBiS: declaring one makes FoBiS needed by every build system of the
 project (the installer then bootstraps it). An unknown key, a rule the fobos does not define, or a `pkgconfig` other
