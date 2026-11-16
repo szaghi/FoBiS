@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.18.3] — 2026-11-16
+### Fixed
+- **installer**: Split the headers patterns with read -a
+
+
 ## [3.18.2] — 2026-11-16
 ### Added
 - **installer**: [installer] headers, the files a project's users include
