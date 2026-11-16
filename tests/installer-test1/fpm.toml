@@ -1,0 +1,8 @@
+name = "demo"
+version = "1.0.0"
+
+[library]
+source-dir = "src"
+
+[install]
+library = true

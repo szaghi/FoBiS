@@ -211,7 +211,7 @@ if [ -n "$BUILD" ]; then
   [ "$found" = 1 ] || usage_error "--build $BUILD: $NAME ships ${available[*]} only"
 elif [ ${#available[@]} -eq 1 ]; then
   BUILD=${available[0]}
-elif [ "$DRY_RUN" = 0 ] && (: < /dev/tty) 2> /dev/null && exec 3< /dev/tty; then
+elif (: < /dev/tty) 2> /dev/null && exec 3< /dev/tty; then
   { echo "$NAME can be built with:"; i=1; for b in "${available[@]}"; do echo "  $i) $b"; i=$((i + 1)); done
     printf 'Choose [1-%d, default 1]: ' "${#available[@]}"; } > /dev/tty
   read -r answer <&3 || answer=''

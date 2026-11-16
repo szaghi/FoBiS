@@ -1,0 +1,17 @@
+[project]
+name       = demo
+repository = https://github.com/o/demo
+
+[modes]
+modes = static-gnu
+
+[static-gnu]
+compiler  = gnu
+cflags    = -c -O2
+mod_dir   = mod
+obj_dir   = obj
+build_dir = build
+src       = src
+target    = demo.f90
+output    = libdemo.a
+mklib     = static

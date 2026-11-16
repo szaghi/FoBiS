@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.13)
+project(demo LANGUAGES Fortran)
+include(GNUInstallDirs)
+add_library(demo STATIC src/demo.f90)
+set_target_properties(demo PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/mod)
+install(TARGETS demo ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(DIRECTORY ${CMAKE_BINARY_DIR}/mod/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
