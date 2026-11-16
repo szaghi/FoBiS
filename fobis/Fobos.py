@@ -1479,6 +1479,64 @@ class Fobos:
         config["matrix_display"] = config["matrix_display"].lower()
         return config
 
+    # the fobos [installer] keys of the one-line installer, scripts/install.sh (GH #217): name -> default
+    _INSTALLER_KEYS = {
+        "repository": "",
+        "name": "",
+        "mode_gnu": "static-gnu",
+        "mode_intel": "static-intel",
+        "mode_nvidia": "static-nvf",
+        "pre": "",
+        "check": "",
+        "apt": "",
+        "brew": "",
+        "pkgconfig": "true",
+        "make_lib": "",
+        "make_mod": "",
+    }
+
+    def get_installer_config(self) -> dict[str, str]:
+        """
+        Parse the optional [installer] section, the project's settings of the one-line installer.
+
+        ``fobis scaffold`` renders them into ``scripts/install.sh``; values absent from the section take their
+        defaults, so a project without the section gets the plain installer.
+
+        Returns
+        -------
+        dict
+          'repository' (str): ``owner/name`` on GitHub, default '' (the scaffold takes it from [project] repository
+          or the git remote); 'name' (str): the release tarball's name, ``<name>-<tag>.tar.gz``, default '' (the
+          repository's name); 'mode_gnu', 'mode_intel', 'mode_nvidia' (str): the fobos mode the fobis build uses with
+          each compiler family, default ``static-gnu``, ``static-intel``, ``static-nvf``; 'pre', 'check' (str): fobos
+          rules run before the build and after the install, default none; 'apt', 'brew' (str): the system packages
+          ``--deps`` installs; 'pkgconfig' (str): ``true``/``false``, write a pkg-config file, default ``true``;
+          'make_lib', 'make_mod' (str): where a make build without an install target leaves the libraries and the
+          modules.
+
+        An unknown key, a 'pre'/'check' naming no ``[rule-<name>]`` section, or a 'pkgconfig' other than true/false
+        is a declaration error (exit 2).
+        """
+        config = dict(self._INSTALLER_KEYS)
+        if not (self.fobos and self.fobos.has_section("installer")):
+            return config
+        for key in self.fobos.options("installer"):
+            if key not in self._INSTALLER_KEYS:
+                self.print_w(
+                    f"Error: [installer] {key}: unknown key (valid: {', '.join(sorted(self._INSTALLER_KEYS))})"
+                )
+                sys.exit(2)
+            config[key] = " ".join(self.fobos.get("installer", key).split())
+        for key in ("pre", "check"):
+            if config[key] and not self.fobos.has_section("rule-" + config[key]):
+                self.print_w(f"Error: [installer] {key} = {config[key]}: the fobos has no [rule-{config[key]}]")
+                sys.exit(2)
+        if config["pkgconfig"].lower() not in ("true", "false"):
+            self.print_w(f"Error: [installer] pkgconfig = {config['pkgconfig']}: true or false")
+            sys.exit(2)
+        config["pkgconfig"] = config["pkgconfig"].lower()
+        return config
+
     def get_version(self) -> str:
         """
         Resolve the project version from [project] and/or git tags.

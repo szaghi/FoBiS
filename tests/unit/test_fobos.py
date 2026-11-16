@@ -313,3 +313,64 @@ def test_get_scaffold_config_declaration_errors_exit_2(tmp_path, body):
         fobos.get_scaffold_config()
     assert exc.value.code == 2
     assert errors and errors[0].startswith("Error: [scaffold]")
+
+
+# -- [installer] (GH #217) -----------------------------------------------------
+
+
+def test_get_installer_config_defaults(tmp_path):
+    """Without [installer], the defaults: the plain installer."""
+    _write_fobos(tmp_path, "[default]\ncompiler = gnu\n")
+    cfg = Fobos(cliargs=_ns(tmp_path / "fobos")).get_installer_config()
+    assert (
+        cfg["mode_gnu"] == "static-gnu" and cfg["mode_intel"] == "static-intel" and cfg["mode_nvidia"] == "static-nvf"
+    )
+    assert cfg["pkgconfig"] == "true"
+    assert cfg["pre"] == cfg["check"] == cfg["apt"] == cfg["brew"] == cfg["make_lib"] == cfg["repository"] == ""
+
+
+def test_get_installer_config_every_key(tmp_path):
+    """Every [installer] key is read, whitespace folded, pkgconfig lower-cased."""
+    _write_fobos(
+        tmp_path,
+        "[default]\ncompiler = gnu\n[rule-native]\nrule = true\n[rule-smoke]\nrule = true\n"
+        "[installer]\nrepository = o/figure\nname = figure\nmode_gnu = figure-gnu\nmode_intel = figure-intel\n"
+        "mode_nvidia = figure-nvf\npre = native\ncheck = smoke\napt = libx11-dev\n      libwayland-dev\n"
+        "brew = sdl3\npkgconfig = False\nmake_lib = lib\nmake_mod = mod\n",
+    )
+    cfg = Fobos(cliargs=_ns(tmp_path / "fobos")).get_installer_config()
+    assert cfg == {
+        "repository": "o/figure",
+        "name": "figure",
+        "mode_gnu": "figure-gnu",
+        "mode_intel": "figure-intel",
+        "mode_nvidia": "figure-nvf",
+        "pre": "native",
+        "check": "smoke",
+        "apt": "libx11-dev libwayland-dev",
+        "brew": "sdl3",
+        "pkgconfig": "false",
+        "make_lib": "lib",
+        "make_mod": "mod",
+    }
+
+
+@pytest.mark.parametrize(
+    ("section", "message"),
+    [
+        ("[installer]\nmodes = x\n", "unknown key"),
+        ("[installer]\npre = native\n", "no [rule-native]"),
+        ("[installer]\ncheck = smoke\n", "no [rule-smoke]"),
+        ("[installer]\npkgconfig = maybe\n", "true or false"),
+    ],
+)
+def test_get_installer_config_errors(tmp_path, section, message):
+    """An unknown key, a rule that does not exist, a bad pkgconfig: exit 2 with a message naming it."""
+    _write_fobos(tmp_path, "[default]\ncompiler = gnu\n" + section)
+    messages = []
+    fobos = Fobos(cliargs=_ns(tmp_path / "fobos"))
+    fobos.print_w = messages.append
+    with pytest.raises(SystemExit) as exc:
+        fobos.get_installer_config()
+    assert exc.value.code == 2
+    assert any(message in m for m in messages)

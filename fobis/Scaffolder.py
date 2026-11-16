@@ -177,7 +177,22 @@ def get_project_vars(fobos=None, overrides=None, cwd=None):
         "SCAFFOLD_MATRIX_DISPLAY": "false",
         "SCAFFOLD_MATRIX_BREW_PACKAGES": "",
         "SCAFFOLD_MATRIX_MSYS2_PACKAGES": "",
+        # the one-line installer's settings (GH #217), rendered inside single-quoted shell words of
+        # scripts/install.sh: a ' is written '\'' so a value never breaks the script
+        "INSTALLER_REPOSITORY": "",
+        "INSTALLER_NAME": "",
+        "INSTALLER_MODE_GNU": "static-gnu",
+        "INSTALLER_MODE_INTEL": "static-intel",
+        "INSTALLER_MODE_NVIDIA": "static-nvf",
+        "INSTALLER_PRE": "",
+        "INSTALLER_CHECK": "",
+        "INSTALLER_APT": "",
+        "INSTALLER_BREW": "",
+        "INSTALLER_PKGCONFIG": "true",
+        "INSTALLER_MAKE_LIB": "",
+        "INSTALLER_MAKE_MOD": "",
     }
+    installer_cfg = {}
 
     if fobos is not None:
         scaffold_cfg = fobos.get_scaffold_config()
@@ -196,6 +211,11 @@ def get_project_vars(fobos=None, overrides=None, cwd=None):
             value = " ".join(str(scaffold_cfg.get(key) or "").split())
             if value:
                 vars_dict[var] = value.replace("'", "''")
+
+        getter = getattr(fobos, "get_installer_config", None)
+        installer_cfg = getter() if callable(getter) else {}
+        if not isinstance(installer_cfg, dict):  # a stub without [installer] support
+            installer_cfg = {}
 
         info = fobos.get_project_info()
         if info.get("name"):
@@ -240,6 +260,21 @@ def get_project_vars(fobos=None, overrides=None, cwd=None):
 
     if not vars_dict["NAME"] and vars_dict["REPOSITORY_NAME"]:
         vars_dict["NAME"] = vars_dict["REPOSITORY_NAME"]
+
+    # the installer: owner/name from the repository URL, the tarball named as the release workflow names it (the
+    # repository's name), unless [installer] says otherwise
+    slug = re.sub(r"^(https?://|git@)github\.com[:/]", "", vars_dict["REPOSITORY"]).removesuffix(".git").strip("/")
+    vars_dict["INSTALLER_REPOSITORY"] = slug
+    vars_dict["INSTALLER_NAME"] = vars_dict["REPOSITORY_NAME"] or vars_dict["NAME"]
+    for key, value in installer_cfg.items():
+        if value or key in ("pre", "check", "apt", "brew", "make_lib", "make_mod"):
+            if key == "repository" and not value:
+                continue
+            if key == "name" and not value:
+                continue
+            vars_dict["INSTALLER_" + key.upper()] = value
+    for key in [k for k in vars_dict if k.startswith("INSTALLER_")]:
+        vars_dict[key] = vars_dict[key].replace("'", "'\\''")
 
     # DEPENDENCIES: fobos [dependencies] section first, git submodules as fallback
     if fobos is not None:

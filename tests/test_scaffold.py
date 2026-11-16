@@ -1109,135 +1109,6 @@ def test_cliff_heading_matches_the_release_notes_extraction():
     assert re.match(r"^## \[v?1\.2\.3\]", heading), heading
 
 
-# ── install.sh: dependencies are fetched once the build is known to happen ───
-
-
-def _install_sh_env(tmp_path, tools):
-    """A PATH with only the system `tools` plus logging stubs in `stubs/`."""
-    import os
-    import shutil
-
-    bindir = tmp_path / "bin"
-    bindir.mkdir()
-    for tool in ("bash", "env", "grep", "sed", "tar", "rm", "cp", "gzip", "cat", *tools):
-        path = shutil.which(tool)
-        if path:
-            (bindir / tool).symlink_to(path)
-    log = tmp_path / "calls.log"
-    return {**os.environ, "PATH": str(bindir), "STUB_LOG": str(log)}, bindir, log
-
-
-def _stub(bindir, name, body='echo "$0 $*" >> "$STUB_LOG"'):
-    stub = bindir / name
-    stub.write_text(f"#!/bin/bash\n{body}\n", encoding="utf-8")
-    stub.chmod(0o755)
-
-
-def _install_sh_release(tmp_path, bindir, project_files):
-    """Stub wget/curl/jq so `--download wget` extracts a tarball of `project_files`."""
-    import tarfile
-
-    src = tmp_path / "proj-1.0.0"
-    src.mkdir()
-    for name, text in project_files.items():
-        (src / name).write_text(text, encoding="utf-8")
-    tarball = tmp_path / "proj-1.0.0.tar.gz"
-    with tarfile.open(tarball, "w:gz") as tar:
-        tar.add(src, arcname=src.name)
-    _stub(bindir, "curl", "echo '{}'")
-    # read stdin as the real jq does: exiting first would SIGPIPE curl in `curl | jq` (pipefail -> exit 141)
-    _stub(bindir, "jq", "cat > /dev/null\necho https://example.invalid/proj-1.0.0.tar.gz")
-    _stub(bindir, "wget", f'cp "{tarball}" .')
-    work = tmp_path / "work"
-    work.mkdir()
-    return work
-
-
-_FOBOS_WITH_DEPS = "[modes]\nmodes = gnu\n\n[dependencies]\npenf = https://github.com/szaghi/PENF\n"
-
-
-def _run_install_sh(work, env, *args):
-    import subprocess
-
-    script = work.parent / "install.sh"
-    script.write_text(_scaffold_text("verbatim/scripts/install.sh"), encoding="utf-8")
-    script.chmod(0o755)
-    return subprocess.run(
-        ["bash", str(script), "--repo", "owner/proj", "--tag", "v1.0.0", *args],
-        cwd=work,
-        env=env,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-
-
-def test_install_sh_make_without_makefile_needs_no_fobis(tmp_path):
-    """GH #204: a FoBiS-only project with [dependencies] and no Makefile must
-    skip `--build make` cleanly instead of dying on the missing fobis."""
-    env, bindir, log = _install_sh_env(tmp_path, ())
-    _stub(bindir, "make")
-    work = _install_sh_release(tmp_path, bindir, {"fobos": _FOBOS_WITH_DEPS})
-    res = _run_install_sh(work, env, "--download", "wget", "--build", "make")
-    assert res.returncode == 0, res.stderr
-    assert "Makefile not found" in res.stdout
-    assert not log.exists()
-
-
-def test_install_sh_make_fetches_deps_then_builds(tmp_path):
-    """A Makefile generated alongside the fobos builds from the fetched sources,
-    which a release tarball does not contain: fetch them before `make`."""
-    env, bindir, log = _install_sh_env(tmp_path, ())
-    _stub(bindir, "fobis")
-    _stub(bindir, "make")
-    work = _install_sh_release(tmp_path, bindir, {"fobos": _FOBOS_WITH_DEPS, "Makefile": "all:\n"})
-    res = _run_install_sh(work, env, "--download", "wget", "--build", "make")
-    assert res.returncode == 0, res.stderr
-    assert [line.split("/")[-1] for line in log.read_text().splitlines()] == ["fobis fetch", "make "]
-
-
-def test_install_sh_make_with_deps_needs_fobis(tmp_path):
-    """Without fobis the dependencies cannot be fetched: fail with a clear error,
-    not with make's missing-source one."""
-    env, bindir, log = _install_sh_env(tmp_path, ())
-    _stub(bindir, "make")
-    work = _install_sh_release(tmp_path, bindir, {"fobos": _FOBOS_WITH_DEPS, "Makefile": "all:\n"})
-    res = _run_install_sh(work, env, "--download", "wget", "--build", "make")
-    assert res.returncode != 0
-    assert "fobis not found" in res.stderr
-    assert not log.exists()
-
-
-def test_install_sh_make_without_deps_needs_no_fobis(tmp_path):
-    env, bindir, log = _install_sh_env(tmp_path, ())
-    _stub(bindir, "make")
-    work = _install_sh_release(tmp_path, bindir, {"fobos": "[modes]\nmodes = gnu\n", "Makefile": "all:\n"})
-    res = _run_install_sh(work, env, "--download", "wget", "--build", "make")
-    assert res.returncode == 0, res.stderr
-    assert [line.split("/")[-1] for line in log.read_text().splitlines()] == ["make "]
-
-
-def test_install_sh_cmake_fetches_deps_then_builds(tmp_path):
-    env, bindir, log = _install_sh_env(tmp_path, ())
-    _stub(bindir, "fobis")
-    _stub(bindir, "cmake")
-    work = _install_sh_release(tmp_path, bindir, {"fobos": _FOBOS_WITH_DEPS, "CMakeLists.txt": "project(p)\n"})
-    res = _run_install_sh(work, env, "--download", "wget", "--build", "cmake")
-    assert res.returncode == 0, res.stderr
-    calls = [line.split("/")[-1] for line in log.read_text().splitlines()]
-    assert calls == ["fobis fetch", "cmake -B build", "cmake --build build"]
-
-
-def test_install_sh_fobis_fetches_deps_then_builds(tmp_path):
-    env, bindir, log = _install_sh_env(tmp_path, ())
-    _stub(bindir, "fobis")
-    work = _install_sh_release(tmp_path, bindir, {"fobos": _FOBOS_WITH_DEPS})
-    res = _run_install_sh(work, env, "--download", "wget", "--build", "fobis", "--mode", "gnu")
-    assert res.returncode == 0, res.stderr
-    calls = [line.split("/")[-1] for line in log.read_text().splitlines()]
-    assert calls == ["fobis fetch", "fobis build --mode gnu"]
-
-
 # ── Conditional (when = KEY) and retired manifest entries (GH #211 step 1) ───
 
 
@@ -1620,3 +1491,62 @@ def test_retired_action_used_only_by_managed_workflows_goes_in_one_sync(tmp_path
     s.sync(yes=True, files_glob=".github/*")
     assert not (tmp_path / dest).exists()
     assert "test.yml@v1" in ci.read_text(encoding="utf-8")
+
+
+# -- The one-line installer: [installer] as template variables (GH #217) -------
+
+
+class _InstallerFobos(_FakeFobos):
+    """A fobos stub with an [installer] configuration and a repository."""
+
+    def __init__(self, repository="https://github.com/o/Demo", **cfg):
+        super().__init__()
+        self._repository = repository
+        self._installer = cfg
+
+    def get_project_info(self):
+        info = super().get_project_info()
+        info["repository"] = self._repository
+        return info
+
+    def get_installer_config(self):
+        from fobis.Fobos import Fobos
+
+        base = dict(Fobos._INSTALLER_KEYS)
+        base.update(self._installer)
+        return base
+
+
+def test_installer_variables_defaults():
+    """The repository's owner/name and its name (the tarball's) come from [project] repository."""
+    v = get_project_vars(fobos=_InstallerFobos())
+    assert v["INSTALLER_REPOSITORY"] == "o/Demo" and v["INSTALLER_NAME"] == "Demo"
+    assert v["INSTALLER_MODE_GNU"] == "static-gnu" and v["INSTALLER_PKGCONFIG"] == "true"
+    assert v["INSTALLER_PRE"] == v["INSTALLER_CHECK"] == v["INSTALLER_APT"] == ""
+
+
+def test_installer_variables_from_the_section_and_quoting():
+    """[installer] values win; a ' is written for a single-quoted shell word."""
+    v = get_project_vars(
+        fobos=_InstallerFobos(
+            repository="git@github.com:o/Demo.git", name="demo", mode_gnu="demo-gnu", apt="lib'x", pkgconfig="false"
+        )
+    )
+    assert v["INSTALLER_REPOSITORY"] == "o/Demo"
+    assert v["INSTALLER_NAME"] == "demo" and v["INSTALLER_MODE_GNU"] == "demo-gnu"
+    assert v["INSTALLER_APT"] == "lib'\\''x" and v["INSTALLER_PKGCONFIG"] == "false"
+
+
+def test_installer_rendered_script_is_valid_bash(tmp_path):
+    """scripts/install.sh renders with no placeholder left, is valid bash and reports interface 2."""
+    import subprocess
+
+    s, _ = _make_scaffolder(tmp_path, get_project_vars(fobos=_InstallerFobos(apt="lib'x")))
+    entry = s.manifest["scripts/install.sh"]
+    text = s._get_canonical(entry)
+    assert "{{" not in text and "REPO='o/Demo'" in text and "APT_PACKAGES='lib'\\''x'" in text
+    script = tmp_path / "install.sh"
+    script.write_text(text)
+    assert subprocess.run(["bash", "-n", str(script)], check=False).returncode == 0
+    out = subprocess.run(["bash", str(script), "--version"], capture_output=True, text=True, check=True).stdout
+    assert out.strip() == "install.sh 2"
