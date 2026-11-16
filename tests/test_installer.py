@@ -103,8 +103,16 @@ _UTILS = (
 
 
 def _run(script: Path, env: dict[str, str], *args: str) -> subprocess.CompletedProcess:
+    """The installer with no terminal: a new session has no controlling terminal, so /dev/tty cannot be opened and the
+    menu never shows (stdin alone is not enough: under an interactive pytest the installer would read the keyboard)."""
     return subprocess.run(
-        ["bash", str(script), *args], env=env, capture_output=True, text=True, stdin=subprocess.DEVNULL, check=False
+        ["bash", str(script), *args],
+        env=env,
+        capture_output=True,
+        text=True,
+        stdin=subprocess.DEVNULL,
+        start_new_session=True,
+        check=False,
     )
 
 
