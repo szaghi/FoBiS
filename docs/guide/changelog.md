@@ -4,6 +4,23 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.18.0] — 2026-11-16
+### Added
+- **scaffold**: A one-line installer, the build system chosen by the user
+
+- **scaffold**: Render the installer from the fobos [installer] section
+
+
+### Documentation
+- The one-line installer
+
+
+### Fixed
+- **build**: Record cpp-included files as dependencies from linemarkers
+
+- **build**: Match cpp-located includes by path, not by include directory
+
+
 ## [3.17.0] — 2026-11-13
 ### Added
 - **scaffold**: Conditional and retired manifest entries
