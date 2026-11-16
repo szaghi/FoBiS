@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.18.2] — 2026-11-16
+### Added
+- **installer**: [installer] headers, the files a project's users include
+
+
 ## [3.18.0] — 2026-11-16
 ### Added
 - **scaffold**: A one-line installer, the build system chosen by the user
