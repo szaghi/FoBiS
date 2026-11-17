@@ -111,6 +111,10 @@ A mode for nvfortran and an NVIDIA A30 (compute capability 8.0); the offload fla
 - **gfortran:** `-fopenacc` offloads only with a gfortran built with an offload target; otherwise the regions run on
   the host.
 - **One mode for several compilers:** qualified keys (`cflags.nvfortran = -acc -gpu=cc80`): [Building](./build).
+- **Device link-time optimisation is slow to link:** with `-gpu=ccXY,lto` the link optimises all device code in one
+  `nvlink` thread, which can take minutes (`fobis build --timings` reports the link apart). `-Wnvlink,--split-compile=16`
+  in `lflags` runs it on 16 threads: measured 491 s -> 157 s for 2.7x the memory, with other device code, so measure
+  the kernels again (`fobis kb show compilers:nvfortran#device-link-time-optimisation`).
 
 The compilers' GPU and runtime-check flags, as measured, are in the shipped knowledge pack:
 

@@ -89,6 +89,28 @@ capability (8.0 here; `ccnative`: the visible GPUs). `-gpu=mem:managed` puts all
 which hides missing data clauses: a code that is correct only with managed memory can fail with
 `-gpu=mem:separate`. Device code uses FMA unless `-gpu=nofma`.
 
+## Device link-time optimisation
+
+`-acc -gpu=cc89,lto` (any capability with `lto`, with a GPU programming model: alone, the lto suboption is refused) optimises the device code of the whole program at the link:
+`nvlink` runs NVVM and ptxas over every object's device code, by default on one thread. Measured with nvfortran 26.9
+(CUDA 13.3) on an OpenACC solver of about 230 objects: the link took 491 s, 98% of it in `nvlink`, against a few
+seconds without `lto`; it was the larger part of every build that linked.
+
+`-Wnvlink,OPTION` passes OPTION to `nvlink` (`-Xnvlink` and `--nvlink-options` are synonyms). nvlink 13.3 offers
+`--split-compile=N` and `--split-compile-extended=N` (threads used by LTO; the two exclude each other, nvlink keeps
+the extended one). Measured on the same program, 16 cores, link only:
+
+| Link option | Link | Peak memory of the link | Program |
+|---|---|---|---|
+| none | 491 s | 6.2 GB | 112.19 MB |
+| `-Wnvlink,--split-compile=16` | 157 s | 17.0 GB | 112.23 MB |
+| `-Wnvlink,--split-compile=0` | 180 s | 17.0 GB | 112.22 MB |
+| `-Wnvlink,--split-compile-extended=16` | 212 s | 2.5 GB | 108.80 MB |
+
+The host symbols of the four programs are identical; the device code is not (other sizes), so the kernels' speed
+must be measured again before adopting one: split compilation optimises partitions separately. The option goes into
+the mode's `lflags` (link only).
+
 ## Standard conformance and profiling
 
 `-Mstandard` warns about non-standard code; with `-Werror` the warnings are errors

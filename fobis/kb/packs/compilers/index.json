@@ -686,6 +686,27 @@
 ]
 },
 {
+"id": "compilers:nvfortran#device-link-time-optimisation",
+"doc": "nvfortran",
+"heading": "NVIDIA Fortran (nvfortran) > Device link-time optimisation",
+"text": "`-acc -gpu=cc89,lto` (any capability with `lto`, with a GPU programming model: alone, the lto suboption is refused) optimises the device code of the whole program at the link:\n`nvlink` runs NVVM and ptxas over every object's device code, by default on one thread. Measured with nvfortran 26.9\n(CUDA 13.3) on an OpenACC solver of about 230 objects: the link took 491 s, 98% of it in `nvlink`, against a few\nseconds without `lto`; it was the larger part of every build that linked.\n\n`-Wnvlink,OPTION` passes OPTION to `nvlink` (`-Xnvlink` and `--nvlink-options` are synonyms). nvlink 13.3 offers\n`--split-compile=N` and `--split-compile-extended=N` (threads used by LTO; the two exclude each other, nvlink keeps\nthe extended one). Measured on the same program, 16 cores, link only:\n\n| Link option | Link | Peak memory of the link | Program |\n|---|---|---|---|\n| none | 491 s | 6.2 GB | 112.19 MB |\n| `-Wnvlink,--split-compile=16` | 157 s | 17.0 GB | 112.23 MB |\n| `-Wnvlink,--split-compile=0` | 180 s | 17.0 GB | 112.22 MB |\n| `-Wnvlink,--split-compile-extended=16` | 212 s | 2.5 GB | 108.80 MB |\n\nThe host symbols of the four programs are identical; the device code is not (other sizes), so the kernels' speed\nmust be measured again before adopting one: split compilation optimises partitions separately. The option goes into\nthe mode's `lflags` (link only).",
+"symbols": [
+"acc",
+"cc89",
+"compile",
+"extended",
+"gpu",
+"lflags",
+"lto",
+"nvlink",
+"option",
+"options",
+"split",
+"wnvlink",
+"xnvlink"
+]
+},
+{
 "id": "compilers:nvfortran#standard-conformance-and-profiling",
 "doc": "nvfortran",
 "heading": "NVIDIA Fortran (nvfortran) > Standard conformance and profiling",
