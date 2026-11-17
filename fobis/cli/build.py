@@ -90,6 +90,7 @@ def cmd_build(
     quiet: QuietOpt = False,
     verbose: VerboseOpt = False,
     jobs: JobsOpt = 1,
+    timings: TimingsOpt = False,
     makefile: MakefileOpt = None,
     json_output: JsonOpt = False,
     # --- new options (issues #165-#180) ---
@@ -274,6 +275,7 @@ def cmd_build(
         quiet=quiet,
         verbose=verbose,
         jobs=jobs,
+        timings=timings,
         makefile=makefile,
         json_output=json_output,
         active_features=[],

@@ -523,6 +523,25 @@ or `jobs = 8` in the mode. The files of one level of the dependency graph compil
 The speed-up is bounded by the width of the graph: a chain of modules each using the previous one compiles serially
 whatever `-j`. Tutorial: [rules and parallel compiling](/tutorial/growing/05-rules).
 
+## Measure a build
+
+```bash
+fobis build --jobs 16 --timings
+```
+
+Every compile and link is measured (wall time, and peak memory where the system reports it) and written to
+`<obj_dir>/.fobis-timings.json`; the build ends with a summary:
+
+- **serial sum:** the time of every compile added up, what the compilers cost;
+- **makespan:** from the first compile to the end of the last one;
+- **critical path:** the longest chain of compiles that depend on each other, a floor no `-j` can beat;
+- **lower bound:** the larger of the critical path and serial sum / jobs; a makespan well above it is time lost in
+  waiting, not in compiling;
+- **link** time, the **peak memory** of one compiler process and the slowest files.
+
+A failed build writes its timings too. The file holds one record per call (`file`, `kind` compile or link, `status`,
+`start` from the beginning of the build, `seconds`, `peak_rss_kib`).
+
 ## What is compiled again
 
 | Change | Recompiled |

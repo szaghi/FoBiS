@@ -227,6 +227,14 @@ LogOpt = Annotated[bool, typer.Option("--log", "-l", help="Activate log file cre
 GraphOpt = Annotated[bool, typer.Option("--graph", help="Generate a dependencies graph via graphviz")]
 QuietOpt = Annotated[bool, typer.Option("--quiet", "-q", help="Less verbose output")]
 VerboseOpt = Annotated[bool, typer.Option("--verbose", help="Extremely verbose output for debugging")]
+TimingsOpt = Annotated[
+    bool,
+    typer.Option(
+        "--timings",
+        help="Measure every compile and link (wall time, peak memory): written to <obj_dir>/.fobis-timings.json and "
+        "summarised at the end (serial sum, makespan, critical path).",
+    ),
+]
 JobsOpt = Annotated[int, typer.Option("--jobs", "-j", help="Number of concurrent compilation jobs [default: 1]")]
 MakefileOpt = Annotated[
     str | None, typer.Option("--makefile", "-m", help="Generate a GNU Makefile for building the project")

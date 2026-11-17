@@ -115,6 +115,7 @@ Any key can be qualified, `key.QUALIFIER`, and applies only when QUALIFIER is th
 | `src` | build, clean, doctests, rule | Root-directory of source files [default: ./] |
 | `target` | build, clean, doctests, rule | Specify a target file [default: all programs found] |
 | `template` | build | A `[template-NAME]` section whose keys this mode inherits (its own keys win) |
+| `timings` | build | Measure every compile and link (wall time, peak memory): written to &lt;obj_dir&gt;/.fobis-timings.json and summarised at the end (serial sum, makespan, critical path). |
 | `track_build` | build, clean, doctests, rule | Store build info for the install command |
 | `varset` | build | Apply one or more [varset:NAME] sections' $variable bindings to the active mode. Comma- or space-separated; later varsets override earlier ones. Use to swap parameterized values (cluster paths, GPU arch, ...) without duplicating modes. |
 | `verbose` | all | Extremely verbose output for debugging |

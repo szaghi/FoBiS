@@ -1021,7 +1021,29 @@ def run_fobis_build(configuration):
     ----------
     configuration : FoBiSConfig()
     """
+    configuration.build_timings = None
+    try:
+        _run_fobis_build(configuration)
+    finally:  # a failed build is measured too: its timings show what it compiled before failing
+        _report_timings(configuration)
 
+
+def _report_timings(configuration):
+    """Write and print the timings of the build just run (``--timings``), if any were taken."""
+    measured = getattr(configuration, "build_timings", None)
+    if not measured or not measured[0].records:
+        return
+    from . import timings as timings_module
+
+    recorder, obj_dir, jobs = measured
+    pfiles = getattr(configuration, "build_trace", {}).get("pfiles") or []
+    summary = timings_module.summarise(recorder.records, timings_module.compiled_dependencies(pfiles), jobs)
+    path = timings_module.write(obj_dir, recorder, summary)
+    configuration.print_b(timings_module.render(summary, path))
+
+
+def _run_fobis_build(configuration):
+    """The build itself (`run_fobis_build`)."""
     fobos = configuration.fobos
     cliargs = configuration.cliargs
 
@@ -1070,6 +1092,10 @@ def run_fobis_build(configuration):
         for t_dict in all_build_targets:
             t_cliargs = _cliargs_for_target(cliargs, t_dict)
             t_builder = Builder(cliargs=t_cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
+            if t_builder.timings is not None:  # one record for all the targets
+                if configuration.build_timings is None:
+                    configuration.build_timings = (t_builder.timings, t_builder.obj_dir, t_builder.jobs)
+                t_builder.timings = configuration.build_timings[0]
             configuration.print_b(t_builder.verbose(quiet=configuration.cliargs.quiet))
             dependency_hiearchy(
                 builder=t_builder,
@@ -1113,6 +1139,8 @@ def run_fobis_build(configuration):
 
     # Standard (single-target) build path
     builder = Builder(cliargs=cliargs, print_n=configuration.print_b, print_w=configuration.print_r)
+    if builder.timings is not None:
+        configuration.build_timings = (builder.timings, builder.obj_dir, builder.jobs)
     configuration.print_b(builder.verbose(quiet=cliargs.quiet))
     pfiles = parse_files(configuration=configuration)
     compiler_record = _compiler_guard(configuration, builder, c_sources=any(p.c_source for p in pfiles))

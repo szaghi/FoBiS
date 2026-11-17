@@ -33,6 +33,7 @@ from collections.abc import Callable
 from typing import Any
 
 from .Compiler import Compiler
+from .timings import Timings, run_steps_measured
 from .utils import check_results, print_fake, safe_mkdir, syswork, syswork_steps
 
 
@@ -105,6 +106,8 @@ class Builder:
         self.compiler = Compiler(cliargs=cliargs, print_w=self.print_w)
 
         self.jobs = cliargs.jobs
+        # every compile and link measured (fobis build --timings): None when not asked
+        self.timings = Timings() if getattr(cliargs, "timings", False) else None
         self._sanitize_dirs(
             src_dir=cliargs.src,
             build_dir=cliargs.build_dir,
@@ -597,7 +600,7 @@ class Builder:
                     if verbose:
                         self.print_n("Executing: " + str(steps_per_file))
                 pool = Pool(processes=jobs)
-                results = pool.map(syswork_steps, steps_per_file)
+                results = pool.map(run_steps_measured if self.timings else syswork_steps, steps_per_file)
                 pool.close()
                 pool.join()
             else:
@@ -608,8 +611,12 @@ class Builder:
                     if not quiet:
                         if verbose:
                             self.print_n("Executing: " + str(steps))
-                    result = syswork_steps(steps)
+                    result = run_steps_measured(steps) if self.timings else syswork_steps(steps)
                     results.append(result)
+            if self.timings:
+                for dep, (result, measure) in zip(deps, results, strict=True):
+                    self.timings.add(dep[0], "compile", result[0], measure)
+                results = [result for result, _ in results]
             if not file_to_build.nomodlib or file_to_build.c_source:  # a C file that does not compile fails the build
                 if log:
                     check_results(results=results, log="building-errors.log", print_w=self.print_w)
@@ -626,6 +633,14 @@ class Builder:
                         + ("\n" + results[0][1].rstrip() if results[0][1].strip() else "")  # why: the compiler's words
                     )
         return build_ok
+
+    def _link(self, cmd: str, output: str) -> list:
+        """Run a link (or archive, or ranlib) command, measured with ``--timings``."""
+        if not self.timings:
+            return syswork(cmd)
+        result, measure = run_steps_measured([(cmd, None)])
+        self.timings.add(output, "link", result[0], measure)
+        return result
 
     def gnu_make(self, c_sources: bool = False) -> str:
         """
@@ -723,7 +738,7 @@ class Builder:
                 self.print_n("Linking " + exe)
                 if verbose:
                     self.print_n("Executing: " + str(link_cmd))
-            result = syswork(link_cmd)
+            result = self._link(link_cmd, exe)
             if log:
                 check_results(results=[result], log="building-errors.log", print_w=self.print_w)
             else:
@@ -738,13 +753,13 @@ class Builder:
                 self.print_n("Linking " + lib)
                 if verbose:
                     self.print_n("Executing: " + str(link_cmd))
-            result = syswork(link_cmd)
+            result = self._link(link_cmd, lib)
             if log:
                 check_results(results=[result], log="building-errors.log", print_w=self.print_w)
             else:
                 check_results(results=[result], print_w=self.print_w)
             if ranlib_cmd and result[0] == 0:
-                result = syswork(ranlib_cmd)
+                result = self._link(ranlib_cmd, lib)
                 if log:
                     check_results(results=[result], log="building-errors.log", print_w=self.print_w)
                 else:
