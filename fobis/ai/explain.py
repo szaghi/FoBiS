@@ -173,8 +173,10 @@ class BuildFacts:
         """Why this build does not compile *path* (normalised), as far as the settings tell."""
         if os.path.basename(path) in {os.path.basename(e) for e in self.exclude}:
             return f"`exclude` lists {os.path.basename(path)}"
+        from ..utils import dir_excluded
+
         for directory in self.exclude_dirs:
-            if directory and _norm(directory) in path:
+            if directory and dir_excluded(os.path.dirname(path), [directory]):
                 return f"`exclude_dirs` lists {directory}"
         if self.src and not any(path.startswith(_norm(d).rstrip(os.sep) + os.sep) for d in self.src):
             return f"it is outside the source directories (`src = {' '.join(self.src)}`)"

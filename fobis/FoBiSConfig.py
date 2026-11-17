@@ -264,6 +264,7 @@ class FoBiSConfig:
             dep_dir = os.path.normpath(dep_dir)
             if dep_dir not in self.cliargs.exclude_dirs:
                 self.cliargs.exclude_dirs.append(dep_dir)
+        self._restrict_dependency_sources(fetcher)
         for src_path in src:
             abs_src = os.path.abspath(
                 src_path
@@ -271,6 +272,37 @@ class FoBiSConfig:
             covered = (os.path.abspath(s) for s in self.cliargs.src)
             if not any(abs_src == base or abs_src.startswith(base.rstrip(os.sep) + os.sep) for base in covered):
                 self.cliargs.src.append(src_path)
+
+    def _restrict_dependency_sources(self, fetcher) -> None:
+        """``name = URL :: src=DIR[,DIR]`` (or ``path=...``): of that dependency, only the listed directories
+        (relative to its own) are scanned: its tests, examples and documentation snippets are never parsed nor
+        compiled (issue #218). Kept in ``cliargs.dependency_sources`` {dependency dir: [dirs]} for `parse_files`."""
+        restricted: dict[str, list[str]] = {}
+        for name, spec in self.fobos.get_dependencies().items():
+            try:
+                parsed = fetcher.parse_dep_spec(spec)
+                if "src" not in parsed:
+                    continue
+                if "path" in parsed:
+                    dep_dir = fetcher.resolve_path(parsed["path"], getattr(self.fobos, "filename", "") or "")
+                else:
+                    dep_dir = fetcher.dep_dir(name)
+            except ValueError:
+                continue  # reported by the fetch, or by the path-dependency check above
+            if parsed.get("use", "sources") == "fobos":
+                self.print_r(f"warning: [dependencies] {name}: src= applies to use=sources, ignored with use=fobos")
+                continue
+            dirs = [d.strip() for d in parsed["src"].split(",") if d.strip()]
+            if not dirs:
+                self.print_r(f"Error: [dependencies] {name}: src= needs a directory")
+                sys.exit(2)
+            paths = [os.path.normpath(os.path.join(dep_dir, d)) for d in dirs]
+            if os.path.isdir(dep_dir):
+                for directory, path in zip(dirs, paths, strict=True):
+                    if not os.path.isdir(path):
+                        self.print_r(f"warning: [dependencies] {name}: src={directory}: {path} not found")
+            restricted[os.path.normpath(dep_dir)] = paths
+        self.cliargs.dependency_sources = restricted
 
     def _use_prefix(self, prefix: str) -> None:
         """A dependency installed into *prefix* by a backend: its module directories and libraries join the build."""

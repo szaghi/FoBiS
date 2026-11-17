@@ -34,7 +34,7 @@ from .Cleaner import Cleaner
 from .FoBiSConfig import FoBiSConfig
 from .Gcov import Gcov, _mermaid_pie
 from .ParsedFile import ParsedFile
-from .utils import BuildFailed, dependency_hiearchy, safe_mkdir, syswork, tracked_mod_files
+from .utils import BuildFailed, dependency_hiearchy, dir_excluded, safe_mkdir, syswork, tracked_mod_files
 
 
 def main():
@@ -1540,67 +1540,67 @@ def parse_files(configuration, src_dir=None, is_doctest=False):
     parse_preproc = _merged_preproc_flags(configuration.cliargs)
     parse_compiler = getattr(configuration.cliargs, "compiler", "") or ""
     parse_intrinsic_modules = list(getattr(configuration.cliargs, "intrinsic_modules", None) or [])
+    cliargs = configuration.cliargs
+    excluded_names = {os.path.basename(exc) for exc in cliargs.exclude}
+    extensions = set(cliargs.extensions)
+    exclude_dirs = list(cliargs.exclude_dirs)
+    only = getattr(cliargs, "dependency_sources", None) or {}  # {dependency dir: [the only dirs scanned in it]}
+
+    def scanned(directory):
+        if dir_excluded(directory, exclude_dirs):
+            return False
+        return not only or _in_dependency_sources(directory, only)
+
+    def parse_one(filen):
+        pfile = ParsedFile(name=filen, is_doctest=is_doctest)
+        options = {
+            "inc": cliargs.inc,
+            "preproc": parse_preproc,
+            "include": cliargs.include,
+            "compiler": parse_compiler,
+            "intrinsic_modules": parse_intrinsic_modules,
+        }
+        if is_doctest:
+            options["preprocessor"] = cliargs.doctests_preprocessor
+        pfile.parse(**options)
+        pfiles.append(pfile)
+
     for src_dir in src:
-        if configuration.cliargs.disable_recursive_search:
+        if cliargs.disable_recursive_search:
+            if not scanned(src_dir):
+                continue
             for filename in os.listdir(src_dir):
-                if any(
-                    os.path.splitext(os.path.basename(filename))[1] == ext for ext in configuration.cliargs.extensions
-                ):
-                    if os.path.basename(filename) not in [
-                        os.path.basename(exc) for exc in configuration.cliargs.exclude
-                    ] and all(exc not in os.path.dirname(filename) for exc in configuration.cliargs.exclude_dirs):
-                        pfile = ParsedFile(name=os.path.join(src_dir, filename), is_doctest=is_doctest)
-                        if is_doctest:
-                            pfile.parse(
-                                inc=configuration.cliargs.inc,
-                                preprocessor=configuration.cliargs.doctests_preprocessor,
-                                preproc=parse_preproc,
-                                include=configuration.cliargs.include,
-                                compiler=parse_compiler,
-                                intrinsic_modules=parse_intrinsic_modules,
-                            )
-                        else:
-                            pfile.parse(
-                                inc=configuration.cliargs.inc,
-                                preproc=parse_preproc,
-                                include=configuration.cliargs.include,
-                                compiler=parse_compiler,
-                                intrinsic_modules=parse_intrinsic_modules,
-                            )
-                        pfiles.append(pfile)
+                if os.path.splitext(filename)[1] in extensions and filename not in excluded_names:
+                    parse_one(os.path.join(src_dir, filename))
         else:
-            for root, _, files in os.walk(src_dir):
+            for root, dirs, files in os.walk(src_dir):
+                if not scanned(root):
+                    # nothing below an excluded directory is scanned either, unless a dependency's own source
+                    # directory lies below it
+                    if not only or not any(_under(path, root) for paths in only.values() for path in paths):
+                        dirs[:] = []
+                    continue
                 for filename in files:
-                    if any(
-                        os.path.splitext(os.path.basename(filename))[1] == ext
-                        for ext in configuration.cliargs.extensions
-                    ):
-                        if os.path.basename(filename) not in [
-                            os.path.basename(exc) for exc in configuration.cliargs.exclude
-                        ] and all(exc not in root for exc in configuration.cliargs.exclude_dirs):
-                            filen = os.path.join(root, filename)
-                            pfile = ParsedFile(name=filen, is_doctest=is_doctest)
-                            if is_doctest:
-                                pfile.parse(
-                                    inc=configuration.cliargs.inc,
-                                    preprocessor=configuration.cliargs.doctests_preprocessor,
-                                    preproc=parse_preproc,
-                                    include=configuration.cliargs.include,
-                                    compiler=parse_compiler,
-                                    intrinsic_modules=parse_intrinsic_modules,
-                                )
-                            else:
-                                pfile.parse(
-                                    inc=configuration.cliargs.inc,
-                                    preproc=parse_preproc,
-                                    include=configuration.cliargs.include,
-                                    compiler=parse_compiler,
-                                    intrinsic_modules=parse_intrinsic_modules,
-                                )
-                            pfiles.append(pfile)
+                    if os.path.splitext(filename)[1] in extensions and filename not in excluded_names:
+                        parse_one(os.path.join(root, filename))
     # by path, in natural order: not the directory listing's (it differs between file systems, so did the order of
     # compilation and of the doctests)
     return sorted(pfiles, key=lambda pfile: _natural_key(pfile.name))
+
+
+def _under(path, directory):
+    """Whether *path* is *directory* or below it (absolute comparison)."""
+    path, directory = os.path.abspath(path), os.path.abspath(directory)
+    return path == directory or path.startswith(directory.rstrip(os.sep) + os.sep)
+
+
+def _in_dependency_sources(directory, only):
+    """Whether *directory* may be scanned given the dependencies whose sources are restricted (``:: src=DIR``):
+    outside them, yes; inside one, only within the directories it lists."""
+    for dep_dir, paths in only.items():
+        if _under(directory, dep_dir):
+            return any(_under(directory, path) for path in paths)
+    return True
 
 
 def target_files(target, pfiles):

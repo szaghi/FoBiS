@@ -460,6 +460,43 @@ def object_names(pfiles, print_w=None):
             )
 
 
+def _path_components(path: str) -> list[str]:
+    return [
+        part for part in os.path.normcase(os.path.normpath(path)).replace("\\", "/").split("/") if part not in ("", ".")
+    ]
+
+
+def dir_excluded(directory: str, exclude_dirs) -> bool:
+    """Whether *directory* is under an ``exclude_dirs`` entry, matched by whole path components (issue #218).
+
+    A relative entry matches wherever its components appear in a row in the directory's path (``docs`` matches
+    ``src/dep/docs/x``, not ``src/mydocs``; ``FOSSIL/docs`` matches ``src/third_party/FOSSIL/docs``); an absolute
+    entry, or one going up with ``..``, matches the directory and what is below it. Before, an entry matched as a
+    substring of the path: ``nip`` excluded ``docs/snippets``.
+    """
+    parts = None
+    absolute = None
+    for entry in exclude_dirs or ():
+        if not entry:
+            continue
+        wanted = _path_components(entry)
+        if os.path.isabs(entry) or ".." in wanted:
+            if absolute is None:
+                absolute = os.path.normcase(os.path.abspath(directory))
+            base = os.path.normcase(os.path.abspath(entry))
+            if absolute == base or absolute.startswith(base.rstrip(os.sep) + os.sep):
+                return True
+            continue
+        if not wanted:
+            continue
+        if parts is None:
+            parts = _path_components(directory)
+        size = len(wanted)
+        if any(parts[start : start + size] == wanted for start in range(len(parts) - size + 1)):
+            return True
+    return False
+
+
 def check_results(results, log=None, print_w=None):
     """
     Check the result of system commands exectution.

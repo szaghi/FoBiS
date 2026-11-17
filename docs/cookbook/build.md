@@ -200,8 +200,12 @@ fobis build --exclude old_solver.f90 --disable-recursive-search
 
 - **`src`** lists directories, walked recursively unless `disable_recursive_search = True`.
 - **`exclude`** matches file names: `exclude = src/old_solver.f90` excludes every `old_solver.f90`.
-- **`exclude_dirs`** excludes a directory and those below it: a directory is skipped when its path contains the
-  given one, so `./src/old` also skips `./src/older`.
+- **`exclude_dirs`** excludes a directory and those below it, matched by whole path components wherever they appear:
+  `docs` skips `src/dep/docs/` (not `src/mydocs/`), `FOSSIL/docs` skips `src/third_party/FOSSIL/docs/`. An absolute
+  entry, or one starting with `..`, skips that directory only. (Older releases matched any part of the path: `old`
+  also skipped `./src/older`.)
+- **On the command line, `--exclude-dirs`, `--exclude`, `--include`, `--lib-dir`, `--libs`, `--vlibs`, `--ext-libs`,
+  `--ext-vlibs` add to the mode's lists;** `--src` and `--dependon` replace the mode's.
 - **`extensions`** sets which files are read (default: every Fortran extension, the include extensions and `.c`); a
   mode setting it must list everything it wants, `.c` included.
 - **Fetched dependencies** used as sources join `src` by themselves: see [Dependencies](./dependencies).

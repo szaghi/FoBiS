@@ -29,6 +29,7 @@ from dataclasses import dataclass, field
 from ..analysis import FileUnits, SourceFile, Suppression, build_units, lex, read_source
 from ..analysis.project import ProjectIndex, build_index
 from ..utils import C_SOURCE_EXTENSIONS
+from ..utils import dir_excluded as path_excluded
 from .feedback import FeedbackMessage, attribute, parse_log
 from .rule import RULES, Finding, Hit, LintContext, Rule, rule
 
@@ -248,7 +249,7 @@ def discover_files(
 
     def dir_excluded(root: str) -> bool:
         norm = os.path.normpath(root)
-        return bool(set(norm.split(os.sep)) & DEFAULT_EXCLUDED_DIRS) or any(d in norm for d in exclude_dirs)
+        return bool(set(norm.split(os.sep)) & DEFAULT_EXCLUDED_DIRS) or path_excluded(norm, exclude_dirs)
 
     for path in paths:
         if os.path.isfile(path):

@@ -120,6 +120,25 @@ stdlib = https://github.com/fortran-lang/stdlib :: tag=v0.5.0 :: use=fobos :: mo
   dependencies in your fobos and use it with `use=sources`, or fetch inside its clone.
 - **`mode=` without `use=fobos` does nothing:** your mode compiles a `use=sources` dependency.
 
+## Only the library of a source dependency
+
+A clone holds more than its library: tests, examples, the code snippets of its documentation. Compiled with your
+sources, every program of them is parsed, and its files without modules may be compiled. `src=` names the only
+directories of the dependency that your build scans (relative to the clone, comma-separated):
+
+```ini
+[dependencies]
+deps_dir = src/third_party
+fossil   = https://github.com/szaghi/FOSSIL :: src=src/lib
+vtk      = https://github.com/szaghi/VTKFortran :: src=src/lib,src/third_party
+```
+
+- **It works wherever the clone is:** inside your `src` (a `deps_dir` under it) or outside.
+- **It is read from the fobos by every build:** changing it needs no new `fetch`.
+- **A listed directory that does not exist is a warning;** `src=` with `use=fobos` is ignored (that dependency builds
+  with its own fobos).
+- **Path dependencies take it too:** `core = path=../core :: src=src`.
+
 The same wiring without `[dependencies]`, for a project already on disk, is the mode key `dependon`: see
 [Libraries and other build systems](./libraries).
 

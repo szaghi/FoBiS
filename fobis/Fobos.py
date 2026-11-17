@@ -1094,6 +1094,13 @@ class Fobos:
     # block onto cliargs (would otherwise clobber CLI input before the merge).
     _SKIP_AUTO_ATTRS: frozenset[str] = frozenset({"features", "no_default_features"})
 
+    # list options whose command-line values are added to the mode's, instead of replacing them: before, a mode
+    # defining one silently discarded the command line's (`--exclude-dirs X` did nothing). `src` and `dependon` still
+    # replace: adding a source directory changes which files the build scans.
+    MERGED_LIST_KEYS = frozenset(
+        ("exclude", "exclude_dirs", "include", "lib_dir", "libs", "vlibs", "ext_libs", "ext_vlibs")
+    )
+
     def _set_cliargs_attributes(self, cliargs, cliargs_dict):
         """
         Set attributes of cliargs from fobos options.
@@ -1126,6 +1133,9 @@ class Fobos:
                         values = item[1].split()
                         if item[0] == "dependon":
                             values = [self._from_fobos_dir(value) for value in values]
+                        if item[0] in self.MERGED_LIST_KEYS:  # the command line adds to the mode's list (#218)
+                            known = {os.path.normpath(value) for value in values}
+                            values += [v for v in cliargs_dict[item[0]] or [] if os.path.normpath(v) not in known]
                         setattr(cliargs, item[0], values)
                     else:
                         setattr(cliargs, item[0], item[1])
