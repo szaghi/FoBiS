@@ -176,7 +176,9 @@ def test_test_with_a_shadow(project, capsys):
     # the mode declares target = overrun.f90: before V3 every test program was built as the mode's target
     code, out, _ = _run(["test", "--json"], capsys)
     result = json.loads(out)["results"][0]
-    assert code == 0 and result["name"] == "test_uninit" and "6.0" in result["stdout"]
+    # the release build passes; what it prints is undefined (the sum starts from whatever the stack holds: 6.0 when
+    # it holds a zero, -610097.312 seen under pytest -n 4), so only the checks shadow below is asserted on the bug
+    assert code == 0 and result["name"] == "test_uninit" and result["status"] == "passed"
     code, out, _ = _run(["test", "--shadow", "checks", "--json"], capsys)
     result = json.loads(out)["results"][0]
     assert code == 1 and result["status"] == "failed" and result["crash"]["kind"] == "fpe"
