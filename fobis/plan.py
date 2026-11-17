@@ -14,7 +14,10 @@ The build plan decides, per target, which of those files are compiled and linked
     uses (its dependency closure, then the closure of every file kept, until nothing changes); a submodule is kept
     when its ancestor module is in the plan. The test is on words: a name in a comment keeps a file (more is
     compiled, never less), a name built by the preprocessor's token pasting is missed (the link then fails with an
-    undefined reference, which ``--explain`` attributes to the file left out).
+    undefined reference, which ``--explain`` attributes to the file left out). A file defining a routine that a
+    library linked by path (``libs``, ``vlibs``, ``-lNAME`` found in ``lib_dir``) calls is kept too (an override of a
+    library hook); a library found elsewhere is not read, so an override of one of its routines is left out and the
+    library's own version linked: use ``nomodlibs = all`` there.
 ``all`` (the default without a target, and for libraries)
     every file without modules and every submodule, as FoBiS always did.
 ``none``
@@ -31,6 +34,8 @@ import hashlib
 import json
 import os
 import re
+import subprocess
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -207,8 +212,34 @@ def _always_kept(pfile: Any) -> bool:
     return bool(pfile.c_source or (procedures and (procedures.block_data or procedures.binds_c)))
 
 
-def make_plan(pfiles: list[Any], roots: list[Any], policy: str) -> BuildPlan:
-    """The plan of a build whose targets are *roots* (their dependency closures are built anyway)."""
+def library_references(paths: list[str]) -> set[str]:
+    """The procedure names the libraries at *paths* call without defining (``nm -u``; lower case, the compilers'
+    trailing underscores dropped): an external procedure of the project may override such a routine (an
+    ``xerbla``-style hook) that no project file names. Unreadable libraries, or no ``nm``, give nothing."""
+    names: set[str] = set()
+    for path in paths:
+        if not os.path.isfile(path):
+            continue
+        try:
+            output = subprocess.run(
+                ["nm", "-u", path], capture_output=True, text=True, errors="replace", check=False
+            ).stdout
+        except OSError:
+            return names
+        for line in output.splitlines():
+            parts = line.split()
+            if len(parts) >= 2 and parts[-2] == "U":
+                names.add(parts[-1].lower().rstrip("_"))
+    return names
+
+
+def make_plan(
+    pfiles: list[Any], roots: list[Any], policy: str, libraries: Callable[[], set[str]] | None = None
+) -> BuildPlan:
+    """The plan of a build whose targets are *roots* (their dependency closures are built anyway).
+
+    *libraries* gives the names the linked libraries call (`library_references`): asked only when a file defining
+    procedures is still unreached once the project's files are followed, and such a file defining one is kept."""
     nomodlibs = [p for p in pfiles if p.nomodlib]
     submodules = [p for p in pfiles if p.submodule]
     if policy == "all" or not roots:
@@ -241,9 +272,18 @@ def make_plan(pfiles: list[Any], roots: list[Any], policy: str) -> BuildPlan:
         else:
             pending.append(pfile)
     pending_submodules = list(submodules)
+    called_by_libraries: set[str] | None = None
     changed = True
     while changed:
         changed = False
+        if (
+            pending
+            and libraries is not None
+            and called_by_libraries is None
+            and not any(name in words for pfile in pending for name in pfile.external_procedures.names)
+        ):
+            called_by_libraries = libraries()
+            words.update(called_by_libraries)
         for pfile in list(pending):
             if any(name in words for name in pfile.external_procedures.names):
                 pending.remove(pfile)
@@ -277,8 +317,10 @@ def make_plan(pfiles: list[Any], roots: list[Any], policy: str) -> BuildPlan:
 
 
 def failure_digest(pfile: Any, command: str) -> str:
+    """Digest of what a failed compile depended on: the command, the file and EVERY file of its closure (its includes
+    and the modules it uses, directly or not: a fixed module must retry the file)."""
     digest = hashlib.sha256(command.encode())
-    for member in [pfile, *(dep for dep in (pfile.pfile_dep_all or []) if dep.include)]:
+    for member in [pfile, *(dep for dep in (pfile.pfile_dep_all or []) if dep is not pfile)]:
         try:
             with open(member.name, "rb") as handle:
                 digest.update(member.name.encode() + b"\0" + handle.read())

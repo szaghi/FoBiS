@@ -681,9 +681,14 @@ the reason of each file in its `left_out` field.
 - **The test is on names, not on calls:** a name in a comment keeps a file (more is compiled, never less). A name the
   preprocessor builds by pasting tokens is missed: the link then fails with an undefined reference, and
   `--explain` names the file left out. Set `nomodlibs = all` for such a target.
-- **A file that does not compile is not linked, and not compiled again** until it, a file it includes or its compile
-  command changes (`<obj_dir>/.fobis-failed.json`); the build reports such files once, `--verbose` with the compiler's
-  messages. A module that fails while such a file is built is compiled again by the target that needs it.
+- **An override of a library routine is kept:** a file defining a routine that a library of the link calls (an
+  error hook like `xerbla`) is kept when the library is linked by path (`libs`, `vlibs`) or as `-lNAME` found in a
+  `lib_dir` (FoBiS reads its undefined symbols with `nm`). A library found elsewhere is not read: set
+  `nomodlibs = all` for such a target, or the library's own version is linked.
+- **A file that does not compile is not linked, and not compiled again** until it, a file it includes, a module it
+  uses (directly or not) or its compile command changes (`<obj_dir>/.fobis-failed.json`); `--force-compile` retries
+  it. The build reports such files once, `--verbose` with the compiler's messages. A module that fails while such a
+  file is built is compiled again by the target that needs it.
 
 ## Fortran include files
 

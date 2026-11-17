@@ -1164,8 +1164,8 @@ def _run_fobis_build(configuration):
     if cliargs.target and not cliargs.build_all and not chosen:  # before: the files without modules were compiled first
         _target_not_found(configuration)
     build_plan = _build_plan(configuration, pfiles, chosen if cliargs.target and not cliargs.build_all else None)
-    if cliargs.build_all:
-        roots = [p for p in pfiles if not p.include]
+    if cliargs.build_all:  # files without modules stay optional: one that fails is reported, as before
+        roots = [p for p in pfiles if not p.include and not p.nomodlib]
     else:
         roots = chosen if cliargs.target else [p for p in pfiles if p.program]
     # pre_build lifecycle hooks: before anything is compiled (they may produce what the compiles need)
@@ -1973,7 +1973,7 @@ def _introspect_left_out(configuration, pfiles):
 def _build_plan(configuration, pfiles, roots, cliargs=None):
     """The files without modules and the submodules this build links (`plan.make_plan`): *roots* are the target
     files, None to build every program (or every file). Kept in ``build_trace`` for ``--explain``."""
-    from .plan import make_plan, resolve_policy
+    from .plan import library_references, make_plan, resolve_policy
 
     cliargs = cliargs or configuration.cliargs
     try:
@@ -1983,7 +1983,15 @@ def _build_plan(configuration, pfiles, roots, cliargs=None):
         sys.exit(2)
     if roots is None:
         roots = [p for p in pfiles if p.program] if policy != "all" and not cliargs.build_all else []
-    build_plan = make_plan(pfiles, roots, policy)
+
+    def libraries():
+        paths = list(getattr(cliargs, "libs", None) or []) + list(getattr(cliargs, "vlibs", None) or [])
+        for name in list(getattr(cliargs, "ext_libs", None) or []) + list(getattr(cliargs, "ext_vlibs", None) or []):
+            for directory in getattr(cliargs, "lib_dir", None) or []:
+                paths += [os.path.join(directory, f"lib{name}{suffix}") for suffix in (".a", ".so")]
+        return library_references(paths)
+
+    build_plan = make_plan(pfiles, roots, policy, libraries=libraries)
     trace = getattr(configuration, "build_trace", None)
     if isinstance(trace, dict):
         trace["plan"] = build_plan
@@ -2021,7 +2029,8 @@ def _compile_queue(configuration, builder, plan, roots, cliargs=None, pfiles=Non
         sys.exit(2)
     if scheduler == "levels":
         return None
-    known = load_failures(builder.obj_dir)
+    # --force-compile retries the files remembered as failing too
+    known = {} if cliargs.force_compile else load_failures(builder.obj_dir)
     optional = [
         p
         for p in plan.nomodlibs
@@ -2097,8 +2106,8 @@ def build_nomodlibs(configuration, pfiles, builder, plan=None, queue=None):
 
     cliargs = configuration.cliargs
     selected = plan.nomodlibs if plan is not None else [p for p in pfiles if p.nomodlib]
-    known = load_failures(builder.obj_dir)
-    remembered = dict(known)
+    remembered = load_failures(builder.obj_dir)
+    known = {} if cliargs.force_compile else dict(remembered)  # --force-compile retries them
     failed = []
     unchanged = []
     nomodlibs = []
@@ -2120,7 +2129,7 @@ def build_nomodlibs(configuration, pfiles, builder, plan=None, queue=None):
             failed.append((pfile.name, culprit, output))
             if digest is not None:
                 remembered[pfile.name] = digest
-    if remembered != known:
+    if remembered != load_failures(builder.obj_dir):
         save_failures(builder.obj_dir, remembered)
     if failed or unchanged:
         names = [name for name, _, _ in failed] + unchanged

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 
@@ -293,3 +294,66 @@ def test_introspect_sources_says_what_is_left_out(tmp_path, monkeypatch, capsys)
     assert sources["./src/docs/unrelated.f90"]["left_out"].startswith("not reachable")
     assert "left_out" not in sources["./src/extf.f90"]
     assert not (tmp_path / "obj").exists()
+
+
+# --- review findings (night of 2026-11-16) -------------------------------------------------------------------------
+
+
+@needs_gfortran
+def test_a_remembered_failure_is_retried_when_a_module_it_uses_is_fixed(tmp_path, monkeypatch, capsys):
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "helper.f90").write_text("module helper_m\ncontains\nsubroutine twice()\nend subroutine\nend module\n")
+    (src / "ext.f90").write_text("subroutine ext_sub()\nuse helper_m, only : thrice\ncall thrice()\nend subroutine\n")
+    (src / "main.f90").write_text("program main\ncall ext_sub()\nend program main\n")
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(SystemExit):  # ext does not compile: not linked, undefined reference
+        _build()
+    capsys.readouterr()
+    (src / "helper.f90").write_text(
+        "module helper_m\ncontains\nsubroutine thrice()\nprint *, 'three'\nend subroutine\nend module\n"
+    )
+    _build()  # before: 'unchanged since they failed', never compiled again
+    assert "three" in subprocess.run([str(tmp_path / "main")], capture_output=True, text=True).stdout
+
+
+@needs_gfortran
+def test_force_compile_retries_remembered_failures(tmp_path, monkeypatch, capsys):
+    _project(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    _build("--nomodlibs", "all", capsys=capsys)
+    out = _build("--nomodlibs", "all", "--force-compile", capsys=capsys)
+    assert "unchanged since they failed" not in out
+    assert "Compiling src/docs/fragment.f90" in out
+
+
+@needs_gfortran
+def test_build_all_reports_a_failing_file_without_modules(tmp_path, monkeypatch, capsys):
+    _project(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    run_fobis(fake_args=["build", "--src", "src", "--build-all"])  # before the review: exit 1
+    out = capsys.readouterr().out
+    assert "do not compile and are not linked: src/docs/fragment.f90" in out
+    assert os.path.isfile(tmp_path / "main")
+
+
+@needs_gfortran
+def test_an_override_of_a_library_hook_is_kept(tmp_path, monkeypatch, capsys):
+    lib = tmp_path / "lib"
+    lib.mkdir()
+    (lib / "solve.f90").write_text("subroutine solve()\ncall hook()\nend subroutine\n")
+    (lib / "hook.f90").write_text("subroutine hook()\nprint *, 'library default hook'\nend subroutine\n")
+    for name in ("solve", "hook"):
+        subprocess.run(["gfortran", "-c", str(lib / f"{name}.f90"), "-o", str(lib / f"{name}.o")], check=True)
+    subprocess.run(["ar", "rcs", str(lib / "libext.a"), str(lib / "solve.o"), str(lib / "hook.o")], check=True)
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "main.f90").write_text("program main\ncall solve()\nend program main\n")
+    (src / "hook.f90").write_text("subroutine hook()\nprint *, 'project override hook'\nend subroutine\n")
+    monkeypatch.chdir(tmp_path)
+    for args in (["--libs", "lib/libext.a"], ["--ext-libs", "ext", "--lib-dir", "lib"]):
+        shutil.rmtree(tmp_path / "obj", ignore_errors=True)
+        run_fobis(fake_args=["build", "--src", "src", "--target", "main.f90", *args])
+        capsys.readouterr()
+        out = subprocess.run([str(tmp_path / "main")], capture_output=True, text=True).stdout
+        assert "project override hook" in out, args
