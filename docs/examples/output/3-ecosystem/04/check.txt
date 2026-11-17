@@ -3,26 +3,28 @@ Checking mathx, app against the local working copy of core
 
 ==> mathx: (fobis build --quiet) && (./build/test_mathx)
 
+Compiling third_party/core/src/core_m.f90 [1/3]
+Compiling src/mathx_m.f90 [2/3]
+Compiling src/test_mathx.f90 [3/3]
 Building src/test_mathx.f90
-Compiling third_party/core/src/core_m.f90 serially
-Compiling src/mathx_m.f90 serially
-Compiling src/test_mathx.f90 serially
+Nothing to compile, all objects are up-to-date
 Linking build/test_mathx
 Target src/test_mathx.f90 has been successfully built
 mathx: all tests passed
 
 ==> app: (fobis build --quiet) && (./build/app)
 
+Compiling third_party/core/src/core_m.f90 [1/3]
+Compiling third_party/mathx/src/mathx_m.f90 [2/3]
+Compiling src/app.f90 [3/3]
 Building src/app.f90
-Compiling third_party/core/src/core_m.f90 serially
-Compiling third_party/mathx/src/mathx_m.f90 serially
-Compiling src/app.f90 serially
+Nothing to compile, all objects are up-to-date
 Linking build/app
 Target src/app.f90 has been successfully built
 twice(3) =  6.0   quadruple(3) = 12.0
 
 Project  Result        Time  Detail
 mathx    passed        0.2s
-app      passed        0.3s
+app      passed        0.2s
 
 2 passed, 0 failed

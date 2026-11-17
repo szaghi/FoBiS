@@ -22,9 +22,10 @@ Builder options
   Preprocessor output directory: None
   Preprocessor extensions processed: []
 
+Compiling src/quad_rules.F90 [1/3]
+Compiling test/polynomials.F90 [2/3]
+Compiling test/odd_intervals.F90 [3/3]
 Building test/odd_intervals.F90
-Compiling src/quad_rules.F90 serially
-Compiling test/polynomials.F90 serially
-Compiling test/odd_intervals.F90 serially
+Nothing to compile, all objects are up-to-date
 Linking build/debug/odd
 Target test/odd_intervals.F90 has been successfully built

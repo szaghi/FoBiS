@@ -23,8 +23,7 @@ Builder options
 
 Building src/integrate.F90
 Nothing to compile, all objects are up-to-date
-Linking build/release/integrate
-Target src/integrate.F90 has been successfully built
+Target build/release/integrate is up to date: link skipped
      n   trapezoid error     simpson error
      4        1.0388E-01        4.5598E-03
      8        2.5768E-02        2.6917E-04

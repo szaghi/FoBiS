@@ -22,8 +22,9 @@ Builder options
   Preprocessor output directory: None
   Preprocessor extensions processed: []
 
+Compiling src/quad_rules.F90 [1/1]
 Building src/quad_rules.F90
-Compiling src/quad_rules.F90 serially
+Nothing to compile, all objects are up-to-date
 Linking build/static/libquad.a
 Target src/quad_rules.F90 has been successfully built
 Track building of src/quad_rules.F90
@@ -58,8 +59,9 @@ Builder options
   Preprocessor output directory: None
   Preprocessor extensions processed: []
 
+Compiling src/curves.F90 [1/2]
+Compiling src/area.F90 [2/2]
 Building src/area.F90
-Compiling src/curves.F90 serially
-Compiling src/area.F90 serially
+Nothing to compile, all objects are up-to-date
 Linking ./area
 Target src/area.F90 has been successfully built

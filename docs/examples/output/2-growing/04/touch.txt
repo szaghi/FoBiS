@@ -1,8 +1,9 @@
 $ touch src/quad_rules.F90 && cd ~/area && fobis build --quiet
 Building dependency fobos into ../quad with mode static
 
+Compiling src/quad_rules.F90 [1/1]
 Building src/quad_rules.F90
-Compiling src/quad_rules.F90 serially
+Nothing to compile, all objects are up-to-date
 Linking build/static/libquad.a
 Target src/quad_rules.F90 has been successfully built
 Track building of src/quad_rules.F90

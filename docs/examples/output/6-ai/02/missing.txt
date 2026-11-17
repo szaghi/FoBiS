@@ -1,10 +1,7 @@
 $ fobis build --mode release --quiet --explain
 
 warning: the file 'src/integrate.F90' depends on 'quad_rule' that is unreachable
-Building src/romberg.f
-Nothing to compile, all objects are up-to-date
-Building src/integrate.F90
-Compiling src/integrate.F90 serially
+Compiling src/integrate.F90 [1/1] failed
 src/integrate.F90:4:5:
 
     4 | use quad_rule, only : R8P, trapezoid, simpson

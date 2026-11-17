@@ -24,5 +24,4 @@ Builder options
 
 Building src/integrate.F90
 Nothing to compile, all objects are up-to-date
-Linking ./integrate
-Target src/integrate.F90 has been successfully built
+Target ./integrate is up to date: link skipped

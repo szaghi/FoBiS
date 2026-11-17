@@ -108,3 +108,15 @@ def test_skipped_across_processes(tmp_path):
             command, cwd=tmp_path, env={**env, "PYTHONHASHSEED": seed}, capture_output=True, text=True, check=True
         ).stdout
         assert "link skipped" in out
+
+
+def test_clean_removes_the_build_records(tmp_path, monkeypatch, capsys):
+    _project(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    _build(capsys, "--timings", "--interface-cutoff")
+    obj = tmp_path / "obj"
+    assert {".fobis-links.json", ".fobis-parse-cache.json", ".fobis-timings.json", ".fobis-interfaces.json"} <= set(
+        os.listdir(obj)
+    )
+    run_fobis(fake_args=["clean", "--only-obj"])
+    assert sorted(os.listdir(obj)) == [".fobis-compiler.json"]

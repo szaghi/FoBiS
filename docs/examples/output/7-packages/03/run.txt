@@ -1,9 +1,10 @@
 $ fobis build --quiet && ./build/solver
 
+Compiling .fobis_deps/kinds/src/kinds.f90 [1/3]
+Compiling .fobis_deps/vectors/src/vectors.f90 [2/3]
+Compiling src/solver.f90 [3/3]
 Building src/solver.f90
-Compiling .fobis_deps/kinds/src/kinds.f90 serially
-Compiling .fobis_deps/vectors/src/vectors.f90 serially
-Compiling src/solver.f90 serially
+Nothing to compile, all objects are up-to-date
 Linking build/solver
 Target src/solver.f90 has been successfully built
  5.000

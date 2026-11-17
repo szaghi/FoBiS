@@ -1,10 +1,12 @@
 """Unit tests for --json structured output (issue #161)."""
 
 import json
+import os
 import textwrap
 
 import pytest
 
+from fobis.Cleaner import BUILD_RECORDS
 from fobis.fobis import _all_files, _JsonCollector, _obj_files
 
 # ---------------------------------------------------------------------------
@@ -178,9 +180,11 @@ class TestCleanJson:
         run_fobis(fake_args=["clean", "--fobos", "fobos", "--json"])
         out = capsys.readouterr().out
         data = json.loads(out)
-        # All reported removed files should end with .o, .mod, or .smod
+        # Every reported removed file is an object, a module file or a record the builds keep next to the objects
         for f in data["removed"]:
-            assert f.endswith((".o", ".mod", ".smod")), f"Unexpected file in removed: {f}"
+            assert f.endswith((".o", ".mod", ".smod")) or os.path.basename(f) in BUILD_RECORDS, (
+                f"Unexpected file in removed: {f}"
+            )
 
     def test_clean_json_empty_project(self, simple_project, monkeypatch, capsys):
         """Clean on a never-built project should succeed with empty removed list."""

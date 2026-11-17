@@ -1,9 +1,10 @@
 $ cd ~/consumer && fobis build --quiet && ./area
 [auto-discover] src not set; scanning: ./src
 
+Compiling src/curves.F90 [1/2]
+Compiling src/area.F90 [2/2]
 Building src/area.F90
-Compiling src/curves.F90 serially
-Compiling src/area.F90 serially
+Nothing to compile, all objects are up-to-date
 Linking ./area
 Target src/area.F90 has been successfully built
 area =  0.333333333333333

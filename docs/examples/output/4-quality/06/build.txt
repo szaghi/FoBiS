@@ -1,10 +1,10 @@
 $ fobis build --mode python --quiet
 
-Building src/romberg.f
-Compiling src/romberg.f serially
+Compiling src/romberg.f [1/4]
+Compiling src/quad_rules.F90 [2/4]
+Compiling src/gauss_legendre.F90 [3/4]
+Compiling bindings/quad_c.f90 [4/4]
 Building bindings/quad_c.f90
-Compiling src/quad_rules.F90 serially
-Compiling src/gauss_legendre.F90 serially
-Compiling bindings/quad_c.f90 serially
+Nothing to compile, all objects are up-to-date
 Linking build/python/libquad_c.so
 Target bindings/quad_c.f90 has been successfully built

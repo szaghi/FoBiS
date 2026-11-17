@@ -3,6 +3,8 @@ $ find . -type f | sort
 ./mod/integrands.mod
 ./mod/quad_rules.mod
 ./obj/.fobis-compiler.json
+./obj/.fobis-links.json
+./obj/.fobis-parse-cache.json
 ./obj/integrands.o
 ./obj/integrate.o
 ./obj/quad_rules.o

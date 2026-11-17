@@ -2,27 +2,30 @@ $ fobis ecosystem exec -- fobis build --quiet
 
 ==> core: fobis build --quiet
 
+Compiling src/core_m.f90 [1/2]
+Compiling src/test_core.f90 [2/2]
 Building src/test_core.f90
-Compiling src/core_m.f90 serially
-Compiling src/test_core.f90 serially
+Nothing to compile, all objects are up-to-date
 Linking build/test_core
 Target src/test_core.f90 has been successfully built
 
 ==> mathx: fobis build --quiet
 
+Compiling third_party/core/src/core_m.f90 [1/3]
+Compiling src/mathx_m.f90 [2/3]
+Compiling src/test_mathx.f90 [3/3]
 Building src/test_mathx.f90
-Compiling third_party/core/src/core_m.f90 serially
-Compiling src/mathx_m.f90 serially
-Compiling src/test_mathx.f90 serially
+Nothing to compile, all objects are up-to-date
 Linking build/test_mathx
 Target src/test_mathx.f90 has been successfully built
 
 ==> app: fobis build --quiet
 
+Compiling third_party/core/src/core_m.f90 [1/3]
+Compiling third_party/mathx/src/mathx_m.f90 [2/3]
+Compiling src/app.f90 [3/3]
 Building src/app.f90
-Compiling third_party/core/src/core_m.f90 serially
-Compiling third_party/mathx/src/mathx_m.f90 serially
-Compiling src/app.f90 serially
+Nothing to compile, all objects are up-to-date
 Linking build/app
 Target src/app.f90 has been successfully built
 

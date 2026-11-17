@@ -3,9 +3,8 @@ Checking mathx, app against the local working copy of core
 
 ==> mathx: (fobis build --quiet) && (./build/test_mathx)
 
-Building src/test_mathx.f90
-Compiling third_party/core/src/core_m.f90 serially
-Compiling src/mathx_m.f90 serially
+Compiling third_party/core/src/core_m.f90 [1/3]
+Compiling src/mathx_m.f90 [2/3] failed
 src/mathx_m.f90:2:19:
 
     2 |   use core_m, only: twice
@@ -25,9 +24,8 @@ Error: Reference to impure function 'twice' at (1) within a PURE procedure
 
 ==> app: (fobis build --quiet) && (./build/app)
 
-Building src/app.f90
-Compiling third_party/core/src/core_m.f90 serially
-Compiling third_party/mathx/src/mathx_m.f90 serially
+Compiling third_party/core/src/core_m.f90 [1/3]
+Compiling third_party/mathx/src/mathx_m.f90 [2/3] failed
 third_party/mathx/src/mathx_m.f90:2:19:
 
     2 |   use core_m, only: twice
@@ -45,11 +43,11 @@ third_party/mathx/src/mathx_m.f90:10:14:
 Error: Reference to impure function 'twice' at (1) within a PURE procedure
 
 
-Staged copies kept in ~/tmp/fobis-check-core-lsrgeosw
+Staged copies kept in ~/tmp/fobis-check-core-47u1lyiu
 
 Project  Result        Time  Detail
-mathx    failed        0.2s  exit 1
-app      failed        0.2s  exit 1
+mathx    failed        0.1s  exit 1
+app      failed        0.1s  exit 1
 
 0 passed, 2 failed: mathx, app
 [exit status 1]

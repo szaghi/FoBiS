@@ -3,9 +3,13 @@ build/shared/.quad_rules.F90.track_build
 build/shared/libquad.so
 build/shared/mod/quad_rules.mod
 build/shared/obj/.fobis-compiler.json
+build/shared/obj/.fobis-links.json
+build/shared/obj/.fobis-parse-cache.json
 build/shared/obj/quad_rules.o
 build/static/.quad_rules.F90.track_build
 build/static/libquad.a
 build/static/mod/quad_rules.mod
 build/static/obj/.fobis-compiler.json
+build/static/obj/.fobis-links.json
+build/static/obj/.fobis-parse-cache.json
 build/static/obj/quad_rules.o

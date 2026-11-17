@@ -22,9 +22,10 @@ Builder options
   Preprocessor output directory: None
   Preprocessor extensions processed: []
 
+Compiling src/quad_rules.F90 [1/3]
+Compiling src/integrands.F90 [2/3]
+Compiling src/integrate.F90 [3/3]
 Building src/integrate.F90
-Compiling src/quad_rules.F90 serially
-Compiling src/integrands.F90 serially
-Compiling src/integrate.F90 serially
+Nothing to compile, all objects are up-to-date
 Linking ./integrate
 Target src/integrate.F90 has been successfully built

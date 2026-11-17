@@ -351,11 +351,31 @@ _VOLATILE = (
 _SYSTEM_FRAME = re.compile(r"^\s*at \.\.?/.*\n", re.MULTILINE)
 
 
+# the ready queue prints a file when its compile ends: with -j the order of files compiled at once varies from run to
+# run. A run of consecutive compile lines is compared as a set, without the rank.
+_COMPILE_LINE = re.compile(r"^(\x1b\[[0-9;]*m)?Compiling (\S+) \[\d+/(\d+)\](.*)$")
+
+
+def _compile_runs(text: str) -> str:
+    lines: list[str] = []
+    run: list[str] = []
+    for line in text.split("\n"):
+        match = _COMPILE_LINE.match(line)
+        if match:
+            run.append(f"Compiling {match.group(2)} [k/{match.group(3)}]{match.group(4)}")
+            continue
+        lines.extend(sorted(run))
+        run = []
+        lines.append(line)
+    lines.extend(sorted(run))
+    return "\n".join(lines)
+
+
 def _normalised(text: str) -> str:
     text = _SYSTEM_FRAME.sub("", text)
     for pattern, replacement in _VOLATILE:
         text = pattern.sub(replacement, text)
-    return text
+    return _compile_runs(text)
 
 
 _HEX = re.compile(r"[0-9a-f]{7,40}|HASH")

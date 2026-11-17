@@ -21,8 +21,18 @@ This is a class designed for controlling the cleaning phase.
 # along with FoBiS.py. If not, see <http://www.gnu.org/licenses/>.
 # from builtins import *
 import os
+import shutil
 
 from .utils import print_fake
+
+BUILD_RECORDS = (
+    ".fobis-links.json",
+    ".fobis-failed.json",
+    ".fobis-interfaces.json",
+    ".fobis-timings.json",
+    ".fobis-parse-cache.json",
+    ".fobis-object-mods",
+)
 
 
 class Cleaner:
@@ -128,6 +138,14 @@ class Cleaner:
                 for filename in files:
                     if os.path.splitext(os.path.basename(filename))[1] == ".o":
                         os.remove(os.path.join(root, filename))
+            # what the builds recorded next to the objects (issue #218): last links, failed files without modules,
+            # module interfaces, timings, parsed facts, the module files of interfaces-first object compiles
+            for name in BUILD_RECORDS:
+                path = os.path.join(self.obj_dir, name)
+                if os.path.isdir(path):
+                    shutil.rmtree(path, ignore_errors=True)
+                elif os.path.isfile(path):
+                    os.remove(path)
 
     def clean_target(self):
         """

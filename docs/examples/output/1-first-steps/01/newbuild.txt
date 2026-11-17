@@ -1,8 +1,9 @@
 $ cd ~/demo && fobis build --quiet && ./build/debug/demo && fobis test --quiet
 
+Compiling src/demo.f90 [1/2]
+Compiling app/main.f90 [2/2]
 Building app/main.f90
-Compiling src/demo.f90 serially
-Compiling app/main.f90 serially
+Nothing to compile, all objects are up-to-date
 Linking build/debug/demo
 Target app/main.f90 has been successfully built
 mean of 1, 2, 3, 4:  2.5

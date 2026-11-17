@@ -1,8 +1,7 @@
 $ fobis build --quiet
 
-Building src/solver.f90
-Compiling .fobis_deps/kinds/src/kinds.f90 serially
-Compiling .fobis_deps/vectors/src/vectors.f90 serially
+Compiling .fobis_deps/kinds/src/kinds.f90 [1/3]
+Compiling .fobis_deps/vectors/src/vectors.f90 [2/3] failed
 .fobis_deps/vectors/src/vectors.f90:3:17:
 
     3 | use kinds, only : R8P

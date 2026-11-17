@@ -3,8 +3,7 @@ Building dependency fobos into ../quad with mode static
 
 Building src/quad_rules.F90
 Nothing to compile, all objects are up-to-date
-Linking build/static/libquad.a
-Target src/quad_rules.F90 has been successfully built
+Target build/static/libquad.a is up to date: archive skipped
 Track building of src/quad_rules.F90
 
 The following auxiliary paths have been added
@@ -16,6 +15,5 @@ Libraries paths:
 
 Building src/area.F90
 Nothing to compile, all objects are up-to-date
-Linking ./area
-Target src/area.F90 has been successfully built
+Target ./area is up to date: link skipped
 area =  0.333333333333333
