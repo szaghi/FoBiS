@@ -72,9 +72,10 @@ How to use it, with examples: [Building](/cookbook/build).
 | `--graph` |  |  | Generate a dependencies graph via graphviz |
 | `--quiet`, `-q` |  |  | Less verbose output |
 | `--verbose` |  |  | Extremely verbose output for debugging |
-| `--jobs`, `-j` | INTEGER | `1` | Number of concurrent compilation jobs [default: 1] |
+| `--jobs`, `-j` | INTEGER |  | Number of concurrent compilation jobs [default: the mode's jobs, else the CPUs available]; given here, it wins over the mode's |
 | `--timings` |  |  | Measure every compile and link (wall time, peak memory): written to &lt;obj_dir&gt;/.fobis-timings.json and summarised at the end (serial sum, makespan, critical path). |
 | `--nomodlibs` | TEXT |  | Which files without modules (external procedures) and submodules are compiled and linked: reachable (those the target's files name; the default with a target), all (every one; the default without a target and for libraries), none. |
+| `--scheduler` | TEXT |  | How compiles are ordered: queue (a file starts as soon as the files it uses are compiled; the default) or levels (the scheduler of FoBiS 3.18 and earlier, kept for two releases). |
 | `--makefile`, `-m` | TEXT |  | Generate a GNU Makefile for building the project |
 | `--json` |  |  | Emit structured JSON to stdout instead of human-readable output (useful for scripting / agents) |
 | `--build-profile` | TEXT |  | Named build profile: debug, release, asan, coverage |

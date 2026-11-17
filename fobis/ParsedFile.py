@@ -118,7 +118,9 @@ __str_kw_use__ = r"[Uu][Ss][Ee]"
 __str_kw_mpifh__ = r"[Mm][Pp][Ii][Ff]\.[Hh]"
 __str_name__ = r"(?P<name>[a-zA-Z][a-zA-Z0-9_]*)"
 # (ancestor-module-name [: parent-submodule-name]): a child submodule names its parent too
-__str_submodule_ancestor__ = r"(\(\s*(?P<submancestor>[a-zA-Z][a-zA-Z0-9_]*)\s*(:\s*[a-zA-Z][a-zA-Z0-9_]*\s*)?\))"
+__str_submodule_ancestor__ = (
+    r"(\(\s*(?P<submancestor>[a-zA-Z][a-zA-Z0-9_]*)\s*(:\s*(?P<submparent>[a-zA-Z][a-zA-Z0-9_]*)\s*)?\))"
+)
 __str_eol__ = r"(?P<eol>\s*!.*|\s*)?$"
 # __str_f95_mod_rename__ = r"(\s*,\s*[a-zA-Z][a-zA-Z0-9_]*\s*=>\s*[a-zA-Z][a-zA-Z0-9_]*)*"
 # __str_f95_mod_only__ = r"(\s*,\s*[Oo][Nn][Ll][Yy]\s*:\s*([a-zA-Z][a-zA-Z0-9_]*\s*=>\s*[a-zA-Z][a-zA-Z0-9_]*|[a-zA-Z][a-zA-Z0-9_]*))*"
@@ -623,6 +625,8 @@ class ParsedFile:
                 self.submodule = True
                 self.submodule_names.append(matching.group("name"))
                 self.submodule_ancestor = matching.group("submancestor")
+                if matching.group("submparent"):  # a child submodule needs its parent's .smod: compiled after it
+                    self.dependencies.append(Dependency(dtype="submodule", name=matching.group("submparent")))
                 dep = Dependency(dtype="module", name=matching.group("submancestor"))
                 self.dependencies.append(dep)
             matching = re.match(__regex_use_mod__, line)

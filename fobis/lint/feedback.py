@@ -48,7 +48,10 @@ REPORT_FLAGS = {
 }
 
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")  # colours of a captured terminal log (FoBiS colours its output)
-_COMPILING_RE = re.compile(r"^Compiling\s+(.+?)\s+(?:serially|using \d+ concurrent processes)\s*$")
+# "Compiling a b serially" / "... using N concurrent processes" (FoBiS <= 3.18, levels), "Compiling a [k/N]" (queue)
+_COMPILING_RE = re.compile(
+    r"^Compiling\s+(.+?)\s+(?:serially|using \d+ concurrent processes|\[\d+/\d+\](?:\s+failed.*)?)\s*$"
+)
 _NV_PROCEDURE_RE = re.compile(r"^([A-Za-z_]\w*):\s*$")
 _NV_LINE_RE = re.compile(r"^\s+(\d+),\s+(.*?)\s*$")
 _NV_CONTINUATION_RE = re.compile(r"^\s{6,}(\S.*?)\s*$")

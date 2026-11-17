@@ -70,7 +70,7 @@ def cmd_clean(
     graph: GraphOpt = False,
     quiet: QuietOpt = False,
     verbose: VerboseOpt = False,
-    jobs: JobsOpt = 1,
+    jobs: JobsOpt = None,
     makefile: MakefileOpt = None,
     json_output: JsonOpt = False,
 ):

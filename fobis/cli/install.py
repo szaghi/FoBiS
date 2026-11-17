@@ -51,7 +51,7 @@ def cmd_install(
     graph: GraphOpt = False,
     quiet: QuietOpt = False,
     verbose: VerboseOpt = False,
-    jobs: JobsOpt = 1,
+    jobs: JobsOpt = None,
     makefile: MakefileOpt = None,
 ):
     """Install previously built files, or clone+build+install a GitHub-hosted FoBiS project."""

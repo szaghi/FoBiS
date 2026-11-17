@@ -1124,6 +1124,11 @@ class Fobos:
             for item in self.fobos.items(self.mode):
                 if item[0] in self._SKIP_AUTO_ATTRS or item[0] in explicit:
                     continue
+                if item[0] == "jobs" and "jobs" in cliargs_dict:
+                    # -j given on the command line wins (#218: a template's `jobs = 4` turned `-j 16` into 4)
+                    if cliargs_dict["jobs"] is None:
+                        cliargs.jobs = int(item[1])
+                    continue
                 if item[0] in cliargs_dict:
                     if isinstance(cliargs_dict[item[0]], bool):
                         setattr(cliargs, item[0], self.fobos.getboolean(self.mode, item[0]))

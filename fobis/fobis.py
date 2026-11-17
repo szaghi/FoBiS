@@ -1108,16 +1108,19 @@ def _run_fobis_build(configuration):
             source = t_dict.get("source") or t_dict.get("target", "")
             chosen = target_files(source, pfiles_all)
             t_plan = _build_plan(configuration, pfiles_all, chosen, cliargs=t_cliargs)
-            nomodlibs = build_nomodlibs(configuration=configuration, pfiles=pfiles_all, builder=t_builder, plan=t_plan)
-            submodules = build_submodules(
-                configuration=configuration, pfiles=pfiles_all, builder=t_builder, plan=t_plan
-            )
-            # pre_build hooks
+            # pre_build hooks: before anything is compiled
             pre_rules = getattr(t_cliargs, "pre_build", []) or []
             if isinstance(pre_rules, str):
                 pre_rules = pre_rules.split()
             for rule_name in pre_rules:
                 fobos.rule_execute(rule_name)
+            queue = _compile_queue(configuration, t_builder, t_plan, chosen, cliargs=t_cliargs)
+            nomodlibs = build_nomodlibs(
+                configuration=configuration, pfiles=pfiles_all, builder=t_builder, plan=t_plan, queue=queue
+            )
+            submodules = build_submodules(
+                configuration=configuration, pfiles=pfiles_all, builder=t_builder, plan=t_plan, queue=queue
+            )
 
             for pfile in pfiles_all:
                 if pfile in chosen:
@@ -1161,15 +1164,24 @@ def _run_fobis_build(configuration):
     if cliargs.target and not cliargs.build_all and not chosen:  # before: the files without modules were compiled first
         _target_not_found(configuration)
     build_plan = _build_plan(configuration, pfiles, chosen if cliargs.target and not cliargs.build_all else None)
-    nomodlibs = build_nomodlibs(configuration=configuration, pfiles=pfiles, builder=builder, plan=build_plan)
-    submodules = build_submodules(configuration=configuration, pfiles=pfiles, builder=builder, plan=build_plan)
-
-    # Execute pre_build lifecycle hooks
+    if cliargs.build_all:
+        roots = [p for p in pfiles if not p.include]
+    else:
+        roots = chosen if cliargs.target else [p for p in pfiles if p.program]
+    # pre_build lifecycle hooks: before anything is compiled (they may produce what the compiles need)
     pre_rules = getattr(cliargs, "pre_build", []) or []
     if isinstance(pre_rules, str):
         pre_rules = pre_rules.split()
     for rule_name in pre_rules:
         fobos.rule_execute(rule_name)
+
+    queue = _compile_queue(configuration, builder, build_plan, roots)
+    nomodlibs = build_nomodlibs(
+        configuration=configuration, pfiles=pfiles, builder=builder, plan=build_plan, queue=queue
+    )
+    submodules = build_submodules(
+        configuration=configuration, pfiles=pfiles, builder=builder, plan=build_plan, queue=queue
+    )
 
     build_succeeded = False
     # building target or all programs found
@@ -1965,7 +1977,41 @@ def _build_plan(configuration, pfiles, roots, cliargs=None):
     return build_plan
 
 
-def build_nomodlibs(configuration, pfiles, builder, plan=None):
+def _compile_queue(configuration, builder, plan, roots, cliargs=None):
+    """Compile everything the build needs in one ready queue (`scheduler.compile_queue`), unless the mode asks for
+    the level scheduler (``scheduler = levels``): then None, and each build compiles its own files as before.
+
+    *roots* are the files the build links or archives (targets, programs); the plan's submodules are required too,
+    its files without modules optional (a failure there is reported, not fatal); a file without modules remembered
+    as failing (unchanged since) is not compiled.
+    """
+    from .plan import failure_digest, load_failures
+    from .scheduler import SCHEDULERS, compile_queue
+
+    cliargs = cliargs or configuration.cliargs
+    scheduler = (getattr(cliargs, "scheduler", None) or "queue").strip().lower()
+    if scheduler not in SCHEDULERS:
+        configuration.print_r(f"Error: scheduler = {scheduler}: one of {', '.join(SCHEDULERS)}")
+        sys.exit(2)
+    if scheduler == "levels":
+        return None
+    known = load_failures(builder.obj_dir)
+    optional = [
+        p
+        for p in plan.nomodlibs
+        if p.c_source or known.get(p.name) != failure_digest(p, builder.compile_command_text(p))
+    ]
+    return compile_queue(
+        builder,
+        [*roots, *plan.submodules],
+        optional,
+        verbose=cliargs.verbose,
+        log=cliargs.log,
+        quiet=False,  # --quiet hides the settings, never the compiles (as the level scheduler)
+    )
+
+
+def build_nomodlibs(configuration, pfiles, builder, plan=None, queue=None):
     """Build the files without modules of the build plan (every one without a plan).
 
     A file that does not compile is not linked; it is remembered (``<obj_dir>/.fobis-failed.json``, digest of the
@@ -1979,6 +2025,8 @@ def build_nomodlibs(configuration, pfiles, builder, plan=None):
       list of ParsedFile() objects
     builder : Builder()
     plan : plan.BuildPlan or None
+    queue : scheduler.QueueResult or None
+      the files were compiled by the build's ready queue: only its outcome is read, nothing is compiled here
 
     Returns
     -------
@@ -1999,7 +2047,11 @@ def build_nomodlibs(configuration, pfiles, builder, plan=None):
         if digest is not None and known.get(pfile.name) == digest:
             unchanged.append(pfile.name)
             continue
-        build_ok = builder.build(file_to_build=pfile, verbose=cliargs.verbose, log=cliargs.log)
+        if queue is not None:
+            build_ok = pfile.name not in queue.failed
+            builder.nomodlib_failure = queue.failed.get(pfile.name)
+        else:
+            build_ok = builder.build(file_to_build=pfile, verbose=cliargs.verbose, log=cliargs.log)
         if build_ok:
             remembered.pop(pfile.name, None)
             nomodlibs = nomodlibs + pfile.obj_dependencies(exclude_programs=True)
@@ -2025,7 +2077,7 @@ def build_nomodlibs(configuration, pfiles, builder, plan=None):
     return nomodlibs
 
 
-def build_submodules(configuration, pfiles, builder, plan=None):
+def build_submodules(configuration, pfiles, builder, plan=None, queue=None):
     """Build the submodule files of the build plan (every one without a plan).
 
     Parameters
@@ -2045,7 +2097,10 @@ def build_submodules(configuration, pfiles, builder, plan=None):
     selected = plan.submodules if plan is not None else [p for p in pfiles if p.submodule]
     for pfile in selected:
         build_ok = builder.build(
-            file_to_build=pfile, verbose=configuration.cliargs.verbose, log=configuration.cliargs.log
+            file_to_build=pfile,
+            verbose=configuration.cliargs.verbose,
+            log=configuration.cliargs.log,
+            quiet=queue is not None,  # compiled by the queue already: nothing to say
         )
         if build_ok:
             submodules.append(pfile.obj_name + ".o")

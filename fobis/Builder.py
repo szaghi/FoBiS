@@ -36,6 +36,7 @@ from collections.abc import Callable
 from typing import Any
 
 from .Compiler import Compiler
+from .scheduler import available_cpus
 from .timings import Timings, run_steps_measured
 from .utils import check_results, print_fake, safe_mkdir, syswork, syswork_steps
 
@@ -108,7 +109,7 @@ class Builder:
 
         self.compiler = Compiler(cliargs=cliargs, print_w=self.print_w)
 
-        self.jobs = cliargs.jobs
+        self.jobs = cliargs.jobs or available_cpus()  # None: neither the command line nor the mode said
         self.cliargs = cliargs  # read at link time: the compiler guard may force a rebuild after construction
         # (file that failed, compiler output) of the last file without modules that could not be built (build())
         self.nomodlib_failure = None

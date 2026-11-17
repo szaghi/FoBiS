@@ -107,3 +107,16 @@ def test_cli_compiler_feedback_and_missing_log(monkeypatch, capsys):
         run_fobis(fake_args=[*args, "--compiler-feedback", "missing.log"])
     assert excinfo.value.code == 1
     assert '--cflags "-Minfo=accel,mp"' in capsys.readouterr().out
+
+
+def test_parse_the_compile_lines_of_the_ready_queue():
+    log = (
+        "Compiling src/a.f90 [1/2]\n"
+        "solve:\n"
+        "     12, Generating NVIDIA GPU code\n"
+        "Compiling src/b.f90 [2/2] failed (not needed by the target)\n"
+        "src/b.f90:3:7: missed: couldn't vectorize loop\n"
+    )
+    nv, gnu = parse_log(log)
+    assert nv.compiling == ("src/a.f90",) and nv.procedure == "solve"
+    assert gnu.compiling == ("src/b.f90",) and gnu.path == "src/b.f90"

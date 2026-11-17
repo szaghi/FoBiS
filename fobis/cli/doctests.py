@@ -84,7 +84,7 @@ def cmd_doctests(
     graph: GraphOpt = False,
     quiet: QuietOpt = False,
     verbose: VerboseOpt = False,
-    jobs: JobsOpt = 1,
+    jobs: JobsOpt = None,
     makefile: MakefileOpt = None,
 ):
     """Test all valid doctests snippets found."""

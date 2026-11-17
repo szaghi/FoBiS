@@ -522,12 +522,17 @@ developer's own paths (`$HDF5 = /home/me/hdf5`).
 fobis build --jobs 8
 ```
 
-or `jobs = 8` in the mode. The files of one level of the dependency graph compile at once:
+or `jobs = 8` in the mode; `-j` on the command line wins over the mode's `jobs`, and without either FoBiS uses every
+CPU the process may run on. A file starts as soon as the files it uses are compiled, the longest chain of
+dependent files first (weighted by the compile times of the last `--timings` build when there is one); each file's
+compiler output is printed in one block when it ends, with its rank:
 
 <<< @/examples/output/2-growing/05/jobs.txt{console}
 
-The speed-up is bounded by the width of the graph: a chain of modules each using the previous one compiles serially
-whatever `-j`. Tutorial: [rules and parallel compiling](/tutorial/growing/05-rules).
+The speed-up is bounded by the longest chain: a chain of modules each using the previous one compiles serially
+whatever `-j` (`--timings` reports that chain as the critical path). `--scheduler levels` (or `scheduler = levels`)
+restores the scheduler of FoBiS 3.18 and earlier, which compiled the graph level by level; it will be removed after two
+releases. Tutorial: [rules and parallel compiling](/tutorial/growing/05-rules).
 
 ## Measure a build
 

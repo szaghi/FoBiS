@@ -76,7 +76,7 @@ Any key can be qualified, `key.QUALIFIER`, and applies only when QUALIFIER is th
 | `inc` | build, clean, doctests, rule | Extensions for include files |
 | `include` | all | Directories for searching included files |
 | `intrinsic_modules` | build |  |
-| `jobs` | all | Number of concurrent compilation jobs [default: 1] |
+| `jobs` | all | Number of concurrent compilation jobs [default: the mode's jobs, else the CPUs available]; given here, it wins over the mode's |
 | `keep_volatile_doctests` | doctests | Keep the volatile doctests programs |
 | `launcher` | run, test | Start the mode's programs through this command (`mpirun -np {ranks}`, `gdb --args`, `valgrind`); `--launcher` wins, `[test] launcher` applies when the mode has none |
 | `lflags` | build, clean, doctests, rule | Link flags |
@@ -113,6 +113,7 @@ Any key can be qualified, `key.QUALIFIER`, and applies only when QUALIFIER is th
 | `profile` | build, clean, doctests, rule | Instrument for profiling analysis |
 | `quiet` | all | Less verbose output |
 | `ranlib` | build, clean, doctests, rule | Ranlib executable; empty string to skip [default: ranlib] |
+| `scheduler` | build | How compiles are ordered: queue (a file starts as soon as the files it uses are compiled; the default) or levels (the scheduler of FoBiS 3.18 and earlier, kept for two releases). |
 | `src` | build, clean, doctests, rule | Root-directory of source files [default: ./] |
 | `target` | build, clean, doctests, rule | Specify a target file [default: all programs found] |
 | `template` | build | A `[template-NAME]` section whose keys this mode inherits (its own keys win) |

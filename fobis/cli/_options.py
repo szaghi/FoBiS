@@ -244,7 +244,24 @@ TimingsOpt = Annotated[
         "summarised at the end (serial sum, makespan, critical path).",
     ),
 ]
-JobsOpt = Annotated[int, typer.Option("--jobs", "-j", help="Number of concurrent compilation jobs [default: 1]")]
+JobsOpt = Annotated[
+    int | None,
+    typer.Option(
+        "--jobs",
+        "-j",
+        min=1,
+        help="Number of concurrent compilation jobs [default: the mode's jobs, else the CPUs available]; given here, "
+        "it wins over the mode's",
+    ),
+]
+SchedulerOpt = Annotated[
+    str | None,
+    typer.Option(
+        "--scheduler",
+        help="How compiles are ordered: queue (a file starts as soon as the files it uses are compiled; the default) "
+        "or levels (the scheduler of FoBiS 3.18 and earlier, kept for two releases).",
+    ),
+]
 MakefileOpt = Annotated[
     str | None, typer.Option("--makefile", "-m", help="Generate a GNU Makefile for building the project")
 ]

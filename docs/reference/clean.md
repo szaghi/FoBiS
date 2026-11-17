@@ -63,7 +63,7 @@ How to use it, with examples: [Building](/cookbook/build).
 | `--graph` |  |  | Generate a dependencies graph via graphviz |
 | `--quiet`, `-q` |  |  | Less verbose output |
 | `--verbose` |  |  | Extremely verbose output for debugging |
-| `--jobs`, `-j` | INTEGER | `1` | Number of concurrent compilation jobs [default: 1] |
+| `--jobs`, `-j` | INTEGER |  | Number of concurrent compilation jobs [default: the mode's jobs, else the CPUs available]; given here, it wins over the mode's |
 | `--makefile`, `-m` | TEXT |  | Generate a GNU Makefile for building the project |
 | `--json` |  |  | Emit structured JSON to stdout instead of human-readable output (useful for scripting / agents) |
 

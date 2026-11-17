@@ -66,7 +66,7 @@ def test_files_named_alike_get_objects_of_their_own(project, capsys):
     stamp = os.stat(obj / "lib_one_say_hello.f90.o").st_mtime_ns
     os.utime(project / "lib" / "two" / "say_hello.f90", ns=(stamp + 10**9,) * 2)
     code, out = _fobis(capsys, "build")
-    assert code == 0 and "Compiling lib/two/say_hello.f90 serially" in out
+    assert code == 0 and "Compiling lib/two/say_hello.f90 [" in out
     assert os.stat(obj / "lib_one_say_hello.f90.o").st_mtime_ns == stamp  # the others are up to date
 
 

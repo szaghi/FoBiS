@@ -82,7 +82,7 @@ def cmd_rule(
     graph: GraphOpt = False,
     quiet: QuietOpt = False,
     verbose: VerboseOpt = False,
-    jobs: JobsOpt = 1,
+    jobs: JobsOpt = None,
     makefile: MakefileOpt = None,
 ):
     """Execute special rules or user-defined ones from a fobos file."""

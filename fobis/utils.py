@@ -349,6 +349,18 @@ def dependency_hiearchy(builder, pfiles, print_w=None, force_compile=False):
                             + "' that is unreachable"
                         )
                         # sys.exit(1)
+            if dep.type == "submodule":  # the parent of a child submodule: same ancestor, compiled first
+                for other in pfiles:
+                    if other.submodule and dep.name.lower() in {n.lower() for n in other.submodule_names or []}:
+                        dep.file = other.name
+                        if other not in parsed_file.pfile_dep:
+                            parsed_file.pfile_dep.append(other)
+                        break
+                else:
+                    print_wm(
+                        "warning: the file '" + parsed_file.name + "' depends on '" + dep.name + "' that is unreachable"
+                    )
+                continue
             if dep.type == "include" and dep.located:
                 fnum = by_path.get(os.path.abspath(dep.name), -1)
                 if fnum > -1:
