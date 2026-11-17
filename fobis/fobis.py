@@ -1082,7 +1082,7 @@ def _run_fobis_build(configuration):
 
         # The compiler record is per object directory: checked once, before any target is built
         # Scan source files once for all targets
-        pfiles_all = parse_files(configuration=configuration)
+        pfiles_all = parse_files(configuration=configuration, use_cache=True)
         compiler_record = _compiler_guard(
             configuration,
             Builder(cliargs=cliargs, print_n=lambda *a, **k: None, print_w=configuration.print_r),
@@ -1149,7 +1149,7 @@ def _run_fobis_build(configuration):
     if builder.timings is not None:
         configuration.build_timings = (builder.timings, builder.obj_dir, builder.jobs)
     configuration.print_b(builder.verbose(quiet=cliargs.quiet))
-    pfiles = parse_files(configuration=configuration)
+    pfiles = parse_files(configuration=configuration, use_cache=True)
     compiler_record = _compiler_guard(configuration, builder, c_sources=any(p.c_source for p in pfiles))
     configuration.build_trace = {"pfiles": pfiles}
     dependency_hiearchy(
@@ -1529,7 +1529,7 @@ def _merged_preproc_flags(cliargs) -> str:
     return preproc
 
 
-def parse_files(configuration, src_dir=None, is_doctest=False):
+def parse_files(configuration, src_dir=None, is_doctest=False, use_cache=False):
     """
     Parse files and return the list of parsed files.
 
@@ -1538,6 +1538,8 @@ def parse_files(configuration, src_dir=None, is_doctest=False):
     configuration : FoBiSConfig()
     src_dir: str
       root directory into which search; if omitted use configuration.cliargs.src
+    use_cache: bool
+      use and update the parse cache (`parsecache`): the builds do, other commands read the sources afresh
 
     Returns
     -------
@@ -1563,18 +1565,40 @@ def parse_files(configuration, src_dir=None, is_doctest=False):
             return False
         return not only or _in_dependency_sources(directory, only)
 
+    which = getattr(cliargs, "which", "")
+    cache = None
+    if use_cache and which == "build" and not is_doctest and not getattr(cliargs, "no_parse_cache", False):
+        from .parsecache import ParseCache, context_key
+
+        cache = ParseCache(
+            os.path.join(cliargs.build_dir or "./", cliargs.obj_dir or "./obj/"),
+            context_key(
+                preproc=parse_preproc,
+                include=list(cliargs.include or []),
+                compiler=parse_compiler,
+                intrinsic_modules=parse_intrinsic_modules,
+                inc=list(cliargs.inc or []),
+            ),
+        )
+
     def parse_one(filen):
         pfile = ParsedFile(name=filen, is_doctest=is_doctest)
+        if cache is not None and cache.restore(pfile):
+            pfiles.append(pfile)
+            return
         options = {
             "inc": cliargs.inc,
             "preproc": parse_preproc,
             "include": cliargs.include,
             "compiler": parse_compiler,
             "intrinsic_modules": parse_intrinsic_modules,
+            "doctests": which not in ("build", "check"),
         }
         if is_doctest:
             options["preprocessor"] = cliargs.doctests_preprocessor
         pfile.parse(**options)
+        if cache is not None:
+            cache.store(pfile)
         pfiles.append(pfile)
 
     for src_dir in src:
@@ -1595,6 +1619,8 @@ def parse_files(configuration, src_dir=None, is_doctest=False):
                 for filename in files:
                     if os.path.splitext(filename)[1] in extensions and filename not in excluded_names:
                         parse_one(os.path.join(root, filename))
+    if cache is not None:
+        cache.save()
     # by path, in natural order: not the directory listing's (it differs between file systems, so did the order of
     # compilation and of the doctests)
     return sorted(pfiles, key=lambda pfile: _natural_key(pfile.name))

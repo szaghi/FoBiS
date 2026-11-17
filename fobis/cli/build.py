@@ -94,6 +94,7 @@ def cmd_build(
     nomodlibs: NomodlibsOpt = None,
     scheduler: SchedulerOpt = None,
     interface_cutoff: InterfaceCutoffOpt = False,
+    no_parse_cache: NoParseCacheOpt = False,
     makefile: MakefileOpt = None,
     json_output: JsonOpt = False,
     # --- new options (issues #165-#180) ---
@@ -282,6 +283,7 @@ def cmd_build(
         nomodlibs=nomodlibs,
         scheduler=scheduler,
         interface_cutoff=interface_cutoff,
+        no_parse_cache=no_parse_cache,
         makefile=makefile,
         json_output=json_output,
         active_features=[],

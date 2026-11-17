@@ -102,6 +102,7 @@ def test_a_fortran_program_calls_a_c_function(project, capsys):
     assert sorted(os.listdir(project / "build" / "obj")) == [
         COMPILER_RECORD,
         Builder.LINKS_FILE,
+        ".fobis-parse-cache.json",
         "main.o",
         "timer.c.o",
         "timer.o",

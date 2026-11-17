@@ -96,6 +96,7 @@ try:
         return graph
 except ImportError:
     __graphviz__ = False
+import functools
 import operator
 import os
 import re
@@ -214,6 +215,7 @@ __regex_use_intrinsic_modules__ = [
 __regex_mpifh__ = re.compile(__str_mpifh__)
 # a C file's dependencies: the project headers it includes with quotes (<...> ones are the system's)
 __regex_c_include__ = re.compile(r'^\s*#\s*include\s*"(?P<name>[^"]+)"')
+_FIRST_CHARACTERS = set("pPmMsSuUiI#")
 
 # Universal intrinsic modules — recognised by every supported Fortran
 # compiler.  Names are lowercased; the parser's lookup also lowercases the
@@ -351,6 +353,35 @@ _is_compiler_intrinsic_module = _is_intrinsic_module
 
 def openReader(filename: str) -> Any:
     return open(filename, newline="", encoding="utf8")
+
+
+_DEFINE_FLAG = re.compile(r"-D\s*([A-Za-z_][A-Za-z0-9_]*)")
+# names GNU cpp defines itself (outside strict modes) that may also be Fortran identifiers
+_PREDEFINED_MACROS = ("linux", "unix", "i386")
+
+
+@functools.lru_cache(maxsize=64)
+def _macro_pattern(preproc: str) -> re.Pattern[str]:
+    names = sorted(set(_DEFINE_FLAG.findall(preproc or "")) | set(_PREDEFINED_MACROS))
+    return re.compile(r"\b(?:" + "|".join(re.escape(n) for n in names) + r")\b")
+
+
+def _preprocessor_changes(text: str, preproc: str | None) -> bool:
+    """Whether running the preprocessor can change *text*: it holds a directive line (``#...``), or a word that is a
+    macro of the flags (``-DNAME``) or one cpp predefines. Otherwise cpp gives the text back (plus line markers)."""
+    if re.search(r"^[ \t]*#", text, re.MULTILINE):
+        return True
+    return bool(_macro_pattern(preproc or "").search(text))
+
+
+@functools.lru_cache(maxsize=16)
+def _on_path_cached(program: str, path_env: str) -> bool:
+    return any(os.path.exists(os.path.join(path, program)) for path in path_env.split(os.pathsep))
+
+
+def _on_path(program: str) -> bool:
+    """Whether *program* is on PATH (memoised per PATH value: asked for every file)."""
+    return _on_path_cached(program, os.environ.get("PATH", ""))
 
 
 def _needs_preprocessing(extension: str, inc: list[str]) -> bool:
@@ -534,6 +565,7 @@ class ParsedFile:
         include: str | list[str] = "",
         compiler: str = "",
         intrinsic_modules: list[str] | None = None,
+        doctests: bool = True,
     ) -> None:
         """
         Parse the file creating its the dependencies list and the list of modules names that self eventually contains.
@@ -556,6 +588,8 @@ class ParsedFile:
         intrinsic_modules : list[str] | None
           extra module names to treat as intrinsic regardless of compiler
           (e.g. fobos-declared ``intrinsic_modules = my_helper``).
+        doctests : bool
+          read the doctests of a module (``self.doctest``)
         """
         self.module_names = []
         self.submodule_names = []
@@ -566,12 +600,11 @@ class ParsedFile:
             return
 
         preprocessed = False
+        raw = None
         if _needs_preprocessing(self.extension, inc):
-            preprocessor_exist = False
-            for path in os.environ["PATH"].split(os.pathsep):
-                preprocessor_exist = os.path.exists(os.path.join(path, preprocessor))
-                if preprocessor_exist:
-                    break
+            raw = str(openReader(self.name).read())
+        if raw is not None and _preprocessor_changes(raw, preproc):
+            preprocessor_exist = _on_path(preprocessor)
             if preprocessor_exist:
                 if preprocessor == "cpp":
                     preprocessor += " -C -w "
@@ -606,21 +639,28 @@ class ParsedFile:
                     # scanning can still proceed; macro-driven `use` lines
                     # may show up as "unreachable" warnings, but that's
                     # better than crashing the whole parse.
-                    source = str(openReader(self.name).read())
+                    source = raw
             else:
-                source = str(openReader(self.name).read())
+                source = raw
         else:
-            source = str(openReader(self.name).read())
+            # no directive and no macro of the flags in the text: cpp would give the text back (issue #218: 515
+            # cpp processes were a third of the parse of a large project)
+            source = raw if raw is not None else str(openReader(self.name).read())
 
         for line in source.split("\n"):
-            matching = re.match(__regex_program__, line)
+            # every statement read here starts with p(rogram), m(odule), s(ubmodule), u(se), i(nclude) or #include:
+            # testing the first character first spares the six regular expressions on most lines (issue #218)
+            first = line.lstrip()[:1]
+            if not first or first not in _FIRST_CHARACTERS:
+                continue
+            matching = __regex_program__.match(line)
             if matching:
                 self.program = True
-            matching = re.match(__regex_module__, line)
+            matching = __regex_module__.match(line)
             if matching:
                 self.module = True
                 self.module_names.append(matching.group("name"))
-            matching = re.match(__regex_submodule__, line)
+            matching = __regex_submodule__.match(line)
             if matching:
                 self.submodule = True
                 self.submodule_names.append(matching.group("name"))
@@ -629,7 +669,7 @@ class ParsedFile:
                     self.dependencies.append(Dependency(dtype="submodule", name=matching.group("submparent")))
                 dep = Dependency(dtype="module", name=matching.group("submancestor"))
                 self.dependencies.append(dep)
-            matching = re.match(__regex_use_mod__, line)
+            matching = __regex_use_mod__.match(line)
             if matching:
                 # Two-stage filter:
                 #   1. Legacy regex chain — matches `use, intrinsic ::` form
@@ -643,14 +683,14 @@ class ParsedFile:
                 # Either filter triggering means the use is intrinsic and
                 # not a real dependency.
                 name = matching.group("name")
-                if not any(
-                    re.match(regex, line) for regex in __regex_use_intrinsic_modules__
-                ) and not _is_intrinsic_module(name, compiler, intrinsic_modules):
+                if not any(regex.match(line) for regex in __regex_use_intrinsic_modules__) and not _is_intrinsic_module(
+                    name, compiler, intrinsic_modules
+                ):
                     dep = Dependency(dtype="module", name=name)
                     self.dependencies.append(dep)
-            matching = re.match(__regex_include__, line)
+            matching = __regex_include__.match(line)
             if matching:
-                if not re.match(__regex_mpifh__, line):
+                if not __regex_mpifh__.match(line):
                     dep = Dependency(dtype="include", name=matching.group("name"))
                     self.dependencies.append(dep)
 
@@ -660,7 +700,7 @@ class ParsedFile:
             for name in _linemarker_includes(source):
                 self.dependencies.append(Dependency(dtype="include", name=name, located=True))
 
-        if self.module:
+        if self.module and doctests:  # only the doctests command reads them (0.5 s of a large project's build)
             self.doctest = Doctest()
             self.doctest.parse(source=source)
             self.doctest.make_volatile_programs()

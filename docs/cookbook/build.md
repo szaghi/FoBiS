@@ -590,6 +590,15 @@ again:
   those it uses directly), and submodules always compile.
 - **The first build with it compiles as usual** and records the interfaces in `<obj_dir>/.fobis-interfaces.json`.
 
+## A build with nothing to do
+
+Every build reads its sources for their modules, uses and includes. The facts of each file are kept in
+`<build_dir>/<obj_dir>/.fobis-parse-cache.json` and used again while the file (and every file the preprocessor
+included into it) keeps its size and modification time, and the settings the reading depends on (preprocessor flags,
+include directories, compiler, FoBiS version) are the same. `--no-parse-cache` (or `no_parse_cache = True`) reads
+every file afresh. An upper-case file (`.F90`) goes through `cpp` only when it holds a directive or a name defined by
+`-D`: otherwise `cpp` would give it back unchanged.
+
 ## Rebuild after changing the flags
 
 ```ini

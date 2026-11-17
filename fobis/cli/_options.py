@@ -263,6 +263,14 @@ InterfaceCutoffOpt = Annotated[
         "file above it.",
     ),
 ]
+NoParseCacheOpt = Annotated[
+    bool,
+    typer.Option(
+        "--no-parse-cache",
+        help="Parse every source file: do not use the facts kept from the last build "
+        "(<build_dir>/<obj_dir>/.fobis-parse-cache.json) for the files unchanged since.",
+    ),
+]
 SchedulerOpt = Annotated[
     str | None,
     typer.Option(

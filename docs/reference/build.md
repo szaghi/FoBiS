@@ -77,6 +77,7 @@ How to use it, with examples: [Building](/cookbook/build).
 | `--nomodlibs` | TEXT |  | Which files without modules (external procedures) and submodules are compiled and linked: reachable (those the target's files name; the default with a target), all (every one; the default without a target and for libraries), none. |
 | `--scheduler` | TEXT |  | How compiles are ordered: queue (a file starts as soon as the files it uses are compiled; the default) or levels (the scheduler of FoBiS 3.18 and earlier, kept for two releases). |
 | `--interface-cutoff` |  |  | Compile a file whose own source did not change only when a module interface it reads changed (the .mod files are compared; gfortran and nvfortran): an edit of a procedure body no longer recompiles every file above it. |
+| `--no-parse-cache` |  |  | Parse every source file: do not use the facts kept from the last build (&lt;build_dir&gt;/&lt;obj_dir&gt;/.fobis-parse-cache.json) for the files unchanged since. |
 | `--makefile`, `-m` | TEXT |  | Generate a GNU Makefile for building the project |
 | `--json` |  |  | Emit structured JSON to stdout instead of human-readable output (useful for scripting / agents) |
 | `--build-profile` | TEXT |  | Named build profile: debug, release, asan, coverage |

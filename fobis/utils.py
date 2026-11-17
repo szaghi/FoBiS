@@ -315,30 +315,36 @@ def dependency_hiearchy(builder, pfiles, print_w=None, force_compile=False):
 
     # an include the preprocessor located (its linemarkers) is matched by path: the name is relative to the cwd
     by_path = {os.path.abspath(pfile.name): fnum for fnum, pfile in enumerate(pfiles)}
+    # module name -> the file defining it (the last one, as module_is_in), looked up once per name (issue #218: the
+    # linear scan per `use` and the walk of the include directories per unresolved module cost 1.5 s on 2531 files)
+    modules = {}
+    for fnum, pfile in enumerate(pfiles):
+        if pfile.module:
+            for module_name in pfile.module_names:
+                modules[module_name.lower()] = fnum
+    external_mods: set[str] = set()
+    walked: list[str] = []
     # direct dependencies list used after for building indirect (complete) dependencies list
     for parsed_file in pfiles:
         parsed_file.pfile_dep = []
         for dep in parsed_file.dependencies:
             if dep.type == "module":
-                dep.file, fnum = module_is_in(pfiles=pfiles, module=dep.name)
+                fnum = modules.get(dep.name.lower(), -1)
+                dep.file = pfiles[fnum].name if fnum > -1 else ""
                 if fnum > -1:
                     if pfiles[fnum] not in parsed_file.pfile_dep:
                         parsed_file.pfile_dep.append(pfiles[fnum])
                 else:
-                    # there is no source containg the searched module, try to find it into a precompiled mod file into eventually included paths
-                    for dinc in builder.dinc:
-                        for _, _, files in os.walk(dinc):
-                            for filename in files:
-                                if (
-                                    os.path.splitext(os.path.basename(filename))[0].lower() == dep.name.lower()
-                                    and os.path.splitext(os.path.basename(filename))[1].lower() == ".mod"
-                                ):
-                                    fnum = 0
-                                    break
-                            if fnum == 0:
-                                break
-                        if fnum == 0:
-                            break
+                    # no source defines it: a precompiled .mod in the include directories?
+                    for dinc in builder.dinc[len(walked) :]:  # include directories added since (by includes)
+                        walked.append(dinc)
+                        external_mods.update(
+                            os.path.splitext(filename)[0].lower()
+                            for _, _, files in os.walk(dinc)
+                            for filename in files
+                            if os.path.splitext(filename)[1].lower() == ".mod"
+                        )
+                    fnum = 0 if dep.name.lower() in external_mods else -1
                     dep.external = fnum == 0
                     if fnum != 0:
                         print_wm(
