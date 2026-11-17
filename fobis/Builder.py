@@ -106,6 +106,8 @@ class Builder:
         self.compiler = Compiler(cliargs=cliargs, print_w=self.print_w)
 
         self.jobs = cliargs.jobs
+        # (file that failed, compiler output) of the last file without modules that could not be built (build())
+        self.nomodlib_failure = None
         # every compile and link measured (fobis build --timings): None when not asked
         self.timings = Timings() if getattr(cliargs, "timings", False) else None
         self._sanitize_dirs(
@@ -587,7 +589,8 @@ class Builder:
         """
         build_ok = True
         hierarchy = self._get_hierarchy(file_to_build)
-        for deps in reversed(hierarchy):
+        levels = list(reversed(hierarchy))
+        for index, deps in enumerate(levels):
             files_to_compile = ""
             steps_per_file = []
             for dep in deps:
@@ -622,17 +625,27 @@ class Builder:
                     check_results(results=results, log="building-errors.log", print_w=self.print_w)
                 else:
                     check_results(results=results, print_w=self.print_w)
-        if file_to_build.nomodlib:
-            if results[0][0] != 0:
+                continue
+            failed = [(dep[0], result[1]) for dep, result in zip(deps, results, strict=True) if result[0] != 0]
+            if failed:
+                # the file without modules, or a module it uses, does not compile: the file is not linked (the caller
+                # reports it), and what this build did not compile is marked to compile again, so that a target
+                # needing one of those modules compiles it (and fails on it) instead of taking it for up to date.
+                # Before, a module failing here was ignored and its stale or missing object used later.
                 build_ok = False
-                if not quiet:
-                    self.print_w(
-                        "Warning: compiling file "
-                        + file_to_build.name
-                        + " fails! Removing from the list of non-module libraries linked into the target!"
-                        + ("\n" + results[0][1].rstrip() if results[0][1].strip() else "")  # why: the compiler's words
-                    )
+                self.nomodlib_failure = (failed[0][0], failed[0][1])
+                retry = {name for name, _ in failed}
+                for later in levels[index + 1 :]:
+                    retry.update(dep[0] for dep in later)
+                for dep in file_to_build.pfile_dep_all:
+                    if dep.name in retry:
+                        dep.to_compile = True
+                break
         return build_ok
+
+    def compile_command_text(self, file_to_compile) -> str:
+        """The command(s) compiling *file_to_compile*, as one string (a digest input: `plan.failure_digest`)."""
+        return " && ".join(cmd for cmd, _ in self._compile_command(file_to_compile=file_to_compile))
 
     def _link(self, cmd: str, output: str) -> list:
         """Run a link (or archive, or ranlib) command, measured with ``--timings``."""
@@ -720,6 +733,7 @@ class Builder:
           it is used for purging out failed non-module-library in order to try to build the target anywhere;
         """
         build_ok = True
+        self.nomodlib_failure = None
         if not quiet:
             self.print_n("Building " + file_to_build.name)
         # sort dependencies accordingly to indirect dependency

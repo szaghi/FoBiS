@@ -136,6 +136,8 @@ class BuildFacts:
         Normalised paths of the files this build compiles (None: unknown).
     linked : set or None
         Normalised paths of the files whose objects the failed target links (None: unknown).
+    left_out : dict
+        Normalised path to the reason the build plan left that file out (``nomodlibs``, `fobis.plan`).
     target : str or None
         The target being built when the build failed.
     dependencies : dict
@@ -156,6 +158,7 @@ class BuildFacts:
     files: dict[str, FileUnits] = field(default_factory=dict)
     built: set[str] | None = None
     linked: set[str] | None = None
+    left_out: dict[str, str] = field(default_factory=dict)
     target: str | None = None
     dependencies: dict[str, str] = field(default_factory=dict)
     deps_dir: str = ".fobis_deps"
@@ -452,6 +455,12 @@ def _undefined(diagnostic: Diagnostic, facts: BuildFacts) -> Diagnosis:
         diag.advice.append(
             "link the dependency: `use=fobos` in `[dependencies]` builds it as a library linked through "
             "`dependon`, `use=sources` compiles it with the project; then re-run `fobis fetch`"
+        )
+    elif path in facts.left_out:
+        diag.facts.append(f"this build leaves that file out: {facts.left_out[path]}.")
+        diag.advice.append(
+            "build it with `nomodlibs = all` in the mode (or `--nomodlibs all`); a name the file defines that the "
+            "caller builds with the preprocessor is not seen by FoBiS"
         )
     elif facts.built is not None and path not in facts.built:
         diag.facts.append(f"this build does not compile that file: {facts.not_built_reason(path)}.")

@@ -104,6 +104,7 @@ from subprocess import STDOUT, CalledProcessError, check_output
 
 from .Dependency import Dependency
 from .Doctest import Doctest
+from .plan import external_procedures, is_fixed_form
 from .utils import dependency_closure, is_c_header, is_c_source
 
 # definition of regular expressions
@@ -116,7 +117,8 @@ __str_kw_program__ = r"[Pp][Rr][Oo][Gg][Rr][Aa][Mm]"
 __str_kw_use__ = r"[Uu][Ss][Ee]"
 __str_kw_mpifh__ = r"[Mm][Pp][Ii][Ff]\.[Hh]"
 __str_name__ = r"(?P<name>[a-zA-Z][a-zA-Z0-9_]*)"
-__str_submodule_ancestor__ = r"(\((?P<submancestor>[a-zA-Z][a-zA-Z0-9_]*)\))"
+# (ancestor-module-name [: parent-submodule-name]): a child submodule names its parent too
+__str_submodule_ancestor__ = r"(\(\s*(?P<submancestor>[a-zA-Z][a-zA-Z0-9_]*)\s*(:\s*[a-zA-Z][a-zA-Z0-9_]*\s*)?\))"
 __str_eol__ = r"(?P<eol>\s*!.*|\s*)?$"
 # __str_f95_mod_rename__ = r"(\s*,\s*[a-zA-Z][a-zA-Z0-9_]*\s*=>\s*[a-zA-Z][a-zA-Z0-9_]*)*"
 # __str_f95_mod_only__ = r"(\s*,\s*[Oo][Nn][Ll][Yy]\s*:\s*([a-zA-Z][a-zA-Z0-9_]*\s*=>\s*[a-zA-Z][a-zA-Z0-9_]*|[a-zA-Z][a-zA-Z0-9_]*))*"
@@ -168,7 +170,7 @@ __str_submodule__ = (
     + r"(?P<scplevel>"
     + __str_kw_submodule__
     + r")"  # keyword "submodule"
-    + r"(\s+)"  # 1 or more white spaces
+    + r"(\s*)"  # eventual white spaces: submodule(ancestor) name
     +
     # r"(\(.*\))" +
     __str_submodule_ancestor__  # (ancestor-module-name [:parent-submodule-name])
@@ -506,6 +508,8 @@ class ParsedFile:
         self.submodule_names = None
         self.dependencies = None
         self.doctest = None
+        self.submodule_ancestor = None
+        self.external_procedures = None  # plan.ExternalProcedures of a file without modules (parse)
         return
 
     def sort_dependencies(self) -> None:
@@ -618,6 +622,7 @@ class ParsedFile:
             if matching:
                 self.submodule = True
                 self.submodule_names.append(matching.group("name"))
+                self.submodule_ancestor = matching.group("submancestor")
                 dep = Dependency(dtype="module", name=matching.group("submancestor"))
                 self.dependencies.append(dep)
             matching = re.match(__regex_use_mod__, line)
@@ -659,6 +664,8 @@ class ParsedFile:
         if not self.program and not self.module and not self.submodule:
             if os.path.splitext(os.path.basename(self.name))[1] not in inc:
                 self.nomodlib = True
+                # what it gives the linker: the build plan links it only into the targets that name one of them
+                self.external_procedures = external_procedures(source, fixed_form=is_fixed_form(self.name))
 
     def _parse_c(self) -> None:
         """A C file is read for its ``#include "..."`` lines only (every one, whatever ``#if`` it is under: an extra

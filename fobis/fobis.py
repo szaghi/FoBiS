@@ -26,6 +26,7 @@ import os
 import re
 import shutil
 import sys
+from types import SimpleNamespace
 
 from . import compile_commands
 from .Builder import Builder
@@ -1104,8 +1105,13 @@ def _run_fobis_build(configuration):
                 force_compile=t_cliargs.force_compile,
             )
             compile_commands.update(t_cliargs, t_builder, pfiles_all, configuration.print_r, accumulated=database)
-            nomodlibs = build_nomodlibs(configuration=configuration, pfiles=pfiles_all, builder=t_builder)
-            submodules = build_submodules(configuration=configuration, pfiles=pfiles_all, builder=t_builder)
+            source = t_dict.get("source") or t_dict.get("target", "")
+            chosen = target_files(source, pfiles_all)
+            t_plan = _build_plan(configuration, pfiles_all, chosen, cliargs=t_cliargs)
+            nomodlibs = build_nomodlibs(configuration=configuration, pfiles=pfiles_all, builder=t_builder, plan=t_plan)
+            submodules = build_submodules(
+                configuration=configuration, pfiles=pfiles_all, builder=t_builder, plan=t_plan
+            )
             # pre_build hooks
             pre_rules = getattr(t_cliargs, "pre_build", []) or []
             if isinstance(pre_rules, str):
@@ -1113,8 +1119,6 @@ def _run_fobis_build(configuration):
             for rule_name in pre_rules:
                 fobos.rule_execute(rule_name)
 
-            source = t_dict.get("source") or t_dict.get("target", "")
-            chosen = target_files(source, pfiles_all)
             for pfile in pfiles_all:
                 if pfile in chosen:
                     build_pfile(
@@ -1153,8 +1157,12 @@ def _run_fobis_build(configuration):
     if cliargs.makefile:
         save_makefile(configuration=configuration, pfiles=pfiles, builder=builder)
         return
-    nomodlibs = build_nomodlibs(configuration=configuration, pfiles=pfiles, builder=builder)
-    submodules = build_submodules(configuration=configuration, pfiles=pfiles, builder=builder)
+    chosen = target_files(cliargs.target, pfiles) if cliargs.target else []
+    if cliargs.target and not cliargs.build_all and not chosen:  # before: the files without modules were compiled first
+        _target_not_found(configuration)
+    build_plan = _build_plan(configuration, pfiles, chosen if cliargs.target and not cliargs.build_all else None)
+    nomodlibs = build_nomodlibs(configuration=configuration, pfiles=pfiles, builder=builder, plan=build_plan)
+    submodules = build_submodules(configuration=configuration, pfiles=pfiles, builder=builder, plan=build_plan)
 
     # Execute pre_build lifecycle hooks
     pre_rules = getattr(cliargs, "pre_build", []) or []
@@ -1164,7 +1172,6 @@ def _run_fobis_build(configuration):
         fobos.rule_execute(rule_name)
 
     build_succeeded = False
-    chosen = target_files(cliargs.target, pfiles) if cliargs.target else []
     # building target or all programs found
     for pfile in pfiles:
         if cliargs.build_all:
@@ -1202,11 +1209,7 @@ def _run_fobis_build(configuration):
                     build_succeeded = True
 
     if cliargs.target and not cliargs.build_all and not build_succeeded:  # before: nothing built, exit status 0
-        configuration.print_r(
-            f'Error: the target "{cliargs.target}" is not among the sources of this build '
-            f"(src: {' '.join(cliargs.src)}): add its directory to the mode's src"
-        )
-        sys.exit(1)
+        _target_not_found(configuration)
 
     compiler_record()  # the build ended without a compile failure: its objects are the recorded compiler's
 
@@ -1660,7 +1663,11 @@ def build_pfile(configuration, pfile, pfiles, nomodlibs, submodules, builder, cl
       the settings of this build (a ``[target.NAME]``'s own); default the configuration's
     """
     cliargs = cliargs or configuration.cliargs
-    configuration.build_trace = {"pfiles": pfiles, "target": pfile}
+    configuration.build_trace = {
+        **(getattr(configuration, "build_trace", None) or {}),
+        "pfiles": pfiles,
+        "target": pfile,
+    }
     built = builder.build(
         file_to_build=pfile,
         output=cliargs.output,
@@ -1714,10 +1721,16 @@ def _build_failure_facts(configuration, failure):
     trace = getattr(configuration, "build_trace", {})
     pfiles = trace.get("pfiles")
     target = trace.get("target")
+    build_plan = trace.get("plan")
+    left_out = {
+        os.path.normcase(os.path.abspath(name)): why
+        for name, why in (build_plan.left_out if build_plan else {}).items()
+    }
     linked = None
     if target is not None:
+        nomodlibs = build_plan.nomodlibs if build_plan is not None else [p for p in pfiles if p.nomodlib]
         linked = {os.path.abspath(p.name) for p in (target.pfile_dep_all or [])}
-        linked |= {os.path.abspath(target.name)} | {os.path.abspath(p.name) for p in pfiles if p.nomodlib}
+        linked |= {os.path.abspath(target.name)} | {os.path.abspath(p.name) for p in nomodlibs}
     fobos = configuration.fobos
     sources = discover_files([*(cliargs.src or []), "."], extensions=cliargs.extensions)
     facts = BuildFacts.scan(
@@ -1729,6 +1742,7 @@ def _build_failure_facts(configuration, failure):
         cflags=cliargs.cflags or "",
         built={os.path.abspath(p.name) for p in pfiles} if pfiles is not None else None,
         linked=linked,
+        left_out=left_out,
         target=target.name if target is not None else None,
         dependencies=fobos.get_dependencies(),
         src=list(cliargs.src or []),
@@ -1890,8 +1904,73 @@ def _run_tee(args):
     return proc.returncode, "".join(recorded)
 
 
-def build_nomodlibs(configuration, pfiles, builder):
-    """Build all non module library files.
+def _target_not_found(configuration):
+    cliargs = configuration.cliargs
+    configuration.print_r(
+        f'Error: the target "{cliargs.target}" is not among the sources of this build '
+        f"(src: {' '.join(cliargs.src)}): add its directory to the mode's src"
+    )
+    sys.exit(1)
+
+
+def _introspect_left_out(configuration, pfiles):
+    """{file: why the build leaves it out} for ``introspect --sources``: the build plan of the mode's target (empty
+    when the mode builds every file without modules, or when the settings cannot make a builder)."""
+    from .plan import make_plan, resolve_policy
+
+    cliargs = configuration.cliargs
+    try:
+        policy = resolve_policy(cliargs)
+        if policy == "all":
+            return {}
+        # what dependency_hiearchy reads of a builder: a real one would create the build directories
+        builder = SimpleNamespace(dinc=list(cliargs.include or []), obj_dir=os.path.join(cliargs.build_dir, "obj"))
+        dependency_hiearchy(builder=builder, pfiles=pfiles, print_w=None, force_compile=False)
+    except (AttributeError, TypeError, ValueError, SystemExit):
+        return {}
+    roots = target_files(cliargs.target, pfiles) if cliargs.target else [p for p in pfiles if p.program]
+    return make_plan(pfiles, roots, policy).left_out
+
+
+def _build_plan(configuration, pfiles, roots, cliargs=None):
+    """The files without modules and the submodules this build links (`plan.make_plan`): *roots* are the target
+    files, None to build every program (or every file). Kept in ``build_trace`` for ``--explain``."""
+    from .plan import make_plan, resolve_policy
+
+    cliargs = cliargs or configuration.cliargs
+    try:
+        policy = resolve_policy(cliargs)
+    except ValueError as error:
+        configuration.print_r(f"Error: {error}")
+        sys.exit(2)
+    if roots is None:
+        roots = [p for p in pfiles if p.program] if policy != "all" and not cliargs.build_all else []
+    build_plan = make_plan(pfiles, roots, policy)
+    trace = getattr(configuration, "build_trace", None)
+    if isinstance(trace, dict):
+        trace["plan"] = build_plan
+    if build_plan.left_out and not cliargs.quiet:
+        fragments = len(build_plan.fragments())
+        others = len(build_plan.left_out) - fragments
+        parts = ([f"{fragments} fragment(s) defining no procedure"] if fragments else []) + (
+            [f"{others} not reachable from the target"] if others else []
+        )
+        configuration.print_b(
+            f"Left out of this build (nomodlibs = {build_plan.policy}): {len(build_plan.left_out)} file(s) without "
+            f"modules or submodules, {' and '.join(parts)}; --verbose lists them, nomodlibs = all builds them"
+        )
+        if cliargs.verbose:
+            for name, why in build_plan.left_out.items():
+                configuration.print_b(f"  {name}: {why}")
+    return build_plan
+
+
+def build_nomodlibs(configuration, pfiles, builder, plan=None):
+    """Build the files without modules of the build plan (every one without a plan).
+
+    A file that does not compile is not linked; it is remembered (``<obj_dir>/.fobis-failed.json``, digest of the
+    file, its includes and its compile command) and not compiled again until one of them changes. The failures are
+    reported once, at the end of this phase.
 
     Parameters
     ----------
@@ -1899,25 +1978,55 @@ def build_nomodlibs(configuration, pfiles, builder):
     pfiles : list
       list of ParsedFile() objects
     builder : Builder()
+    plan : plan.BuildPlan or None
 
     Returns
     -------
     list
       list of built non module libraries object names
     """
+    from .plan import failure_digest, load_failures, save_failures
+
+    cliargs = configuration.cliargs
+    selected = plan.nomodlibs if plan is not None else [p for p in pfiles if p.nomodlib]
+    known = load_failures(builder.obj_dir)
+    remembered = dict(known)
+    failed = []
+    unchanged = []
     nomodlibs = []
-    for pfile in pfiles:
-        if pfile.nomodlib:
-            build_ok = builder.build(
-                file_to_build=pfile, verbose=configuration.cliargs.verbose, log=configuration.cliargs.log
-            )
-            if build_ok:
-                nomodlibs = nomodlibs + pfile.obj_dependencies(exclude_programs=True)
+    for pfile in selected:
+        digest = None if pfile.c_source else failure_digest(pfile, builder.compile_command_text(pfile))
+        if digest is not None and known.get(pfile.name) == digest:
+            unchanged.append(pfile.name)
+            continue
+        build_ok = builder.build(file_to_build=pfile, verbose=cliargs.verbose, log=cliargs.log)
+        if build_ok:
+            remembered.pop(pfile.name, None)
+            nomodlibs = nomodlibs + pfile.obj_dependencies(exclude_programs=True)
+        else:
+            culprit, output = builder.nomodlib_failure or (pfile.name, "")
+            failed.append((pfile.name, culprit, output))
+            if digest is not None:
+                remembered[pfile.name] = digest
+    if remembered != known:
+        save_failures(builder.obj_dir, remembered)
+    if failed or unchanged:
+        names = [name for name, _, _ in failed] + unchanged
+        shown = ", ".join(names[:5]) + (f" and {len(names) - 5} more" if len(names) > 5 else "")
+        configuration.print_r(
+            f"Warning: {len(names)} file(s) without modules do not compile and are not linked: {shown}"
+            + (f" ({len(unchanged)} unchanged since they failed, not compiled again)" if unchanged else "")
+            + ("" if cliargs.verbose else "; --verbose shows the compiler's messages")
+        )
+        if cliargs.verbose:
+            for name, culprit, output in failed:
+                why = "" if culprit == name else f" (a file it uses does not compile: {culprit})"
+                configuration.print_r(f"{name}{why}:\n{output.rstrip()}")
     return nomodlibs
 
 
-def build_submodules(configuration, pfiles, builder):
-    """Build all submodule files.
+def build_submodules(configuration, pfiles, builder, plan=None):
+    """Build the submodule files of the build plan (every one without a plan).
 
     Parameters
     ----------
@@ -1925,6 +2034,7 @@ def build_submodules(configuration, pfiles, builder):
     pfiles : list
       list of ParsedFile() objects
     builder : Builder()
+    plan : plan.BuildPlan or None
 
     Returns
     -------
@@ -1932,18 +2042,18 @@ def build_submodules(configuration, pfiles, builder):
       list of built submodules object names
     """
     submodules = []
-    for pfile in pfiles:
-        if pfile.submodule:
-            build_ok = builder.build(
-                file_to_build=pfile, verbose=configuration.cliargs.verbose, log=configuration.cliargs.log
-            )
-            if build_ok:
-                submodules.append(pfile.obj_name + ".o")
-                # Also include transitive module dependencies of this submodule.
-                # Modules used exclusively by submodule files are not reachable from the
-                # main program's module dependency graph and would otherwise be compiled
-                # but never added to the link command.
-                submodules += pfile.obj_dependencies(exclude_programs=True)
+    selected = plan.submodules if plan is not None else [p for p in pfiles if p.submodule]
+    for pfile in selected:
+        build_ok = builder.build(
+            file_to_build=pfile, verbose=configuration.cliargs.verbose, log=configuration.cliargs.log
+        )
+        if build_ok:
+            submodules.append(pfile.obj_name + ".o")
+            # Also include transitive module dependencies of this submodule.
+            # Modules used exclusively by submodule files are not reachable from the
+            # main program's module dependency graph and would otherwise be compiled
+            # but never added to the link command.
+            submodules += pfile.obj_dependencies(exclude_programs=True)
     return list(set(submodules))
 
 
@@ -5376,6 +5486,7 @@ def run_fobis_introspect(configuration):
     # Source files
     if getattr(cliargs, "introspect_sources", False):
         pfiles = parse_files(configuration=configuration)
+        left_out = _introspect_left_out(configuration, pfiles)
         data["sources"] = [
             {
                 "file": pf.name,
@@ -5383,6 +5494,7 @@ def run_fobis_introspect(configuration):
                 "uses": [d.name for d in pf.dependencies if d.type == "module"],
                 "program": pf.program,
                 "language": "c" if pf.c_source or pf.c_header else "fortran",
+                **({"left_out": left_out[pf.name]} if pf.name in left_out else {}),
             }
             for pf in pfiles
         ]

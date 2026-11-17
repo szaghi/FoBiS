@@ -28,8 +28,10 @@ How it works:
 4. **Rebuilds.** A file is compiled again when its object is missing or older than the source, or when a file it
    depends on, directly or not, changed. Changing the flags recompiles nothing unless `cflags_heritage` is on;
    changing the compiler recompiles everything.
-5. **Link.** Each program is linked with the objects of the files it reaches through `use`, plus every file that
-   defines no module (external procedures, C files). A module no program uses is compiled but not linked.
+5. **Link.** Each program is linked with the objects of the files it reaches through `use`, plus the files that
+   define no module (external procedures, C files) and the submodules it needs: with a `target`, only the files
+   whose procedures the target's files name (see [files without modules](#files-without-modules)); without one,
+   every such file. A module no program uses is compiled but not linked.
 6. **Outputs.** Objects in `<build_dir>/<obj_dir>`, module files in `<build_dir>/<mod_dir>`, programs in
    `<build_dir>`.
 
@@ -609,6 +611,37 @@ to the compiler, which must find `NAME.mod` in an `include` directory. `intrinsi
 modules that come from outside (case-insensitive, for that mode). The standard intrinsics and the compiler's own
 modules (`cudafor` with nvfortran, `ifport` with Intel, the list in [compilers](/guide/compilers)) are skipped
 already. Libraries found through pkg-config or a wrapper: [Libraries and other build systems](./libraries).
+
+## Files without modules
+
+A file that defines no module (external `subroutine`s and `function`s, `block data`, a C source) is linked into the
+program as external procedures: no `use` says which target needs it. The mode key or option `nomodlibs` decides:
+
+```ini
+[release]
+target    = main.f90
+# reachable (default with a target), all (default without one, and for libraries), none
+nomodlibs = reachable
+```
+
+- **`reachable`:** a file is compiled and linked when one of the procedures it defines is named in a file the
+  target uses, directly or through another file kept; a submodule when the target uses its ancestor module.
+- **`all`:** every file without modules and every submodule of the sources, into every program (what older FoBiS releases always did).
+- **`none`:** no Fortran file without modules.
+
+The build says what it left out, and `--verbose` lists the files with the reason; `fobis introspect --sources` gives
+the reason of each file in its `left_out` field.
+
+- **Fragments are never compiled:** a file that defines no procedure at all (a code snippet of a dependency's
+  documentation, a file of statements) is left out under `reachable` and `none`.
+- **C sources, `block data` and `bind(c)` procedures are always kept:** their callers name them in ways FoBiS does
+  not follow.
+- **The test is on names, not on calls:** a name in a comment keeps a file (more is compiled, never less). A name the
+  preprocessor builds by pasting tokens is missed: the link then fails with an undefined reference, and
+  `--explain` names the file left out. Set `nomodlibs = all` for such a target.
+- **A file that does not compile is not linked, and not compiled again** until it, a file it includes or its compile
+  command changes (`<obj_dir>/.fobis-failed.json`); the build reports such files once, `--verbose` with the compiler's
+  messages. A module that fails while such a file is built is compiled again by the target that needs it.
 
 ## Fortran include files
 

@@ -227,6 +227,15 @@ LogOpt = Annotated[bool, typer.Option("--log", "-l", help="Activate log file cre
 GraphOpt = Annotated[bool, typer.Option("--graph", help="Generate a dependencies graph via graphviz")]
 QuietOpt = Annotated[bool, typer.Option("--quiet", "-q", help="Less verbose output")]
 VerboseOpt = Annotated[bool, typer.Option("--verbose", help="Extremely verbose output for debugging")]
+NomodlibsOpt = Annotated[
+    str | None,
+    typer.Option(
+        "--nomodlibs",
+        help="Which files without modules (external procedures) and submodules are compiled and linked: reachable "
+        "(those the target's files name; the default with a target), all (every one; the default without a target "
+        "and for libraries), none.",
+    ),
+]
 TimingsOpt = Annotated[
     bool,
     typer.Option(

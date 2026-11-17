@@ -12,7 +12,8 @@ How it works:
 
 1. **A library is a target and what it reaches.** `target` names the file of one module and `mklib` the kind,
    `static` or `shared`. The library holds that module, every module it reaches through `use`, and the files
-   without modules (C files included); a module the target never reaches is left out.
+   without modules (C files included: a library keeps them all, `nomodlibs = all`); a module the target never
+   reaches is left out.
 2. **Archive or shared object.** A static library is `ar -rcs` then `ranlib`; a shared one is the link command with
    `-shared` added (the sources need `-fPIC` in `cflags`). Without `output` the file is
    `<build_dir>/<target stem>.a` (or `.so`), with no `lib` prefix.

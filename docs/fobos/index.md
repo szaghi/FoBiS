@@ -90,6 +90,7 @@ Any key can be qualified, `key.QUALIFIER`, and applies only when QUALIFIER is th
 | `mpi` | build, clean, doctests, rule | Use MPI enabled version of compiler |
 | `no_auto_discover` | build | Disable convention-based source directory auto-discovery |
 | `no_default_features` | build | Disable the default feature set defined in [features] default |
+| `nomodlibs` | build | Which files without modules (external procedures) and submodules are compiled and linked: reachable (those the target's files name; the default with a target), all (every one; the default without a target and for libraries), none. |
 | `obj_dir` | build, clean, doctests, rule | Directory containing compiled objects [default: ./obj/] |
 | `openmp` | build, clean, doctests, rule | Use OpenMP pragmas |
 | `openmp_offload` | build, clean, doctests, rule | Use OpenMP Offload pragmas |

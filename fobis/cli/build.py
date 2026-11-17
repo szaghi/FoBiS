@@ -91,6 +91,7 @@ def cmd_build(
     verbose: VerboseOpt = False,
     jobs: JobsOpt = 1,
     timings: TimingsOpt = False,
+    nomodlibs: NomodlibsOpt = None,
     makefile: MakefileOpt = None,
     json_output: JsonOpt = False,
     # --- new options (issues #165-#180) ---
@@ -276,6 +277,7 @@ def cmd_build(
         verbose=verbose,
         jobs=jobs,
         timings=timings,
+        nomodlibs=nomodlibs,
         makefile=makefile,
         json_output=json_output,
         active_features=[],
