@@ -4,6 +4,35 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.19.0] — 2026-11-17
+### Added
+- **build**: --timings, every compile and link measured
+
+- **build**: Compile only the files without modules a target can use ⚠ BREAKING CHANGE
+
+- **build**: Exclude_dirs by path components, CLI lists added, src= for source dependencies
+
+- **build**: --interface-cutoff, stop the recompile cascade at unchanged module interfaces
+
+
+### Documentation
+- Regenerate the tutorial outputs for the build changes of #218
+
+
+### Fixed
+- **build**: Failed files retried after a module fix, --build-all, library hook overrides
+
+
+### Performance
+- **build**: Skip a link whose command and inputs did not change
+
+- **build**: One ready queue for every compile, -j defaults to the CPUs
+
+- **build**: Parse cache, cpp only where it can change a file, dictionary lookups
+
+- **build**: --interfaces-first, dependents wait for module files only
+
+
 ## [3.18.3] — 2026-11-16
 ### Fixed
 - **installer**: Split the headers patterns with read -a
