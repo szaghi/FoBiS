@@ -271,6 +271,15 @@ NoParseCacheOpt = Annotated[
         "(<build_dir>/<obj_dir>/.fobis-parse-cache.json) for the files unchanged since.",
     ),
 ]
+InterfacesFirstOpt = Annotated[
+    bool,
+    typer.Option(
+        "--interfaces-first",
+        help="Compile each module that other files use twice: its module files first (syntax-only, fast), which the "
+        "files using it wait for, then its object, which nothing waits for; the module files of both compiles are "
+        "compared (gfortran and nvfortran). Shortens the longest chain of dependent compiles.",
+    ),
+]
 SchedulerOpt = Annotated[
     str | None,
     typer.Option(

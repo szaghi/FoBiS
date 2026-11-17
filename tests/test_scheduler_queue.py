@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import os
 import random
 import shutil
+import subprocess
 import threading
 import time
 
@@ -234,3 +236,69 @@ def test_pre_build_runs_before_any_compile(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     run_fobis(fake_args=["build"])
     assert os.path.isfile(tmp_path / "main")
+
+
+# --- interfaces first (phase 6) ------------------------------------------------------------------------------------
+
+SLOW = (
+    "module slow\nimplicit none\ninteger, parameter :: n = 3\ncontains\nfunction work() result(r)\ninteger :: r\n"
+    "r = n\nend function work\nend module slow\n"
+)
+USER = "module user\nuse slow, only : n\ninteger, parameter :: m = 2 * n\nend module user\n"
+MAIN = "program main\nuse slow, only : work\nuse user, only : m\nprint *, work() + m\nend program main\n"
+
+
+def _interfaces_project(root):
+    src = root / "src"
+    src.mkdir()
+    for name, text in {"slow.f90": SLOW, "user.f90": USER, "main.f90": MAIN}.items():
+        (src / name).write_text(text)
+
+
+@pytest.mark.parametrize(
+    "compiler",
+    [
+        pytest.param("gnu", marks=pytest.mark.skipif(not GFORTRAN, reason="no gfortran")),
+        pytest.param("nvfortran", marks=pytest.mark.skipif(not shutil.which("nvfortran"), reason="no nvfortran")),
+    ],
+)
+def test_interfaces_first_builds_the_same_program(tmp_path, monkeypatch, capsys, compiler):
+    _interfaces_project(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    args = ["build", "--src", "src", "--target", "main.f90", "--compiler", compiler, "-j", "4"]
+    run_fobis(fake_args=[*args, "--interfaces-first", "--timings"])
+    assert subprocess.run([str(tmp_path / "main")], capture_output=True, text=True).stdout.split() == ["9"]
+    records = json.loads((tmp_path / "obj" / ".fobis-timings.json").read_text())["records"]
+    by = {(r["kind"], r["file"]): r for r in records}
+    interface_end = by[("interface", "src/slow.f90")]["start"] + by[("interface", "src/slow.f90")]["seconds"]
+    # the files using slow wait for its module files only; its object waits for them too
+    for kind, name in (("interface", "src/user.f90"), ("compile", "src/main.f90"), ("compile", "src/slow.f90")):
+        assert by[(kind, name)]["start"] >= interface_end - 1e-3
+    assert ("interface", "src/main.f90") not in by  # a program, nothing uses it: compiled once
+    assert sorted(os.listdir(tmp_path / "obj" / ".fobis-object-mods")) == ["slow", "user"]
+    capsys.readouterr()
+
+
+@pytest.mark.skipif(not GFORTRAN, reason="no gfortran")
+def test_interfaces_first_refuses_differing_module_files(tmp_path, monkeypatch, capsys):
+    # a compiler whose syntax-only module files differ from its full compile's: the build fails, objects removed
+    real = shutil.which("gfortran")
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    wrapper = bindir / "gfortran"
+    wrapper.write_text(
+        "#!/bin/bash\n"
+        f'"{real}" "$@" || exit $?\n'
+        'if [[ " $* " == *" -fsyntax-only "* ]]; then for f in mod/*.mod; do echo x >> "$f"; done; fi\n'
+    )
+    wrapper.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{bindir}{os.pathsep}{os.environ['PATH']}")
+    _interfaces_project(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(SystemExit):
+        run_fobis(fake_args=["build", "--src", "src", "--target", "main.f90", "--interfaces-first", "-j", "2"])
+    out = capsys.readouterr().out
+    assert "interfaces_first: the module files written by the syntax-only compile differ" in out
+    assert not [name for name in os.listdir(tmp_path / "obj") if name.endswith(".o")]
+    run_fobis(fake_args=["build", "--src", "src", "--target", "main.f90", "-j", "2"])  # without it: builds
+    assert subprocess.run([str(tmp_path / "main")], capture_output=True, text=True).stdout.split() == ["9"]

@@ -530,7 +530,14 @@ compiler output is printed in one block when it ends, with its rank:
 <<< @/examples/output/2-growing/05/jobs.txt{console}
 
 The speed-up is bounded by the longest chain: a chain of modules each using the previous one compiles serially
-whatever `-j` (`--timings` reports that chain as the critical path). `--scheduler levels` (or `scheduler = levels`)
+whatever `-j` (`--timings` reports that chain as the critical path). `--interfaces-first` (or `interfaces_first = True`) shortens that chain: a
+module that other files of the build use is compiled twice, first with the compiler's syntax-only switch
+(`-fsyntax-only`, `-Msyntax-only`), which writes its module files in a fraction of the time and is all the files using
+it wait for, then for its object, which nothing waits for. The module files of the second compile go to a directory
+of their own (`<obj_dir>/.fobis-object-mods/`) and are compared with the first ones: if they differ, the build fails
+and removes its objects (build again without the option). gfortran and nvfortran only (measured: the module files of
+both compiles are equal on PENF); not for submodules nor the modules that have some. It costs more CPU time (each
+such module is read and checked twice) to finish sooner with enough `-j`. `--scheduler levels` (or `scheduler = levels`)
 restores the scheduler of FoBiS 3.18 and earlier, which compiled the graph level by level; it will be removed after two
 releases. Tutorial: [rules and parallel compiling](/tutorial/growing/05-rules).
 

@@ -2039,6 +2039,18 @@ def _compile_queue(configuration, builder, plan, roots, cliargs=None, pfiles=Non
         else:
             cutoff = InterfaceCutoff(builder.obj_dir, builder.mod_dir, cliargs.compiler)
             external_mods = external_module_times(pfiles or [], builder.dinc)
+    interfaces_first = None
+    if getattr(cliargs, "interfaces_first", False):
+        from .scheduler import SYNTAX_ONLY
+
+        family = (cliargs.compiler or "").lower()
+        if family in SYNTAX_ONLY:
+            interfaces_first = family
+        else:
+            configuration.print_r(
+                f"warning: interfaces_first: no syntax-only compile measured for compiler {cliargs.compiler!r} "
+                "(gnu, nvfortran): every file compiles once"
+            )
     queue = compile_queue(
         builder,
         [*roots, *plan.submodules],
@@ -2048,6 +2060,8 @@ def _compile_queue(configuration, builder, plan, roots, cliargs=None, pfiles=Non
         quiet=False,  # --quiet hides the settings, never the compiles (as the level scheduler)
         cutoff=cutoff,
         external_mods=external_mods,
+        interfaces_first=interfaces_first,
+        ancestors={p.submodule_ancestor.lower() for p in pfiles or [] if p.submodule and p.submodule_ancestor},
     )
     if cutoff is not None and cutoff.skipped:
         configuration.print_b(
