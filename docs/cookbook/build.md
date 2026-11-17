@@ -559,6 +559,11 @@ A failed build writes its timings too. The file holds one record per call (`file
 | The flags | nothing, unless `cflags_heritage = True` |
 | `--force-compile`, or `force_compile = True` in the mode | everything |
 
+A program (or library) is linked again only when an object or a library it links is newer than it, or when the
+link command changed (other objects, flags, libraries); otherwise the build says `Target ... is up to date: link
+skipped`. The last command is kept in `<obj_dir>/.fobis-links.json`. A library given as `-lNAME` is followed when it
+lies in a `lib_dir`; one found elsewhere (a system library) is not: after rebuilding it, use `--force-compile`.
+
 <<< @/examples/output/1-first-steps/01/touch.txt{console}
 
 ![automatic recompilation](/gifs/05_clean.gif)

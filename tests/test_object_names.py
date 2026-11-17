@@ -53,6 +53,7 @@ def test_files_named_alike_get_objects_of_their_own(project, capsys):
     assert code == 0, out
     assert sorted(os.listdir(project / "build" / "obj")) == [
         ".fobis-compiler.json",
+        ".fobis-links.json",
         "lib_one_say_hello.f90.o",
         "lib_two_say_hello.f90.o",
         "main.o",

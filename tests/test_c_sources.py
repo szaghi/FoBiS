@@ -14,6 +14,7 @@ from argparse import Namespace
 import pytest
 
 from fobis.ai.diagnostics import parse_diagnostics
+from fobis.Builder import Builder
 from fobis.Compiler import C_COMPILERS, Compiler
 from fobis.fobis import COMPILER_RECORD, run_fobis
 
@@ -98,7 +99,13 @@ def test_a_fortran_program_calls_a_c_function(project, capsys):
     code, out, _ = _fobis(capsys, "build", "--mode", "default")
     assert code == 0, out
     assert _run(project / "build" / "main") == "3.0"
-    assert sorted(os.listdir(project / "build" / "obj")) == [COMPILER_RECORD, "main.o", "timer.c.o", "timer.o"]
+    assert sorted(os.listdir(project / "build" / "obj")) == [
+        COMPILER_RECORD,
+        Builder.LINKS_FILE,
+        "main.o",
+        "timer.c.o",
+        "timer.o",
+    ]
 
 
 def test_a_changed_header_recompiles_the_c_file_only(project, capsys):

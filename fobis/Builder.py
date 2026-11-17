@@ -27,8 +27,11 @@ try:
 except ImportError:
     print("Module 'multiprocessing' not found: parallel compilation disabled")
     __parallel__ = False
+import hashlib
+import json
 import operator
 import os
+import shlex
 from collections.abc import Callable
 from typing import Any
 
@@ -106,6 +109,7 @@ class Builder:
         self.compiler = Compiler(cliargs=cliargs, print_w=self.print_w)
 
         self.jobs = cliargs.jobs
+        self.cliargs = cliargs  # read at link time: the compiler guard may force a rebuild after construction
         # (file that failed, compiler output) of the last file without modules that could not be built (build())
         self.nomodlib_failure = None
         # every compile and link measured (fobis build --timings): None when not asked
@@ -533,7 +537,7 @@ class Builder:
         if submodules is not None:
             objs = objs + submodules
         objs = objs + file_to_build.obj_dependencies(exclude_programs=exclude_programs)
-        objs = list(set(objs))  # remove duplicated objs
+        objs = sorted(set(objs))  # no duplicates, in a fixed order (a set's order changed from run to run)
         link_cmd = "".join([os.path.join(self.obj_dir, s + " ") for s in objs])
         if mklib is None or mklib.lower() == "shared":  # an archive holds objects: another archive in it is never read
             link_cmd += "".join([s + " " for s in self.libs]) + "".join([s + " " for s in self.vlibs])
@@ -647,6 +651,59 @@ class Builder:
         """The command(s) compiling *file_to_compile*, as one string (a digest input: `plan.failure_digest`)."""
         return " && ".join(cmd for cmd, _ in self._compile_command(file_to_compile=file_to_compile))
 
+    LINKS_FILE = ".fobis-links.json"
+
+    def _links_record(self) -> dict:
+        try:
+            with open(os.path.join(self.obj_dir, self.LINKS_FILE), encoding="utf-8") as handle:
+                data = json.load(handle)
+            return data if isinstance(data, dict) else {}
+        except (OSError, ValueError):
+            return {}
+
+    @staticmethod
+    def _link_inputs(cmd: str, output: str) -> list[str]:
+        """The files a link (or archive) command reads: every word naming an existing file (objects, libraries by
+        path, a linker script), and ``-lNAME`` found as ``libNAME.a|.so`` in its ``-L`` directories (a library
+        found elsewhere, a system one, is not followed)."""
+        words = shlex.split(cmd)
+        dirs = [w[2:] for w in words if w.startswith("-L") and len(w) > 2]
+        inputs = []
+        for word in words:
+            if word == output:
+                continue
+            if word.startswith("-l") and len(word) > 2:
+                for directory in dirs:
+                    for suffix in (".a", ".so", ".dylib"):
+                        path = os.path.join(directory, "lib" + word[2:] + suffix)
+                        if os.path.isfile(path):
+                            inputs.append(path)
+            elif not word.startswith("-") and os.path.isfile(word):
+                inputs.append(word)
+        return inputs
+
+    def _link_up_to_date(self, cmd: str, output: str) -> bool:
+        """Whether the last link of *output* used this very command and no file it reads is newer than *output*:
+        then linking again would write the same file (a device-LTO link of a large program takes minutes). Never
+        with ``--force-compile``. Before, every build linked again."""
+        if getattr(self.cliargs, "force_compile", False) or not os.path.isfile(output):
+            return False
+        recorded = self._links_record().get(os.path.normpath(output))
+        if recorded != hashlib.sha256(cmd.encode()).hexdigest():
+            return False
+        built = os.path.getmtime(output)
+        return all(os.path.getmtime(path) <= built for path in self._link_inputs(cmd, output))
+
+    def _record_link(self, cmd: str, output: str) -> None:
+        """Remember the command that linked *output* (`_link_up_to_date`), in ``<obj_dir>/.fobis-links.json``."""
+        record = self._links_record()
+        record[os.path.normpath(output)] = hashlib.sha256(cmd.encode()).hexdigest()
+        os.makedirs(self.obj_dir, exist_ok=True)
+        path = os.path.join(self.obj_dir, self.LINKS_FILE)
+        with open(path + ".tmp", "w", encoding="utf-8") as handle:
+            json.dump(dict(sorted(record.items())), handle, indent=1)
+        os.replace(path + ".tmp", path)
+
     def _link(self, cmd: str, output: str) -> list:
         """Run a link (or archive, or ranlib) command, measured with ``--timings``."""
         if not self.timings:
@@ -748,38 +805,48 @@ class Builder:
             link_cmd, exe = self._link_command(
                 file_to_build=file_to_build, output=output, nomodlibs=nomodlibs, submodules=submodules, mklib=mklib
             )
-            if not quiet:
-                self.print_n("Linking " + exe)
-                if verbose:
-                    self.print_n("Executing: " + str(link_cmd))
-            result = self._link(link_cmd, exe)
-            if log:
-                check_results(results=[result], log="building-errors.log", print_w=self.print_w)
+            if self._link_up_to_date(link_cmd, exe):
+                if not quiet:
+                    self.print_n("Target " + exe + " is up to date: link skipped")
             else:
-                check_results(results=[result], print_w=self.print_w)
-            if not quiet:
-                self.print_n("Target " + file_to_build.name + " has been successfully built")
-        elif mklib:
-            link_cmd, ranlib_cmd, lib = self._mklib_command(
-                file_to_build=file_to_build, output=output, nomodlibs=nomodlibs, submodules=submodules, mklib=mklib
-            )
-            if not quiet:
-                self.print_n("Linking " + lib)
-                if verbose:
-                    self.print_n("Executing: " + str(link_cmd))
-            result = self._link(link_cmd, lib)
-            if log:
-                check_results(results=[result], log="building-errors.log", print_w=self.print_w)
-            else:
-                check_results(results=[result], print_w=self.print_w)
-            if ranlib_cmd and result[0] == 0:
-                result = self._link(ranlib_cmd, lib)
+                if not quiet:
+                    self.print_n("Linking " + exe)
+                    if verbose:
+                        self.print_n("Executing: " + str(link_cmd))
+                result = self._link(link_cmd, exe)
                 if log:
                     check_results(results=[result], log="building-errors.log", print_w=self.print_w)
                 else:
                     check_results(results=[result], print_w=self.print_w)
-            if not quiet:
-                self.print_n("Target " + file_to_build.name + " has been successfully built")
+                self._record_link(link_cmd, exe)
+                if not quiet:
+                    self.print_n("Target " + file_to_build.name + " has been successfully built")
+        elif mklib:
+            link_cmd, ranlib_cmd, lib = self._mklib_command(
+                file_to_build=file_to_build, output=output, nomodlibs=nomodlibs, submodules=submodules, mklib=mklib
+            )
+            if self._link_up_to_date(link_cmd, lib):
+                if not quiet:
+                    self.print_n("Target " + lib + " is up to date: archive skipped")
+            else:
+                if not quiet:
+                    self.print_n("Linking " + lib)
+                    if verbose:
+                        self.print_n("Executing: " + str(link_cmd))
+                result = self._link(link_cmd, lib)
+                if log:
+                    check_results(results=[result], log="building-errors.log", print_w=self.print_w)
+                else:
+                    check_results(results=[result], print_w=self.print_w)
+                if ranlib_cmd and result[0] == 0:
+                    result = self._link(ranlib_cmd, lib)
+                    if log:
+                        check_results(results=[result], log="building-errors.log", print_w=self.print_w)
+                    else:
+                        check_results(results=[result], print_w=self.print_w)
+                self._record_link(link_cmd, lib)
+                if not quiet:
+                    self.print_n("Target " + file_to_build.name + " has been successfully built")
         if track:
             self.print_n("Track building of " + file_to_build.name)
             track_file_name = self.get_track_build_file(file_to_build)
