@@ -254,6 +254,15 @@ JobsOpt = Annotated[
         "it wins over the mode's",
     ),
 ]
+InterfaceCutoffOpt = Annotated[
+    bool,
+    typer.Option(
+        "--interface-cutoff",
+        help="Compile a file whose own source did not change only when a module interface it reads changed (the "
+        ".mod files are compared; gfortran and nvfortran): an edit of a procedure body no longer recompiles every "
+        "file above it.",
+    ),
+]
 SchedulerOpt = Annotated[
     str | None,
     typer.Option(

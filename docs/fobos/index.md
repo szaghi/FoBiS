@@ -75,6 +75,7 @@ Any key can be qualified, `key.QUALIFIER`, and applies only when QUALIFIER is th
 | `help` | build | One line describing the mode, shown by `fobis build --lmodes` |
 | `inc` | build, clean, doctests, rule | Extensions for include files |
 | `include` | all | Directories for searching included files |
+| `interface_cutoff` | build | Compile a file whose own source did not change only when a module interface it reads changed (the .mod files are compared; gfortran and nvfortran): an edit of a procedure body no longer recompiles every file above it. |
 | `intrinsic_modules` | build |  |
 | `jobs` | all | Number of concurrent compilation jobs [default: the mode's jobs, else the CPUs available]; given here, it wins over the mode's |
 | `keep_volatile_doctests` | doctests | Keep the volatile doctests programs |

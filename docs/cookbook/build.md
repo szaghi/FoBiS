@@ -576,7 +576,19 @@ lies in a `lib_dir`; one found elsewhere (a system library) is not: after rebuil
 *A build from scratch, a touched file compiled again, then `fobis clean`.*
 
 The cascade follows timestamps: touching a low-level module recompiles every file above it, even when its interface
-did not change.
+did not change. `--interface-cutoff` (or `interface_cutoff = True` in the mode) stops it there: a file whose own
+source did not change is compiled only when a module interface it reads changed, compared on the module files
+(`.mod`) the compiler writes. An edit of a procedure body then compiles that file alone, and the program is linked
+again:
+
+- **Compilers:** gfortran and nvfortran, whose module files were measured (gfortran writes the same `.mod` after a
+  body edit; nvfortran's differs only in its date line). Another compiler gets a warning and the full cascade.
+- **Off with cross-file optimisation of the host code** (`-flto`, `-Mipa`, `-Mextract`, `-Minline=lib...`, `-ipo`,
+  `-fwhole-program`): an object may then hold code of other modules' bodies. Device LTO (`-gpu=...,lto`) happens at
+  the link and keeps it on.
+- **Conservative:** a file compiles again when a module anywhere in its dependency closure changed interface (not only
+  those it uses directly), and submodules always compile.
+- **The first build with it compiles as usual** and records the interfaces in `<obj_dir>/.fobis-interfaces.json`.
 
 ## Rebuild after changing the flags
 

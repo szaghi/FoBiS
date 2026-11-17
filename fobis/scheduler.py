@@ -93,11 +93,16 @@ def compile_queue(
     verbose: bool = False,
     log: bool = False,
     quiet: bool = False,
+    cutoff: Any = None,
+    external_mods: dict[str, float] | None = None,
 ) -> QueueResult:
     """Compile what the closures of *required* and *optional* files need (``to_compile``), in one ready queue.
 
     A file compiled successfully gets ``to_compile = False``, so the builds that follow (submodules, targets) find
     nothing left to compile and link. Raises `utils.BuildFailed` when a required file does not compile.
+
+    With *cutoff* (`interfaces.InterfaceCutoff`), a file to compile only because a file it depends on changed is
+    compiled when that changed a module interface of its closure, else skipped (`interfaces`).
     """
     result = QueueResult()
     required_ids: set[int] = set()
@@ -142,6 +147,16 @@ def compile_queue(
             stack.pop()
             rank[current] = cost(current) + max((rank[d] for d in dependents[current]), default=0.0)
 
+    candidates: set[int] = set()
+    if cutoff is not None:
+        from .interfaces import changed_itself
+
+        force = bool(getattr(getattr(builder, "cliargs", None), "force_compile", False))
+        candidates = {
+            key
+            for key, pfile in nodes.items()
+            if not changed_itself(pfile, builder.obj_dir, force, external_mods or {})
+        }
     waiting = {key: len(deps[key]) for key in nodes}
     ready = [(-rank[key], order[key], key) for key in nodes if waiting[key] == 0]
     heapq.heapify(ready)
@@ -168,46 +183,66 @@ def compile_queue(
             return run(steps)
         return syswork_steps(steps), None
 
+    def release(key: int) -> None:
+        for dependent in dependents[key]:
+            waiting[dependent] -= 1
+            if waiting[dependent] == 0 and dependent not in blocked:
+                heapq.heappush(ready, (-rank[dependent], order[dependent], dependent))
+
     running: dict[Future, int] = {}
-    with ThreadPoolExecutor(max_workers=jobs) as pool:
-        while ready or running:
-            while ready and len(running) < jobs and not fatal:
-                _, _, key = heapq.heappop(ready)
-                if key in blocked:
-                    continue
-                if verbose and not quiet:
-                    builder.print_n("Executing: " + str(builder._compile_command(file_to_compile=nodes[key])))
-                running[pool.submit(task, nodes[key])] = key
-            if not running:
-                break
-            finished, _ = wait(list(running), return_when=FIRST_COMPLETED)
-            for future in sorted(finished, key=lambda f: order[running[f]]):
-                key = running.pop(future)
-                pfile = nodes[key]
-                (status, output), measure = future.result()
-                done += 1
-                if measure is not None:
-                    builder.timings.add(pfile.name, "compile", status, measure)
-                if status == 0:
-                    result.compiled += 1
-                    pfile.to_compile = False
-                    if not quiet:
-                        builder.print_n(f"Compiling {pfile.name} [{done}/{total}]")
-                    if output.strip():
-                        builder.print_w(output.rstrip("\n"))  # warnings, -Minfo: as the level scheduler did
-                    for dependent in dependents[key]:
-                        waiting[dependent] -= 1
-                        if waiting[dependent] == 0 and dependent not in blocked:
-                            heapq.heappush(ready, (-rank[dependent], order[dependent], dependent))
-                elif key in required_ids or pfile.c_source:
-                    fatal.append([status, output])
-                    if not quiet:
-                        builder.print_n(f"Compiling {pfile.name} [{done}/{total}] failed")
-                else:
-                    result.failed[pfile.name] = (pfile.name, output)
-                    block(key, pfile.name, output)
-                    if not quiet:
-                        builder.print_n(f"Compiling {pfile.name} [{done}/{total}] failed (not needed by the target)")
+    try:
+        with ThreadPoolExecutor(max_workers=jobs) as pool:
+            while ready or running:
+                while ready and len(running) < jobs and not fatal:
+                    _, _, key = heapq.heappop(ready)
+                    if key in blocked:
+                        continue
+                    if key in candidates and not cutoff.must_compile(nodes[key]):
+                        # only a file it depends on changed, and no module interface of its closure: not compiled
+                        nodes[key].to_compile = False
+                        cutoff.skipped += 1
+                        total -= 1
+                        if verbose and not quiet:
+                            builder.print_n(f"Not compiled {nodes[key].name}: the interfaces it reads did not change")
+                        release(key)
+                        continue
+                    if verbose and not quiet:
+                        builder.print_n("Executing: " + str(builder._compile_command(file_to_compile=nodes[key])))
+                    running[pool.submit(task, nodes[key])] = key
+                if not running:
+                    break
+                finished, _ = wait(list(running), return_when=FIRST_COMPLETED)
+                for future in sorted(finished, key=lambda f: order[running[f]]):
+                    key = running.pop(future)
+                    pfile = nodes[key]
+                    (status, output), measure = future.result()
+                    done += 1
+                    if measure is not None:
+                        builder.timings.add(pfile.name, "compile", status, measure)
+                    if status == 0:
+                        result.compiled += 1
+                        pfile.to_compile = False
+                        if cutoff is not None:
+                            cutoff.compiled(pfile)
+                        if not quiet:
+                            builder.print_n(f"Compiling {pfile.name} [{done}/{total}]")
+                        if output.strip():
+                            builder.print_w(output.rstrip("\n"))  # warnings, -Minfo: as the level scheduler did
+                        release(key)
+                    elif key in required_ids or pfile.c_source:
+                        fatal.append([status, output])
+                        if not quiet:
+                            builder.print_n(f"Compiling {pfile.name} [{done}/{total}] failed")
+                    else:
+                        result.failed[pfile.name] = (pfile.name, output)
+                        block(key, pfile.name, output)
+                        if not quiet:
+                            builder.print_n(
+                                f"Compiling {pfile.name} [{done}/{total}] failed (not needed by the target)"
+                            )
+    finally:
+        if cutoff is not None:
+            cutoff.save()
     if fatal:
         check_results(results=fatal, log="building-errors.log" if log else None, print_w=builder.print_w)
     return result

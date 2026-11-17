@@ -1114,7 +1114,7 @@ def _run_fobis_build(configuration):
                 pre_rules = pre_rules.split()
             for rule_name in pre_rules:
                 fobos.rule_execute(rule_name)
-            queue = _compile_queue(configuration, t_builder, t_plan, chosen, cliargs=t_cliargs)
+            queue = _compile_queue(configuration, t_builder, t_plan, chosen, cliargs=t_cliargs, pfiles=pfiles_all)
             nomodlibs = build_nomodlibs(
                 configuration=configuration, pfiles=pfiles_all, builder=t_builder, plan=t_plan, queue=queue
             )
@@ -1175,7 +1175,7 @@ def _run_fobis_build(configuration):
     for rule_name in pre_rules:
         fobos.rule_execute(rule_name)
 
-    queue = _compile_queue(configuration, builder, build_plan, roots)
+    queue = _compile_queue(configuration, builder, build_plan, roots, pfiles=pfiles)
     nomodlibs = build_nomodlibs(
         configuration=configuration, pfiles=pfiles, builder=builder, plan=build_plan, queue=queue
     )
@@ -1977,7 +1977,7 @@ def _build_plan(configuration, pfiles, roots, cliargs=None):
     return build_plan
 
 
-def _compile_queue(configuration, builder, plan, roots, cliargs=None):
+def _compile_queue(configuration, builder, plan, roots, cliargs=None, pfiles=None):
     """Compile everything the build needs in one ready queue (`scheduler.compile_queue`), unless the mode asks for
     the level scheduler (``scheduler = levels``): then None, and each build compiles its own files as before.
 
@@ -2001,14 +2001,34 @@ def _compile_queue(configuration, builder, plan, roots, cliargs=None):
         for p in plan.nomodlibs
         if p.c_source or known.get(p.name) != failure_digest(p, builder.compile_command_text(p))
     ]
-    return compile_queue(
+    cutoff = None
+    external_mods = None
+    if getattr(cliargs, "interface_cutoff", False):
+        from .interfaces import InterfaceCutoff, unsupported_reason
+        from .utils import external_module_times
+
+        reason = unsupported_reason(cliargs.compiler, f"{cliargs.cflags or ''} {cliargs.lflags or ''}")
+        if reason:
+            configuration.print_r("warning: " + reason)
+        else:
+            cutoff = InterfaceCutoff(builder.obj_dir, builder.mod_dir, cliargs.compiler)
+            external_mods = external_module_times(pfiles or [], builder.dinc)
+    queue = compile_queue(
         builder,
         [*roots, *plan.submodules],
         optional,
         verbose=cliargs.verbose,
         log=cliargs.log,
         quiet=False,  # --quiet hides the settings, never the compiles (as the level scheduler)
+        cutoff=cutoff,
+        external_mods=external_mods,
     )
+    if cutoff is not None and cutoff.skipped:
+        configuration.print_b(
+            f"interface_cutoff: {cutoff.skipped} file(s) not compiled again, the module interfaces they read did not "
+            "change"
+        )
+    return queue
 
 
 def build_nomodlibs(configuration, pfiles, builder, plan=None, queue=None):
