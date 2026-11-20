@@ -4,6 +4,15 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.19.1] — 2026-11-20
+### Documentation
+- **kb**: Device link-time optimisation and nvlink split compilation, measured
+
+
+### Fixed
+- **build**: No carriage return in a dependon's include and library paths
+
+
 ## [3.19.0] — 2026-11-17
 ### Added
 - **build**: --timings, every compile and link measured
