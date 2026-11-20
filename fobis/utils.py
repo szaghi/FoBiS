@@ -308,6 +308,8 @@ def dependency_hiearchy(builder, pfiles, print_w=None, force_compile=False):
     force_compile : {False}
       flag for forcing (re-)compiling of all dependency
     """
+    from .ParsedFile import ParsedFile
+
     if print_w is None:
         print_wm = print_fake
     else:
@@ -324,6 +326,7 @@ def dependency_hiearchy(builder, pfiles, print_w=None, force_compile=False):
                 modules[module_name.lower()] = fnum
     external_mods: set[str] = set()
     walked: list[str] = []
+    pending_includes = []
     # direct dependencies list used after for building indirect (complete) dependencies list
     for parsed_file in pfiles:
         parsed_file.pfile_dep = []
@@ -376,9 +379,7 @@ def dependency_hiearchy(builder, pfiles, print_w=None, force_compile=False):
                     if pfiles[fnum] not in parsed_file.pfile_dep:
                         parsed_file.pfile_dep.append(pfiles[fnum])
                 else:
-                    # outside the sources (an include directory, a library's headers): the preprocessor found it, so
-                    # it is no unresolved dependency; its include directory is already among the flags
-                    dep.external = True
+                    pending_includes.append((parsed_file, dep))
                 continue
             if dep.type == "include":
                 dep.file, fnum = include_is_in(pfiles=pfiles, include=dep.name)
@@ -396,10 +397,32 @@ def dependency_hiearchy(builder, pfiles, print_w=None, force_compile=False):
                         if directory not in builder.dinc:
                             builder.dinc.append(directory)
                 else:
-                    print_wm(
-                        "warning: the file '" + parsed_file.name + "' depends on '" + dep.name + "' that is unreachable"
-                    )
-                    # sys.exit(1)
+                    pending_includes.append((parsed_file, dep))
+
+    # Look up external includes after collecting the include directories contributed by project files.
+    # Add them as include-only leaves so the existing mtime checks see them without compiling them.
+    external_includes = {}
+    for parsed_file, dep in pending_includes:
+        candidates = (
+            [dep.name]
+            if dep.located
+            else [os.path.join(directory, dep.name) for directory in [os.path.dirname(parsed_file.name), *builder.dinc]]
+        )
+        path = next((candidate for candidate in candidates if os.path.isfile(candidate)), "")
+        if not path:
+            print_wm("warning: the file '" + parsed_file.name + "' depends on '" + dep.name + "' that is unreachable")
+            continue
+        if path not in external_includes:
+            header = ParsedFile(name=path, include=True)
+            header.dependencies = []
+            header.pfile_dep = []
+            header.create_pfile_dep_all()
+            external_includes[path] = header
+        dep.file = path
+        dep.external = True
+        header = external_includes[path]
+        if header not in parsed_file.pfile_dep:
+            parsed_file.pfile_dep.append(header)
     cycles = dependency_cycles(pfiles)
     if cycles:
         for cycle in cycles:

@@ -105,17 +105,26 @@ def test_an_include_under_an_inactive_if_is_no_dependency(project, capsys):
     assert code == 0 and "Nothing to compile" in out, out
 
 
-def test_a_header_outside_the_sources_is_no_unresolved_dependency(project, capsys):
+@pytest.mark.parametrize("directive", ["#include", "include"], ids=["cpp", "fortran"])
+@pytest.mark.parametrize("build_args", [(), ("--interface-cutoff",)], ids=["default", "interface-cutoff"])
+def test_an_edited_header_outside_the_sources_rebuilds_its_includer(project, capsys, directive, build_args):
     vendor = project.parent / (project.name + "-vendor")
     vendor.mkdir()
-    (vendor / "answer.h").write_text("integer, parameter :: answer = 42\n")
-    (project / "src" / "m.F90").write_text('module m\nimplicit none\n#include "answer.h"\nend module m\n')
+    header = vendor / "answer.h"
+    header.write_text("integer, parameter :: answer = 42\n")
+    (project / "src" / "m.F90").write_text(f'module m\nimplicit none\n{directive} "answer.h"\nend module m\n')
     (project / "src" / "p.F90").write_text("program p\nuse m\nimplicit none\nprint '(I0)', answer\nend program p\n")
     (project / "fobos").write_text(FOBOS + f"include = {vendor}\n")
-    code, out, err = _fobis(capsys, "build")
+    code, out, _ = _fobis(capsys, "build", *build_args)
     assert code == 0, out
-    assert "unreachable" not in out + err
     assert _run(project) == "42"
+    code, out, _ = _fobis(capsys, "build", *build_args)
+    assert code == 0 and "Nothing to compile" in out, out
+    _edit(header, "integer, parameter :: answer = 43\n", project / "build" / "obj" / "p.o")
+    code, out, err = _fobis(capsys, "build", *build_args)
+    assert code == 0 and "Compiling src/m.F90" in out, out + err
+    assert "unreachable" not in out + err
+    assert _run(project) == "43"
     code, out, _ = _fobis(capsys, "check", "--json")
     data = json.loads(out)
     assert code == 0 and data["unresolved"] == [], data
