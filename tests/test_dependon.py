@@ -80,3 +80,32 @@ def test_a_dependon_path_is_relative_to_its_fobos(projects, tmp_path):
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert (lib / "build" / "libm.a").is_file() and (app / "p").is_file()
+
+
+def test_dependon_paths_take_no_carriage_return(monkeypatch, tmp_path):
+    """On Windows the dependency's ``fobis rule --get`` answers end in ``\\r\\n``: stripping only ``\\n`` left a
+    carriage return in the include path (``lib\\r/mod``), which split gfortran's arguments into a stray ``/mod``
+    (appelbe's GUI on MSYS2, 2026-11-20). The answers are stripped of all white space."""
+    import argparse
+
+    from fobis import FoBiSConfig as config_module
+
+    answers = {"build_dir": (0, "lib\r\n"), "mod_dir": (0, "\r\n"), "--get-output-name": (0, "lib/libfigure.a\r\n")}
+
+    def fake_syswork(cmd):
+        if "build" in cmd and "rule" not in cmd:
+            return 0, ""
+        return answers[cmd[-1]]
+
+    monkeypatch.setattr(config_module, "syswork", fake_syswork)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "dep").mkdir()
+    captured = []
+    config = config_module.FoBiSConfig.__new__(config_module.FoBiSConfig)
+    config.cliargs = argparse.Namespace(which="build", lmodes=False, dependon=["dep/fobos:static"], quiet=True)
+    config.print_b = lambda *args, **kwargs: None
+    config._add_auxiliary_paths = captured.extend
+    config._check_interdependent_fobos()
+    build_dir, mod_dir, (library, _) = captured[0]
+    assert "\r" not in build_dir + mod_dir + library
+    assert mod_dir == os.path.normpath("dep/lib/mod") and library == os.path.normpath("dep/lib/libfigure.a")

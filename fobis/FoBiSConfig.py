@@ -523,13 +523,13 @@ class FoBiSConfig:
                     if result[0] != 0:
                         sys.exit(result[0])
                     # a mode that does not set them uses build's defaults: before, the include path missed the mod/
-                    build_dir = dbld[1].strip("\n") or "./"
-                    mod_dir = dmod[1].strip("\n") or "./mod/"
+                    build_dir = dbld[1].strip() or "./"
+                    mod_dir = dmod[1].strip() or "./mod/"
                     add_paths.append(
                         [
                             os.path.normpath(os.path.join(fobos_path, build_dir)),
                             os.path.normpath(os.path.join(fobos_path, build_dir, mod_dir)),
-                            [os.path.normpath(os.path.join(fobos_path, output[1].strip("\n"))), linking],
+                            [os.path.normpath(os.path.join(fobos_path, output[1].strip())), linking],
                         ]
                     )
                 self._add_auxiliary_paths(add_paths)
