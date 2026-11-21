@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Run the project test suite.
 #
-# Usage: run_tests.sh [--np N] [--vmem KB]
+# Usage: run_tests.sh [--np N] [--vmem KB] [--exe-dir DIR]
 #   -n, --np N     Ranks for MPI tests (default: 2).
 #   -m, --vmem KB  Cap the virtual memory of every test at KB kilobytes (`ulimit -v`), so that a test
 #                  exhausting the memory fails instead of swamping the machine (default: no cap). MPI
 #                  runtimes reserve much virtual memory: give MPI tests a generous cap.
+#   -e, --exe-dir DIR  Directory of the test binaries (default: exe).
 #
 # Execution by binary name:
 #   exe/*mpi*     — MPI test: run under `mpirun -np N` (N from --np, default 2).
@@ -31,10 +32,12 @@
 
 NP=2
 VMEM=''
+EXE=exe
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --np | -n ) NP="$2"; shift 2 ;;
     --vmem | -m ) VMEM="$2"; shift 2 ;;
+    --exe-dir | -e ) EXE="${2%/}"; shift 2 ;;
     * ) printf "Unknown argument: %s\n" "$1" >&2; exit 2 ;;
   esac
 done
@@ -62,10 +65,10 @@ results=$(mktemp)
 trap 'rm -f "$tmpout" "$results"' EXIT
 
 # The expected results of the project: every <name>.result outside the build directory.
-find . -path ./exe -prune -o -type f -name '*.result' -print > "$results"
+find . -path "./$EXE" -prune -o -type f -name '*.result' -print > "$results"
 
 shopt -s nullglob
-for exe in exe/*; do
+for exe in "$EXE"/*; do
   [[ -f "$exe" && -x "$exe" ]] || continue
   name=$(basename "$exe")
 
