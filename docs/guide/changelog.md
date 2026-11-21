@@ -4,6 +4,11 @@ All notable changes to FoBiS.py are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.19.2] — 2026-11-21
+### Added
+- **scaffold**: Run the tests of any build directory in run_tests.sh
+
+
 ## [3.19.1] — 2026-11-20
 ### Documentation
 - **kb**: Device link-time optimisation and nvlink split compilation, measured
